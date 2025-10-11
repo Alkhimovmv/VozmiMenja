@@ -2,10 +2,10 @@ import { useState, useEffect } from 'react'
 import { useEquipment } from '../hooks/useEquipment'
 import EquipmentGrid from '../components/equipment/EquipmentGrid'
 import SEO from '../components/SEO'
-import { Check, Star, Clock, Shield, Truck, Phone, Camera, Video, Zap } from 'lucide-react'
+import { Check, Clock, Phone, Camera, Video, Zap } from 'lucide-react'
 
 export default function CategoryCamerasPage() {
-  const [page, setPage] = useState(1)
+  const [page] = useState(1)
   const category = 'Камеры'
 
   const { data, isLoading, error } = useEquipment({

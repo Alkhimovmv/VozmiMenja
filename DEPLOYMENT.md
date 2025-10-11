@@ -73,11 +73,12 @@ nano .env
 # Собрать TypeScript в JavaScript
 npm run build
 
-# Создать директории для логов и БД
-mkdir -p logs uploads
+# Создать директорию для логов
+mkdir -p logs
 
-# Запустить seed для создания БД и добавления оборудования
-npm run seed
+# База данных и изображения уже есть в git
+# Если нужно пересоздать БД, запустите:
+# npm run seed
 
 # Запустить сервер через PM2
 pm2 start ecosystem.config.js

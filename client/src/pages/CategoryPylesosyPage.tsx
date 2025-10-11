@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react'
-import { useSearchParams } from 'react-router-dom'
 import { useEquipment } from '../hooks/useEquipment'
 import EquipmentGrid from '../components/equipment/EquipmentGrid'
 import SEO from '../components/SEO'
@@ -7,8 +6,7 @@ import HowItWorks from '../components/HowItWorks'
 import { Check, Star, Clock, Shield, Truck, Phone } from 'lucide-react'
 
 export default function CategoryPylesosyPage() {
-  const [searchParams] = useSearchParams()
-  const [page, setPage] = useState(1)
+  const [page] = useState(1)
   const category = 'Пылесосы, уборка и клининг'
 
   const { data, isLoading, error } = useEquipment({

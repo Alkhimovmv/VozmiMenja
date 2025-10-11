@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import type { Equipment } from '../../types'
 import { getImageUrl } from '../../lib/utils'
 import BookingForm from './BookingForm'
@@ -9,7 +9,6 @@ interface EquipmentCardProps {
 }
 
 export default function EquipmentCard({ equipment }: EquipmentCardProps) {
-  const navigate = useNavigate()
   const [showBookingForm, setShowBookingForm] = useState(false)
 
   const formatPrice = (price: number) => {

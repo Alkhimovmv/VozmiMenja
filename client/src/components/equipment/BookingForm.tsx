@@ -2,7 +2,7 @@ import { useState } from 'react'
 import toast from 'react-hot-toast'
 import type { Equipment } from '../../types'
 import { useCreateBooking } from '../../hooks/useEquipment'
-import { X, Calendar, Clock, CreditCard } from 'lucide-react'
+import { X, Calendar, CreditCard } from 'lucide-react'
 import { getImageUrl } from '../../lib/utils'
 
 interface BookingFormProps {
@@ -22,7 +22,7 @@ export default function BookingForm({ equipment, onClose }: BookingFormProps) {
 
   const [totalPrice, setTotalPrice] = useState(0)
   const [totalDays, setTotalDays] = useState(0)
-  const [discount, setDiscount] = useState(0)
+  const [, setDiscount] = useState(0)
   const [discountedPricePerDay, setDiscountedPricePerDay] = useState(0)
 
   const createBookingMutation = useCreateBooking()

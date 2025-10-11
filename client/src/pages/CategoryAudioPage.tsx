@@ -5,7 +5,7 @@ import SEO from '../components/SEO'
 import { Check, Mic, Music, Radio, Phone } from 'lucide-react'
 
 export default function CategoryAudioPage() {
-  const [page, setPage] = useState(1)
+  const [page] = useState(1)
   const category = 'Аудиооборудование'
 
   const { data, isLoading, error } = useEquipment({
