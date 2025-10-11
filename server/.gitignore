@@ -4,6 +4,4 @@ dist/
 .env.local
 *.log
 logs/
-database.sqlite
-uploads/
 .DS_Store
