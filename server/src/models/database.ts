@@ -65,6 +65,34 @@ class Database {
     return this.db
   }
 
+  // Helper methods with proper typing
+  async run(sql: string, params: any[] = []): Promise<void> {
+    return new Promise((resolve, reject) => {
+      this.db.run(sql, params, (err) => {
+        if (err) reject(err)
+        else resolve()
+      })
+    })
+  }
+
+  async get(sql: string, params: any[] = []): Promise<any> {
+    return new Promise((resolve, reject) => {
+      this.db.get(sql, params, (err, row) => {
+        if (err) reject(err)
+        else resolve(row)
+      })
+    })
+  }
+
+  async all(sql: string, params: any[] = []): Promise<any[]> {
+    return new Promise((resolve, reject) => {
+      this.db.all(sql, params, (err, rows) => {
+        if (err) reject(err)
+        else resolve(rows || [])
+      })
+    })
+  }
+
   async close(): Promise<void> {
     return new Promise((resolve, reject) => {
       this.db.close((err) => {
@@ -76,3 +104,8 @@ class Database {
 }
 
 export const database = new Database()
+
+// Export helper functions
+export const run = (sql: string, params: any[] = []) => database.run(sql, params)
+export const get = (sql: string, params: any[] = []) => database.get(sql, params)
+export const all = (sql: string, params: any[] = []) => database.all(sql, params)

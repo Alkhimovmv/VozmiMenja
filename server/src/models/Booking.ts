@@ -1,5 +1,4 @@
-import { promisify } from 'util'
-import { database } from './database'
+import { database, run, get, all } from './database'
 import { Equipment } from './Equipment'
 
 export interface Booking {
@@ -21,18 +20,17 @@ export interface CreateBookingData {
   equipmentId: string
   customerName: string
   customerPhone: string
-  customerEmail: string
+  customerEmail?: string
   startDate: string
   endDate: string
   totalPrice: number
+  comment?: string
 }
 
 export class BookingModel {
   private db = database.instance
 
   async findAll(): Promise<Booking[]> {
-    const all = promisify(this.db.all.bind(this.db))
-
     const rows = await all(`
       SELECT
         b.*,
@@ -49,8 +47,6 @@ export class BookingModel {
   }
 
   async findById(id: string): Promise<Booking | null> {
-    const get = promisify(this.db.get.bind(this.db))
-
     const row = await get(`
       SELECT
         b.*,
@@ -67,8 +63,6 @@ export class BookingModel {
   }
 
   async create(data: CreateBookingData & { id: string }): Promise<Booking> {
-    const run = promisify(this.db.run.bind(this.db))
-
     await run(`
       INSERT INTO bookings (
         id, equipment_id, customer_name, customer_phone, customer_email,
@@ -79,7 +73,7 @@ export class BookingModel {
       data.equipmentId,
       data.customerName,
       data.customerPhone,
-      data.customerEmail,
+      data.customerEmail || '',
       data.startDate,
       data.endDate,
       data.totalPrice
@@ -94,8 +88,6 @@ export class BookingModel {
   }
 
   async updateStatus(id: string, status: Booking['status']): Promise<void> {
-    const run = promisify(this.db.run.bind(this.db))
-
     await run(`
       UPDATE bookings
       SET status = ?, updated_at = CURRENT_TIMESTAMP
@@ -109,7 +101,6 @@ export class BookingModel {
     endDate: string,
     excludeBookingId?: string
   ): Promise<Booking[]> {
-    const all = promisify(this.db.all.bind(this.db))
 
     let query = `
       SELECT * FROM bookings

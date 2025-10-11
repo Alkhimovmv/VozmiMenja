@@ -1,8 +1,9 @@
-import { promisify } from 'util'
-import { database } from './database'
+import { database, run, get, all } from './database'
 
 export interface PricingTier {
-  days1_2: number
+  day1_10to20: number
+  day1: number
+  days2: number
   days3: number
   days7: number
   days14: number
@@ -19,7 +20,7 @@ export interface Equipment {
   availableQuantity: number
   images: string[]
   description: string
-  specifications: Record<string, string>
+  specifications: Record<string, string | undefined>
   createdAt: string
   updatedAt: string
 }
@@ -32,7 +33,7 @@ export interface CreateEquipmentData {
   quantity: number
   images: string[]
   description: string
-  specifications: Record<string, string>
+  specifications: Record<string, string | undefined>
 }
 
 export class EquipmentModel {
@@ -61,9 +62,6 @@ export class EquipmentModel {
       params.push(`%${search}%`, `%${search}%`)
     }
 
-    const all = promisify(this.db.all.bind(this.db))
-    const get = promisify(this.db.get.bind(this.db))
-
     const countQuery = `SELECT COUNT(*) as count FROM equipment${whereClause}`
     const countResult = await get(countQuery, params) as { count: number }
 
@@ -85,15 +83,12 @@ export class EquipmentModel {
   }
 
   async findById(id: string): Promise<Equipment | null> {
-    const get = promisify(this.db.get.bind(this.db))
     const row = await get('SELECT * FROM equipment WHERE id = ?', [id]) as any
 
     return row ? this.mapRow(row) : null
   }
 
   async create(data: CreateEquipmentData & { id: string }): Promise<Equipment> {
-    const run = promisify(this.db.run.bind(this.db))
-
     await run(`
       INSERT INTO equipment (
         id, name, category, price_per_day, pricing, quantity, available_quantity,
@@ -121,8 +116,6 @@ export class EquipmentModel {
   }
 
   async update(id: string, data: Partial<CreateEquipmentData>): Promise<Equipment> {
-    const run = promisify(this.db.run.bind(this.db))
-
     const updates: string[] = []
     const values: any[] = []
 
@@ -185,13 +178,10 @@ export class EquipmentModel {
   }
 
   async delete(id: string): Promise<void> {
-    const run = promisify(this.db.run.bind(this.db))
     await run('DELETE FROM equipment WHERE id = ?', [id])
   }
 
   async updateAvailableQuantity(id: string, change: number): Promise<void> {
-    const run = promisify(this.db.run.bind(this.db))
-
     await run(`
       UPDATE equipment
       SET available_quantity = available_quantity + ?,
@@ -201,7 +191,6 @@ export class EquipmentModel {
   }
 
   async getStats(): Promise<{ totalEquipment: number; totalCategories: number }> {
-    const get = promisify(this.db.get.bind(this.db))
 
     const totalResult = await get('SELECT COUNT(*) as count FROM equipment') as { count: number }
     const categoriesResult = await get('SELECT COUNT(DISTINCT category) as count FROM equipment') as { count: number }
@@ -213,8 +202,6 @@ export class EquipmentModel {
   }
 
   async getCategoryCounts(): Promise<Record<string, number>> {
-    const all = promisify(this.db.all.bind(this.db))
-
     const rows = await all(`
       SELECT category, COUNT(*) as count
       FROM equipment

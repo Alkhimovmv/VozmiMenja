@@ -130,7 +130,7 @@ router.post('/', async (req: Request, res: Response) => {
       equipmentName: equipment.name,
       customerName: validatedData.customerName,
       customerPhone: validatedData.customerPhone,
-      customerEmail: validatedData.customerEmail,
+      customerEmail: validatedData.customerEmail || '',
       startDate: validatedData.startDate,
       endDate: validatedData.endDate,
       totalPrice,
