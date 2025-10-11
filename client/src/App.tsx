@@ -1,0 +1,108 @@
+import { Routes, Route, useLocation } from 'react-router-dom'
+import { useEffect, lazy, Suspense } from 'react'
+import { Toaster } from 'react-hot-toast'
+import Layout from './components/layout/Layout'
+import FloatingActions from './components/FloatingActions'
+import HomePage from './pages/HomePage'
+
+// Lazy loading для неосновных страниц
+const EquipmentDetailsPage = lazy(() => import('./pages/EquipmentDetailsPage'))
+const AboutPage = lazy(() => import('./pages/AboutPage'))
+const ContactPage = lazy(() => import('./pages/ContactPage'))
+const DeliveryPage = lazy(() => import('./pages/DeliveryPage'))
+const PrivacyPolicyPage = lazy(() => import('./pages/PrivacyPolicyPage'))
+const TermsOfServicePage = lazy(() => import('./pages/TermsOfServicePage'))
+const FAQPage = lazy(() => import('./pages/FAQPage'))
+const AdminLoginPage = lazy(() => import('./pages/AdminLoginPage'))
+const AdminDashboardPage = lazy(() => import('./pages/AdminDashboardPage'))
+
+// Посадочные страницы категорий
+const CategoryPylesosyPage = lazy(() => import('./pages/CategoryPylesosyPage'))
+const CategoryCamerasPage = lazy(() => import('./pages/CategoryCamerasPage'))
+const CategoryAudioPage = lazy(() => import('./pages/CategoryAudioPage'))
+
+// Компонент загрузки
+const PageLoader = () => (
+  <div className="flex items-center justify-center min-h-screen">
+    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+  </div>
+)
+
+function ScrollToTop() {
+  const { pathname } = useLocation()
+
+  useEffect(() => {
+    window.scrollTo(0, 0)
+  }, [pathname])
+
+  return null
+}
+
+function App() {
+  const location = useLocation()
+  const isAdminRoute = location.pathname.startsWith('/admin')
+
+  return (
+    <>
+      <Toaster
+        position="top-center"
+        toastOptions={{
+          duration: 4000,
+          style: {
+            background: '#363636',
+            color: '#fff',
+            padding: '16px',
+            borderRadius: '8px',
+          },
+          success: {
+            duration: 3000,
+            iconTheme: {
+              primary: '#10b981',
+              secondary: '#fff',
+            },
+          },
+          error: {
+            duration: 4000,
+            iconTheme: {
+              primary: '#ef4444',
+              secondary: '#fff',
+            },
+          },
+        }}
+      />
+      <ScrollToTop />
+      {!isAdminRoute && <FloatingActions />}
+      <Suspense fallback={<PageLoader />}>
+        <Routes>
+          {/* Admin routes without layout */}
+          <Route path="/admin/login" element={<AdminLoginPage />} />
+          <Route path="/admin/dashboard" element={<AdminDashboardPage />} />
+
+          {/* Public routes with layout */}
+          <Route path="/*" element={
+            <Layout>
+              <Routes>
+                <Route path="/" element={<HomePage />} />
+                <Route path="/equipment/:id" element={<EquipmentDetailsPage />} />
+
+                {/* Посадочные страницы категорий */}
+                <Route path="/arenda-pylesosov-moskva" element={<CategoryPylesosyPage />} />
+                <Route path="/arenda-gopro-moskva" element={<CategoryCamerasPage />} />
+                <Route path="/arenda-audiooborudovaniya-moskva" element={<CategoryAudioPage />} />
+
+                <Route path="/about" element={<AboutPage />} />
+                <Route path="/contact" element={<ContactPage />} />
+                <Route path="/delivery" element={<DeliveryPage />} />
+                <Route path="/privacy" element={<PrivacyPolicyPage />} />
+                <Route path="/terms" element={<TermsOfServicePage />} />
+                <Route path="/faq" element={<FAQPage />} />
+              </Routes>
+            </Layout>
+          } />
+        </Routes>
+      </Suspense>
+    </>
+  )
+}
+
+export default App

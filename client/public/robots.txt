@@ -1,0 +1,29 @@
+# Robots.txt для ВозьмиМеня - Аренда оборудования
+
+User-agent: *
+Allow: /
+Allow: /equipment/
+Allow: /about
+Allow: /contact
+Allow: /delivery
+Allow: /faq
+
+# Запретить доступ к админке
+Disallow: /admin/
+Disallow: /api/
+
+# Карта сайта
+Sitemap: https://vozmimenya.ru/sitemap.xml
+
+# Приоритетные страницы для индексации
+Crawl-delay: 1
+
+# Яндекс
+User-agent: Yandex
+Allow: /
+Crawl-delay: 1
+
+# Google
+User-agent: Googlebot
+Allow: /
+Crawl-delay: 1
