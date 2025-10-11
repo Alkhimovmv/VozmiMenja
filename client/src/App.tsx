@@ -5,6 +5,7 @@ import Layout from './components/layout/Layout'
 import FloatingActions from './components/FloatingActions'
 import HomePage from './pages/HomePage'
 
+
 // Lazy loading для неосновных страниц
 const EquipmentDetailsPage = lazy(() => import('./pages/EquipmentDetailsPage'))
 const AboutPage = lazy(() => import('./pages/AboutPage'))
