@@ -2,9 +2,13 @@
 
 ## Архитектура
 
-- **Фронтенд (клиент)**: GitHub Pages (автоматический деплой через GitHub Actions)
-- **Бэкенд (сервер)**: Cloud.ru (87.242.103.146) с использованием nginx и PM2
-- **Домен**: vozmimenya.ru
+- **Фронтенд (клиент)**: GitHub Pages с автоматическим деплоем
+  - Домен: vozmimenya.ru (Custom Domain в GitHub Pages)
+  - SSL: автоматически от GitHub
+- **Бэкенд API**: Cloud.ru (87.242.103.146) с nginx и PM2
+  - Поддомен: api.vozmimenya.ru
+  - SSL: Let's Encrypt
+- **Домен**: куплен на Рег.ру
 
 ---
 
@@ -147,100 +151,100 @@ curl https://vozmimenya.ru/api/equipment
 
 ---
 
-## Часть 2: Деплой фронтенда на GitHub Pages
+## Часть 2: Деплой фронтенда на сервер
 
-### 2.1 Создание GitHub репозитория
+### 2.1 Сборка фронтенда локально
 
 ```bash
 # На локальном компьютере
-cd /home/maxim/VozmiMenja
+cd /home/maxim/VozmiMenja/client
 
-# Инициализировать git (если ещё не сделано)
-git init
+# Собрать production версию
+npm run build
 
-# Добавить все файлы
-git add .
-
-# Создать коммит
-git commit -m "Initial commit: VozmiMenya rental platform"
-
-# Создать репозиторий на GitHub через веб-интерфейс:
-# https://github.com/new
-# Назовите его "VozmiMenja"
-
-# Добавить remote и запушить
-git remote add origin https://github.com/YOUR_USERNAME/VozmiMenja.git
-git branch -M main
-git push -u origin main
+# Проверить, что создалась папка dist
+ls -la dist/
 ```
 
-### 2.2 Настройка GitHub Pages
-
-1. Перейдите в настройки репозитория: `Settings` → `Pages`
-2. В разделе **Source** выберите `GitHub Actions`
-3. GitHub Actions автоматически обнаружит файл `.github/workflows/deploy.yml`
-
-### 2.3 Обновление конфигурации Vite для GitHub Pages
+### 2.2 Копирование фронтенда на сервер
 
 ```bash
-# Откройте vite.config.ts
-nano /home/maxim/VozmiMenja/client/vite.config.ts
+# Скопировать собранный фронтенд на сервер
+scp -r dist/* root@87.242.103.146:/var/www/vozmimenya/client/dist/
+
+# Или через rsync (рекомендуется)
+rsync -avz --delete dist/ root@87.242.103.146:/var/www/vozmimenya/client/dist/
 ```
 
-Добавьте `base` в конфигурацию (если репозиторий называется VozmiMenja):
+### 2.3 Альтернатива: Собрать на сервере
 
-```typescript
-export default defineConfig({
-  plugins: [react()],
-  base: '/VozmiMenja/',  // Добавить эту строку
-  // ... остальная конфигурация
-})
-```
-
-**ВАЖНО:** Если вы хотите использовать GitHub Pages с кастомным доменом (vozmimenya.ru), используйте `base: '/'`
-
-### 2.4 Настройка кастомного домена (vozmimenya.ru)
-
-#### Шаг 1: Создать файл CNAME
+Если не хотите собирать локально, можете собрать прямо на сервере:
 
 ```bash
-# В директории client/public создать файл CNAME
-echo "vozmimenya.ru" > /home/maxim/VozmiMenja/client/public/CNAME
+# На сервере
+cd /var/www/vozmimenya/client
+npm install
+npm run build
+
+# Файлы окажутся в /var/www/vozmimenya/client/dist/
 ```
 
-#### Шаг 2: Настроить DNS записи у регистратора домена
+---
 
-Добавьте следующие записи в DNS вашего домена:
+## Часть 3: Настройка DNS на Рег.ру
 
+1. Войдите в личный кабинет на https://www.reg.ru
+2. Перейдите в раздел **Домены** → выберите **vozmimenya.ru**
+3. Нажмите **Управление зоной** или **Редактировать зону**
+4. Удалите все существующие A-записи для @ (если есть)
+5. Добавьте следующие записи:
+
+**Для основного домена (vozmimenya.ru):**
 ```
-Тип: A
-Имя: @
-Значение: 185.199.108.153
-
-Тип: A
-Имя: @
-Значение: 185.199.109.153
-
-Тип: A
-Имя: @
-Значение: 185.199.110.153
-
-Тип: A
-Имя: @
-Значение: 185.199.111.153
-
-Тип: CNAME
-Имя: www
-Значение: YOUR_USERNAME.github.io
+Тип записи: A
+Субдомен: @ (или оставьте пустым)
+IP-адрес: 87.242.103.146
+TTL: 3600
 ```
 
-#### Шаг 3: Настроить в GitHub Pages
+**Для www поддомена:**
+```
+Тип записи: A
+Субдомен: www
+IP-адрес: 87.242.103.146
+TTL: 3600
+```
 
-1. Перейдите `Settings` → `Pages`
-2. В поле **Custom domain** введите: `vozmimenya.ru`
-3. Нажмите **Save**
-4. Подождите проверки DNS (может занять до 24 часов)
-5. Включите **Enforce HTTPS** после проверки
+**ВАЖНО:** Мы указываем IP вашего сервера Cloud.ru (87.242.103.146), а НЕ GitHub Pages IP!
+
+6. Сохраните изменения
+7. Подождите распространения DNS (обычно 15-30 минут, максимум 24 часа)
+
+**Проверка DNS:**
+```bash
+# На локальном компьютере или на сервере проверьте:
+nslookup vozmimenya.ru
+# Должен показать: 87.242.103.146
+
+ping vozmimenya.ru
+# Должен пинговать 87.242.103.146
+
+# Или онлайн: https://www.whatsmydns.net/#A/vozmimenya.ru
+```
+
+#### Шаг 3: Удалить файл CNAME (не нужен для нашей архитектуры)
+
+Поскольку мы используем ваш сервер Cloud.ru, а не GitHub Pages для домена, удалите CNAME:
+
+```bash
+rm /home/maxim/VozmiMenja/client/public/CNAME
+```
+
+GitHub Pages будет доступен по адресу `YOUR_USERNAME.github.io/VozmiMenja`, но основной сайт будет на `vozmimenya.ru` через ваш сервер.
+
+#### Шаг 4: НЕ настраивайте Custom Domain в GitHub Pages
+
+**ВАЖНО:** Оставьте поле Custom Domain в GitHub Pages пустым! Мы используем другую архитектуру - фронтенд будет собираться на GitHub Pages, но основной домен будет на вашем сервере через nginx.
 
 ### 2.5 Обновить vite.config.ts для кастомного домена
 
