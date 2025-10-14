@@ -11,9 +11,22 @@ SERVER_USER="user1"
 SERVER_HOST="87.242.103.146"
 SERVER_PATH="/var/www/vozmimenya"
 
+# Определить корневую директорию проекта
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+cd "$SCRIPT_DIR"
+
+# Проверка что мы в правильной директории
+if [ ! -f "ecosystem.config.js" ]; then
+    echo -e "${RED}❌ Ошибка: не найден ecosystem.config.js${NC}"
+    echo -e "${RED}   Запустите скрипт из корня проекта VozmiMenja${NC}"
+    exit 1
+fi
+
 echo -e "${BLUE}==================================================${NC}"
 echo -e "${BLUE}  Развёртывание VozmiMenja + RentAdmin на сервер${NC}"
 echo -e "${BLUE}==================================================${NC}"
+echo ""
+echo -e "${BLUE}📁 Рабочая директория: ${SCRIPT_DIR}${NC}"
 echo ""
 
 # Шаг 1: Сборка проектов локально
@@ -22,7 +35,7 @@ echo ""
 
 # VozmiMenja API
 echo -e "${BLUE}🔨 Сборка VozmiMenja API...${NC}"
-cd server
+cd "$SCRIPT_DIR/server"
 npm install --production=false
 npm run build
 if [ $? -ne 0 ]; then
