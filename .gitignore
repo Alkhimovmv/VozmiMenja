@@ -18,11 +18,17 @@ dist/
 .env.test.local
 .env.production.local
 
+# Исключения для production конфигов
+!server/.env.production
+!rentadmin/backend/.env.production
+
 # Logs
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 lerna-debug.log*
+logs/
+*.log
 
 # Runtime data
 pids
@@ -44,9 +50,17 @@ Thumbs.db
 tmp/
 temp/
 
-# Database
+# Database (исключаем dev базы, но включаем production)
 *.db
-*.sqlite
+dev.sqlite3
+!server/database.sqlite
+!rentadmin/backend/*.sqlite3
 
 # Build outputs
 *.tsbuildinfo
+
+# RentAdmin специфичные файлы
+rentadmin/.git/
+rentadmin/.github/
+rentadmin/docker-compose.yml
+rentadmin/*.sh
