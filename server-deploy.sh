@@ -22,7 +22,7 @@ NC='\033[0m' # No Color
 
 # Конфигурация
 PROJECT_DIR="/var/www/vozmimenya"
-GIT_REPO="https://github.com/username/vozmimenya.git"  # Замените на ваш репозиторий
+GIT_REPO="https://github.com/alkhimovmv/vozmimenya.git"  # Замените на ваш репозиторий
 NODE_VERSION="20"  # Версия Node.js
 
 # ================================================================================
