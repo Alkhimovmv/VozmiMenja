@@ -55,6 +55,17 @@ if [ $? -ne 0 ]; then
 fi
 cd ../..
 
+# VozmiMenja Frontend
+echo -e "${BLUE}🔨 Сборка VozmiMenja Frontend...${NC}"
+cd client
+npm install
+npm run build
+if [ $? -ne 0 ]; then
+    echo -e "${RED}❌ Ошибка сборки VozmiMenja Frontend${NC}"
+    exit 1
+fi
+cd ..
+
 # RentAdmin Frontend
 echo -e "${BLUE}🔨 Сборка RentAdmin Frontend...${NC}"
 cd rentadmin/frontend
