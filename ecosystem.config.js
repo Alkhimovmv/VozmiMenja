@@ -10,7 +10,8 @@ module.exports = {
       max_memory_restart: '1G',
       env: {
         NODE_ENV: 'production',
-        PORT: 3003
+        PORT: 3003,
+        FRONTEND_URL: 'https://vozmimenya.ru'
       },
       error_file: './server/logs/err.log',
       out_file: './server/logs/out.log',
@@ -27,7 +28,8 @@ module.exports = {
       max_memory_restart: '1G',
       env: {
         NODE_ENV: 'production',
-        PORT: 3001
+        PORT: 3001,
+        CORS_ORIGIN: 'https://vozmimenya.ru'
       },
       error_file: './rentadmin/backend/logs/err.log',
       out_file: './rentadmin/backend/logs/out.log',
