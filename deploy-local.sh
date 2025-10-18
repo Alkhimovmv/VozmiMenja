@@ -179,7 +179,7 @@ install_project_dependencies() {
         cd ..
     fi
 
-    # VozmiMenja Client (для dev)
+    # VozmiMenja Client (нужны все зависимости для сборки)
     if [ -d "client" ] && [ -f "client/package.json" ]; then
         echo "Установка зависимостей VozmiMenja Client..."
         cd client
@@ -195,7 +195,7 @@ install_project_dependencies() {
         cd ../..
     fi
 
-    # RentAdmin Frontend
+    # RentAdmin Frontend (нужны все зависимости для сборки)
     if [ -d "rentadmin/frontend" ] && [ -f "rentadmin/frontend/package.json" ]; then
         echo "Установка зависимостей RentAdmin Frontend..."
         cd rentadmin/frontend
@@ -280,6 +280,8 @@ build_projects() {
     if [ -d "client" ] && [ -f "client/package.json" ]; then
         echo "Сборка VozmiMenja Frontend..."
         cd client
+        # Установка всех зависимостей (включая dev) для сборки
+        sudo -u $SUDO_USER npm install
         sudo -u $SUDO_USER npm run build
         cd ..
 
