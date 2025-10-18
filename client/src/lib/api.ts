@@ -1,11 +1,16 @@
 import type { Equipment, Booking, BookingRequest, ApiResponse, PaginatedResponse } from '../types'
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api'
-export const API_SERVER_URL = API_BASE_URL.replace('/api', '')
+
+// Извлекаем URL сервера, убирая /api с конца
+export const API_SERVER_URL = API_BASE_URL.endsWith('/api')
+  ? API_BASE_URL.slice(0, -4)  // Убираем последние 4 символа '/api'
+  : API_BASE_URL
 
 console.log('🔧 API_BASE_URL:', API_BASE_URL)
 console.log('🔧 VITE_API_URL:', import.meta.env.VITE_API_URL)
 console.log('🔧 API_SERVER_URL:', API_SERVER_URL)
+console.log('🔧 endsWith(/api):', API_BASE_URL.endsWith('/api'))
 
 class ApiClient {
   private async request<T>(
