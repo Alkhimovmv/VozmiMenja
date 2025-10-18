@@ -6,7 +6,14 @@ const dbPath = path.join(__dirname, '../../database.sqlite')
 
 async function migrate() {
   const db = new sqlite3.Database(dbPath)
-  const run = promisify(db.run.bind(db))
+  const run = (sql: string, params?: any[]): Promise<void> => {
+    return new Promise((resolve, reject) => {
+      db.run(sql, params || [], (err) => {
+        if (err) reject(err)
+        else resolve()
+      })
+    })
+  }
   const all = promisify(db.all.bind(db))
 
   try {
