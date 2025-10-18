@@ -76,12 +76,24 @@ export default function BookingForm({ equipment, onClose }: BookingFormProps) {
     return `+7 (${phone.slice(1, 4)}) ${phone.slice(4, 7)}-${phone.slice(7, 9)}-${phone.slice(9, 11)}`
   }
 
+  const capitalizeWords = (str: string) => {
+    return str
+      .split(' ')
+      .map(word => {
+        if (word.length === 0) return word
+        return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
+      })
+      .join(' ')
+  }
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target
 
     let processedValue = value
     if (name === 'customerPhone') {
       processedValue = formatPhoneNumber(value)
+    } else if (name === 'customerName') {
+      processedValue = capitalizeWords(value)
     }
 
     setFormData(prev => {
@@ -179,42 +191,38 @@ export default function BookingForm({ equipment, onClose }: BookingFormProps) {
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Dates - Unified Period Component */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                <Calendar className="inline w-4 h-4 mr-1" />
-                Период аренды
-              </label>
-              <div className="relative border border-gray-300 rounded-lg p-3 bg-white hover:border-primary-400 focus-within:border-primary-500 focus-within:ring-2 focus-within:ring-primary-500 focus-within:ring-opacity-20 transition-all">
-                <div className="flex items-center gap-3">
-                  <div className="flex-1">
-                    <label className="block text-xs text-gray-500 mb-1 font-medium">С</label>
-                    <input
-                      type="date"
-                      name="startDate"
-                      value={formData.startDate}
-                      onChange={handleInputChange}
-                      min={today}
-                      required
-                      className="w-full px-2 py-1.5 border-0 focus:outline-none focus:ring-0 text-sm"
-                    />
-                  </div>
-                  <div className="flex items-center pt-5">
-                    <div className="w-8 h-0.5 bg-gray-300"></div>
-                  </div>
-                  <div className="flex-1">
-                    <label className="block text-xs text-gray-500 mb-1 font-medium">По</label>
-                    <input
-                      type="date"
-                      name="endDate"
-                      value={formData.endDate}
-                      onChange={handleInputChange}
-                      min={formData.startDate || today}
-                      required
-                      className="w-full px-2 py-1.5 border-0 focus:outline-none focus:ring-0 text-sm"
-                    />
-                  </div>
-                </div>
+            {/* Dates - Separate Fields */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <Calendar className="inline w-4 h-4 mr-1" />
+                  Начало периода *
+                </label>
+                <input
+                  type="date"
+                  name="startDate"
+                  value={formData.startDate}
+                  onChange={handleInputChange}
+                  min={today}
+                  required
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <Calendar className="inline w-4 h-4 mr-1" />
+                  Конец периода *
+                </label>
+                <input
+                  type="date"
+                  name="endDate"
+                  value={formData.endDate}
+                  onChange={handleInputChange}
+                  min={formData.startDate || today}
+                  required
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                />
               </div>
             </div>
 
@@ -251,7 +259,7 @@ export default function BookingForm({ equipment, onClose }: BookingFormProps) {
                   name="customerName"
                   value={formData.customerName}
                   onChange={handleInputChange}
-                  placeholder="Иван Иванов"
+                  placeholder="Имя Фамилия"
                   required
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 />
