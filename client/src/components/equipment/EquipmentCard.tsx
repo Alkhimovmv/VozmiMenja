@@ -42,14 +42,12 @@ export default function EquipmentCard({ equipment }: EquipmentCardProps) {
         {/* Кликабельная область - изображение и информация */}
         <Link to={`/equipment/${equipment.id}`} className="block">
           {/* Image */}
-          <div className="relative bg-white rounded-t-2xl overflow-hidden">
+          <div className="relative bg-gray-50 rounded-t-2xl overflow-hidden aspect-[4/3]">
             <img
               src={getImageUrl(equipment.images[0])}
               alt={`Аренда ${equipment.name} в Москве - ${equipment.category}`}
-              className="w-full h-48 object-contain transform group-hover:scale-105 transition-transform duration-300"
+              className="w-full h-full object-contain transform group-hover:scale-105 transition-transform duration-300"
               loading="lazy"
-              width="400"
-              height="192"
               decoding="async"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>

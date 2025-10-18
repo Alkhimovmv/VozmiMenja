@@ -7,19 +7,12 @@ export const API_SERVER_URL = API_BASE_URL.endsWith('/api')
   ? API_BASE_URL.slice(0, -4)  // Убираем последние 4 символа '/api'
   : API_BASE_URL
 
-console.log('🔧 API_BASE_URL:', API_BASE_URL)
-console.log('🔧 VITE_API_URL:', import.meta.env.VITE_API_URL)
-console.log('🔧 API_SERVER_URL:', API_SERVER_URL)
-console.log('🔧 endsWith(/api):', API_BASE_URL.endsWith('/api'))
-
 class ApiClient {
   private async request<T>(
     endpoint: string,
     options: RequestInit = {}
   ): Promise<T> {
     const url = `${API_BASE_URL}${endpoint}`
-
-    console.log('🔗 API Request:', url)
 
     const config: RequestInit = {
       ...options,
@@ -31,16 +24,11 @@ class ApiClient {
 
     const response = await fetch(url, config)
 
-    console.log('📡 API Response:', response.status, response.statusText)
-
     if (!response.ok) {
-      const errorText = await response.text()
-      console.error('❌ API Error:', errorText)
       throw new Error(`HTTP error! status: ${response.status}`)
     }
 
     const data = await response.json()
-    console.log('✅ API Data:', data)
     return data
   }
 

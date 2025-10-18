@@ -85,7 +85,6 @@ router.post('/equipment', authMiddleware, async (req: Request, res: Response) =>
 router.put('/equipment/:id', authMiddleware, async (req: Request, res: Response) => {
   try {
     const { id } = req.params
-    console.log('Update equipment request body:', JSON.stringify(req.body, null, 2))
     const equipment = await equipmentModel.update(id, req.body)
 
     res.json({
@@ -133,9 +132,6 @@ router.post('/upload', authMiddleware, upload.array('images', 10), async (req: R
     // Возвращаем относительные пути вместо полных URL
     // Frontend сам добавит нужный домен через API_SERVER_URL
     const imageUrls = req.files.map(file => `/uploads/${file.filename}`)
-
-    console.log('✅ Загружено изображений:', imageUrls.length)
-    console.log('📁 Пути:', imageUrls)
 
     res.json({
       success: true,
