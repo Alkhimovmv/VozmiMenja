@@ -13,7 +13,11 @@ YELLOW='\033[1;33m'
 RED='\033[0;31m'
 NC='\033[0m' # No Color
 
-# 1. Сборка проекта
+# 1. Установка недостающих типов
+echo -e "${YELLOW}📦 Установка TypeScript типов...${NC}"
+npm install --save-dev @types/jsonwebtoken @types/cors 2>/dev/null || echo "Типы уже установлены"
+
+# 2. Сборка проекта
 echo -e "${YELLOW}📦 Сборка TypeScript...${NC}"
 npm run build
 
