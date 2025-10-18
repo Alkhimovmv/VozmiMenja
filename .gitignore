@@ -56,6 +56,12 @@ dev.sqlite3
 !server/database.sqlite
 !rentadmin/backend/*.sqlite3
 
+# Uploads (загруженные файлы и изображения)
+server/uploads/
+backups/
+*.backup
+server/database.sqlite.backup*
+
 # Build outputs
 *.tsbuildinfo
 
