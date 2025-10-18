@@ -130,8 +130,12 @@ router.post('/upload', authMiddleware, upload.array('images', 10), async (req: R
       })
     }
 
-    const baseUrl = process.env.API_URL || 'http://localhost:3001'
-    const imageUrls = req.files.map(file => `${baseUrl}/uploads/${file.filename}`)
+    // Возвращаем относительные пути вместо полных URL
+    // Frontend сам добавит нужный домен через API_SERVER_URL
+    const imageUrls = req.files.map(file => `/uploads/${file.filename}`)
+
+    console.log('✅ Загружено изображений:', imageUrls.length)
+    console.log('📁 Пути:', imageUrls)
 
     res.json({
       success: true,

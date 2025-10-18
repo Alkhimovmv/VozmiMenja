@@ -9,28 +9,28 @@ export const getImageUrl = (imagePath: string): string => {
     return '/placeholder-equipment.jpg'
   }
 
-  // Заменяем localhost:3002 на production URL если найден
-  if (imagePath.includes('localhost:3002')) {
-    const url = imagePath.replace('http://localhost:3002', API_SERVER_URL)
-    console.log('🖼️  Replaced localhost:3002, result:', url)
+  // Заменяем localhost URL на относительные пути (для старых данных из БД)
+  let normalizedPath = imagePath
+  if (imagePath.includes('localhost:3002') || imagePath.includes('localhost:3001')) {
+    normalizedPath = imagePath.replace(/http:\/\/localhost:\d+/, '')
+    console.log('🖼️  Normalized localhost URL to:', normalizedPath)
+  }
+
+  // Если уже полный URL (не localhost)
+  if (normalizedPath.startsWith('http://') || normalizedPath.startsWith('https://')) {
+    console.log('🖼️  Full URL detected:', normalizedPath)
+    return normalizedPath
+  }
+
+  // Если путь начинается с /uploads (стандартный случай)
+  if (normalizedPath.startsWith('/uploads')) {
+    const url = `${API_SERVER_URL}${normalizedPath}`
+    console.log('🖼️  Final URL:', url)
     return url
   }
 
-  // Если уже полный URL
-  if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
-    console.log('🖼️  Full URL detected:', imagePath)
-    return imagePath
-  }
-
-  // Если путь начинается с /uploads
-  if (imagePath.startsWith('/uploads')) {
-    const url = `${API_SERVER_URL}${imagePath}`
-    console.log('🖼️  /uploads path, result:', url)
-    return url
-  }
-
-  // Если просто имя файла
-  const url = `${API_SERVER_URL}/uploads/${imagePath}`
-  console.log('🖼️  Filename only, result:', url)
+  // Если просто имя файла (legacy)
+  const url = `${API_SERVER_URL}/uploads/${normalizedPath}`
+  console.log('🖼️  Legacy filename, final URL:', url)
   return url
 }
