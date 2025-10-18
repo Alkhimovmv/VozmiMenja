@@ -276,6 +276,24 @@ build_projects() {
         print_success "RentAdmin Backend собран"
     fi
 
+    # VozmiMenja Frontend
+    if [ -d "client" ] && [ -f "client/package.json" ]; then
+        echo "Сборка VozmiMenja Frontend..."
+        cd client
+        sudo -u $SUDO_USER npm run build
+        cd ..
+
+        # Копирование собранного frontend в директорию nginx
+        if [ -d "client/dist" ]; then
+            echo "Копирование VozmiMenja Frontend в /var/www/html/vozmimenya.ru..."
+            mkdir -p /var/www/html/vozmimenya.ru
+            rm -rf /var/www/html/vozmimenya.ru/*
+            cp -r client/dist/* /var/www/html/vozmimenya.ru/
+            chown -R www-data:www-data /var/www/html/vozmimenya.ru
+            print_success "VozmiMenja Frontend развернут в /var/www/html/vozmimenya.ru"
+        fi
+    fi
+
     # RentAdmin Frontend
     if [ -d "rentadmin/frontend" ] && [ -f "rentadmin/frontend/package.json" ]; then
         echo "Сборка RentAdmin Frontend..."
