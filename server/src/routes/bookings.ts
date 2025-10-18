@@ -125,17 +125,25 @@ router.post('/', async (req: Request, res: Response) => {
       totalPrice
     })
 
-    // Отправляем уведомление в Telegram
-    await telegramService.sendBookingNotification({
-      equipmentName: equipment.name,
-      customerName: validatedData.customerName,
-      customerPhone: validatedData.customerPhone,
-      customerEmail: validatedData.customerEmail || '',
-      startDate: validatedData.startDate,
-      endDate: validatedData.endDate,
-      totalPrice,
-      comment: validatedData.comment
-    })
+    console.log('✅ Бронирование создано:', bookingId)
+    console.log('📤 Отправка уведомления в Telegram...')
+
+    // Отправляем уведомление в Telegram (не прерываем процесс при ошибке)
+    try {
+      await telegramService.sendBookingNotification({
+        equipmentName: equipment.name,
+        customerName: validatedData.customerName,
+        customerPhone: validatedData.customerPhone,
+        customerEmail: validatedData.customerEmail || '',
+        startDate: validatedData.startDate,
+        endDate: validatedData.endDate,
+        totalPrice,
+        comment: validatedData.comment
+      })
+      console.log('✅ Уведомление в Telegram отправлено')
+    } catch (telegramError) {
+      console.error('❌ Ошибка отправки в Telegram (бронирование сохранено):', telegramError)
+    }
 
     res.status(201).json({
       success: true,
