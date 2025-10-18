@@ -36,7 +36,7 @@ module.exports = {
     },
     useNullAsDefault: true,
     migrations: {
-      directory: './dist/migrations',
+      directory: './src/migrations',
     }
   }
 };
@@ -64,9 +64,16 @@ else
 fi
 
 echo ""
+echo -e "${BLUE}💾 Добавление начальных данных (опционально)...${NC}"
+npx knex seed:run || echo "Нет seed-файлов или ошибка"
+
+echo ""
 echo -e "${BLUE}📋 Следующие шаги:${NC}"
 echo "1. Перезапустите RentAdmin API:"
 echo "   pm2 restart rentadmin-api"
 echo ""
 echo "2. Проверьте логи:"
 echo "   pm2 logs rentadmin-api"
+echo ""
+echo "3. Проверьте статус:"
+echo "   pm2 status"
