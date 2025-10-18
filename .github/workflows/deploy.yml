@@ -33,12 +33,13 @@ jobs:
       - name: Install dependencies
         run: cd client && npm ci
 
+      - name: Create production env file
+        working-directory: ./client
+        run: echo "VITE_API_URL=https://api.vozmimenya.ru/api" > .env.production
+
       - name: Build
         working-directory: ./client
         run: npm run build
-        env:
-          NODE_ENV: production
-          VITE_API_URL: https://api.vozmimenya.ru/api
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
