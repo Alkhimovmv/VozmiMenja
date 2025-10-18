@@ -13,7 +13,7 @@
     "seed": "tsx src/scripts/seed.ts",
     "reset-db": "tsx src/scripts/reset-db.ts",
     "migrate": "tsx src/scripts/migrate-pricing.ts",
-    "migrate:images": "tsx src/scripts/migrate-image-urls.ts"
+    "migrate:images": "node src/scripts/migrate-image-urls.js"
   },
   "dependencies": {
     "@types/multer": "^2.0.0",

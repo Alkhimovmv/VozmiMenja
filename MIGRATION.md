@@ -29,6 +29,15 @@ cd server
 npm run migrate:images
 ```
 
+### Вариант 3: Напрямую через node
+
+Если на сервере не установлены dev-зависимости (tsx):
+
+```bash
+cd server
+node src/scripts/migrate-image-urls.js
+```
+
 ## Что делает миграция
 
 1. Читает все записи из таблицы `equipment`
