@@ -230,8 +230,8 @@ const RentalModal: React.FC<RentalModalProps> = ({
           </h3>
 
           <form onSubmit={handleSubmit} className="flex-1 flex flex-col">
-            <div className="flex-1">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="flex-1 space-y-0">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
               <div className="md:col-span-2">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Оборудование (можно выбрать несколько)

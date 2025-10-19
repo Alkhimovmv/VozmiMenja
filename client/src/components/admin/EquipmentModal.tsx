@@ -88,8 +88,8 @@ const EquipmentModal: React.FC<EquipmentModalProps> = ({
           </h3>
 
           <form onSubmit={handleSubmit} className="flex-1 flex flex-col">
-            <div className="flex-1">
-            <div>
+            <div className="flex-1 space-y-0">
+            <div className="mb-4">
               <label className="block text-sm font-medium text-gray-700">
                 Название оборудования
               </label>
@@ -116,7 +116,7 @@ const EquipmentModal: React.FC<EquipmentModalProps> = ({
               )}
             </div>
 
-            <div>
+            <div className="mb-4">
               <label className="block text-sm font-medium text-gray-700">
                 Количество
               </label>
@@ -130,7 +130,7 @@ const EquipmentModal: React.FC<EquipmentModalProps> = ({
               />
             </div>
 
-            <div>
+            <div className="mb-4">
               <label className="block text-sm font-medium text-gray-700">
                 Цена оборудования (₽)
               </label>
