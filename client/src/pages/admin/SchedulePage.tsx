@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useAuthenticatedQuery } from '../../hooks/useAuthenticatedQuery';
 import { rentalsApi } from '../../api/admin/rentals';
 import { equipmentApi } from '../../api/admin/equipment';
@@ -16,7 +16,8 @@ interface EquipmentInstance {
 
 const SchedulePage: React.FC = () => {
   const [selectedDate, setSelectedDate] = useState(new Date());
-  const [isInitialLoad, setIsInitialLoad] = useState(true);
+  const isInitialLoadRef = useRef(true);
+  const prevWeekStartRef = useRef<Date | null>(null);
   const [tooltip, setTooltip] = useState<{
     visible: boolean;
     x: number;
@@ -161,6 +162,44 @@ const SchedulePage: React.FC = () => {
     return conflicts;
   }, [rentals]);
 
+  // Функция для скролла к текущему времени
+  const scrollToCurrentTime = () => {
+    const contentScroll = document.getElementById('content-scroll');
+    if (!contentScroll) return;
+
+    setTimeout(() => {
+      const now = new Date();
+      const currentWeekStart = startOfWeek(now, { locale: ru });
+      const currentWeekEnd = endOfWeek(now, { locale: ru });
+
+      // Проверяем, находится ли текущая дата в видимой неделе
+      const isCurrentWeekVisible = now >= currentWeekStart && now <= currentWeekEnd;
+
+      if (isCurrentWeekVisible) {
+        const daysFromWeekStart = Math.floor((now.getTime() - currentWeekStart.getTime()) / (1000 * 60 * 60 * 24));
+        const currentHour = now.getHours();
+
+        const dayHeaderHeight = window.innerWidth >= 1024 ? 56 : 48;
+        const hourRowHeight = window.innerWidth >= 1024 ? 32 : 24;
+
+        const scrollPosition =
+          daysFromWeekStart * (dayHeaderHeight + 24 * hourRowHeight) +
+          dayHeaderHeight +
+          currentHour * hourRowHeight;
+
+        const containerHeight = contentScroll.clientHeight;
+        const targetScroll = Math.max(0, scrollPosition - containerHeight / 3);
+
+        requestAnimationFrame(() => {
+          contentScroll.scrollTop = targetScroll;
+          console.log('📍 Scrolled to current time:', targetScroll);
+        });
+      } else {
+        contentScroll.scrollTop = 0;
+      }
+    }, 100);
+  };
+
   const goToPreviousWeek = () => {
     setSelectedDate(prevDate => addDays(prevDate, -7));
   };
@@ -171,6 +210,10 @@ const SchedulePage: React.FC = () => {
 
   const goToToday = () => {
     setSelectedDate(new Date());
+    // Скроллим к текущему времени после небольшой задержки (чтобы DOM обновился)
+    setTimeout(() => {
+      scrollToCurrentTime();
+    }, 200);
   };
 
   const showTooltip = (e: React.MouseEvent, rental: Rental, conflictingRentalsForSlot: Rental[]) => {
@@ -315,7 +358,8 @@ const SchedulePage: React.FC = () => {
               maxScroll: contentScroll.scrollHeight - contentScroll.clientHeight
             });
             // Помечаем, что начальная загрузка завершена
-            setIsInitialLoad(false);
+            isInitialLoadRef.current = false;
+            console.log('✅ Initial load complete, flag set to false');
           });
         });
       } else {
@@ -323,7 +367,8 @@ const SchedulePage: React.FC = () => {
         contentScroll.scrollTop = 0;
         console.log('📍 Scrolled to top (not current week)');
         // Помечаем, что начальная загрузка завершена
-        setIsInitialLoad(false);
+        isInitialLoadRef.current = false;
+        console.log('✅ Initial load complete, flag set to false');
       }
     }, 800);
 
@@ -332,12 +377,23 @@ const SchedulePage: React.FC = () => {
 
   // Скролл в начало при смене недели (НО НЕ при первой загрузке)
   useEffect(() => {
-    if (!isInitialLoad) {
+    console.log('🔄 Week changed, isInitialLoad:', isInitialLoadRef.current, 'prevWeek:', prevWeekStartRef.current);
+
+    // Если это первый рендер (prevWeekStartRef.current === null), просто сохраняем текущую неделю
+    if (prevWeekStartRef.current === null) {
+      prevWeekStartRef.current = weekStart;
+      console.log('⏭️ First render, saving week start');
+      return;
+    }
+
+    // Если неделя действительно изменилась (не первый рендер)
+    if (prevWeekStartRef.current.getTime() !== weekStart.getTime()) {
       const contentScroll = document.getElementById('content-scroll');
       if (contentScroll) {
         contentScroll.scrollTop = 0;
         console.log('📍 Scrolled to top (week changed)');
       }
+      prevWeekStartRef.current = weekStart;
     }
   }, [weekStart, weekEnd]); // Срабатывает при смене недели
 
