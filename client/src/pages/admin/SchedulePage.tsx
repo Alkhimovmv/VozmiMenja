@@ -215,25 +215,26 @@ const SchedulePage: React.FC = () => {
     // Небольшая задержка, чтобы контент успел отрендериться
     const timer = setTimeout(() => {
       const now = new Date();
-      const currentHour = now.getHours();
-      const currentDay = now.getDay();
 
       // Проверяем, находится ли текущая дата в видимой неделе
-      const currentDate = new Date();
-      const isCurrentWeekVisible = currentDate >= weekStart && currentDate <= weekEnd;
+      const isCurrentWeekVisible = now >= weekStart && now <= weekEnd;
 
       if (isCurrentWeekVisible) {
-        // Ширина одной ячейки (день + час) = 80px (можно настроить)
-        const cellWidth = 80;
-        // Позиция текущего часа: день * 24 часа + текущий час
-        const dayOfWeek = (currentDay + 6) % 7; // Конвертируем воскресенье=0 в понедельник=0
-        const scrollPosition = (dayOfWeek * 24 + currentHour) * cellWidth;
+        // Вычисляем количество дней от начала недели до текущего дня
+        const daysFromWeekStart = Math.floor((now.getTime() - weekStart.getTime()) / (1000 * 60 * 60 * 24));
+        const currentHour = now.getHours();
+
+        // Ширина одной ячейки в desktop режиме = 112px (w-28)
+        const cellWidth = window.innerWidth >= 1024 ? 112 : 80;
+
+        // Позиция текущего часа: дни * 24 часа + текущий час
+        const scrollPosition = (daysFromWeekStart * 24 + currentHour) * cellWidth;
 
         // Прокручиваем так, чтобы текущий час был примерно по центру
         const containerWidth = contentScroll.clientWidth;
         contentScroll.scrollLeft = scrollPosition - containerWidth / 3;
       }
-    }, 100);
+    }, 300); // Увеличиваем задержку для надежности
 
     return () => clearTimeout(timer);
   }, [weekStart, weekEnd]); // Перезапускаем при смене недели
@@ -280,7 +281,7 @@ const SchedulePage: React.FC = () => {
   return (
     <div className="space-y-4 w-full h-full flex flex-col" style={{ height: 'calc(100vh - 4rem)' }}>
       <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center space-y-4 lg:space-y-0">
-        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center sm:gap-6">
           <h1 className="text-2xl lg:text-3xl font-bold text-gray-900">График аренд</h1>
           <div className="text-sm lg:text-lg font-medium text-gray-700 mt-2 sm:mt-0">
             {format(weekStart, 'dd MMMM', { locale: ru })} - {format(weekEnd, 'dd MMMM yyyy', { locale: ru })}
