@@ -34,7 +34,7 @@ echo -e "${GREEN}📦 Шаг 1: Сборка проектов локально${
 echo ""
 
 # VozmiMenja API
-echo -e "${BLUE}🔨 Сборка VozmiMenja API...${NC}"
+echo -e "${BLUE}🔨 Сборка VozmiMenja API (включая интегрированную админку)...${NC}"
 cd "$SCRIPT_DIR/server"
 npm install --production=false
 npm run build
@@ -43,17 +43,6 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 cd ..
-
-# RentAdmin API
-echo -e "${BLUE}🔨 Сборка RentAdmin API...${NC}"
-cd rentadmin/backend
-npm install --production=false
-npm run build
-if [ $? -ne 0 ]; then
-    echo -e "${RED}❌ Ошибка сборки RentAdmin API${NC}"
-    exit 1
-fi
-cd ../..
 
 # VozmiMenja Frontend
 echo -e "${BLUE}🔨 Сборка VozmiMenja Frontend...${NC}"
@@ -65,17 +54,6 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 cd ..
-
-# RentAdmin Frontend
-echo -e "${BLUE}🔨 Сборка RentAdmin Frontend...${NC}"
-cd rentadmin/frontend
-npm install
-npm run build
-if [ $? -ne 0 ]; then
-    echo -e "${RED}❌ Ошибка сборки RentAdmin Frontend${NC}"
-    exit 1
-fi
-cd ../..
 
 echo -e "${GREEN}✅ Все проекты собраны успешно${NC}"
 echo ""
@@ -92,12 +70,6 @@ mkdir -p backups
 if [ -f server/database.sqlite ]; then
     echo "Бэкап VozmiMenja database.sqlite..."
     cp server/database.sqlite backups/vozmimenya-db-$(date +%Y%m%d-%H%M%S).sqlite
-fi
-
-# Бэкап базы данных RentAdmin
-if [ -f rentadmin/backend/database.sqlite3 ]; then
-    echo "Бэкап RentAdmin database.sqlite3..."
-    cp rentadmin/backend/database.sqlite3 backups/rentadmin-db-$(date +%Y%m%d-%H%M%S).sqlite3
 fi
 
 # Бэкап загруженных файлов VozmiMenja
@@ -122,14 +94,12 @@ echo ""
 rsync -avz --progress \
   --exclude 'node_modules' \
   --exclude '.git' \
-  --exclude 'rentadmin/.git' \
+  --exclude 'rentadmin' \
   --exclude 'logs' \
   --exclude 'backups' \
   --exclude '*.log' \
   --exclude '.env' \
   --exclude 'server/database.sqlite' \
-  --exclude 'rentadmin/backend/database.sqlite3' \
-  --exclude 'rentadmin/backend/*.sqlite3' \
   ./ ${SERVER_USER}@${SERVER_HOST}:${SERVER_PATH}/
 
 if [ $? -ne 0 ]; then
@@ -147,19 +117,12 @@ cd /var/www/vozmimenya
 
 # Создать директории для логов
 mkdir -p server/logs
-mkdir -p rentadmin/backend/logs
 
 # Установить production зависимости для VozmiMenja API
 echo "📦 Установка зависимостей VozmiMenja API..."
 cd server
 npm install --production
 cd ..
-
-# Установить production зависимости для RentAdmin API
-echo "📦 Установка зависимостей RentAdmin API..."
-cd rentadmin/backend
-npm install --production
-cd ../..
 
 # Перезапустить PM2 процессы
 echo "🔄 Перезапуск PM2 процессов..."
