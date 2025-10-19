@@ -207,6 +207,37 @@ const SchedulePage: React.FC = () => {
     setTooltip({ visible: false, x: 0, y: 0, content: null });
   };
 
+  // Прокрутка к текущему времени при загрузке
+  useEffect(() => {
+    const contentScroll = document.getElementById('content-scroll');
+    if (!contentScroll) return;
+
+    // Небольшая задержка, чтобы контент успел отрендериться
+    const timer = setTimeout(() => {
+      const now = new Date();
+      const currentHour = now.getHours();
+      const currentDay = now.getDay();
+
+      // Проверяем, находится ли текущая дата в видимой неделе
+      const currentDate = new Date();
+      const isCurrentWeekVisible = currentDate >= weekStart && currentDate <= weekEnd;
+
+      if (isCurrentWeekVisible) {
+        // Ширина одной ячейки (день + час) = 80px (можно настроить)
+        const cellWidth = 80;
+        // Позиция текущего часа: день * 24 часа + текущий час
+        const dayOfWeek = (currentDay + 6) % 7; // Конвертируем воскресенье=0 в понедельник=0
+        const scrollPosition = (dayOfWeek * 24 + currentHour) * cellWidth;
+
+        // Прокручиваем так, чтобы текущий час был примерно по центру
+        const containerWidth = contentScroll.clientWidth;
+        contentScroll.scrollLeft = scrollPosition - containerWidth / 3;
+      }
+    }, 100);
+
+    return () => clearTimeout(timer);
+  }, [weekStart, weekEnd]); // Перезапускаем при смене недели
+
   // Синхронизация скроллов
   useEffect(() => {
     const topScrollbar = document.getElementById('top-scrollbar');
