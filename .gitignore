@@ -50,10 +50,12 @@ Thumbs.db
 tmp/
 temp/
 
-# Database (исключаем dev базы, но включаем production)
+# Database (исключаем все базы данных)
 *.db
+*.sqlite
+*.sqlite3
 dev.sqlite3
-!server/database.sqlite
+server/database.sqlite
 !rentadmin/backend/*.sqlite3
 
 # Uploads (загруженные файлы и изображения)
