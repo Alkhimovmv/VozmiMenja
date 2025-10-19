@@ -349,7 +349,7 @@ const SchedulePage: React.FC = () => {
           id="top-scrollbar"
           style={{ scrollbarWidth: 'thin' }}
         >
-          <div style={{ width: `${150 + equipmentInstances.length * 80}px`, height: '1px' }}></div>
+          <div style={{ width: `${150 + equipmentInstances.length * 80 + 200}px`, height: '1px' }}></div>
         </div>
 
         {/* Липкий заголовок */}
@@ -358,7 +358,7 @@ const SchedulePage: React.FC = () => {
             className="overflow-x-auto overflow-y-hidden"
             id="header-scroll"
           >
-            <div style={{ minWidth: `${150 + equipmentInstances.length * 80}px`, width: 'max-content' }}>
+            <div style={{ minWidth: `${150 + equipmentInstances.length * 80 + 200}px`, width: 'max-content' }}>
               <div className="flex">
                 <div className="w-32 lg:w-48 p-2 lg:p-3 bg-gray-50 font-medium text-gray-900 border-r border-gray-200 flex items-center text-xs lg:text-sm">
                   Время / Оборудование
@@ -386,7 +386,7 @@ const SchedulePage: React.FC = () => {
           className="overflow-x-auto overflow-y-auto max-w-full flex-1"
           id="content-scroll"
         >
-          <div style={{ minWidth: `${150 + equipmentInstances.length * 80}px`, width: 'max-content' }}>
+          <div style={{ minWidth: `${150 + equipmentInstances.length * 80 + 200}px`, width: 'max-content' }}>
 
             {/* Строки для каждого дня */}
             {weekDays.map((day) => (
