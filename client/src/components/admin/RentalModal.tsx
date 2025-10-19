@@ -35,6 +35,10 @@ const RentalModal: React.FC<RentalModalProps> = ({
     comment: '',
   });
 
+  // Дополнительное состояние для отслеживания выбранных экземпляров
+  // Формат: Set<"equipmentId:instanceNumber">
+  const [selectedInstances, setSelectedInstances] = useState<Set<string>>(new Set());
+
   const [validationErrors, setValidationErrors] = useState<{
     phone?: string | null;
     dates?: string | null;
@@ -67,6 +71,24 @@ const RentalModal: React.FC<RentalModalProps> = ({
           source: rental.source,
           comment: rental.comment || '',
         });
+
+        // Восстанавливаем selectedInstances из equipment_list
+        if (rental.equipment_list) {
+          const instancesMap = new Map<number, number>(); // equipmentId -> count
+          rental.equipment_list.forEach(eq => {
+            instancesMap.set(eq.id, (instancesMap.get(eq.id) || 0) + 1);
+          });
+
+          const instances = new Set<string>();
+          instancesMap.forEach((count, id) => {
+            for (let i = 1; i <= count; i++) {
+              instances.add(`${id}:${i}`);
+            }
+          });
+          setSelectedInstances(instances);
+        } else {
+          setSelectedInstances(new Set());
+        }
       } else {
         setFormData({
           equipment_id: 0,
@@ -83,6 +105,7 @@ const RentalModal: React.FC<RentalModalProps> = ({
           source: 'авито',
           comment: '',
         });
+        setSelectedInstances(new Set());
       }
       // Очищаем ошибки валидации при открытии
       setValidationErrors({});
@@ -219,15 +242,9 @@ const RentalModal: React.FC<RentalModalProps> = ({
                       const instanceNumber = index + 1;
                       const instanceKey = `${item.id}-${instanceNumber}`;
 
-                      // Создаем уникальный идентификатор для каждого экземпляра: "equipmentId:instanceNumber"
-                      // Храним в formData как строка, которую потом разберем
-                      const currentIds = formData.equipment_ids || [];
-
-                      // Проверяем: сколько экземпляров этого item.id уже выбрано
-                      const selectedInstancesCount = currentIds.filter(id => id === item.id).length;
-
-                      // Этот экземпляр считается выбранным, если количество выбранных >= его номера
-                      const isThisInstanceSelected = selectedInstancesCount >= instanceNumber;
+                      // Уникальный ключ для этого экземпляра
+                      const instanceId = `${item.id}:${instanceNumber}`;
+                      const isThisInstanceSelected = selectedInstances.has(instanceId);
 
                       return (
                         <label key={instanceKey} className="flex items-center space-x-3 hover:bg-gray-50 p-2 rounded cursor-pointer">
@@ -235,32 +252,33 @@ const RentalModal: React.FC<RentalModalProps> = ({
                             type="checkbox"
                             checked={isThisInstanceSelected}
                             onChange={(e) => {
-                              let newIds: number[];
+                              const newSelectedInstances = new Set(selectedInstances);
 
                               if (e.target.checked) {
-                                // При включении: добавляем столько экземпляров, чтобы достичь нужного номера
-                                // Например, если выбрали #3, а было 0, добавим 3 копии ID
-                                const toAdd = instanceNumber - selectedInstancesCount;
-                                newIds = [...currentIds];
-                                for (let i = 0; i < toAdd; i++) {
-                                  newIds.push(item.id);
-                                }
+                                // Добавляем этот конкретный экземпляр
+                                newSelectedInstances.add(instanceId);
                               } else {
-                                // При выключении: оставляем только (instanceNumber - 1) экземпляров
-                                // Например, при снятии галочки с #3, оставим только 2 экземпляра
-                                const otherIds = currentIds.filter(id => id !== item.id);
-                                const thisItemIds = Array(instanceNumber - 1).fill(item.id);
-                                newIds = [...otherIds, ...thisItemIds];
+                                // Удаляем этот конкретный экземпляр
+                                newSelectedInstances.delete(instanceId);
                               }
+
+                              setSelectedInstances(newSelectedInstances);
+
+                              // Преобразуем Set в массив ID для отправки на сервер
+                              const equipmentIdsArray: number[] = [];
+                              newSelectedInstances.forEach(inst => {
+                                const [id] = inst.split(':');
+                                equipmentIdsArray.push(Number(id));
+                              });
 
                               setFormData({
                                 ...formData,
-                                equipment_id: newIds.length > 0 ? newIds[0] : 0,
-                                equipment_ids: newIds
+                                equipment_id: equipmentIdsArray.length > 0 ? equipmentIdsArray[0] : 0,
+                                equipment_ids: equipmentIdsArray
                               });
 
                               // Очищаем ошибку при выборе
-                              if (newIds.length > 0) {
+                              if (equipmentIdsArray.length > 0) {
                                 setValidationErrors(prev => ({ ...prev, equipment: null }));
                               }
                             }}
