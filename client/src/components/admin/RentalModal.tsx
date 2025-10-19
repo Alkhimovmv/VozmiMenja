@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { type Rental, type CreateRentalDto, type Equipment, type RentalSource } from '../types/index';
 import CustomSelect from './CustomSelect';
 
@@ -544,7 +545,7 @@ const RentalModal: React.FC<RentalModalProps> = ({
     </div>
   );
 
-  return modalContent;
+  return createPortal(modalContent, document.body);
 };
 
 export default RentalModal;
