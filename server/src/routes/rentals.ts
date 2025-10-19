@@ -167,6 +167,9 @@ router.put('/:id', authMiddleware, async (req: Request, res: Response) => {
     if (req.body.equipment_id !== undefined || req.body.equipmentId !== undefined) {
       data.equipmentId = req.body.equipment_id || req.body.equipmentId
     }
+    if (req.body.equipment_ids !== undefined || req.body.equipmentIds !== undefined) {
+      data.equipmentIds = req.body.equipment_ids || req.body.equipmentIds
+    }
     if (req.body.start_date !== undefined || req.body.startDate !== undefined) {
       data.startDate = req.body.start_date || req.body.startDate
     }
