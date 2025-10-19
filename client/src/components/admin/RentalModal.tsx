@@ -219,10 +219,15 @@ const RentalModal: React.FC<RentalModalProps> = ({
                       const instanceNumber = index + 1;
                       const instanceKey = `${item.id}-${instanceNumber}`;
 
-                      // Подсчитываем, сколько раз данный ID уже выбран
+                      // Создаем уникальный идентификатор для каждого экземпляра: "equipmentId:instanceNumber"
+                      // Храним в formData как строка, которую потом разберем
                       const currentIds = formData.equipment_ids || [];
-                      const selectedCount = currentIds.filter(id => id === item.id).length;
-                      const isThisInstanceSelected = selectedCount >= instanceNumber;
+
+                      // Проверяем: сколько экземпляров этого item.id уже выбрано
+                      const selectedInstancesCount = currentIds.filter(id => id === item.id).length;
+
+                      // Этот экземпляр считается выбранным, если количество выбранных >= его номера
+                      const isThisInstanceSelected = selectedInstancesCount >= instanceNumber;
 
                       return (
                         <label key={instanceKey} className="flex items-center space-x-3 hover:bg-gray-50 p-2 rounded cursor-pointer">
@@ -233,16 +238,19 @@ const RentalModal: React.FC<RentalModalProps> = ({
                               let newIds: number[];
 
                               if (e.target.checked) {
-                                // Добавляем еще один экземпляр этого оборудования
-                                newIds = [...currentIds, item.id];
-                              } else {
-                                // Убираем один экземпляр этого оборудования (последний)
-                                const lastIndex = currentIds.lastIndexOf(item.id);
-                                if (lastIndex !== -1) {
-                                  newIds = [...currentIds.slice(0, lastIndex), ...currentIds.slice(lastIndex + 1)];
-                                } else {
-                                  newIds = currentIds;
+                                // При включении: добавляем столько экземпляров, чтобы достичь нужного номера
+                                // Например, если выбрали #3, а было 0, добавим 3 копии ID
+                                const toAdd = instanceNumber - selectedInstancesCount;
+                                newIds = [...currentIds];
+                                for (let i = 0; i < toAdd; i++) {
+                                  newIds.push(item.id);
                                 }
+                              } else {
+                                // При выключении: оставляем только (instanceNumber - 1) экземпляров
+                                // Например, при снятии галочки с #3, оставим только 2 экземпляра
+                                const otherIds = currentIds.filter(id => id !== item.id);
+                                const thisItemIds = Array(instanceNumber - 1).fill(item.id);
+                                newIds = [...otherIds, ...thisItemIds];
                               }
 
                               setFormData({
