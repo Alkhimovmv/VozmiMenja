@@ -247,11 +247,15 @@ const RentalsPage: React.FC = () => {
                           // Формируем строку с номерами для каждого типа
                           return Object.entries(equipmentByName)
                             .map(([name, items]) => {
-                              if (items.length > 1) {
-                                // Если несколько однотипных, показываем с номерами
+                              // Находим оборудование в общем списке по имени
+                              const equipmentInfo = equipment.find(e => e.name === name);
+                              const totalQuantity = equipmentInfo?.quantity || 1;
+
+                              // Показываем номера, если у оборудования несколько экземпляров (quantity > 1)
+                              if (totalQuantity > 1) {
                                 return items.map((_, index) => `${name} #${index + 1}`).join(', ');
                               } else {
-                                // Если один, показываем без номера
+                                // Если у оборудования только 1 экземпляр, показываем без номера
                                 return name;
                               }
                             })
