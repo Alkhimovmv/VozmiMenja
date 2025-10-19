@@ -16,6 +16,7 @@ interface EquipmentInstance {
 
 const SchedulePage: React.FC = () => {
   const [selectedDate, setSelectedDate] = useState(new Date());
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
   const [tooltip, setTooltip] = useState<{
     visible: boolean;
     x: number;
@@ -313,23 +314,30 @@ const SchedulePage: React.FC = () => {
               clientHeight: contentScroll.clientHeight,
               maxScroll: contentScroll.scrollHeight - contentScroll.clientHeight
             });
+            // Помечаем, что начальная загрузка завершена
+            setIsInitialLoad(false);
           });
         });
       } else {
         // Если текущая неделя не видна, скроллим в начало
         contentScroll.scrollTop = 0;
         console.log('📍 Scrolled to top (not current week)');
+        // Помечаем, что начальная загрузка завершена
+        setIsInitialLoad(false);
       }
     }, 800);
 
     return () => clearTimeout(timer);
   }, []); // Пустой массив зависимостей - срабатывает только при монтировании
 
-  // Скролл в начало при смене недели
+  // Скролл в начало при смене недели (НО НЕ при первой загрузке)
   useEffect(() => {
-    const contentScroll = document.getElementById('content-scroll');
-    if (contentScroll) {
-      contentScroll.scrollTop = 0;
+    if (!isInitialLoad) {
+      const contentScroll = document.getElementById('content-scroll');
+      if (contentScroll) {
+        contentScroll.scrollTop = 0;
+        console.log('📍 Scrolled to top (week changed)');
+      }
     }
   }, [weekStart, weekEnd]); // Срабатывает при смене недели
 
