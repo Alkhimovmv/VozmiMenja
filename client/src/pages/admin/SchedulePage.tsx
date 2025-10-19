@@ -207,38 +207,6 @@ const SchedulePage: React.FC = () => {
     setTooltip({ visible: false, x: 0, y: 0, content: null });
   };
 
-  // Прокрутка к текущему времени при загрузке
-  useEffect(() => {
-    const contentScroll = document.getElementById('content-scroll');
-    if (!contentScroll) return;
-
-    // Небольшая задержка, чтобы контент успел отрендериться
-    const timer = setTimeout(() => {
-      const now = new Date();
-
-      // Проверяем, находится ли текущая дата в видимой неделе
-      const isCurrentWeekVisible = now >= weekStart && now <= weekEnd;
-
-      if (isCurrentWeekVisible) {
-        // Вычисляем количество дней от начала недели до текущего дня
-        const daysFromWeekStart = Math.floor((now.getTime() - weekStart.getTime()) / (1000 * 60 * 60 * 24));
-        const currentHour = now.getHours();
-
-        // Ширина одной ячейки в desktop режиме = 112px (w-28)
-        const cellWidth = window.innerWidth >= 1024 ? 112 : 80;
-
-        // Позиция текущего часа: дни * 24 часа + текущий час
-        const scrollPosition = (daysFromWeekStart * 24 + currentHour) * cellWidth;
-
-        // Прокручиваем так, чтобы текущий час был примерно по центру
-        const containerWidth = contentScroll.clientWidth;
-        contentScroll.scrollLeft = scrollPosition - containerWidth / 3;
-      }
-    }, 300); // Увеличиваем задержку для надежности
-
-    return () => clearTimeout(timer);
-  }, [weekStart, weekEnd]); // Перезапускаем при смене недели
-
   // Синхронизация скроллов
   useEffect(() => {
     const topScrollbar = document.getElementById('top-scrollbar');
@@ -277,6 +245,93 @@ const SchedulePage: React.FC = () => {
       document.head.removeChild(style);
     };
   }, [equipmentInstances.length]);
+
+  // Прокрутка к текущему времени ТОЛЬКО при первом монтировании
+  useEffect(() => {
+    const contentScroll = document.getElementById('content-scroll');
+
+    if (!contentScroll) {
+      console.log('❌ scroll element not found');
+      return;
+    }
+
+    // Задержка, чтобы контент успел отрендериться
+    const timer = setTimeout(() => {
+      const now = new Date();
+      console.log('🕐 Current time:', now);
+      console.log('📅 Week range:', weekStart, 'to', weekEnd);
+
+      // Проверяем, находится ли текущая дата в видимой неделе
+      const isCurrentWeekVisible = now >= weekStart && now <= weekEnd;
+      console.log('✅ Is current week visible:', isCurrentWeekVisible);
+
+      if (isCurrentWeekVisible) {
+        // Вычисляем количество дней от начала недели до текущего дня
+        const daysFromWeekStart = Math.floor((now.getTime() - weekStart.getTime()) / (1000 * 60 * 60 * 24));
+        const currentHour = now.getHours();
+
+        // Каждый день имеет:
+        // - 1 строка заголовка дня (высота ~40-60px)
+        // - 24 строки часов (высота каждой ~24-32px в зависимости от lg)
+        const dayHeaderHeight = window.innerWidth >= 1024 ? 56 : 48; // примерная высота заголовка дня
+        const hourRowHeight = window.innerWidth >= 1024 ? 32 : 24; // h-6 lg:h-8
+
+        // Позиция текущего часа:
+        // - пропускаем все предыдущие дни (каждый = заголовок + 24 часа)
+        // - добавляем заголовок текущего дня
+        // - добавляем текущий час
+        const scrollPosition =
+          daysFromWeekStart * (dayHeaderHeight + 24 * hourRowHeight) + // предыдущие дни
+          dayHeaderHeight + // заголовок текущего дня
+          currentHour * hourRowHeight; // текущий час
+
+        console.log('📊 Scroll calculation:', {
+          daysFromWeekStart,
+          currentHour,
+          dayHeaderHeight,
+          hourRowHeight,
+          scrollPosition,
+          containerHeight: contentScroll.clientHeight,
+          scrollHeight: contentScroll.scrollHeight
+        });
+
+        // Прокручиваем так, чтобы текущий час был примерно по центру экрана
+        const containerHeight = contentScroll.clientHeight;
+        const targetScroll = Math.max(0, scrollPosition - containerHeight / 3);
+
+        console.log('🎯 Scrolling to (vertical):', targetScroll);
+
+        // Используем requestAnimationFrame для гарантии, что DOM готов
+        requestAnimationFrame(() => {
+          contentScroll.scrollTop = targetScroll;
+
+          // Проверяем результат
+          requestAnimationFrame(() => {
+            console.log('📍 Actual scroll position:', contentScroll.scrollTop);
+            console.log('📐 ScrollHeight vs ClientHeight:', {
+              scrollHeight: contentScroll.scrollHeight,
+              clientHeight: contentScroll.clientHeight,
+              maxScroll: contentScroll.scrollHeight - contentScroll.clientHeight
+            });
+          });
+        });
+      } else {
+        // Если текущая неделя не видна, скроллим в начало
+        contentScroll.scrollTop = 0;
+        console.log('📍 Scrolled to top (not current week)');
+      }
+    }, 800);
+
+    return () => clearTimeout(timer);
+  }, []); // Пустой массив зависимостей - срабатывает только при монтировании
+
+  // Скролл в начало при смене недели
+  useEffect(() => {
+    const contentScroll = document.getElementById('content-scroll');
+    if (contentScroll) {
+      contentScroll.scrollTop = 0;
+    }
+  }, [weekStart, weekEnd]); // Срабатывает при смене недели
 
   return (
     <div className="space-y-4 w-full h-full flex flex-col" style={{ height: 'calc(100vh - 4rem)' }}>
