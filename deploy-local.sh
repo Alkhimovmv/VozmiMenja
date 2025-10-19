@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # ================================================================================
-# Скрипт развертывания VozmiMenja + RentAdmin (без клонирования из Git)
+# Скрипт развертывания VozmiMenja с интегрированной админкой
 # ================================================================================
 #
 # Использование:
@@ -148,16 +148,11 @@ setup_directories() {
     mkdir -p logs
     mkdir -p backups
     mkdir -p server/logs
-    mkdir -p rentadmin/backend/logs
-
-    # Создание директории для nginx (если нужно)
-    mkdir -p /var/www/html/admin
 
     # Настройка прав
     if [ -n "$SUDO_USER" ]; then
         echo "Установка прав для пользователя $SUDO_USER..."
         chown -R $SUDO_USER:$SUDO_USER $PROJECT_DIR
-        chown -R www-data:www-data /var/www/html/admin
     fi
 
     print_success "Директории созданы"
@@ -171,7 +166,7 @@ install_project_dependencies() {
 
     cd $PROJECT_DIR
 
-    # VozmiMenja Server
+    # VozmiMenja Server (включая интегрированную админку)
     if [ -d "server" ] && [ -f "server/package.json" ]; then
         echo "Установка зависимостей VozmiMenja Server..."
         cd server
@@ -185,22 +180,6 @@ install_project_dependencies() {
         cd client
         sudo -u $SUDO_USER npm install
         cd ..
-    fi
-
-    # RentAdmin Backend
-    if [ -d "rentadmin/backend" ] && [ -f "rentadmin/backend/package.json" ]; then
-        echo "Установка зависимостей RentAdmin Backend..."
-        cd rentadmin/backend
-        sudo -u $SUDO_USER npm install --production
-        cd ../..
-    fi
-
-    # RentAdmin Frontend (нужны все зависимости для сборки)
-    if [ -d "rentadmin/frontend" ] && [ -f "rentadmin/frontend/package.json" ]; then
-        echo "Установка зависимостей RentAdmin Frontend..."
-        cd rentadmin/frontend
-        sudo -u $SUDO_USER npm install
-        cd ../..
     fi
 
     print_success "Зависимости установлены"
@@ -217,18 +196,11 @@ backup_database() {
 
     BACKUP_DATE=$(date +%Y%m%d-%H%M%S)
 
-    # Бэкап VozmiMenja database
+    # Бэкап VozmiMenja database (включая данные админки)
     if [ -f "server/database.sqlite" ]; then
         echo "Бэкап VozmiMenja database.sqlite..."
         cp server/database.sqlite backups/vozmimenya-db-${BACKUP_DATE}.sqlite
-        print_success "VozmiMenja БД сохранена: backups/vozmimenya-db-${BACKUP_DATE}.sqlite"
-    fi
-
-    # Бэкап RentAdmin database
-    if [ -f "rentadmin/backend/database.sqlite3" ]; then
-        echo "Бэкап RentAdmin database.sqlite3..."
-        cp rentadmin/backend/database.sqlite3 backups/rentadmin-db-${BACKUP_DATE}.sqlite3
-        print_success "RentAdmin БД сохранена: backups/rentadmin-db-${BACKUP_DATE}.sqlite3"
+        print_success "БД сохранена: backups/vozmimenya-db-${BACKUP_DATE}.sqlite"
     fi
 
     # Удаление старых бэкапов (старше 7 дней)
@@ -246,9 +218,9 @@ build_projects() {
 
     cd $PROJECT_DIR
 
-    # VozmiMenja Server
+    # VozmiMenja Server (включая интегрированную админку)
     if [ -d "server" ] && [ -f "server/package.json" ]; then
-        echo "Сборка VozmiMenja Server..."
+        echo "Сборка VozmiMenja Server (включая API админки)..."
         cd server
 
         # Установка dev зависимостей для сборки
@@ -261,24 +233,9 @@ build_projects() {
         print_success "VozmiMenja Server собран"
     fi
 
-    # RentAdmin Backend
-    if [ -d "rentadmin/backend" ] && [ -f "rentadmin/backend/package.json" ]; then
-        echo "Сборка RentAdmin Backend..."
-        cd rentadmin/backend
-
-        # Установка dev зависимостей для сборки
-        sudo -u $SUDO_USER npm install
-        sudo -u $SUDO_USER npm run build
-
-        # Удаление dev зависимостей после сборки
-        sudo -u $SUDO_USER npm prune --production
-        cd ../..
-        print_success "RentAdmin Backend собран"
-    fi
-
-    # VozmiMenja Frontend
+    # VozmiMenja Frontend (включая интегрированную админку)
     if [ -d "client" ] && [ -f "client/package.json" ]; then
-        echo "Сборка VozmiMenja Frontend..."
+        echo "Сборка VozmiMenja Frontend (включая UI админки)..."
         cd client
         # Установка всех зависимостей (включая dev) для сборки
         sudo -u $SUDO_USER npm install
@@ -287,29 +244,12 @@ build_projects() {
 
         # Копирование собранного frontend в директорию nginx
         if [ -d "client/dist" ]; then
-            echo "Копирование VozmiMenja Frontend в /var/www/html/vozmimenya.ru..."
+            echo "Копирование Frontend в /var/www/html/vozmimenya.ru..."
             mkdir -p /var/www/html/vozmimenya.ru
             rm -rf /var/www/html/vozmimenya.ru/*
             cp -r client/dist/* /var/www/html/vozmimenya.ru/
             chown -R www-data:www-data /var/www/html/vozmimenya.ru
-            print_success "VozmiMenja Frontend развернут в /var/www/html/vozmimenya.ru"
-        fi
-    fi
-
-    # RentAdmin Frontend
-    if [ -d "rentadmin/frontend" ] && [ -f "rentadmin/frontend/package.json" ]; then
-        echo "Сборка RentAdmin Frontend..."
-        cd rentadmin/frontend
-        sudo -u $SUDO_USER npm run build
-        cd ../..
-
-        # Копирование собранного frontend в директорию nginx
-        if [ -d "rentadmin/frontend/dist" ]; then
-            echo "Копирование RentAdmin Frontend в /var/www/html/admin..."
-            rm -rf /var/www/html/admin/*
-            cp -r rentadmin/frontend/dist/* /var/www/html/admin/
-            chown -R www-data:www-data /var/www/html/admin
-            print_success "RentAdmin Frontend развернут в /var/www/html/admin"
+            print_success "Frontend развернут в /var/www/html/vozmimenya.ru"
         fi
     fi
 
@@ -320,24 +260,13 @@ build_projects() {
 # Настройка Nginx
 # ================================================================================
 setup_nginx() {
-    print_step "Настройка Nginx"
+    print_step "Проверка Nginx"
 
-    cd $PROJECT_DIR
-
-    # Копирование конфигурации nginx
-    if [ -f "rentadmin/nginx-system.conf" ]; then
-        echo "Копирование конфигурации nginx..."
-        cp rentadmin/nginx-system.conf /etc/nginx/nginx.conf
-
-        # Проверка конфигурации
-        if nginx -t 2>/dev/null; then
-            print_success "Конфигурация Nginx корректна"
-        else
-            print_error "Ошибка в конфигурации Nginx"
-            return 1
-        fi
+    # Проверка конфигурации nginx
+    if nginx -t 2>/dev/null; then
+        print_success "Конфигурация Nginx корректна"
     else
-        print_warning "Файл nginx-system.conf не найден, пропускаем настройку Nginx"
+        print_warning "Nginx не установлен или есть ошибки в конфигурации"
     fi
 }
 
@@ -355,13 +284,8 @@ start_pm2() {
         return 1
     fi
 
-    if [ ! -f "rentadmin/backend/dist/server.js" ]; then
-        print_error "RentAdmin Backend не собран! Запустите сначала: sudo $0 deploy"
-        return 1
-    fi
-
     # Запуск/перезапуск PM2 приложений от имени пользователя
-    if sudo -u $SUDO_USER pm2 list | grep -q "vozmimenya-api\|rentadmin-api"; then
+    if sudo -u $SUDO_USER pm2 list | grep -q "vozmimenya-api"; then
         echo "Перезапуск существующих приложений..."
         sudo -u $SUDO_USER pm2 restart ecosystem.config.js
     else
@@ -388,7 +312,7 @@ stop_pm2() {
     cd $PROJECT_DIR
 
     if [ -n "$SUDO_USER" ]; then
-        if sudo -u $SUDO_USER pm2 list | grep -q "vozmimenya-api\|rentadmin-api"; then
+        if sudo -u $SUDO_USER pm2 list | grep -q "vozmimenya-api"; then
             echo "Остановка PM2 приложений..."
             sudo -u $SUDO_USER pm2 stop ecosystem.config.js
             sudo -u $SUDO_USER pm2 save
@@ -453,9 +377,10 @@ show_status() {
     echo -e "${BLUE}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
     echo ""
     SERVER_IP=$(hostname -I | awk '{print $1}')
-    echo "🌐 RentAdmin: http://${SERVER_IP}/admin/"
-    echo "📡 RentAdmin API: http://${SERVER_IP}/api/"
-    echo "📡 VozmiMenja API: http://${SERVER_IP}:3003/api/"
+    echo "🌐 VozmiMenja:     http://${SERVER_IP}/"
+    echo "🔐 Админка:        http://${SERVER_IP}/admin/rent/login"
+    echo "📡 API:            http://${SERVER_IP}:3003/api/"
+    echo "📡 API админки:    http://${SERVER_IP}:3003/api/admin/"
     echo ""
 }
 
