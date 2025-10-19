@@ -1,5 +1,5 @@
 import apiClient from './client';
-import { type FinancialSummary, type MonthlyRevenue, type EquipmentUtilization } from '../types/index';
+import { type FinancialSummary, type MonthlyRevenue, type EquipmentUtilization } from '../types/index.ts';
 
 export const analyticsApi = {
   getMonthlyRevenue: async (): Promise<MonthlyRevenue[]> => {

@@ -60,7 +60,7 @@ export const useAuth = () => {
     isAuthenticated,
     login: loginMutation.mutate,
     loginError: loginMutation.error,
-    loginLoading: loginMutation.isLoading,
+    loginLoading: loginMutation.isPending,
     logout,
     user: verifyQuery.data,
     isVerifying,

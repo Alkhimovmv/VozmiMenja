@@ -1,3 +1,6 @@
+// Export admin types
+export * from './admin'
+
 export interface PricingTier {
   day1_10to20: number  // 1 день с 10:00 до 20:00
   day1: number         // 1 сутки
@@ -9,7 +12,7 @@ export interface PricingTier {
   days1_2?: number     // Старое поле для обратной совместимости
 }
 
-export interface Equipment {
+export interface PublicEquipment {
   id: string
   name: string
   category: string
@@ -24,10 +27,13 @@ export interface Equipment {
   updatedAt: string
 }
 
+// Keep Equipment exported for backward compatibility with public API
+export type { PublicEquipment as Equipment }
+
 export interface Booking {
   id: string
   equipmentId: string
-  equipment?: Equipment
+  equipment?: PublicEquipment
   customerName: string
   customerPhone: string
   customerEmail: string
