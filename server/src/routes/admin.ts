@@ -1,37 +1,40 @@
 import { Router, Request, Response } from 'express'
-import { v4 as uuidv4 } from 'uuid'
-import { equipmentModel } from '../models/Equipment'
 import { upload } from '../middleware/upload'
+import { authMiddleware } from '../middleware/auth'
 
 const router = Router()
 
 const ADMIN_PASSWORD = '20031997'
 
-// Middleware для проверки авторизации
-function authMiddleware(req: Request, res: Response, next: Function) {
-  const authHeader = req.headers.authorization
+// Логин для админки аренды
+router.post('/auth/login', async (req: Request, res: Response) => {
+  try {
+    const { password } = req.body
 
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    if (password === ADMIN_PASSWORD) {
+      return res.json({
+        token: ADMIN_PASSWORD // В реальном приложении генерировать JWT
+      })
+    }
+
     return res.status(401).json({
-      success: false,
-      message: 'Unauthorized'
+      error: 'Invalid password'
+    })
+  } catch (error) {
+    console.error('Login error:', error)
+    res.status(500).json({
+      error: 'Internal server error'
     })
   }
+})
 
-  const token = authHeader.substring(7)
+// Проверка токена для админки аренды
+router.get('/auth/verify', authMiddleware, async (req: Request, res: Response) => {
+  // Если прошли authMiddleware - токен валиден
+  res.json({ valid: true })
+})
 
-  // Простая проверка токена (в реальном приложении использовать JWT)
-  if (token !== ADMIN_PASSWORD) {
-    return res.status(401).json({
-      success: false,
-      message: 'Invalid token'
-    })
-  }
-
-  next()
-}
-
-// Логин
+// Логин (старый endpoint для VozmiMenja админки)
 router.post('/login', async (req: Request, res: Response) => {
   try {
     const { password } = req.body
@@ -58,66 +61,7 @@ router.post('/login', async (req: Request, res: Response) => {
   }
 })
 
-// Создать оборудование
-router.post('/equipment', authMiddleware, async (req: Request, res: Response) => {
-  try {
-    const data = {
-      ...req.body,
-      id: uuidv4()
-    }
-
-    const equipment = await equipmentModel.create(data)
-
-    res.status(201).json({
-      success: true,
-      data: equipment
-    })
-  } catch (error) {
-    console.error('Create equipment error:', error)
-    res.status(500).json({
-      success: false,
-      message: 'Failed to create equipment'
-    })
-  }
-})
-
-// Обновить оборудование
-router.put('/equipment/:id', authMiddleware, async (req: Request, res: Response) => {
-  try {
-    const { id } = req.params
-    const equipment = await equipmentModel.update(id, req.body)
-
-    res.json({
-      success: true,
-      data: equipment
-    })
-  } catch (error) {
-    console.error('Update equipment error:', error)
-    res.status(500).json({
-      success: false,
-      message: 'Failed to update equipment'
-    })
-  }
-})
-
-// Удалить оборудование
-router.delete('/equipment/:id', authMiddleware, async (req: Request, res: Response) => {
-  try {
-    const { id } = req.params
-    await equipmentModel.delete(id)
-
-    res.json({
-      success: true,
-      data: null
-    })
-  } catch (error) {
-    console.error('Delete equipment error:', error)
-    res.status(500).json({
-      success: false,
-      message: 'Failed to delete equipment'
-    })
-  }
-})
+// Удалены роуты /equipment (POST, PUT, DELETE), так как они обрабатываются через rentalEquipmentRoutes
 
 // Загрузить изображения
 router.post('/upload', authMiddleware, upload.array('images', 10), async (req: Request, res: Response) => {

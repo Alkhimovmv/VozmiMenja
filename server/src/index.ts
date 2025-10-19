@@ -8,6 +8,11 @@ import equipmentRoutes from './routes/equipment'
 import bookingsRoutes from './routes/bookings'
 import adminRoutes from './routes/admin'
 import contactRoutes from './routes/contact'
+import rentalEquipmentRoutes from './routes/rentalEquipment'
+import rentalsRoutes from './routes/rentals'
+import expensesRoutes from './routes/expenses'
+import customersRoutes from './routes/customers'
+import analyticsRoutes from './routes/analytics'
 
 dotenv.config()
 
@@ -47,8 +52,15 @@ app.use('/uploads', (req, res, next) => {
 // API Routes
 app.use('/api/equipment', equipmentRoutes)
 app.use('/api/bookings', bookingsRoutes)
-app.use('/api/admin', adminRoutes)
 app.use('/api/contact', contactRoutes)
+
+// Admin API Routes (RentAdmin integrated) - ВАЖНО: регистрируем специфичные роуты ДО общего /api/admin
+app.use('/api/admin/equipment', rentalEquipmentRoutes)
+app.use('/api/admin/rentals', rentalsRoutes)
+app.use('/api/admin/expenses', expensesRoutes)
+app.use('/api/admin/customers', customersRoutes)
+app.use('/api/admin/analytics', analyticsRoutes)
+app.use('/api/admin', adminRoutes)
 
 // Health check
 app.get('/health', (req, res) => {

@@ -17,6 +17,15 @@ const FAQPage = lazy(() => import('./pages/FAQPage'))
 const AdminLoginPage = lazy(() => import('./pages/AdminLoginPage'))
 const AdminDashboardPage = lazy(() => import('./pages/AdminDashboardPage'))
 
+// RentAdmin pages
+const RentAdminLoginPage = lazy(() => import('./pages/admin/LoginPage'))
+const RentAdminSchedulePage = lazy(() => import('./pages/admin/SchedulePage'))
+const RentAdminRentalsPage = lazy(() => import('./pages/admin/RentalsPage'))
+const RentAdminCustomersPage = lazy(() => import('./pages/admin/CustomersPage'))
+const RentAdminFinancesPage = lazy(() => import('./pages/admin/FinancesPage'))
+const RentAdminEquipmentPage = lazy(() => import('./pages/admin/EquipmentPage'))
+const AdminLayout = lazy(() => import('./components/admin/Layout'))
+
 // Посадочные страницы категорий
 const CategoryPylesosyPage = lazy(() => import('./pages/CategoryPylesosyPage'))
 const CategoryCamerasPage = lazy(() => import('./pages/CategoryCamerasPage'))
@@ -78,6 +87,14 @@ function App() {
           {/* Admin routes without layout */}
           <Route path="/admin/login" element={<AdminLoginPage />} />
           <Route path="/admin/dashboard" element={<AdminDashboardPage />} />
+
+          {/* RentAdmin routes */}
+          <Route path="/admin/rent/login" element={<RentAdminLoginPage />} />
+          <Route path="/admin/schedule" element={<AdminLayout><RentAdminSchedulePage /></AdminLayout>} />
+          <Route path="/admin/rentals" element={<AdminLayout><RentAdminRentalsPage /></AdminLayout>} />
+          <Route path="/admin/customers" element={<AdminLayout><RentAdminCustomersPage /></AdminLayout>} />
+          <Route path="/admin/equipment" element={<AdminLayout><RentAdminEquipmentPage /></AdminLayout>} />
+          <Route path="/admin/finances" element={<AdminLayout><RentAdminFinancesPage /></AdminLayout>} />
 
           {/* Public routes with layout */}
           <Route path="/*" element={

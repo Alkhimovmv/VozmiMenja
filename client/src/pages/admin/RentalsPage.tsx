@@ -1,0 +1,354 @@
+import React, { useState, useMemo } from 'react';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useAuthenticatedQuery } from '../../hooks/useAuthenticatedQuery';
+import { rentalsApi } from '../../api/admin/rentals';
+import { equipmentApi } from '../../api/admin/equipment';
+import type { Rental, CreateRentalDto, Equipment } from '../../types/index';
+import { formatDate, getStatusText, getStatusColor, getSourceText } from '../../utils/dateUtils';
+import RentalModal from '../../components/admin/RentalModal';
+import CustomSelect from '../../components/admin/CustomSelect';
+import ConfirmDialog from '../../components/admin/ConfirmDialog';
+import { subDays, startOfDay, endOfDay, isWithinInterval, startOfMonth, endOfMonth } from 'date-fns';
+
+type DateFilter = 'week' | 'month' | 'all';
+
+const RentalsPage: React.FC = () => {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingRental, setEditingRental] = useState<Rental | null>(null);
+  const [dateFilter, setDateFilter] = useState<DateFilter>('all');
+  const [deleteConfirm, setDeleteConfirm] = useState<{ isOpen: boolean; rentalId: number | null }>({
+    isOpen: false,
+    rentalId: null,
+  });
+  const queryClient = useQueryClient();
+
+  const { data: rentals = [], isLoading } = useAuthenticatedQuery<Rental[]>(['rentals'], rentalsApi.getAll);
+
+  // Временное логирование для диагностики
+  React.useEffect(() => {
+    console.log('📊 Rentals data updated, count:', rentals.length);
+    if (rentals.length > 0) {
+      console.log('📊 Latest rental:', rentals[0]);
+    }
+  }, [rentals]);
+
+  const { data: equipment = [] } = useAuthenticatedQuery<Equipment[]>(['equipment-rental'], equipmentApi.getForRental);
+
+  // Фильтрация аренд по дате
+  const filteredRentals = useMemo(() => {
+    console.log('🔍 Filtering rentals:', {
+      total: rentals.length,
+      filter: dateFilter,
+      rentals: rentals.map(r => ({ id: r.id, start: r.start_date, end: r.end_date }))
+    });
+
+    if (dateFilter === 'all') {
+      console.log('✅ Showing all rentals:', rentals.length);
+      return rentals;
+    }
+
+    const now = new Date();
+    let dateRange: { start: Date; end: Date };
+
+    if (dateFilter === 'week') {
+      // Последние 7 дней
+      dateRange = {
+        start: startOfDay(subDays(now, 6)),
+        end: endOfDay(now)
+      };
+    } else if (dateFilter === 'month') {
+      // Текущий месяц
+      dateRange = {
+        start: startOfMonth(now),
+        end: endOfMonth(now)
+      };
+    } else {
+      return rentals;
+    }
+
+    console.log('📅 Date range:', dateRange);
+
+    const filtered = rentals.filter(rental => {
+      const rentalStart = new Date(rental.start_date);
+      const rentalEnd = new Date(rental.end_date);
+
+      // Проверяем, пересекается ли аренда с выбранным периодом
+      const matches = isWithinInterval(rentalStart, dateRange) ||
+             isWithinInterval(rentalEnd, dateRange) ||
+             (rentalStart <= dateRange.start && rentalEnd >= dateRange.end);
+
+      console.log(`🎯 Rental ${rental.id} (${rental.start_date} - ${rental.end_date}): ${matches ? 'INCLUDED' : 'EXCLUDED'}`);
+      return matches;
+    });
+
+    console.log('✅ Filtered rentals:', filtered.length);
+    return filtered;
+  }, [rentals, dateFilter]);
+
+  const createMutation = useMutation({
+    mutationFn: rentalsApi.create,
+    onSuccess: (data) => {
+      console.log('🎯 Rental created successfully:', data);
+      console.log('🔄 Invalidating and refetching caches...');
+
+      queryClient.invalidateQueries({ queryKey: ['rentals'] });
+      queryClient.invalidateQueries({ queryKey: ['rentals', 'gantt'] });
+      queryClient.invalidateQueries({ queryKey: ['analytics'] });
+
+      queryClient.refetchQueries({ queryKey: ['rentals'] }).then(() => {
+        console.log('✅ Rentals cache refetched');
+      });
+      queryClient.refetchQueries({ queryKey: ['rentals', 'gantt'] }).then(() => {
+        console.log('✅ Gantt cache refetched');
+      });
+
+      setIsModalOpen(false);
+    },
+    onError: (error) => {
+      console.error('❌ Rental creation failed:', error);
+    }
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }: { id: number; data: Partial<CreateRentalDto & { status: string }> }) =>
+      rentalsApi.update(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['rentals'] });
+      queryClient.invalidateQueries({ queryKey: ['rentals', 'gantt'] });
+      queryClient.invalidateQueries({ queryKey: ['analytics'] });
+      setIsModalOpen(false);
+      setEditingRental(null);
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: rentalsApi.delete,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['rentals'] });
+      queryClient.invalidateQueries({ queryKey: ['rentals', 'gantt'] });
+      queryClient.invalidateQueries({ queryKey: ['analytics'] });
+    },
+  });
+
+  const handleCreateRental = (data: CreateRentalDto) => {
+    createMutation.mutate(data);
+  };
+
+  const handleUpdateRental = (data: Partial<CreateRentalDto & { status: string }>) => {
+    if (editingRental) {
+      updateMutation.mutate({ id: editingRental.id, data });
+    }
+  };
+
+  const handleCompleteRental = (rental: Rental) => {
+    updateMutation.mutate({
+      id: rental.id,
+      data: { status: 'completed' },
+    });
+  };
+
+  const handleDeleteRental = (id: number) => {
+    setDeleteConfirm({ isOpen: true, rentalId: id });
+  };
+
+  const confirmDelete = () => {
+    if (deleteConfirm.rentalId) {
+      deleteMutation.mutate(deleteConfirm.rentalId);
+    }
+    setDeleteConfirm({ isOpen: false, rentalId: null });
+  };
+
+  const cancelDelete = () => {
+    setDeleteConfirm({ isOpen: false, rentalId: null });
+  };
+
+  const handleEditRental = (rental: Rental) => {
+    setEditingRental(rental);
+    setIsModalOpen(true);
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+      </div>
+    );
+  }
+
+  // const getFilterLabel = (filter: DateFilter) => {
+  //   switch (filter) {
+  //     case 'week': return 'Последние 7 дней';
+  //     case 'month': return 'Текущий месяц';
+  //     case 'all': return 'Все время';
+  //     default: return 'Все время';
+  //   }
+  // };
+
+  return (
+    <div className="space-y-4 sm:space-y-6">
+      <div className="flex flex-col space-y-4">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start space-y-2 sm:space-y-0">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-4">
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Список аренд</h1>
+            <div className="text-sm text-gray-600">
+              Найдено: {filteredRentals.length} из {rentals.length}
+            </div>
+          </div>
+          <button
+            onClick={() => setIsModalOpen(true)}
+            className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-3 rounded-md font-medium w-full sm:w-auto min-h-[44px] touch-manipulation flex items-center justify-center gap-2"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+            Добавить аренду
+          </button>
+        </div>
+
+        <div className="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-4">
+          <label className="text-sm font-medium text-gray-700">Период:</label>
+          <div className="w-full sm:w-auto">
+            <CustomSelect
+              value={dateFilter}
+              onChange={(value) => setDateFilter(value as DateFilter)}
+              options={[
+                { value: 'week', label: 'Последние 7 дней' },
+                { value: 'month', label: 'Текущий месяц' },
+                { value: 'all', label: 'Все время' }
+              ]}
+              placeholder="Выберите период"
+            />
+          </div>
+        </div>
+      </div>
+
+      <div className="bg-white shadow overflow-hidden sm:rounded-md">
+        <ul className="divide-y divide-gray-200">
+          {filteredRentals.map((rental) => (
+            <li key={rental.id} className="px-4 sm:px-6 py-4">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-3 sm:space-y-0">
+                <div className="flex-1 min-w-0">
+                  <div className="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-3">
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border w-fit ${getStatusColor(rental.status)}`}>
+                      {getStatusText(rental.status)}
+                    </span>
+                    <h3 className="text-lg font-medium text-gray-900">
+                      {rental.equipment_list && rental.equipment_list.length > 0 ? (
+                        (() => {
+                          // Группируем оборудование по названию
+                          const equipmentByName = rental.equipment_list.reduce((acc, item) => {
+                            if (!acc[item.name]) {
+                              acc[item.name] = [];
+                            }
+                            acc[item.name].push(item);
+                            return acc;
+                          }, {} as Record<string, Array<{ id: number; name: string }>>);
+
+                          // Формируем строку с номерами для каждого типа
+                          return Object.entries(equipmentByName)
+                            .map(([name, items]) => {
+                              if (items.length > 1) {
+                                // Если несколько однотипных, показываем с номерами
+                                return items.map((_, index) => `${name} #${index + 1}`).join(', ');
+                              } else {
+                                // Если один, показываем без номера
+                                return name;
+                              }
+                            })
+                            .join(', ');
+                        })()
+                      ) : (
+                        rental.equipment_name
+                      )}
+                    </h3>
+                  </div>
+                  <div className="mt-2 space-y-1">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-4 space-y-1 sm:space-y-0 text-sm text-gray-500">
+                      <span>👤 {rental.customer_name}</span>
+                      <span>📞 {rental.customer_phone}</span>
+                    </div>
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-4 space-y-1 sm:space-y-0 text-sm text-gray-500">
+                      <span>🕐 {formatDate(rental.start_date)} - {formatDate(rental.end_date)}</span>
+                      <span>💰 {rental.rental_price}₽</span>
+                      {!!rental.needs_delivery && (
+                        <span className="text-blue-600">🚚 Доставка: {rental.delivery_price}₽</span>
+                      )}
+                    </div>
+                    <div className="text-sm text-gray-500">
+                      <span>📊 {getSourceText(rental.source)}</span>
+                      {rental.comment && <span className="block sm:inline sm:ml-4">💬 {rental.comment}</span>}
+                    </div>
+                  </div>
+                </div>
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center space-y-3 sm:space-y-0 sm:space-x-3">
+                  {rental.status !== 'completed' && (
+                    <button
+                      onClick={() => handleCompleteRental(rental)}
+                      className="bg-green-600 hover:bg-green-700 text-white px-4 py-3 rounded text-sm font-medium min-h-[44px] touch-manipulation"
+                    >
+                      Завершить
+                    </button>
+                  )}
+                  <button
+                    onClick={() => handleEditRental(rental)}
+                    className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-3 rounded text-sm font-medium min-h-[44px] touch-manipulation"
+                  >
+                    Изменить
+                  </button>
+                  <button
+                    onClick={() => handleDeleteRental(rental.id)}
+                    className="bg-red-600 hover:bg-red-700 text-white px-4 py-3 rounded text-sm font-medium min-h-[44px] touch-manipulation"
+                  >
+                    Удалить
+                  </button>
+                </div>
+              </div>
+            </li>
+          ))}
+        </ul>
+        {filteredRentals.length === 0 && rentals.length === 0 && (
+          <div className="text-center py-12">
+            <div className="text-gray-400 text-6xl mb-4">📋</div>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">Нет данных об аренде</h3>
+            <p className="text-gray-500">Создайте первую аренду для начала работы</p>
+          </div>
+        )}
+        {filteredRentals.length === 0 && rentals.length > 0 && (
+          <div className="text-center py-12">
+            <div className="text-gray-400 text-6xl mb-4">🔍</div>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">Нет аренд за выбранный период</h3>
+            <p className="text-gray-500">Попробуйте изменить период фильтрации</p>
+          </div>
+        )}
+      </div>
+
+      <RentalModal
+        isOpen={isModalOpen}
+        onClose={() => {
+          setIsModalOpen(false);
+          setEditingRental(null);
+        }}
+        onSubmit={editingRental ?
+          (data) => handleUpdateRental(data as Partial<CreateRentalDto & { status: string }>) :
+          (data) => handleCreateRental(data as CreateRentalDto)
+        }
+        rental={editingRental}
+        equipment={equipment}
+        isLoading={createMutation.isPending || updateMutation.isPending}
+      />
+
+      <ConfirmDialog
+        isOpen={deleteConfirm.isOpen}
+        title="Удаление аренды"
+        message="Вы уверены, что хотите удалить эту аренду? Это действие нельзя будет отменить."
+        confirmText="Удалить"
+        cancelText="Отмена"
+        type="danger"
+        onConfirm={confirmDelete}
+        onCancel={cancelDelete}
+      />
+    </div>
+  );
+};
+
+export default RentalsPage;

@@ -14,6 +14,7 @@ class Database {
   async init(): Promise<void> {
     const run = promisify(this.db.run.bind(this.db))
 
+    // Таблица для аренды помещений (VozmiMenja)
     await run(`
       CREATE TABLE IF NOT EXISTS equipment (
         id TEXT PRIMARY KEY,
@@ -31,6 +32,7 @@ class Database {
       )
     `)
 
+    // Бронирования помещений (VozmiMenja)
     await run(`
       CREATE TABLE IF NOT EXISTS bookings (
         id TEXT PRIMARY KEY,
@@ -48,6 +50,68 @@ class Database {
       )
     `)
 
+    // Таблица для оборудования (RentAdmin)
+    await run(`
+      CREATE TABLE IF NOT EXISTS rental_equipment (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        quantity INTEGER NOT NULL DEFAULT 1,
+        description TEXT,
+        base_price REAL NOT NULL DEFAULT 0,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      )
+    `)
+
+    // Таблица для аренды оборудования (RentAdmin)
+    await run(`
+      CREATE TABLE IF NOT EXISTS rentals (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        equipment_id INTEGER NOT NULL,
+        start_date DATETIME NOT NULL,
+        end_date DATETIME NOT NULL,
+        customer_name TEXT NOT NULL,
+        customer_phone TEXT NOT NULL,
+        needs_delivery INTEGER NOT NULL DEFAULT 0,
+        delivery_address TEXT,
+        rental_price REAL,
+        delivery_price REAL,
+        delivery_costs REAL,
+        source TEXT NOT NULL CHECK (source IN ('авито', 'сайт', 'рекомендация', 'карты')),
+        comment TEXT,
+        status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'active', 'completed', 'overdue')),
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (equipment_id) REFERENCES rental_equipment (id) ON DELETE CASCADE
+      )
+    `)
+
+    // Таблица для связи многие-ко-многим между арендой и оборудованием
+    await run(`
+      CREATE TABLE IF NOT EXISTS rental_equipment_items (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        rental_id INTEGER NOT NULL,
+        equipment_id INTEGER NOT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (rental_id) REFERENCES rentals (id) ON DELETE CASCADE,
+        FOREIGN KEY (equipment_id) REFERENCES rental_equipment (id) ON DELETE CASCADE
+      )
+    `)
+
+    // Таблица расходов (RentAdmin)
+    await run(`
+      CREATE TABLE IF NOT EXISTS expenses (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        description TEXT NOT NULL,
+        amount REAL NOT NULL,
+        date DATETIME NOT NULL,
+        category TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      )
+    `)
+
+    // Индексы для VozmiMenja
     await run(`
       CREATE INDEX IF NOT EXISTS idx_equipment_category ON equipment(category);
     `)
@@ -58,6 +122,27 @@ class Database {
 
     await run(`
       CREATE INDEX IF NOT EXISTS idx_bookings_dates ON bookings(start_date, end_date);
+    `)
+
+    // Индексы для RentAdmin
+    await run(`
+      CREATE INDEX IF NOT EXISTS idx_rentals_equipment_id ON rentals(equipment_id);
+    `)
+
+    await run(`
+      CREATE INDEX IF NOT EXISTS idx_rentals_dates ON rentals(start_date, end_date);
+    `)
+
+    await run(`
+      CREATE INDEX IF NOT EXISTS idx_rentals_status ON rentals(status);
+    `)
+
+    await run(`
+      CREATE INDEX IF NOT EXISTS idx_rental_equipment_items_rental_id ON rental_equipment_items(rental_id);
+    `)
+
+    await run(`
+      CREATE INDEX IF NOT EXISTS idx_rental_equipment_items_equipment_id ON rental_equipment_items(equipment_id);
     `)
   }
 
