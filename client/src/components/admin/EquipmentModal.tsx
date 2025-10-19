@@ -88,7 +88,7 @@ const EquipmentModal: React.FC<EquipmentModalProps> = ({
           </h3>
 
           <form onSubmit={handleSubmit} className="flex-1 flex flex-col">
-            <div className="flex-1 space-y-4">
+            <div className="flex-1">
             <div>
               <label className="block text-sm font-medium text-gray-700">
                 Название оборудования
