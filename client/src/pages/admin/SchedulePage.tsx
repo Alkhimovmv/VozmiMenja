@@ -84,25 +84,18 @@ const SchedulePage: React.FC = () => {
     const checkTime = new Date(date);
     checkTime.setHours(hour, 0, 0, 0);
 
-    // Находим ВСЕ аренды данного оборудования в это время
-    const activeRentals = rentals.filter(rental => {
+    // Находим аренду конкретного экземпляра оборудования в это время
+    const rental = rentals.find(rental => {
       const startDate = parseISO(rental.start_date);
       const endDate = parseISO(rental.end_date);
 
       return rental.equipment_id === equipmentId &&
+             rental.instance_number === instanceNumber &&
              startDate <= checkTime &&
              endDate > checkTime;
     });
 
-    // Если нет активных аренд, экземпляр свободен
-    if (activeRentals.length === 0) return undefined;
-
-    // Сортируем аренды по времени создания (или ID) для стабильного распределения
-    const sortedRentals = [...activeRentals].sort((a, b) => a.id - b.id);
-
-    // Возвращаем аренду для данного экземпляра (если экземпляр занят)
-    // Первая аренда занимает #1, вторая - #2, и т.д.
-    return sortedRentals[instanceNumber - 1];
+    return rental;
   };
 
   // Функция для проверки пересечений аренд

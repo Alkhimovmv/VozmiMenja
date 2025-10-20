@@ -21,6 +21,7 @@ export type RentalStatus = 'pending' | 'active' | 'completed' | 'overdue';
 export interface Rental {
   id: number;
   equipment_id: number;
+  instance_number?: number; // Номер экземпляра для диаграммы Ганта
   start_date: string;
   end_date: string;
   customer_name: string;
@@ -38,12 +39,18 @@ export interface Rental {
   created_at: string;
   updated_at: string;
   equipment_name?: string;
-  equipment_list?: Array<{ id: number; name: string }>; // Список оборудования для множественного выбора
+  equipment_list?: Array<{ id: number; name: string; instance_number: number }>; // Список оборудования с номерами экземпляров
+}
+
+export interface EquipmentInstance {
+  equipment_id: number;
+  instance_number: number;
 }
 
 export interface CreateRentalDto {
   equipment_id: number;
-  equipment_ids?: number[]; // Новое поле для множественного выбора
+  equipment_ids?: number[]; // Устаревшее поле для обратной совместимости
+  equipment_instances?: EquipmentInstance[]; // Новое поле с номерами экземпляров
   start_date: string;
   end_date: string;
   customer_name: string;

@@ -242,7 +242,7 @@ const RentalsPage: React.FC = () => {
                             }
                             acc[item.name].push(item);
                             return acc;
-                          }, {} as Record<string, Array<{ id: number; name: string }>>);
+                          }, {} as Record<string, Array<{ id: number; name: string; instance_number: number }>>);
 
                           // Формируем строку с номерами для каждого типа
                           return Object.entries(equipmentByName)
@@ -253,7 +253,7 @@ const RentalsPage: React.FC = () => {
 
                               // Показываем номера, если у оборудования несколько экземпляров (quantity > 1)
                               if (totalQuantity > 1) {
-                                return items.map((_, index) => `${name} #${index + 1}`).join(', ');
+                                return items.map((item) => `${name} #${item.instance_number}`).join(', ');
                               } else {
                                 // Если у оборудования только 1 экземпляр, показываем без номера
                                 return name;

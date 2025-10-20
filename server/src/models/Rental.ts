@@ -22,14 +22,20 @@ export interface Rental {
   updatedAt: string
 }
 
+export interface EquipmentInstance {
+  equipmentId: number
+  instanceNumber: number
+}
+
 export interface RentalWithEquipment extends Rental {
   equipmentName: string
-  equipmentList?: Array<{ id: number; name: string }>
+  equipmentList?: Array<{ id: number; name: string; instanceNumber: number }>
 }
 
 export interface CreateRentalData {
   equipmentId: number
-  equipmentIds?: number[]
+  equipmentIds?: number[]  // Устаревшее, для обратной совместимости
+  equipmentInstances?: EquipmentInstance[]  // Новое поле с номерами экземпляров
   startDate: string
   endDate: string
   customerName: string
@@ -76,20 +82,24 @@ export class RentalModel {
       ORDER BY r.created_at DESC
     `, params) as any[]
 
-    // Для каждой аренды получаем список дополнительного оборудования
+    // Для каждой аренды получаем список дополнительного оборудования с номерами экземпляров
     const rentalsWithEquipment = await Promise.all(
       rows.map(async (row) => {
         const equipmentItems = await all(`
-          SELECT re.id, re.name
+          SELECT re.id, re.name, rei.instance_number
           FROM rental_equipment_items rei
           JOIN rental_equipment re ON rei.equipment_id = re.id
           WHERE rei.rental_id = ?
-        `, [row.id]) as Array<{ id: number; name: string }>
+        `, [row.id]) as Array<{ id: number; name: string; instance_number: number }>
 
         return {
           ...this.mapRow(row),
           equipmentName: row.equipment_name,
-          equipmentList: equipmentItems.length > 0 ? equipmentItems : undefined
+          equipmentList: equipmentItems.length > 0 ? equipmentItems.map(item => ({
+            id: item.id,
+            name: item.name,
+            instanceNumber: item.instance_number || 1  // Default to 1 for old records
+          })) : undefined
         }
       })
     )
@@ -109,18 +119,22 @@ export class RentalModel {
 
     if (!row) return null
 
-    // Получаем список дополнительного оборудования
+    // Получаем список дополнительного оборудования с номерами экземпляров
     const equipmentItems = await all(`
-      SELECT re.id, re.name
+      SELECT re.id, re.name, rei.instance_number
       FROM rental_equipment_items rei
       JOIN rental_equipment re ON rei.equipment_id = re.id
       WHERE rei.rental_id = ?
-    `, [id]) as Array<{ id: number; name: string }>
+    `, [id]) as Array<{ id: number; name: string; instance_number: number }>
 
     return {
       ...this.mapRow(row),
       equipmentName: row.equipment_name,
-      equipmentList: equipmentItems.length > 0 ? equipmentItems : undefined
+      equipmentList: equipmentItems.length > 0 ? equipmentItems.map(item => ({
+        id: item.id,
+        name: item.name,
+        instanceNumber: item.instance_number || 1  // Default to 1 for old records
+      })) : undefined
     }
   }
 
@@ -153,12 +167,21 @@ export class RentalModel {
     })
 
     // Если указано несколько единиц оборудования, добавляем их в связующую таблицу
-    if (data.equipmentIds && data.equipmentIds.length > 0) {
+    if (data.equipmentInstances && data.equipmentInstances.length > 0) {
+      // Новый формат с номерами экземпляров
+      for (const instance of data.equipmentInstances) {
+        await run(`
+          INSERT INTO rental_equipment_items (rental_id, equipment_id, instance_number)
+          VALUES (?, ?, ?)
+        `, [rentalId, instance.equipmentId, instance.instanceNumber])
+      }
+    } else if (data.equipmentIds && data.equipmentIds.length > 0) {
+      // Старый формат (обратная совместимость) - без номеров экземпляров
       for (const equipmentId of data.equipmentIds) {
         await run(`
-          INSERT INTO rental_equipment_items (rental_id, equipment_id)
-          VALUES (?, ?)
-        `, [rentalId, equipmentId])
+          INSERT INTO rental_equipment_items (rental_id, equipment_id, instance_number)
+          VALUES (?, ?, ?)
+        `, [rentalId, equipmentId, 1])
       }
     }
 
@@ -232,16 +255,26 @@ export class RentalModel {
     }
 
     // Обновляем связи с оборудованием, если указаны новые ID
-    if (data.equipmentIds !== undefined) {
+    if (data.equipmentInstances !== undefined) {
       // Удаляем старые связи
       await run('DELETE FROM rental_equipment_items WHERE rental_id = ?', [id])
 
-      // Добавляем новые
+      // Добавляем новые с номерами экземпляров
+      for (const instance of data.equipmentInstances) {
+        await run(`
+          INSERT INTO rental_equipment_items (rental_id, equipment_id, instance_number)
+          VALUES (?, ?, ?)
+        `, [id, instance.equipmentId, instance.instanceNumber])
+      }
+    } else if (data.equipmentIds !== undefined) {
+      // Старый формат (обратная совместимость)
+      await run('DELETE FROM rental_equipment_items WHERE rental_id = ?', [id])
+
       for (const equipmentId of data.equipmentIds) {
         await run(`
-          INSERT INTO rental_equipment_items (rental_id, equipment_id)
-          VALUES (?, ?)
-        `, [id, equipmentId])
+          INSERT INTO rental_equipment_items (rental_id, equipment_id, instance_number)
+          VALUES (?, ?, ?)
+        `, [id, equipmentId, 1])
       }
     }
 

@@ -8,7 +8,13 @@ class Database {
   private db: sqlite3.Database
 
   constructor() {
-    this.db = new sqlite3.Database(dbPath)
+    // Открываем базу данных в режиме чтения и записи с созданием при отсутствии
+    this.db = new sqlite3.Database(dbPath, sqlite3.OPEN_READWRITE | sqlite3.OPEN_CREATE, (err) => {
+      if (err) {
+        console.error('❌ Ошибка открытия базы данных:', err)
+        throw err
+      }
+    })
   }
 
   async init(): Promise<void> {
@@ -92,11 +98,24 @@ class Database {
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         rental_id INTEGER NOT NULL,
         equipment_id INTEGER NOT NULL,
+        instance_number INTEGER DEFAULT 1,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (rental_id) REFERENCES rentals (id) ON DELETE CASCADE,
         FOREIGN KEY (equipment_id) REFERENCES rental_equipment (id) ON DELETE CASCADE
       )
     `)
+
+    // Добавляем колонку instance_number к существующим таблицам (миграция)
+    try {
+      await run(`
+        ALTER TABLE rental_equipment_items ADD COLUMN instance_number INTEGER DEFAULT 1
+      `)
+    } catch (error: any) {
+      // Игнорируем ошибку, если колонка уже существует
+      if (!error.message?.includes('duplicate column name')) {
+        throw error
+      }
+    }
 
     // Таблица расходов (RentAdmin)
     await run(`

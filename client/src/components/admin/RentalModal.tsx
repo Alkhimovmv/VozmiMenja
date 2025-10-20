@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { type Rental, type CreateRentalDto, type Equipment, type RentalSource } from '../types/index';
+import { type Rental, type CreateRentalDto, type Equipment, type RentalSource, type EquipmentInstance } from '../types/index';
 import CustomSelect from './CustomSelect';
 
 interface RentalModalProps {
@@ -73,18 +73,11 @@ const RentalModal: React.FC<RentalModalProps> = ({
           comment: rental.comment || '',
         });
 
-        // Восстанавливаем selectedInstances из equipment_list
+        // Восстанавливаем selectedInstances из equipment_list с реальными instance_number
         if (rental.equipment_list) {
-          const instancesMap = new Map<number, number>(); // equipmentId -> count
-          rental.equipment_list.forEach(eq => {
-            instancesMap.set(eq.id, (instancesMap.get(eq.id) || 0) + 1);
-          });
-
           const instances = new Set<string>();
-          instancesMap.forEach((count, id) => {
-            for (let i = 1; i <= count; i++) {
-              instances.add(`${id}:${i}`);
-            }
+          rental.equipment_list.forEach(eq => {
+            instances.add(`${eq.id}:${eq.instance_number}`);
           });
           setSelectedInstances(instances);
         } else {
@@ -265,8 +258,8 @@ const RentalModal: React.FC<RentalModalProps> = ({
 
                               setSelectedInstances(newSelectedInstances);
 
-                              // Преобразуем Set в массив ID для отправки на сервер
-                              // Группируем по ID и создаём массив с повторяющимися ID по количеству экземпляров
+                              // Преобразуем Set в массив для отправки на сервер
+                              // Создаём два массива: equipment_ids (для обратной совместимости) и equipment_instances (с номерами)
                               const equipmentMap = new Map<number, number[]>(); // id -> [instanceNumbers]
 
                               newSelectedInstances.forEach(inst => {
@@ -280,22 +273,28 @@ const RentalModal: React.FC<RentalModalProps> = ({
                                 equipmentMap.get(id)!.push(instanceNum);
                               });
 
-                              // Создаём массив ID, где каждый ID повторяется столько раз,
-                              // сколько экземпляров выбрано, и в правильном порядке
+                              // Создаём массивы ID и инстансов
                               const equipmentIdsArray: number[] = [];
+                              const equipmentInstancesArray: EquipmentInstance[] = [];
+
                               equipmentMap.forEach((instances, id) => {
                                 // Сортируем номера экземпляров
                                 instances.sort((a, b) => a - b);
-                                // Добавляем ID столько раз, сколько экземпляров выбрано
-                                instances.forEach(() => {
+                                // Добавляем в оба массива
+                                instances.forEach((instanceNum) => {
                                   equipmentIdsArray.push(id);
+                                  equipmentInstancesArray.push({
+                                    equipment_id: id,
+                                    instance_number: instanceNum
+                                  });
                                 });
                               });
 
                               setFormData({
                                 ...formData,
                                 equipment_id: equipmentIdsArray.length > 0 ? equipmentIdsArray[0] : 0,
-                                equipment_ids: equipmentIdsArray
+                                equipment_ids: equipmentIdsArray,
+                                equipment_instances: equipmentInstancesArray
                               });
 
                               // Очищаем ошибку при выборе

@@ -9,6 +9,7 @@ function toSnakeCase(rental: any) {
   return {
     id: rental.id,
     equipment_id: rental.equipmentId,
+    instance_number: rental.instanceNumber, // Для диаграммы Ганта
     start_date: rental.startDate,
     end_date: rental.endDate,
     customer_name: rental.customerName,
@@ -24,7 +25,11 @@ function toSnakeCase(rental: any) {
     created_at: rental.createdAt,
     updated_at: rental.updatedAt,
     equipment_name: rental.equipmentName,
-    equipment_list: rental.equipmentList
+    equipment_list: rental.equipmentList?.map((item: any) => ({
+      id: item.id,
+      name: item.name,
+      instance_number: item.instanceNumber
+    }))
   }
 }
 
@@ -70,6 +75,7 @@ router.get('/gantt', async (req: Request, res: Response) => {
             ...rental,
             equipmentId: equipment.id,
             equipmentName: equipment.name,
+            instanceNumber: equipment.instanceNumber,
             status
           })
         }
@@ -138,6 +144,10 @@ router.post('/', authMiddleware, async (req: Request, res: Response) => {
     const data: CreateRentalData = {
       equipmentId: req.body.equipment_id || req.body.equipmentId,
       equipmentIds: req.body.equipment_ids || req.body.equipmentIds,
+      equipmentInstances: req.body.equipment_instances?.map((inst: any) => ({
+        equipmentId: inst.equipment_id,
+        instanceNumber: inst.instance_number
+      })) || req.body.equipmentInstances,
       startDate: req.body.start_date || req.body.startDate,
       endDate: req.body.end_date || req.body.endDate,
       customerName: req.body.customer_name || req.body.customerName,
@@ -169,6 +179,12 @@ router.put('/:id', authMiddleware, async (req: Request, res: Response) => {
     }
     if (req.body.equipment_ids !== undefined || req.body.equipmentIds !== undefined) {
       data.equipmentIds = req.body.equipment_ids || req.body.equipmentIds
+    }
+    if (req.body.equipment_instances !== undefined || req.body.equipmentInstances !== undefined) {
+      data.equipmentInstances = req.body.equipment_instances?.map((inst: any) => ({
+        equipmentId: inst.equipment_id,
+        instanceNumber: inst.instance_number
+      })) || req.body.equipmentInstances
     }
     if (req.body.start_date !== undefined || req.body.startDate !== undefined) {
       data.startDate = req.body.start_date || req.body.startDate
