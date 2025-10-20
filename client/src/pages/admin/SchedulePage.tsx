@@ -98,7 +98,7 @@ const SchedulePage: React.FC = () => {
     return rental;
   };
 
-  // Функция для проверки пересечений аренд
+  // Функция для проверки пересечений аренд конкретного экземпляра
   const getConflictingRentals = (instanceId: string, date: Date, hour: number) => {
     const [equipmentId, instanceNumber] = instanceId.split('-').map(Number);
 
@@ -107,21 +107,19 @@ const SchedulePage: React.FC = () => {
     const checkTimeEnd = new Date(checkTime);
     checkTimeEnd.setHours(hour + 1, 0, 0, 0);
 
+    // Находим все аренды КОНКРЕТНОГО экземпляра в это время
     const activeRentals = rentals.filter(rental => {
       const startDate = parseISO(rental.start_date);
       const endDate = parseISO(rental.end_date);
 
       return rental.equipment_id === equipmentId &&
+             rental.instance_number === instanceNumber &&
              startDate < checkTimeEnd &&
              endDate > checkTime;
     });
 
-    // Конфликт только если аренд больше, чем доступно экземпляров
-    const equipment = equipmentInstances.filter(inst => inst.equipmentId === equipmentId);
-    const totalInstances = equipment.length;
-
-    // Если аренд больше чем экземпляров - это конфликт
-    if (activeRentals.length > totalInstances) {
+    // Конфликт только если один и тот же экземпляр арендован несколько раз одновременно
+    if (activeRentals.length > 1) {
       return activeRentals;
     }
 
@@ -129,7 +127,7 @@ const SchedulePage: React.FC = () => {
     return [];
   };
 
-  // Проверка пересечений для всех аренд
+  // Проверка пересечений для всех аренд (конфликт только если один экземпляр арендован дважды)
   const conflictingRentals = useMemo(() => {
     const conflicts: Array<{rental: Rental, conflictsWith: Rental[]}> = [];
 
@@ -142,7 +140,9 @@ const SchedulePage: React.FC = () => {
         const startDate2 = parseISO(otherRental.start_date);
         const endDate2 = parseISO(otherRental.end_date);
 
+        // Конфликт только если это тот же экземпляр оборудования и время пересекается
         return rental.equipment_id === otherRental.equipment_id &&
+               rental.instance_number === otherRental.instance_number &&
                startDate1 < endDate2 &&
                endDate1 > startDate2;
       });
