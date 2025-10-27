@@ -49,12 +49,18 @@ const RentalModal: React.FC<RentalModalProps> = ({
     end_date?: string | null;
   }>({});
 
+  // Храним ID редактируемой аренды для отслеживания изменений
+  const [initialRentalId, setInitialRentalId] = useState<number | null>(null);
+
   useEffect(() => {
     if (isOpen) {
+      // Проверяем, это новое открытие модального окна или просто обновление данных
+      const isNewOpen = rental?.id !== initialRentalId;
+
       if (rental) {
         // Если есть equipment_list, используем его для множественного выбора
         const equipmentIds = rental.equipment_list
-          ? rental.equipment_list.map(eq => eq.id)
+          ? rental.equipment_list.map((eq: { id: number; name: string; instance_number: number }) => eq.id)
           : [rental.equipment_id];
 
         setFormData({
@@ -73,17 +79,23 @@ const RentalModal: React.FC<RentalModalProps> = ({
           comment: rental.comment || '',
         });
 
-        // Восстанавливаем selectedInstances из equipment_list с реальными instance_number
-        if (rental.equipment_list) {
-          const instances = new Set<string>();
-          rental.equipment_list.forEach(eq => {
-            instances.add(`${eq.id}:${eq.instance_number}`);
-          });
-          setSelectedInstances(instances);
-        } else {
-          setSelectedInstances(new Set());
+        // Восстанавливаем selectedInstances только при новом открытии модального окна
+        if (isNewOpen) {
+          setInitialRentalId(rental.id);
+
+          if (rental.equipment_list) {
+            const instances = new Set<string>();
+            rental.equipment_list.forEach((eq: { id: number; name: string; instance_number: number }) => {
+              instances.add(`${eq.id}:${eq.instance_number}`);
+            });
+            setSelectedInstances(instances);
+          } else {
+            setSelectedInstances(new Set());
+          }
         }
       } else {
+        // Новая аренда
+        setInitialRentalId(null);
         setFormData({
           equipment_id: 0,
           equipment_ids: [],
@@ -102,7 +114,12 @@ const RentalModal: React.FC<RentalModalProps> = ({
         setSelectedInstances(new Set());
       }
       // Очищаем ошибки валидации при открытии
-      setValidationErrors({});
+      if (isNewOpen || !rental) {
+        setValidationErrors({});
+      }
+    } else {
+      // При закрытии модального окна сбрасываем ID
+      setInitialRentalId(null);
     }
   }, [rental, isOpen]);
 
@@ -126,10 +143,54 @@ const RentalModal: React.FC<RentalModalProps> = ({
     return null;
   };
 
+  // Helper-функция для синхронизации equipment_instances из selectedInstances
+  const syncEquipmentInstances = () => {
+    const equipmentMap = new Map<number, number[]>();
+
+    selectedInstances.forEach(inst => {
+      const [idStr, instanceStr] = inst.split(':');
+      const id = Number(idStr);
+      const instanceNum = Number(instanceStr);
+
+      if (!equipmentMap.has(id)) {
+        equipmentMap.set(id, []);
+      }
+      equipmentMap.get(id)!.push(instanceNum);
+    });
+
+    const equipmentIdsArray: number[] = [];
+    const equipmentInstancesArray: EquipmentInstance[] = [];
+
+    equipmentMap.forEach((instances, id) => {
+      instances.sort((a, b) => a - b);
+      instances.forEach((instanceNum) => {
+        equipmentIdsArray.push(id);
+        equipmentInstancesArray.push({
+          equipment_id: id,
+          instance_number: instanceNum
+        });
+      });
+    });
+
+    return { equipmentIdsArray, equipmentInstancesArray };
+  };
+
+  // Обёртка для setFormData, которая автоматически синхронизирует equipment_instances
+  const updateFormData = (updates: Partial<CreateRentalDto>) => {
+    const { equipmentIdsArray, equipmentInstancesArray } = syncEquipmentInstances();
+
+    setFormData({
+      ...formData,
+      ...updates,
+      equipment_ids: equipmentIdsArray,
+      equipment_instances: equipmentInstancesArray
+    });
+  };
+
   const handlePhoneChange = (value: string) => {
     // Разрешаем только цифры и ограничиваем до 11 символов
     const cleanValue = value.replace(/\D/g, '').slice(0, 11);
-    setFormData({ ...formData, customer_phone: cleanValue });
+    updateFormData({ customer_phone: cleanValue });
 
     // Валидация телефона
     const phoneError = validatePhone(cleanValue);
@@ -137,11 +198,12 @@ const RentalModal: React.FC<RentalModalProps> = ({
   };
 
   const handleDateChange = (field: 'start_date' | 'end_date', value: string) => {
-    const newFormData = { ...formData, [field]: value };
-    setFormData(newFormData);
+    updateFormData({ [field]: value });
 
     // Валидация дат
-    const dateError = validateDates(newFormData.start_date, newFormData.end_date);
+    const start = field === 'start_date' ? value : formData.start_date;
+    const end = field === 'end_date' ? value : formData.end_date;
+    const dateError = validateDates(start, end);
     setValidationErrors(prev => ({ ...prev, dates: dateError }));
   };
 
@@ -330,7 +392,7 @@ const RentalModal: React.FC<RentalModalProps> = ({
                 </label>
                 <CustomSelect
                   value={formData.source}
-                  onChange={(value) => setFormData({ ...formData, source: value as RentalSource })}
+                  onChange={(value) => updateFormData({ source: value as RentalSource })}
                   options={sources}
                   placeholder="Выберите источник"
                   required
@@ -404,7 +466,7 @@ const RentalModal: React.FC<RentalModalProps> = ({
                   type="text"
                   value={formData.customer_name}
                   onChange={(e) => {
-                    setFormData({ ...formData, customer_name: e.target.value });
+                    updateFormData({ customer_name: e.target.value });
                     // Очищаем ошибку при вводе
                     if (e.target.value.trim()) {
                       setValidationErrors(prev => ({ ...prev, customer_name: null }));
@@ -450,7 +512,7 @@ const RentalModal: React.FC<RentalModalProps> = ({
                 <input
                   type="number"
                   value={formData.rental_price ?? ''}
-                  onChange={(e) => setFormData({ ...formData, rental_price: e.target.value === '' ? null : Number(e.target.value) })}
+                  onChange={(e) => updateFormData({ rental_price: e.target.value === '' ? null : Number(e.target.value) })}
                   className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
                   placeholder="Не указана"
                   min="0"
@@ -463,7 +525,7 @@ const RentalModal: React.FC<RentalModalProps> = ({
                   <input
                     type="checkbox"
                     checked={formData.needs_delivery}
-                    onChange={(e) => setFormData({ ...formData, needs_delivery: e.target.checked })}
+                    onChange={(e) => updateFormData({ needs_delivery: e.target.checked })}
                     className="w-5 h-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
                   />
                   <span className="text-sm font-medium text-gray-700">Нужна доставка</span>
@@ -479,7 +541,7 @@ const RentalModal: React.FC<RentalModalProps> = ({
                   </label>
                   <textarea
                     value={formData.delivery_address}
-                    onChange={(e) => setFormData({ ...formData, delivery_address: e.target.value })}
+                    onChange={(e) => updateFormData({ delivery_address: e.target.value })}
                     className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
                     rows={2}
                   />
@@ -492,7 +554,7 @@ const RentalModal: React.FC<RentalModalProps> = ({
                   <input
                     type="number"
                     value={formData.delivery_price ?? ''}
-                    onChange={(e) => setFormData({ ...formData, delivery_price: e.target.value === '' ? null : Number(e.target.value) })}
+                    onChange={(e) => updateFormData({ delivery_price: e.target.value === '' ? null : Number(e.target.value) })}
                     className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
                     placeholder="Не указана"
                     min="0"
@@ -507,7 +569,7 @@ const RentalModal: React.FC<RentalModalProps> = ({
                   <input
                     type="number"
                     value={formData.delivery_costs ?? ''}
-                    onChange={(e) => setFormData({ ...formData, delivery_costs: e.target.value === '' ? null : Number(e.target.value) })}
+                    onChange={(e) => updateFormData({ delivery_costs: e.target.value === '' ? null : Number(e.target.value) })}
                     className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
                     placeholder="Не указаны"
                     min="0"
@@ -523,7 +585,7 @@ const RentalModal: React.FC<RentalModalProps> = ({
               </label>
               <textarea
                 value={formData.comment}
-                onChange={(e) => setFormData({ ...formData, comment: e.target.value })}
+                onChange={(e) => updateFormData({ comment: e.target.value })}
                 className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
                 rows={3}
               />
