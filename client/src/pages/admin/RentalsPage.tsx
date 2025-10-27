@@ -147,6 +147,25 @@ const RentalsPage: React.FC = () => {
     });
   };
 
+  const handleCompleteRentalNow = (rental: Rental) => {
+    // Получаем текущую дату и время в формате ISO и берём первые 16 символов (без секунд)
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    const hours = String(now.getHours()).padStart(2, '0');
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+    const currentDateTime = `${year}-${month}-${day}T${hours}:${minutes}`;
+
+    updateMutation.mutate({
+      id: rental.id,
+      data: {
+        end_date: currentDateTime,
+        status: 'completed'
+      },
+    });
+  };
+
   const handleDeleteRental = (id: number) => {
     setDeleteConfirm({ isOpen: true, rentalId: id });
   };
@@ -286,12 +305,20 @@ const RentalsPage: React.FC = () => {
                 </div>
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center space-y-3 sm:space-y-0 sm:space-x-3">
                   {rental.status !== 'completed' && (
-                    <button
-                      onClick={() => handleCompleteRental(rental)}
-                      className="bg-green-600 hover:bg-green-700 text-white px-4 py-3 rounded text-sm font-medium min-h-[44px] touch-manipulation"
-                    >
-                      Завершить
-                    </button>
+                    <>
+                      <button
+                        onClick={() => handleCompleteRentalNow(rental)}
+                        className="bg-green-500 hover:bg-green-600 text-white px-4 py-3 rounded text-sm font-medium min-h-[44px] touch-manipulation"
+                      >
+                        Завершить сейчас
+                      </button>
+                      <button
+                        onClick={() => handleCompleteRental(rental)}
+                        className="bg-green-600 hover:bg-green-700 text-white px-4 py-3 rounded text-sm font-medium min-h-[44px] touch-manipulation"
+                      >
+                        Завершить
+                      </button>
+                    </>
                   )}
                   <button
                     onClick={() => handleEditRental(rental)}
