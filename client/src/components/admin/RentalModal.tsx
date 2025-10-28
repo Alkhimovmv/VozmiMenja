@@ -560,6 +560,7 @@ const RentalModal: React.FC<RentalModalProps> = ({
                     min="0"
                     step="10"
                   />
+                  <p className="mt-1 text-xs text-gray-500">Сколько тебе перевели</p>
                 </div>
 
                 <div>
@@ -575,6 +576,7 @@ const RentalModal: React.FC<RentalModalProps> = ({
                     min="0"
                     step="10"
                   />
+                  <p className="mt-1 text-xs text-gray-500">Цена Яндекса</p>
                 </div>
               </div>
             )}
