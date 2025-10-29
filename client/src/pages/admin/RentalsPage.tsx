@@ -16,6 +16,7 @@ const RentalsPage: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingRental, setEditingRental] = useState<Rental | null>(null);
   const [dateFilter, setDateFilter] = useState<DateFilter>('all');
+  const [equipmentFilter, setEquipmentFilter] = useState<string>('all');
   const [deleteConfirm, setDeleteConfirm] = useState<{ isOpen: boolean; rentalId: number | null }>({
     isOpen: false,
     rentalId: null,
@@ -34,56 +35,79 @@ const RentalsPage: React.FC = () => {
 
   const { data: equipment = [] } = useAuthenticatedQuery<Equipment[]>(['equipment-rental'], equipmentApi.getForRental);
 
-  // Фильтрация аренд по дате
+  // Фильтрация и сортировка аренд
   const filteredRentals = useMemo(() => {
     console.log('🔍 Filtering rentals:', {
       total: rentals.length,
-      filter: dateFilter,
+      dateFilter,
+      equipmentFilter,
       rentals: rentals.map(r => ({ id: r.id, start: r.start_date, end: r.end_date }))
     });
 
-    if (dateFilter === 'all') {
-      console.log('✅ Showing all rentals:', rentals.length);
-      return rentals;
+    let filtered = [...rentals];
+
+    // Фильтрация по дате
+    if (dateFilter !== 'all') {
+      const now = new Date();
+      let dateRange: { start: Date; end: Date };
+
+      if (dateFilter === 'week') {
+        // Последние 7 дней
+        dateRange = {
+          start: startOfDay(subDays(now, 6)),
+          end: endOfDay(now)
+        };
+      } else if (dateFilter === 'month') {
+        // Текущий месяц
+        dateRange = {
+          start: startOfMonth(now),
+          end: endOfMonth(now)
+        };
+      } else {
+        dateRange = { start: new Date(0), end: new Date() };
+      }
+
+      console.log('📅 Date range:', dateRange);
+
+      filtered = filtered.filter(rental => {
+        const rentalStart = new Date(rental.start_date);
+        const rentalEnd = new Date(rental.end_date);
+
+        // Проверяем, пересекается ли аренда с выбранным периодом
+        const matches = isWithinInterval(rentalStart, dateRange) ||
+               isWithinInterval(rentalEnd, dateRange) ||
+               (rentalStart <= dateRange.start && rentalEnd >= dateRange.end);
+
+        console.log(`🎯 Rental ${rental.id} (${rental.start_date} - ${rental.end_date}): ${matches ? 'INCLUDED' : 'EXCLUDED'}`);
+        return matches;
+      });
     }
 
-    const now = new Date();
-    let dateRange: { start: Date; end: Date };
-
-    if (dateFilter === 'week') {
-      // Последние 7 дней
-      dateRange = {
-        start: startOfDay(subDays(now, 6)),
-        end: endOfDay(now)
-      };
-    } else if (dateFilter === 'month') {
-      // Текущий месяц
-      dateRange = {
-        start: startOfMonth(now),
-        end: endOfMonth(now)
-      };
-    } else {
-      return rentals;
+    // Фильтрация по оборудованию
+    if (equipmentFilter !== 'all') {
+      filtered = filtered.filter(rental => {
+        // Проверяем в списке оборудования
+        if (rental.equipment_list && rental.equipment_list.length > 0) {
+          return rental.equipment_list.some(item => item.name === equipmentFilter);
+        }
+        // Проверяем старое поле equipment_name для обратной совместимости
+        return rental.equipment_name === equipmentFilter;
+      });
     }
 
-    console.log('📅 Date range:', dateRange);
+    // Сортировка: завершенные последними
+    filtered.sort((a, b) => {
+      // Сначала сортируем по статусу (активные первыми)
+      if (a.status === 'completed' && b.status !== 'completed') return 1;
+      if (a.status !== 'completed' && b.status === 'completed') return -1;
 
-    const filtered = rentals.filter(rental => {
-      const rentalStart = new Date(rental.start_date);
-      const rentalEnd = new Date(rental.end_date);
-
-      // Проверяем, пересекается ли аренда с выбранным периодом
-      const matches = isWithinInterval(rentalStart, dateRange) ||
-             isWithinInterval(rentalEnd, dateRange) ||
-             (rentalStart <= dateRange.start && rentalEnd >= dateRange.end);
-
-      console.log(`🎯 Rental ${rental.id} (${rental.start_date} - ${rental.end_date}): ${matches ? 'INCLUDED' : 'EXCLUDED'}`);
-      return matches;
+      // Затем по дате начала (более новые первыми)
+      return new Date(b.start_date).getTime() - new Date(a.start_date).getTime();
     });
 
-    console.log('✅ Filtered rentals:', filtered.length);
+    console.log('✅ Filtered and sorted rentals:', filtered.length);
     return filtered;
-  }, [rentals, dateFilter]);
+  }, [rentals, dateFilter, equipmentFilter]);
 
   const createMutation = useMutation({
     mutationFn: rentalsApi.create,
@@ -225,18 +249,35 @@ const RentalsPage: React.FC = () => {
         </div>
 
         <div className="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-4">
-          <label className="text-sm font-medium text-gray-700">Период:</label>
-          <div className="w-full sm:w-auto">
-            <CustomSelect
-              value={dateFilter}
-              onChange={(value) => setDateFilter(value as DateFilter)}
-              options={[
-                { value: 'week', label: 'Последние 7 дней' },
-                { value: 'month', label: 'Текущий месяц' },
-                { value: 'all', label: 'Все время' }
-              ]}
-              placeholder="Выберите период"
-            />
+          <div className="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-4">
+            <label className="text-sm font-medium text-gray-700">Период:</label>
+            <div className="w-full sm:w-auto">
+              <CustomSelect
+                value={dateFilter}
+                onChange={(value) => setDateFilter(value as DateFilter)}
+                options={[
+                  { value: 'week', label: 'Последние 7 дней' },
+                  { value: 'month', label: 'Текущий месяц' },
+                  { value: 'all', label: 'Все время' }
+                ]}
+                placeholder="Выберите период"
+              />
+            </div>
+          </div>
+
+          <div className="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-4">
+            <label className="text-sm font-medium text-gray-700">Оборудование:</label>
+            <div className="w-full sm:w-auto">
+              <CustomSelect
+                value={equipmentFilter}
+                onChange={(value) => setEquipmentFilter(value)}
+                options={[
+                  { value: 'all', label: 'Все оборудование' },
+                  ...equipment.map(eq => ({ value: eq.name, label: eq.name }))
+                ]}
+                placeholder="Выберите оборудование"
+              />
+            </div>
           </div>
         </div>
       </div>
