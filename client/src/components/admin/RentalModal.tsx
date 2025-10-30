@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { type Rental, type CreateRentalDto, type Equipment, type RentalSource, type EquipmentInstance } from '../types/index';
+import { type Rental, type CreateRentalDto, type Equipment, type RentalSource, type EquipmentInstance } from '../../types/index';
 import CustomSelect from './CustomSelect';
+import { rentalsApi, type Customer } from '../../api/admin/rentals';
 
 interface RentalModalProps {
   isOpen: boolean;
@@ -51,6 +52,38 @@ const RentalModal: React.FC<RentalModalProps> = ({
 
   // Храним ID редактируемой аренды для отслеживания изменений
   const [initialRentalId, setInitialRentalId] = useState<number | null>(null);
+
+  // Состояние для автокомплита клиентов
+  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [showCustomerSuggestions, setShowCustomerSuggestions] = useState(false);
+  const [filteredCustomers, setFilteredCustomers] = useState<Customer[]>([]);
+  const nameInputRef = useRef<HTMLInputElement>(null);
+  const phoneInputRef = useRef<HTMLInputElement>(null);
+  const suggestionsRef = useRef<HTMLDivElement>(null);
+
+  // Загрузка списка клиентов при открытии модального окна
+  useEffect(() => {
+    if (isOpen) {
+      rentalsApi.getCustomers().then(setCustomers).catch(console.error);
+    }
+  }, [isOpen]);
+
+  // Обработка клика вне выпадающего списка
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        suggestionsRef.current &&
+        !suggestionsRef.current.contains(event.target as Node) &&
+        !nameInputRef.current?.contains(event.target as Node) &&
+        !phoneInputRef.current?.contains(event.target as Node)
+      ) {
+        setShowCustomerSuggestions(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   useEffect(() => {
     if (isOpen) {
@@ -187,10 +220,50 @@ const RentalModal: React.FC<RentalModalProps> = ({
     });
   };
 
+  const filterCustomers = (searchName: string, searchPhone: string) => {
+    if (!searchName && !searchPhone) {
+      setFilteredCustomers([]);
+      setShowCustomerSuggestions(false);
+      return;
+    }
+
+    const filtered = customers.filter(customer => {
+      const nameMatch = searchName
+        ? customer.customerName.toLowerCase().includes(searchName.toLowerCase())
+        : true;
+      const phoneMatch = searchPhone
+        ? customer.customerPhone.includes(searchPhone)
+        : true;
+      return nameMatch && phoneMatch;
+    });
+
+    setFilteredCustomers(filtered);
+    setShowCustomerSuggestions(filtered.length > 0);
+  };
+
+  const handleCustomerSelect = (customer: Customer) => {
+    updateFormData({
+      customer_name: customer.customerName,
+      customer_phone: customer.customerPhone
+    });
+    setShowCustomerSuggestions(false);
+    setValidationErrors(prev => ({ ...prev, customer_name: null, phone: null }));
+  };
+
+  const handleNameChange = (value: string) => {
+    updateFormData({ customer_name: value });
+    filterCustomers(value, formData.customer_phone);
+
+    if (value.trim()) {
+      setValidationErrors(prev => ({ ...prev, customer_name: null }));
+    }
+  };
+
   const handlePhoneChange = (value: string) => {
     // Разрешаем только цифры и ограничиваем до 11 символов
     const cleanValue = value.replace(/\D/g, '').slice(0, 11);
     updateFormData({ customer_phone: cleanValue });
+    filterCustomers(formData.customer_name, cleanValue);
 
     // Валидация телефона
     const phoneError = validatePhone(cleanValue);
@@ -458,45 +531,71 @@ const RentalModal: React.FC<RentalModalProps> = ({
                 )}
               </div>
 
-              <div>
+              <div className="relative">
                 <label className="block text-sm font-medium text-gray-700">
                   ФИО арендатора
                 </label>
                 <input
+                  ref={nameInputRef}
                   type="text"
                   value={formData.customer_name}
-                  onChange={(e) => {
-                    updateFormData({ customer_name: e.target.value });
-                    // Очищаем ошибку при вводе
-                    if (e.target.value.trim()) {
-                      setValidationErrors(prev => ({ ...prev, customer_name: null }));
+                  onChange={(e) => handleNameChange(e.target.value)}
+                  onFocus={() => {
+                    if (formData.customer_name || formData.customer_phone) {
+                      filterCustomers(formData.customer_name, formData.customer_phone);
                     }
                   }}
                   className={`mt-1 block w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 ${
                     validationErrors.customer_name ? 'border-red-500' : 'border-gray-300'
                   }`}
                   required
+                  autoComplete="off"
                 />
                 {validationErrors.customer_name && (
                   <div className="text-red-600 text-sm mt-1">
                     {validationErrors.customer_name}
                   </div>
                 )}
+                {showCustomerSuggestions && filteredCustomers.length > 0 && (
+                  <div
+                    ref={suggestionsRef}
+                    className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto"
+                  >
+                    {filteredCustomers.map((customer, index) => (
+                      <div
+                        key={index}
+                        onClick={() => handleCustomerSelect(customer)}
+                        className="px-3 py-2 hover:bg-indigo-50 cursor-pointer border-b border-gray-100 last:border-b-0"
+                      >
+                        <div className="font-medium text-gray-900">{customer.customerName}</div>
+                        <div className="text-sm text-gray-600">{customer.customerPhone}</div>
+                        <div className="text-xs text-gray-500">Аренд: {customer.rentalCount}</div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
-              <div>
+              <div className="relative">
                 <label className="block text-sm font-medium text-gray-700">
                   Телефон
                 </label>
                 <input
+                  ref={phoneInputRef}
                   type="tel"
                   value={formData.customer_phone}
                   onChange={(e) => handlePhoneChange(e.target.value)}
+                  onFocus={() => {
+                    if (formData.customer_name || formData.customer_phone) {
+                      filterCustomers(formData.customer_name, formData.customer_phone);
+                    }
+                  }}
                   className={`mt-1 block w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 ${
                     validationErrors.phone ? 'border-red-500' : 'border-gray-300'
                   }`}
                   placeholder="11 цифр"
                   required
+                  autoComplete="off"
                 />
                 {validationErrors.phone && (
                   <div className="text-red-600 text-sm mt-1">

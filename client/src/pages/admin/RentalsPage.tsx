@@ -25,25 +25,10 @@ const RentalsPage: React.FC = () => {
 
   const { data: rentals = [], isLoading } = useAuthenticatedQuery<Rental[]>(['rentals'], rentalsApi.getAll);
 
-  // Временное логирование для диагностики
-  React.useEffect(() => {
-    console.log('📊 Rentals data updated, count:', rentals.length);
-    if (rentals.length > 0) {
-      console.log('📊 Latest rental:', rentals[0]);
-    }
-  }, [rentals]);
-
   const { data: equipment = [] } = useAuthenticatedQuery<Equipment[]>(['equipment-rental'], equipmentApi.getForRental);
 
   // Фильтрация и сортировка аренд
   const filteredRentals = useMemo(() => {
-    console.log('🔍 Filtering rentals:', {
-      total: rentals.length,
-      dateFilter,
-      equipmentFilter,
-      rentals: rentals.map(r => ({ id: r.id, start: r.start_date, end: r.end_date }))
-    });
-
     let filtered = [...rentals];
 
     // Фильтрация по дате
@@ -67,19 +52,14 @@ const RentalsPage: React.FC = () => {
         dateRange = { start: new Date(0), end: new Date() };
       }
 
-      console.log('📅 Date range:', dateRange);
-
       filtered = filtered.filter(rental => {
         const rentalStart = new Date(rental.start_date);
         const rentalEnd = new Date(rental.end_date);
 
         // Проверяем, пересекается ли аренда с выбранным периодом
-        const matches = isWithinInterval(rentalStart, dateRange) ||
+        return isWithinInterval(rentalStart, dateRange) ||
                isWithinInterval(rentalEnd, dateRange) ||
                (rentalStart <= dateRange.start && rentalEnd >= dateRange.end);
-
-        console.log(`🎯 Rental ${rental.id} (${rental.start_date} - ${rental.end_date}): ${matches ? 'INCLUDED' : 'EXCLUDED'}`);
-        return matches;
       });
     }
 
@@ -105,32 +85,18 @@ const RentalsPage: React.FC = () => {
       return new Date(b.start_date).getTime() - new Date(a.start_date).getTime();
     });
 
-    console.log('✅ Filtered and sorted rentals:', filtered.length);
     return filtered;
   }, [rentals, dateFilter, equipmentFilter]);
 
   const createMutation = useMutation({
     mutationFn: rentalsApi.create,
-    onSuccess: (data) => {
-      console.log('🎯 Rental created successfully:', data);
-      console.log('🔄 Invalidating and refetching caches...');
-
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['rentals'] });
       queryClient.invalidateQueries({ queryKey: ['rentals', 'gantt'] });
       queryClient.invalidateQueries({ queryKey: ['analytics'] });
 
-      queryClient.refetchQueries({ queryKey: ['rentals'] }).then(() => {
-        console.log('✅ Rentals cache refetched');
-      });
-      queryClient.refetchQueries({ queryKey: ['rentals', 'gantt'] }).then(() => {
-        console.log('✅ Gantt cache refetched');
-      });
-
       setIsModalOpen(false);
     },
-    onError: (error) => {
-      console.error('❌ Rental creation failed:', error);
-    }
   });
 
   const updateMutation = useMutation({

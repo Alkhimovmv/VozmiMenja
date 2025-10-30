@@ -1,6 +1,12 @@
 import apiClient from './client';
 import { type CreateRentalDto, type Rental } from '../types/index';
 
+export interface Customer {
+  customerName: string;
+  customerPhone: string;
+  rentalCount: number;
+}
+
 export const rentalsApi = {
   getAll: async (): Promise<Rental[]> => {
     const response = await apiClient.get('/rentals');
@@ -18,6 +24,11 @@ export const rentalsApi = {
     if (endDate) params.append('endDate', endDate);
 
     const response = await apiClient.get(`/rentals/gantt?${params.toString()}`);
+    return response.data;
+  },
+
+  getCustomers: async (): Promise<Customer[]> => {
+    const response = await apiClient.get('/rentals/customers');
     return response.data;
   },
 
