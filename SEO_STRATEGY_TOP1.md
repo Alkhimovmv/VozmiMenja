@@ -27,13 +27,6 @@
    - TTI (Time to Interactive): < 3.8s
 ```
 
-**Уже реализовано на сайте:**
-- ✅ Lazy loading изображений
-- ✅ Code splitting
-- ✅ Service Worker для кэширования
-- ✅ Минификация JS/CSS
-- ✅ Preload критических ресурсов
-
 **Что нужно добавить:**
 - [ ] Включить Gzip/Brotli сжатие на сервере Nginx/Apache
 - [ ] Настроить HTTP/2
@@ -41,23 +34,6 @@
 - [ ] Настроить CDN (CloudFlare бесплатный план)
 - [ ] Включить browser caching headers
 
-#### ✅ Индексация и технические файлы
-
-**Проверка robots.txt:**
-```
-Файл: /home/maxim/VozmiMenja/client/public/robots.txt
-Статус: ✅ Создан
-
-Проверить доступность: https://vozmimenya.ru/robots.txt
-```
-
-**Проверка sitemap.xml:**
-```
-Файл: /home/maxim/VozmiMenja/client/public/sitemap.xml
-Статус: ✅ Создан
-
-Проверить доступность: https://vozmimenya.ru/sitemap.xml
-```
 
 **Действия:**
 1. Зарегистрироваться в **Яндекс.Вебмастер**: https://webmaster.yandex.ru/
@@ -68,17 +44,7 @@
 6. Добавить сайт и подтвердить через meta-тег (строка 25 в index.html)
 7. Загрузить sitemap.xml
 
-#### ✅ Микроразметка Schema.org
 
-**Уже реализовано:**
-- ✅ LocalBusiness на главной странице
-- ✅ Product на страницах товаров
-- ✅ AggregateRating
-- ✅ Offer с ценами и наличием
-
-**Проверка разметки:**
-1. Открыть: https://validator.schema.org/
-2. Вставить URL: https://vozmimenya.ru
 3. Убедиться, что нет ошибок
 4. Проверить в Яндекс.Вебмастер → "Структурированные данные"
 
@@ -129,16 +95,6 @@ FAQ (/faq)
 4. Проверить адаптивность: ✅ Responsive дизайн
 
 #### ✅ HTTPS и безопасность
-
-**Проверка:**
-```bash
-# Проверить SSL сертификат
-curl -I https://vozmimenya.ru
-
-# Проверить редиректы
-curl -I http://vozmimenya.ru
-curl -I https://www.vozmimenya.ru
-```
 
 **Настроить:**
 - [ ] Редирект с HTTP на HTTPS (301)
