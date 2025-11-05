@@ -31,6 +31,8 @@ export default function Header() {
             <img
               src={logoHeader}
               alt="ВозьмиМеня"
+              width="56"
+              height="56"
               className="h-14 w-auto transform group-hover:scale-105 transition-transform"
             />
             <div className="flex flex-col">
@@ -137,6 +139,8 @@ export default function Header() {
           <button
             onClick={() => setIsMenuOpen(!isMenuOpen)}
             className="md:hidden p-3 text-gray-700 hover:text-primary-600 hover:bg-primary-50 rounded-xl transition-all"
+            aria-label={isMenuOpen ? "Закрыть меню" : "Открыть меню"}
+            aria-expanded={isMenuOpen}
           >
             {isMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
           </button>

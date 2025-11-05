@@ -42,10 +42,12 @@ app.use((req, res, next) => {
   next()
 })
 
-// Статическая раздача загруженных файлов с CORS
+// Статическая раздача загруженных файлов с CORS и долгим кешированием
 app.use('/uploads', (req, res, next) => {
   res.header('Access-Control-Allow-Origin', '*')
   res.header('Cross-Origin-Resource-Policy', 'cross-origin')
+  // Кеширование изображений на 1 год (immutable для оптимизации)
+  res.header('Cache-Control', 'public, max-age=31536000, immutable')
   next()
 }, express.static(path.join(__dirname, '../uploads')))
 

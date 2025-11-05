@@ -20,6 +20,8 @@ export default function Footer() {
                 <img
                   src={logoFooter}
                   alt="ВозьмиМеня"
+                  width="320"
+                  height="320"
                   className="h-48 md:h-80 w-auto"
                   style={{ imageRendering: 'crisp-edges' }}
                 />

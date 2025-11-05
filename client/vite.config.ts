@@ -8,6 +8,10 @@ export default defineConfig({
   server: {
     host: '0.0.0.0',
     port: 5173,
+    headers: {
+      // Кеширование для dev сервера
+      'Cache-Control': 'public, max-age=31536000',
+    },
   },
   build: {
     // Оптимизация сборки для производства

@@ -89,7 +89,7 @@ export default function HowItWorks() {
               href="https://wa.me/79175255095"
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+              className="inline-flex items-center px-6 py-3 bg-green-700 text-white rounded-lg hover:bg-green-800 transition-colors"
             >
               WhatsApp
             </a>
