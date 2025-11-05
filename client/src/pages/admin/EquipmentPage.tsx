@@ -16,6 +16,7 @@ const EquipmentPage: React.FC = () => {
     mutationFn: equipmentApi.create,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['equipment'] });
+      queryClient.invalidateQueries({ queryKey: ['equipment', 'rental'] });
       setIsModalOpen(false);
       setEditingEquipment(null);
     },
@@ -26,6 +27,7 @@ const EquipmentPage: React.FC = () => {
       equipmentApi.update(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['equipment'] });
+      queryClient.invalidateQueries({ queryKey: ['equipment', 'rental'] });
       setIsModalOpen(false);
       setEditingEquipment(null);
     },
@@ -35,6 +37,7 @@ const EquipmentPage: React.FC = () => {
     mutationFn: equipmentApi.delete,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['equipment'] });
+      queryClient.invalidateQueries({ queryKey: ['equipment', 'rental'] });
     },
   });
 

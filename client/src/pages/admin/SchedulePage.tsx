@@ -35,14 +35,6 @@ const SchedulePage: React.FC = () => {
     () => rentalsApi.getGanttData()
   );
 
-  // Временное логирование для диагностики
-  useEffect(() => {
-    console.log('📈 Gantt data updated, count:', rentals.length);
-    if (rentals.length > 0) {
-      console.log('📈 Latest gantt rental:', rentals[0]);
-    }
-  }, [rentals]);
-
   // Создаем список всех экземпляров оборудования
   const equipmentInstances = useMemo(() => {
     const instances: EquipmentInstance[] = [];
@@ -75,32 +67,50 @@ const SchedulePage: React.FC = () => {
     return slots;
   };
 
-  const weekDays = generateWeekDays();
-  const timeSlots = generateTimeSlots();
+  const weekDays = useMemo(() => generateWeekDays(), [weekStart]);
+  const timeSlots = useMemo(() => generateTimeSlots(), []);
+
+  // Создаем индекс аренд для быстрого поиска
+  const rentalsIndex = useMemo(() => {
+    const index = new Map<string, Rental[]>();
+
+    rentals.forEach(rental => {
+      const key = `${rental.equipment_id}-${rental.instance_number}`;
+      if (!index.has(key)) {
+        index.set(key, []);
+      }
+      index.get(key)!.push(rental);
+    });
+
+    return index;
+  }, [rentals]);
 
   const getRentalForInstanceAndTime = (instanceId: string, date: Date, hour: number) => {
     const [equipmentId, instanceNumber] = instanceId.split('-').map(Number);
+    const key = `${equipmentId}-${instanceNumber}`;
+
+    const instanceRentals = rentalsIndex.get(key);
+    if (!instanceRentals) return undefined;
 
     const checkTime = new Date(date);
     checkTime.setHours(hour, 0, 0, 0);
 
     // Находим аренду конкретного экземпляра оборудования в это время
-    const rental = rentals.find(rental => {
+    return instanceRentals.find(rental => {
       const startDate = parseISO(rental.start_date);
       const endDate = parseISO(rental.end_date);
 
-      return rental.equipment_id === equipmentId &&
-             rental.instance_number === instanceNumber &&
-             startDate <= checkTime &&
-             endDate > checkTime;
+      return startDate <= checkTime && endDate > checkTime;
     });
-
-    return rental;
   };
 
   // Функция для проверки пересечений аренд конкретного экземпляра
   const getConflictingRentals = (instanceId: string, date: Date, hour: number) => {
     const [equipmentId, instanceNumber] = instanceId.split('-').map(Number);
+    const key = `${equipmentId}-${instanceNumber}`;
+
+    const instanceRentals = rentalsIndex.get(key);
+    if (!instanceRentals) return [];
 
     const checkTime = new Date(date);
     checkTime.setHours(hour, 0, 0, 0);
@@ -108,23 +118,15 @@ const SchedulePage: React.FC = () => {
     checkTimeEnd.setHours(hour + 1, 0, 0, 0);
 
     // Находим все аренды КОНКРЕТНОГО экземпляра в это время
-    const activeRentals = rentals.filter(rental => {
+    const activeRentals = instanceRentals.filter(rental => {
       const startDate = parseISO(rental.start_date);
       const endDate = parseISO(rental.end_date);
 
-      return rental.equipment_id === equipmentId &&
-             rental.instance_number === instanceNumber &&
-             startDate < checkTimeEnd &&
-             endDate > checkTime;
+      return startDate < checkTimeEnd && endDate > checkTime;
     });
 
     // Конфликт только если один и тот же экземпляр арендован несколько раз одновременно
-    if (activeRentals.length > 1) {
-      return activeRentals;
-    }
-
-    // Иначе конфликта нет
-    return [];
+    return activeRentals.length > 1 ? activeRentals : [];
   };
 
   // Проверка пересечений для всех аренд (конфликт только если один экземпляр арендован дважды)
@@ -185,7 +187,6 @@ const SchedulePage: React.FC = () => {
 
         requestAnimationFrame(() => {
           contentScroll.scrollTop = targetScroll;
-          console.log('📍 Scrolled to current time:', targetScroll);
         });
       } else {
         contentScroll.scrollTop = 0;
@@ -286,135 +287,112 @@ const SchedulePage: React.FC = () => {
   // Прокрутка к текущему времени ТОЛЬКО при первом монтировании
   useEffect(() => {
     const contentScroll = document.getElementById('content-scroll');
+    if (!contentScroll) return;
 
-    if (!contentScroll) {
-      console.log('❌ scroll element not found');
-      return;
-    }
-
-    // Задержка, чтобы контент успел отрендериться
     const timer = setTimeout(() => {
       const now = new Date();
-      console.log('🕐 Current time:', now);
-      console.log('📅 Week range:', weekStart, 'to', weekEnd);
-
-      // Проверяем, находится ли текущая дата в видимой неделе
       const isCurrentWeekVisible = now >= weekStart && now <= weekEnd;
-      console.log('✅ Is current week visible:', isCurrentWeekVisible);
 
       if (isCurrentWeekVisible) {
-        // Вычисляем количество дней от начала недели до текущего дня
         const daysFromWeekStart = Math.floor((now.getTime() - weekStart.getTime()) / (1000 * 60 * 60 * 24));
         const currentHour = now.getHours();
 
-        // Каждый день имеет:
-        // - 1 строка заголовка дня (высота ~40-60px)
-        // - 24 строки часов (высота каждой ~24-32px в зависимости от lg)
-        const dayHeaderHeight = window.innerWidth >= 1024 ? 56 : 48; // примерная высота заголовка дня
-        const hourRowHeight = window.innerWidth >= 1024 ? 32 : 24; // h-6 lg:h-8
+        const dayHeaderHeight = window.innerWidth >= 1024 ? 56 : 48;
+        const hourRowHeight = window.innerWidth >= 1024 ? 32 : 24;
 
-        // Позиция текущего часа:
-        // - пропускаем все предыдущие дни (каждый = заголовок + 24 часа)
-        // - добавляем заголовок текущего дня
-        // - добавляем текущий час
         const scrollPosition =
-          daysFromWeekStart * (dayHeaderHeight + 24 * hourRowHeight) + // предыдущие дни
-          dayHeaderHeight + // заголовок текущего дня
-          currentHour * hourRowHeight; // текущий час
+          daysFromWeekStart * (dayHeaderHeight + 24 * hourRowHeight) +
+          dayHeaderHeight +
+          currentHour * hourRowHeight;
 
-        console.log('📊 Scroll calculation:', {
-          daysFromWeekStart,
-          currentHour,
-          dayHeaderHeight,
-          hourRowHeight,
-          scrollPosition,
-          containerHeight: contentScroll.clientHeight,
-          scrollHeight: contentScroll.scrollHeight
-        });
-
-        // Прокручиваем так, чтобы текущий час был примерно по центру экрана
         const containerHeight = contentScroll.clientHeight;
         const targetScroll = Math.max(0, scrollPosition - containerHeight / 3);
 
-        console.log('🎯 Scrolling to (vertical):', targetScroll);
-
-        // Используем requestAnimationFrame для гарантии, что DOM готов
         requestAnimationFrame(() => {
           contentScroll.scrollTop = targetScroll;
-
-          // Проверяем результат
-          requestAnimationFrame(() => {
-            console.log('📍 Actual scroll position:', contentScroll.scrollTop);
-            console.log('📐 ScrollHeight vs ClientHeight:', {
-              scrollHeight: contentScroll.scrollHeight,
-              clientHeight: contentScroll.clientHeight,
-              maxScroll: contentScroll.scrollHeight - contentScroll.clientHeight
-            });
-            // Помечаем, что начальная загрузка завершена
-            isInitialLoadRef.current = false;
-            console.log('✅ Initial load complete, flag set to false');
-          });
+          isInitialLoadRef.current = false;
         });
       } else {
-        // Если текущая неделя не видна, скроллим в начало
         contentScroll.scrollTop = 0;
-        console.log('📍 Scrolled to top (not current week)');
-        // Помечаем, что начальная загрузка завершена
         isInitialLoadRef.current = false;
-        console.log('✅ Initial load complete, flag set to false');
       }
     }, 800);
 
     return () => clearTimeout(timer);
-  }, []); // Пустой массив зависимостей - срабатывает только при монтировании
+  }, []);
 
   // Скролл в начало при смене недели (НО НЕ при первой загрузке)
   useEffect(() => {
-    console.log('🔄 Week changed, isInitialLoad:', isInitialLoadRef.current, 'prevWeek:', prevWeekStartRef.current);
-
-    // Если это первый рендер (prevWeekStartRef.current === null), просто сохраняем текущую неделю
     if (prevWeekStartRef.current === null) {
       prevWeekStartRef.current = weekStart;
-      console.log('⏭️ First render, saving week start');
       return;
     }
 
-    // Если неделя действительно изменилась (не первый рендер)
     if (prevWeekStartRef.current.getTime() !== weekStart.getTime()) {
       const contentScroll = document.getElementById('content-scroll');
       if (contentScroll) {
         contentScroll.scrollTop = 0;
-        console.log('📍 Scrolled to top (week changed)');
       }
       prevWeekStartRef.current = weekStart;
     }
-  }, [weekStart, weekEnd]); // Срабатывает при смене недели
+  }, [weekStart, weekEnd]);
 
   return (
-    <div className="space-y-4 w-full h-full flex flex-col" style={{ height: 'calc(100vh - 4rem)' }}>
-      <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center space-y-4 lg:space-y-0">
-        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center sm:gap-6">
-          <h1 className="text-2xl lg:text-3xl font-bold text-gray-900">График аренд</h1>
-          <div className="text-sm lg:text-lg font-medium text-gray-700 mt-2 sm:mt-0">
-            {format(weekStart, 'dd MMMM', { locale: ru })} - {format(weekEnd, 'dd MMMM yyyy', { locale: ru })}
+    <div className="space-y-2 sm:space-y-4 w-full h-full flex flex-col" style={{ height: 'calc(100vh - 4rem)' }}>
+      {/* Компактный заголовок для мобильных устройств */}
+      <div className="flex flex-col space-y-2 lg:hidden">
+        <div className="flex flex-row justify-between items-center">
+          <h1 className="text-lg sm:text-2xl font-bold text-gray-900">График аренд</h1>
+          <div className="text-xs sm:text-sm font-medium text-gray-700 whitespace-nowrap">
+            {format(weekStart, 'dd.MM', { locale: ru })} - {format(weekEnd, 'dd.MM.yy', { locale: ru })}
           </div>
         </div>
-        <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
+        <div className="flex flex-row space-x-1 sm:space-x-2">
           <button
             onClick={goToPreviousWeek}
-            className="bg-gray-200 hover:bg-gray-300 text-gray-700 px-3 lg:px-4 py-3 rounded-md text-sm lg:text-base min-h-[44px] touch-manipulation"
+            className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-700 px-2 sm:px-3 py-2 sm:py-3 rounded-md text-xs sm:text-sm min-h-[44px] touch-manipulation"
           >
-            ← Предыдущая
+            ←
           </button>
           <button
             onClick={goToToday}
-            className="bg-indigo-600 hover:bg-indigo-700 text-white px-3 lg:px-4 py-3 rounded-md text-sm lg:text-base min-h-[44px] touch-manipulation"
+            className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white px-2 sm:px-3 py-2 sm:py-3 rounded-md text-xs sm:text-sm min-h-[44px] touch-manipulation"
           >
             Сегодня
           </button>
           <button
             onClick={goToNextWeek}
-            className="bg-gray-200 hover:bg-gray-300 text-gray-700 px-3 lg:px-4 py-3 rounded-md text-sm lg:text-base min-h-[44px] touch-manipulation"
+            className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-700 px-2 sm:px-3 py-2 sm:py-3 rounded-md text-xs sm:text-sm min-h-[44px] touch-manipulation"
+          >
+            →
+          </button>
+        </div>
+      </div>
+
+      {/* Оригинальный заголовок для десктопных устройств */}
+      <div className="hidden lg:flex justify-between items-center">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">График аренд</h1>
+          <p className="text-lg text-gray-600 mt-1">
+            {format(weekStart, 'dd MMMM', { locale: ru })} - {format(weekEnd, 'dd MMMM yyyy', { locale: ru })}
+          </p>
+        </div>
+        <div className="flex space-x-3">
+          <button
+            onClick={goToPreviousWeek}
+            className="bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded-md"
+          >
+            ← Предыдущая
+          </button>
+          <button
+            onClick={goToToday}
+            className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md"
+          >
+            Сегодня
+          </button>
+          <button
+            onClick={goToNextWeek}
+            className="bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded-md"
           >
             Следующая →
           </button>
@@ -462,7 +440,7 @@ const SchedulePage: React.FC = () => {
           id="top-scrollbar"
           style={{ scrollbarWidth: 'thin' }}
         >
-          <div style={{ width: `${150 + equipmentInstances.length * 80 + 200}px`, height: '1px' }}></div>
+          <div style={{ width: `${equipmentInstances.length * 120 + 200}px`, height: '1px' }}></div>
         </div>
 
         {/* Липкий заголовок */}
@@ -471,20 +449,20 @@ const SchedulePage: React.FC = () => {
             className="overflow-x-auto overflow-y-hidden"
             id="header-scroll"
           >
-            <div style={{ minWidth: `${150 + equipmentInstances.length * 80 + 200}px`, width: 'max-content' }}>
+            <div style={{ minWidth: `${equipmentInstances.length * 120 + 200}px`, width: 'max-content' }}>
               <div className="flex">
-                <div className="w-32 lg:w-48 p-2 lg:p-3 bg-gray-50 font-medium text-gray-900 border-r border-gray-200 flex items-center text-xs lg:text-sm">
+                <div className="w-40 sm:w-48 lg:w-56 p-2 lg:p-3 bg-gray-50 font-medium text-gray-900 border-r border-gray-200 flex items-center text-xs sm:text-sm">
                   Время / Оборудование
                 </div>
                 {equipmentInstances.map((instance) => (
                   <div
                     key={instance.id}
-                    className="w-20 lg:w-28 p-1 lg:p-2 text-center font-medium bg-gray-50 text-gray-900 border-r border-gray-200"
+                    className="w-28 sm:w-32 lg:w-36 p-1 lg:p-2 text-center font-medium bg-gray-50 text-gray-900 border-r border-gray-200"
                   >
-                    <div className="text-xs lg:text-sm font-semibold truncate" title={instance.name}>
+                    <div className="text-xs sm:text-sm lg:text-base font-semibold truncate" title={instance.name}>
                       {instance.name}
                     </div>
-                    <div className="text-xs text-gray-500">
+                    <div className="text-xs sm:text-sm text-gray-500">
                       #{instance.number}
                     </div>
                   </div>
@@ -499,25 +477,25 @@ const SchedulePage: React.FC = () => {
           className="overflow-x-auto overflow-y-auto max-w-full flex-1"
           id="content-scroll"
         >
-          <div style={{ minWidth: `${150 + equipmentInstances.length * 80 + 200}px`, width: 'max-content' }}>
+          <div style={{ minWidth: `${equipmentInstances.length * 120 + 200}px`, width: 'max-content' }}>
 
             {/* Строки для каждого дня */}
             {weekDays.map((day) => (
               <div key={day.toISOString()} className="border-b border-gray-100">
                 {/* Заголовок дня */}
                 <div className="flex bg-blue-50">
-                  <div className="w-32 lg:w-48 p-1 lg:p-2 font-medium text-blue-900 border-r border-gray-200">
-                    <div className="text-xs lg:text-sm">
+                  <div className="w-40 sm:w-48 lg:w-56 p-2 font-medium text-blue-900 border-r border-gray-200">
+                    <div className="text-xs sm:text-sm lg:text-base font-semibold">
                       {format(day, 'EEEE', { locale: ru })}
                     </div>
-                    <div className="text-xs text-blue-600">
+                    <div className="text-xs sm:text-sm text-blue-600">
                       {format(day, 'dd.MM.yyyy', { locale: ru })}
                     </div>
                   </div>
                   {equipmentInstances.map((instance) => (
                     <div
                       key={`${instance.id}-${day.toISOString()}-header`}
-                      className="w-20 lg:w-28 p-1 lg:p-2 bg-blue-50 border-r border-gray-200"
+                      className="w-28 sm:w-32 lg:w-36 p-1 lg:p-2 bg-blue-50 border-r border-gray-200"
                     />
                   ))}
                 </div>
@@ -525,7 +503,7 @@ const SchedulePage: React.FC = () => {
                 {/* Часы дня */}
                 {timeSlots.map((hour) => (
                   <div key={`${day.toISOString()}-${hour}`} className="flex hover:bg-gray-50">
-                    <div className="w-32 lg:w-48 p-1 lg:p-2 text-xs lg:text-sm text-gray-600 border-r border-gray-200 flex items-center">
+                    <div className="w-40 sm:w-48 lg:w-56 p-2 text-xs sm:text-sm text-gray-600 border-r border-gray-200 flex items-center font-medium">
                       {hour.toString().padStart(2, '0')}:00 - {(hour + 1).toString().padStart(2, '0')}:00
                     </div>
                     {equipmentInstances.map((instance) => {
@@ -536,34 +514,36 @@ const SchedulePage: React.FC = () => {
                       return (
                         <div
                           key={`${instance.id}-${day.toISOString()}-${hour}`}
-                          className="w-20 lg:w-28 h-6 lg:h-8 border-r border-gray-200 flex items-center justify-center"
+                          className="w-28 sm:w-32 lg:w-36 h-8 sm:h-9 lg:h-10 border-r border-gray-200 flex items-center justify-center p-1"
                         >
                           {rental ? (
                             <div
-                              className={`w-full h-5 lg:h-6 rounded text-xs px-1 flex items-center justify-center cursor-pointer transition-all hover:shadow-md ${
+                              className={`w-full h-full rounded text-xs sm:text-sm px-1 flex items-center justify-center cursor-pointer transition-all hover:shadow-md ${
                                 hasConflicts
                                   ? 'bg-red-500 text-white border-2 border-red-700 animate-pulse'
                                   : getStatusColor(rental.status)
                               }`}
                               onMouseEnter={(e) => showTooltip(e, rental, conflictingRentalsForSlot)}
                               onMouseLeave={hideTooltip}
+                              onTouchStart={(e) => showTooltip(e, rental, conflictingRentalsForSlot)}
+                              onTouchEnd={hideTooltip}
                             >
                               {hasConflicts ? (
                                 <span className="flex items-center">
                                   <span className="text-yellow-300 mr-1">⚠️</span>
-                                  <span className="truncate text-xs">
+                                  <span className="truncate text-xs sm:text-sm">
                                     {conflictingRentalsForSlot.map(r => r.customer_name.split(' ')[0]).join(' / ')}
                                   </span>
                                 </span>
                               ) : (
-                                <span className="truncate text-xs">
+                                <span className="truncate text-xs sm:text-sm font-medium">
                                   {rental.customer_name.split(' ')[0]}
                                 </span>
                               )}
                             </div>
                           ) : (
-                            <div className="w-full h-5 lg:h-6 bg-green-100 rounded flex items-center justify-center">
-                              <span className="text-xs text-green-600">✓</span>
+                            <div className="w-full h-full bg-green-100 rounded flex items-center justify-center">
+                              <span className="text-sm text-green-600 font-bold">✓</span>
                             </div>
                           )}
                         </div>
@@ -585,9 +565,9 @@ const SchedulePage: React.FC = () => {
         )}
       </div>
 
-      {/* Легенда и статистика */}
-      <div className="bg-white px-4 py-2 rounded-lg shadow flex-shrink-0">
-        <div className="flex flex-col xl:flex-row xl:justify-between xl:items-center space-y-2 xl:space-y-0">
+      {/* Легенда и статистика (скрыта на мобильных) */}
+      <div className="hidden lg:block bg-white px-4 py-2 rounded-lg shadow flex-shrink-0">
+        <div className="flex flex-row justify-between items-center">
           {/* Левая часть - Легенда */}
           <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
             <div className="flex items-center space-x-2">
