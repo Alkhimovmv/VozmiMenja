@@ -6,9 +6,10 @@ import BookingForm from './BookingForm'
 
 interface EquipmentCardProps {
   equipment: Equipment
+  priority?: boolean // Для первого изображения на странице (LCP оптимизация)
 }
 
-export default function EquipmentCard({ equipment }: EquipmentCardProps) {
+export default function EquipmentCard({ equipment, priority = false }: EquipmentCardProps) {
   const [showBookingForm, setShowBookingForm] = useState(false)
 
   const formatPrice = (price: number) => {
@@ -47,8 +48,9 @@ export default function EquipmentCard({ equipment }: EquipmentCardProps) {
               src={getImageUrl(equipment.images[0])}
               alt={`Аренда ${equipment.name} в Москве - ${equipment.category}`}
               className="w-full h-full object-contain transform group-hover:scale-105 transition-transform duration-300"
-              loading="lazy"
+              loading={priority ? "eager" : "lazy"}
               decoding="async"
+              fetchPriority={priority ? "high" : "auto"}
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
           </div>
