@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom'
 import { Phone, Mail, MapPin, Clock } from 'lucide-react'
 import avitoIcon from '../../assets/avito.png'
-import logoFooter from '../../assets/logo-footer.png'
+import logoFooter from '../../assets/logo-footer.webp'
 
 export default function Footer() {
   return (

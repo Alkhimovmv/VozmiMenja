@@ -41,7 +41,7 @@ export default function EquipmentGrid({ equipment, loading, error }: EquipmentGr
         <EquipmentCard
           key={item.id}
           equipment={item}
-          priority={index === 0} // Первое изображение с высоким приоритетом для LCP
+          priority={index < 4} // Первые 4 изображения с высоким приоритетом (для desktop xl:grid-cols-4)
         />
       ))}
     </div>
