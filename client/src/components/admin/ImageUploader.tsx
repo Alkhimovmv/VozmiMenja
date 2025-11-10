@@ -14,22 +14,34 @@ export default function ImageUploader({ images, onImagesChange }: ImageUploaderP
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files
-    if (!files || files.length === 0) return
+    console.log('handleFileUpload вызван, файлов:', files?.length)
+
+    if (!files || files.length === 0) {
+      console.log('Нет файлов для загрузки')
+      return
+    }
 
     setIsUploading(true)
     setUploadError('')
 
     try {
       const filesArray = Array.from(files)
+      console.log('Отправка файлов на сервер:', filesArray.map(f => f.name))
+
       const response = await apiClient.uploadImages(filesArray)
+      console.log('Ответ от сервера:', response)
 
       if (response.success && response.data) {
         const newImages = [...images.filter(img => img.trim() !== ''), ...response.data]
+        console.log('Новый список изображений:', newImages)
         onImagesChange(newImages)
+      } else {
+        console.error('Некорректный ответ от сервера:', response)
+        setUploadError('Некорректный ответ от сервера')
       }
     } catch (error) {
       console.error('Upload error:', error)
-      setUploadError('Ошибка при загрузке изображений')
+      setUploadError(`Ошибка при загрузке изображений: ${error instanceof Error ? error.message : 'Неизвестная ошибка'}`)
     } finally {
       setIsUploading(false)
       // Reset input
