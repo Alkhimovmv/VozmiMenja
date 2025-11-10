@@ -66,7 +66,12 @@ router.post('/login', async (req: Request, res: Response) => {
 // Загрузить изображения
 router.post('/upload', authMiddleware, upload.array('images', 10), async (req: Request, res: Response) => {
   try {
+    console.log('📸 Upload route called')
+    console.log('   Files received:', req.files ? (req.files as any[]).length : 0)
+    console.log('   User:', req.headers.authorization ? 'Authenticated' : 'Not authenticated')
+
     if (!req.files || !Array.isArray(req.files)) {
+      console.error('❌ No files in request')
       return res.status(400).json({
         success: false,
         message: 'No files uploaded'
@@ -76,16 +81,19 @@ router.post('/upload', authMiddleware, upload.array('images', 10), async (req: R
     // Возвращаем относительные пути вместо полных URL
     // Frontend сам добавит нужный домен через API_SERVER_URL
     const imageUrls = req.files.map(file => `/uploads/${file.filename}`)
+    console.log('✅ Files uploaded successfully:', imageUrls)
 
     res.json({
       success: true,
       data: imageUrls
     })
   } catch (error) {
-    console.error('Upload error:', error)
+    console.error('❌ Upload error:', error)
+    console.error('   Error stack:', error instanceof Error ? error.stack : 'No stack')
     res.status(500).json({
       success: false,
-      message: 'Failed to upload images'
+      message: 'Failed to upload images',
+      error: error instanceof Error ? error.message : 'Unknown error'
     })
   }
 })
