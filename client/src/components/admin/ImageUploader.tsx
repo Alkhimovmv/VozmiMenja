@@ -107,6 +107,11 @@ export default function ImageUploader({ images, onImagesChange }: ImageUploaderP
         <label className="block text-sm font-medium text-gray-700 mb-2">
           Или введите URL изображений
         </label>
+        {images.length === 0 && (
+          <p className="text-sm text-gray-500 mb-3">
+            Нажмите "+ Добавить URL" ниже или загрузите файлы выше
+          </p>
+        )}
         {images.map((image, index) => (
           <div key={index} className="flex gap-2 mb-2">
             <input
@@ -148,7 +153,7 @@ export default function ImageUploader({ images, onImagesChange }: ImageUploaderP
               <button
                 type="button"
                 onClick={() => removeImage(index)}
-                className="px-2 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 text-sm"
+                className="px-2 py-2 bg-red-500 text-white rounded-md hover:bg-gray-600 text-sm"
                 title="Удалить"
               >
                 <X className="w-4 h-4" />
