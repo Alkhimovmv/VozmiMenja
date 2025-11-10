@@ -25,28 +25,7 @@
     <meta name="geo.position" content="55.755814;37.617635" />
     <meta name="ICBM" content="55.755814, 37.617635" />
 
-    <!-- Yandex.Metrika counter -->
-    <script type="text/javascript">
-        (function(m,e,t,r,i,k,a){
-            m[i]=m[i]||function(){(m[i].a=m[i].a||[]).push(arguments)};
-            m[i].l=1*new Date();
-            for (var j = 0; j < document.scripts.length; j++) {if (document.scripts[j].src === r) { return; }}
-            k=e.createElement(t),a=e.getElementsByTagName(t)[0],k.async=1,k.src=r,a.parentNode.insertBefore(k,a)
-        })(window, document,'script','https://mc.yandex.ru/metrika/tag.js?id=105133379', 'ym');
-
-        ym(105133379, 'init', {ssr:true, webvisor:true, clickmap:true, ecommerce:"dataLayer", accurateTrackBounce:true, trackLinks:true});
-    </script>
-    <!-- /Yandex.Metrika counter -->
-
-    <!-- Google tag (gtag.js) -->
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-LVRK7FC86Y"></script>
-    <script>
-      window.dataLayer = window.dataLayer || [];
-      function gtag(){dataLayer.push(arguments);}
-      gtag('js', new Date());
-
-      gtag('config', 'G-LVRK7FC86Y');
-    </script>
+    <!-- Analytics будут загружены в конце body для оптимизации производительности -->
 
     <!-- Yandex Webmaster verification (добавить после регистрации) -->
     <meta name="yandex-verification" content="236623e699f71d28" />
@@ -211,5 +190,45 @@
 
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
+
+    <!-- Analytics: Загружаются после основного контента для оптимизации LCP -->
+    <script type="text/javascript">
+      // Отложенная загрузка Яндекс.Метрики после загрузки страницы
+      window.addEventListener('load', function() {
+        setTimeout(function() {
+          (function(m,e,t,r,i,k,a){
+            m[i]=m[i]||function(){(m[i].a=m[i].a||[]).push(arguments)};
+            m[i].l=1*new Date();
+            for (var j = 0; j < document.scripts.length; j++) {if (document.scripts[j].src === r) { return; }}
+            k=e.createElement(t),a=e.getElementsByTagName(t)[0],k.async=1,k.src=r,a.parentNode.insertBefore(k,a)
+          })(window, document,'script','https://mc.yandex.ru/metrika/tag.js?id=105133379', 'ym');
+
+          ym(105133379, 'init', {
+            clickmap:true,
+            trackLinks:true,
+            accurateTrackBounce:true,
+            webvisor:true,
+            ecommerce:"dataLayer"
+          });
+        }, 1000); // Задержка 1 секунда после загрузки страницы
+      });
+    </script>
+
+    <!-- Google Analytics: Отложенная загрузка -->
+    <script type="text/javascript">
+      window.addEventListener('load', function() {
+        setTimeout(function() {
+          var script = document.createElement('script');
+          script.async = true;
+          script.src = 'https://www.googletagmanager.com/gtag/js?id=G-LVRK7FC86Y';
+          document.head.appendChild(script);
+
+          window.dataLayer = window.dataLayer || [];
+          function gtag(){dataLayer.push(arguments);}
+          gtag('js', new Date());
+          gtag('config', 'G-LVRK7FC86Y');
+        }, 1500); // Задержка 1.5 секунды после загрузки
+      });
+    </script>
   </body>
 </html>
