@@ -21,7 +21,7 @@ export default function EquipmentForm({ equipment, onClose }: EquipmentFormProps
     description: '',
     quantity: 1,
     availableQuantity: 1,
-    images: [] as string[], // Пустой массив по умолчанию
+    images: [''],
     specifications: {} as Record<string, string>,
     pricing: {
       day1_10to20: 0,
@@ -46,7 +46,7 @@ export default function EquipmentForm({ equipment, onClose }: EquipmentFormProps
         description: equipment.description,
         quantity: equipment.quantity,
         availableQuantity: equipment.availableQuantity,
-        images: equipment.images.length > 0 ? equipment.images : [], // Пустой массив если нет изображений
+        images: equipment.images.length > 0 ? equipment.images : [''],
         specifications: equipment.specifications || {},
         pricing: equipment.pricing || {
           day1_10to20: equipment.pricePerDay,

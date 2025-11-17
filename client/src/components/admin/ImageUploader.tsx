@@ -14,34 +14,22 @@ export default function ImageUploader({ images, onImagesChange }: ImageUploaderP
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files
-    console.log('handleFileUpload вызван, файлов:', files?.length)
-
-    if (!files || files.length === 0) {
-      console.log('Нет файлов для загрузки')
-      return
-    }
+    if (!files || files.length === 0) return
 
     setIsUploading(true)
     setUploadError('')
 
     try {
       const filesArray = Array.from(files)
-      console.log('Отправка файлов на сервер:', filesArray.map(f => f.name))
-
       const response = await apiClient.uploadImages(filesArray)
-      console.log('Ответ от сервера:', response)
 
       if (response.success && response.data) {
         const newImages = [...images.filter(img => img.trim() !== ''), ...response.data]
-        console.log('Новый список изображений:', newImages)
         onImagesChange(newImages)
-      } else {
-        console.error('Некорректный ответ от сервера:', response)
-        setUploadError('Некорректный ответ от сервера')
       }
     } catch (error) {
       console.error('Upload error:', error)
-      setUploadError(`Ошибка при загрузке изображений: ${error instanceof Error ? error.message : 'Неизвестная ошибка'}`)
+      setUploadError('Ошибка при загрузке изображений')
     } finally {
       setIsUploading(false)
       // Reset input
@@ -119,11 +107,6 @@ export default function ImageUploader({ images, onImagesChange }: ImageUploaderP
         <label className="block text-sm font-medium text-gray-700 mb-2">
           Или введите URL изображений
         </label>
-        {images.length === 0 && (
-          <p className="text-sm text-gray-500 mb-3">
-            Нажмите "+ Добавить URL" ниже или загрузите файлы выше
-          </p>
-        )}
         {images.map((image, index) => (
           <div key={index} className="flex gap-2 mb-2">
             <input
@@ -165,7 +148,7 @@ export default function ImageUploader({ images, onImagesChange }: ImageUploaderP
               <button
                 type="button"
                 onClick={() => removeImage(index)}
-                className="px-2 py-2 bg-red-500 text-white rounded-md hover:bg-gray-600 text-sm"
+                className="px-2 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 text-sm"
                 title="Удалить"
               >
                 <X className="w-4 h-4" />
