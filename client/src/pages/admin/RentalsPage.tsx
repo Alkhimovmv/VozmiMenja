@@ -8,9 +8,9 @@ import { formatDate, getStatusText, getStatusColor, getSourceText } from '../../
 import RentalModal from '../../components/admin/RentalModal';
 import CustomSelect from '../../components/admin/CustomSelect';
 import ConfirmDialog from '../../components/admin/ConfirmDialog';
-import { subDays, startOfDay, endOfDay, isWithinInterval, startOfMonth, endOfMonth } from 'date-fns';
+import { subDays, startOfDay, endOfDay, isWithinInterval, startOfMonth, endOfMonth, addDays, isSameDay } from 'date-fns';
 
-type DateFilter = 'week' | 'month' | 'all';
+type DateFilter = 'week' | 'month' | 'all' | 'ends_today' | 'ends_tomorrow';
 
 const RentalsPage: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -34,33 +34,50 @@ const RentalsPage: React.FC = () => {
     // Фильтрация по дате
     if (dateFilter !== 'all') {
       const now = new Date();
-      let dateRange: { start: Date; end: Date };
 
-      if (dateFilter === 'week') {
-        // Последние 7 дней
-        dateRange = {
-          start: startOfDay(subDays(now, 6)),
-          end: endOfDay(now)
-        };
-      } else if (dateFilter === 'month') {
-        // Текущий месяц
-        dateRange = {
-          start: startOfMonth(now),
-          end: endOfMonth(now)
-        };
+      if (dateFilter === 'ends_today') {
+        // Заканчивается сегодня
+        const today = startOfDay(now);
+        filtered = filtered.filter(rental => {
+          const rentalEnd = new Date(rental.end_date);
+          return isSameDay(rentalEnd, today) && rental.status !== 'completed';
+        });
+      } else if (dateFilter === 'ends_tomorrow') {
+        // Заканчивается завтра
+        const tomorrow = addDays(startOfDay(now), 1);
+        filtered = filtered.filter(rental => {
+          const rentalEnd = new Date(rental.end_date);
+          return isSameDay(rentalEnd, tomorrow) && rental.status !== 'completed';
+        });
       } else {
-        dateRange = { start: new Date(0), end: new Date() };
+        let dateRange: { start: Date; end: Date };
+
+        if (dateFilter === 'week') {
+          // Последние 7 дней
+          dateRange = {
+            start: startOfDay(subDays(now, 6)),
+            end: endOfDay(now)
+          };
+        } else if (dateFilter === 'month') {
+          // Текущий месяц
+          dateRange = {
+            start: startOfMonth(now),
+            end: endOfMonth(now)
+          };
+        } else {
+          dateRange = { start: new Date(0), end: new Date() };
+        }
+
+        filtered = filtered.filter(rental => {
+          const rentalStart = new Date(rental.start_date);
+          const rentalEnd = new Date(rental.end_date);
+
+          // Проверяем, пересекается ли аренда с выбранным периодом
+          return isWithinInterval(rentalStart, dateRange) ||
+                 isWithinInterval(rentalEnd, dateRange) ||
+                 (rentalStart <= dateRange.start && rentalEnd >= dateRange.end);
+        });
       }
-
-      filtered = filtered.filter(rental => {
-        const rentalStart = new Date(rental.start_date);
-        const rentalEnd = new Date(rental.end_date);
-
-        // Проверяем, пересекается ли аренда с выбранным периодом
-        return isWithinInterval(rentalStart, dateRange) ||
-               isWithinInterval(rentalEnd, dateRange) ||
-               (rentalStart <= dateRange.start && rentalEnd >= dateRange.end);
-      });
     }
 
     // Фильтрация по оборудованию
@@ -222,6 +239,8 @@ const RentalsPage: React.FC = () => {
                 value={dateFilter}
                 onChange={(value) => setDateFilter(value as DateFilter)}
                 options={[
+                  { value: 'ends_today', label: 'Заканчивается сегодня' },
+                  { value: 'ends_tomorrow', label: 'Заканчивается завтра' },
                   { value: 'week', label: 'Последние 7 дней' },
                   { value: 'month', label: 'Текущий месяц' },
                   { value: 'all', label: 'Все время' }

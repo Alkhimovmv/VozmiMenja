@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { Menu, X } from 'lucide-react'
 import avitoIcon from '../../assets/avito.png'
-import logoHeader from '../../assets/logo-header.webp'
+import logoHeader from '../../assets/logo-header.png'
 
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)

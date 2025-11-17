@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
-import logo from '../../assets/logo-header.webp'
+import logo from '../../assets/logo-header.png'
 
 interface LayoutProps {
   children: React.ReactNode;
