@@ -36,18 +36,20 @@ const RentalsPage: React.FC = () => {
       const now = new Date();
 
       if (dateFilter === 'ends_today') {
-        // Заканчивается сегодня
+        // Сегодня - начинается или заканчивается
         const today = startOfDay(now);
         filtered = filtered.filter(rental => {
+          const rentalStart = new Date(rental.start_date);
           const rentalEnd = new Date(rental.end_date);
-          return isSameDay(rentalEnd, today) && rental.status !== 'completed';
+          return (isSameDay(rentalStart, today) || isSameDay(rentalEnd, today)) && rental.status !== 'completed';
         });
       } else if (dateFilter === 'ends_tomorrow') {
-        // Заканчивается завтра
+        // Завтра - начинается или заканчивается
         const tomorrow = addDays(startOfDay(now), 1);
         filtered = filtered.filter(rental => {
+          const rentalStart = new Date(rental.start_date);
           const rentalEnd = new Date(rental.end_date);
-          return isSameDay(rentalEnd, tomorrow) && rental.status !== 'completed';
+          return (isSameDay(rentalStart, tomorrow) || isSameDay(rentalEnd, tomorrow)) && rental.status !== 'completed';
         });
       } else {
         let dateRange: { start: Date; end: Date };
@@ -239,8 +241,8 @@ const RentalsPage: React.FC = () => {
                 value={dateFilter}
                 onChange={(value) => setDateFilter(value as DateFilter)}
                 options={[
-                  { value: 'ends_today', label: 'Заканчивается сегодня' },
-                  { value: 'ends_tomorrow', label: 'Заканчивается завтра' },
+                  { value: 'ends_today', label: 'Сегодня' },
+                  { value: 'ends_tomorrow', label: 'Завтра' },
                   { value: 'week', label: 'Последние 7 дней' },
                   { value: 'month', label: 'Текущий месяц' },
                   { value: 'all', label: 'Все время' }
