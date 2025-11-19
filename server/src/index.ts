@@ -26,7 +26,7 @@ app.use(helmet({
 app.use(cors({
   origin: process.env.NODE_ENV === 'production'
     ? process.env.FRONTEND_URL
-    : ['http://localhost:3000', 'http://localhost:5173', 'http://192.168.1.44:5173'],
+    : ['http://localhost:3000', 'http://localhost:5173', 'http://localhost:5174', 'http://localhost:5175', 'http://192.168.1.44:5173', 'http://192.168.0.32:5175'],
   credentials: true
 }))
 app.use(express.json({ limit: '10mb' }))
@@ -57,7 +57,7 @@ app.use('/api/bookings', bookingsRoutes)
 app.use('/api/contact', contactRoutes)
 
 // Admin API Routes (RentAdmin integrated) - ВАЖНО: регистрируем специфичные роуты ДО общего /api/admin
-app.use('/api/admin/equipment', equipmentRoutes) // Используем полную модель Equipment вместо упрощённой RentalEquipment
+app.use('/api/admin/equipment', rentalEquipmentRoutes) // Используем отдельную модель RentalEquipment для админки
 app.use('/api/admin/rentals', rentalsRoutes)
 app.use('/api/admin/expenses', expensesRoutes)
 app.use('/api/admin/customers', customersRoutes)
