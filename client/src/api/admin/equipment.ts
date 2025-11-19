@@ -4,7 +4,7 @@ import { type Equipment, type CreateEquipmentDto } from '../types/index';
 export const equipmentApi = {
   getAll: async (): Promise<Equipment[]> => {
     const response = await apiClient.get('/equipment');
-    return response.data;
+    return response.data.data || response.data;
   },
 
   getById: async (id: number): Promise<Equipment> => {
