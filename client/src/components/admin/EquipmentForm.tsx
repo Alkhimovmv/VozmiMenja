@@ -82,13 +82,23 @@ export default function EquipmentForm({ equipment, onClose }: EquipmentFormProps
         }
       })
 
+      // Нормализуем изображения: убираем localhost URL, оставляем только относительные пути
+      const normalizedImages = formData.images
+        .filter(img => img.trim() !== '')
+        .map(img => {
+          if (img.includes('localhost:3002') || img.includes('localhost:3001')) {
+            return img.replace(/http:\/\/localhost:\d+/, '')
+          }
+          return img
+        })
+
       const dataToSend = {
         name: formData.name,
         category: formData.category,
         description: formData.description,
         quantity: formData.quantity,
         availableQuantity: formData.availableQuantity,
-        images: formData.images.filter(img => img.trim() !== ''),
+        images: normalizedImages,
         specifications,
         pricing: formData.pricing,
         pricePerDay: formData.pricing.day1, // Для обратной совместимости
