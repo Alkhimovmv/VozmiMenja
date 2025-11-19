@@ -39,8 +39,23 @@ export default function ImageUploader({ images, onImagesChange }: ImageUploaderP
 
   const handleImageUrlChange = (index: number, value: string) => {
     const newImages = [...images]
-    newImages[index] = value
+    // Нормализуем URL: если это localhost URL, сохраняем только относительный путь
+    let normalizedValue = value
+    if (value.includes('localhost:3002') || value.includes('localhost:3001')) {
+      normalizedValue = value.replace(/http:\/\/localhost:\d+/, '')
+    }
+    newImages[index] = normalizedValue
     onImagesChange(newImages)
+  }
+
+  const getDisplayUrl = (imagePath: string): string => {
+    // Для отображения в input показываем полный URL
+    if (!imagePath) return ''
+    if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
+      return imagePath
+    }
+    // Для относительных путей показываем полный URL
+    return getImageUrl(imagePath)
   }
 
   const addImageUrl = () => {
@@ -110,10 +125,10 @@ export default function ImageUploader({ images, onImagesChange }: ImageUploaderP
         {images.map((image, index) => (
           <div key={index} className="flex gap-2 mb-2">
             <input
-              type="url"
+              type="text"
               placeholder="https://example.com/image.jpg"
               className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm"
-              value={image}
+              value={getDisplayUrl(image)}
               onChange={(e) => handleImageUrlChange(index, e.target.value)}
             />
             {image && (
