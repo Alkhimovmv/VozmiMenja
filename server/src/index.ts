@@ -57,7 +57,7 @@ app.use('/api/bookings', bookingsRoutes)
 app.use('/api/contact', contactRoutes)
 
 // Admin API Routes (RentAdmin integrated) - ВАЖНО: регистрируем специфичные роуты ДО общего /api/admin
-app.use('/api/admin/equipment', rentalEquipmentRoutes)
+app.use('/api/admin/equipment', equipmentRoutes) // Используем полную модель Equipment вместо упрощённой RentalEquipment
 app.use('/api/admin/rentals', rentalsRoutes)
 app.use('/api/admin/expenses', expensesRoutes)
 app.use('/api/admin/customers', customersRoutes)
