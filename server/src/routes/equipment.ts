@@ -5,6 +5,20 @@ import { v4 as uuidv4 } from 'uuid'
 
 const router = Router()
 
+// GET /api/admin/equipment/for-rental - Получить все оборудование для аренды
+router.get('/for-rental', async (req: Request, res: Response) => {
+  try {
+    const equipment = await equipmentModel.findAll({ limit: 1000 })
+    res.json(equipment.data)
+  } catch (error) {
+    console.error('Error getting rental equipment:', error)
+    res.status(500).json({
+      success: false,
+      message: 'Ошибка получения оборудования'
+    })
+  }
+})
+
 router.get('/stats', async (req: Request, res: Response) => {
   try {
     const stats = await equipmentModel.getStats()
