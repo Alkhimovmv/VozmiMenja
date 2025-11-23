@@ -130,6 +130,25 @@ class Database {
       )
     `)
 
+    // Таблица статей блога
+    await run(`
+      CREATE TABLE IF NOT EXISTS articles (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        title TEXT NOT NULL,
+        slug TEXT NOT NULL UNIQUE,
+        excerpt TEXT NOT NULL,
+        content TEXT NOT NULL,
+        image_url TEXT,
+        category TEXT NOT NULL,
+        tags TEXT,
+        author TEXT NOT NULL DEFAULT 'ВозьмиМеня',
+        published INTEGER NOT NULL DEFAULT 0,
+        views INTEGER NOT NULL DEFAULT 0,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      )
+    `)
+
     // Индексы для VozmiMenja
     await run(`
       CREATE INDEX IF NOT EXISTS idx_equipment_category ON equipment(category);
@@ -163,6 +182,19 @@ class Database {
     await run(`
       CREATE INDEX IF NOT EXISTS idx_rental_equipment_items_equipment_id ON rental_equipment_items(equipment_id);
     `)
+
+    // Индексы для блога
+    await run(`
+      CREATE INDEX IF NOT EXISTS idx_articles_slug ON articles(slug);
+    `)
+
+    await run(`
+      CREATE INDEX IF NOT EXISTS idx_articles_published ON articles(published);
+    `)
+
+    await run(`
+      CREATE INDEX IF NOT EXISTS idx_articles_category ON articles(category);
+    `)
   }
 
   get instance(): sqlite3.Database {
@@ -170,11 +202,11 @@ class Database {
   }
 
   // Helper methods with proper typing
-  async run(sql: string, params: any[] = []): Promise<void> {
+  async run(sql: string, params: any[] = []): Promise<sqlite3.RunResult> {
     return new Promise((resolve, reject) => {
-      this.db.run(sql, params, (err) => {
+      this.db.run(sql, params, function(err) {
         if (err) reject(err)
-        else resolve()
+        else resolve(this)
       })
     })
   }
