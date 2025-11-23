@@ -149,6 +149,25 @@ const RentalsPage: React.FC = () => {
     }
   };
 
+  const handleStartRental = (rental: Rental) => {
+    // Получаем текущую дату и время в формате ISO и берём первые 16 символов (без секунд)
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    const hours = String(now.getHours()).padStart(2, '0');
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+    const currentDateTime = `${year}-${month}-${day}T${hours}:${minutes}`;
+
+    updateMutation.mutate({
+      id: rental.id,
+      data: {
+        start_date: currentDateTime,
+        status: 'active'
+      },
+    });
+  };
+
   const handleCompleteRental = (rental: Rental) => {
     updateMutation.mutate({
       id: rental.id,
@@ -314,9 +333,9 @@ const RentalsPage: React.FC = () => {
                     </h3>
                   </div>
                   <div className="mt-2 space-y-1">
-                    <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-4 space-y-1 sm:space-y-0 text-sm text-gray-500">
-                      <span>👤 {rental.customer_name}</span>
-                      <span>📞 {rental.customer_phone}</span>
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-4 space-y-1 sm:space-y-0">
+                      <span className="text-base font-semibold text-gray-900">👤 {rental.customer_name}</span>
+                      <span className="text-sm text-gray-500">📞 {rental.customer_phone}</span>
                     </div>
                     <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-4 space-y-1 sm:space-y-0 text-sm text-gray-500">
                       <span>🕐 {formatDate(rental.start_date)} - {formatDate(rental.end_date)}</span>
@@ -332,7 +351,15 @@ const RentalsPage: React.FC = () => {
                   </div>
                 </div>
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center space-y-3 sm:space-y-0 sm:space-x-3">
-                  {rental.status !== 'completed' && (
+                  {rental.status === 'pending' && (
+                    <button
+                      onClick={() => handleStartRental(rental)}
+                      className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-3 rounded text-sm font-medium min-h-[44px] touch-manipulation"
+                    >
+                      Начать аренду
+                    </button>
+                  )}
+                  {rental.status === 'active' && (
                     <>
                       <button
                         onClick={() => handleCompleteRentalNow(rental)}

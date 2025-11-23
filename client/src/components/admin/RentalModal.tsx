@@ -57,6 +57,7 @@ const RentalModal: React.FC<RentalModalProps> = ({
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [showCustomerSuggestions, setShowCustomerSuggestions] = useState(false);
   const [filteredCustomers, setFilteredCustomers] = useState<Customer[]>([]);
+  const [activeField, setActiveField] = useState<'name' | 'phone' | null>(null);
   const nameInputRef = useRef<HTMLInputElement>(null);
   const phoneInputRef = useRef<HTMLInputElement>(null);
   const suggestionsRef = useRef<HTMLDivElement>(null);
@@ -541,6 +542,7 @@ const RentalModal: React.FC<RentalModalProps> = ({
                   value={formData.customer_name}
                   onChange={(e) => handleNameChange(e.target.value)}
                   onFocus={() => {
+                    setActiveField('name');
                     if (formData.customer_name || formData.customer_phone) {
                       filterCustomers(formData.customer_name, formData.customer_phone);
                     }
@@ -556,7 +558,7 @@ const RentalModal: React.FC<RentalModalProps> = ({
                     {validationErrors.customer_name}
                   </div>
                 )}
-                {showCustomerSuggestions && filteredCustomers.length > 0 && (
+                {showCustomerSuggestions && filteredCustomers.length > 0 && activeField === 'name' && (
                   <div
                     ref={suggestionsRef}
                     className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto"
@@ -586,6 +588,7 @@ const RentalModal: React.FC<RentalModalProps> = ({
                   value={formData.customer_phone}
                   onChange={(e) => handlePhoneChange(e.target.value)}
                   onFocus={() => {
+                    setActiveField('phone');
                     if (formData.customer_name || formData.customer_phone) {
                       filterCustomers(formData.customer_name, formData.customer_phone);
                     }
@@ -600,6 +603,24 @@ const RentalModal: React.FC<RentalModalProps> = ({
                 {validationErrors.phone && (
                   <div className="text-red-600 text-sm mt-1">
                     {validationErrors.phone}
+                  </div>
+                )}
+                {showCustomerSuggestions && filteredCustomers.length > 0 && activeField === 'phone' && (
+                  <div
+                    ref={suggestionsRef}
+                    className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto"
+                  >
+                    {filteredCustomers.map((customer, index) => (
+                      <div
+                        key={index}
+                        onClick={() => handleCustomerSelect(customer)}
+                        className="px-3 py-2 hover:bg-indigo-50 cursor-pointer border-b border-gray-100 last:border-b-0"
+                      >
+                        <div className="font-medium text-gray-900">{customer.customerName}</div>
+                        <div className="text-sm text-gray-600">{customer.customerPhone}</div>
+                        <div className="text-xs text-gray-500">Аренд: {customer.rentalCount}</div>
+                      </div>
+                    ))}
                   </div>
                 )}
               </div>

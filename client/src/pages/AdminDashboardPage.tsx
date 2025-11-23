@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { apiClient } from '../lib/api'
 import type { Equipment } from '../types'
 import EquipmentForm from '../components/admin/EquipmentForm'
 import ConfirmDialog from '../components/ConfirmDialog'
 import { getImageUrl } from '../lib/utils'
+import UnifiedAdminLayout from '../components/admin/UnifiedAdminLayout'
 
 export default function AdminDashboardPage() {
   const [equipment, setEquipment] = useState<Equipment[]>([])
@@ -13,16 +13,10 @@ export default function AdminDashboardPage() {
   const [editingEquipment, setEditingEquipment] = useState<Equipment | null>(null)
   const [showForm, setShowForm] = useState(false)
   const [deleteConfirm, setDeleteConfirm] = useState<{ show: boolean; id: string | null }>({ show: false, id: null })
-  const navigate = useNavigate()
 
   useEffect(() => {
-    const token = localStorage.getItem('adminToken')
-    if (!token) {
-      navigate('/admin/login')
-      return
-    }
     loadEquipment()
-  }, [navigate])
+  }, [])
 
   const loadEquipment = async () => {
     try {
@@ -35,10 +29,6 @@ export default function AdminDashboardPage() {
     }
   }
 
-  const handleLogout = () => {
-    localStorage.removeItem('adminToken')
-    navigate('/admin/login')
-  }
 
   const handleDelete = (id: string) => {
     setDeleteConfirm({ show: true, id })
@@ -81,36 +71,31 @@ export default function AdminDashboardPage() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-xl">Загрузка...</div>
-      </div>
+      <UnifiedAdminLayout>
+        <div className="flex items-center justify-center min-h-96">
+          <div className="text-xl">Загрузка...</div>
+        </div>
+      </UnifiedAdminLayout>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 sm:mb-8 gap-4">
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Панель администратора</h1>
-          <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 w-full sm:w-auto">
-            <button
-              onClick={handleAddNew}
-              className="w-full sm:w-auto px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 transition-colors text-sm sm:text-base"
-            >
-              Добавить оборудование
-            </button>
-            <button
-              onClick={handleLogout}
-              className="w-full sm:w-auto px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors text-sm sm:text-base"
-            >
-              Выйти
-            </button>
-          </div>
+    <UnifiedAdminLayout>
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 sm:mb-8 gap-4">
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Управление оборудованием</h1>
+        <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 w-full sm:w-auto">
+          <button
+            onClick={handleAddNew}
+            className="w-full sm:w-auto px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 transition-colors text-sm sm:text-base"
+          >
+            Добавить оборудование
+          </button>
         </div>
+      </div>
 
-        {/* Equipment List - Desktop Table */}
-        <div className="hidden md:block bg-white shadow-sm rounded-lg overflow-hidden">
+      {/* Equipment List - Desktop Table */}
+      <div className="hidden md:block bg-white shadow-sm rounded-lg overflow-hidden">
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
@@ -182,11 +167,11 @@ export default function AdminDashboardPage() {
                 ))}
               </tbody>
             </table>
-          </div>
         </div>
+      </div>
 
-        {/* Equipment List - Mobile Cards */}
-        <div className="md:hidden space-y-4">
+      {/* Equipment List - Mobile Cards */}
+      <div className="md:hidden space-y-4">
           {equipment.map((item) => (
             <div key={item.id} className="bg-white shadow-sm rounded-lg p-4 border border-gray-200">
               <div className="flex gap-4 mb-4">
@@ -248,9 +233,8 @@ export default function AdminDashboardPage() {
                   Удалить
                 </button>
               </div>
-            </div>
-          ))}
-        </div>
+          </div>
+        ))}
       </div>
 
       {/* Form Modal */}
@@ -272,6 +256,6 @@ export default function AdminDashboardPage() {
         onCancel={cancelDelete}
         variant="danger"
       />
-    </div>
+    </UnifiedAdminLayout>
   )
 }

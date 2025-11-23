@@ -21,7 +21,7 @@ export default function FloatingActions() {
 
         {/* WhatsApp button */}
         <a
-          href="https://wa.me/79175255095"
+          href="https://wa.me/79933636464"
           target="_blank"
           rel="noopener noreferrer"
           className="group relative w-16 h-16 bg-gradient-to-br from-green-500 to-green-600 text-white rounded-2xl shadow-2xl hover:shadow-green-500/50 flex items-center justify-center transition-all duration-300 hover:scale-110"
@@ -35,7 +35,7 @@ export default function FloatingActions() {
 
         {/* Telegram button */}
         <a
-          href="tg://resolve?domain=@vozmimenya_bot&start=chat79175255095"
+          href="tg://resolve?domain=@vozmimenya_bot&start=chat79933636464"
           onClick={(e) => {
             // Фоллбэк для веб-версии если приложение не установлено
             const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)

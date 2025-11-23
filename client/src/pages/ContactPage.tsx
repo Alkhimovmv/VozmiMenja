@@ -119,8 +119,8 @@ export default function ContactPage() {
                     </div>
                     <div>
                       <h3 className="font-bold text-slate-900 text-lg mb-2">Телефон</h3>
-                      <a href="tel:+79175255095" className="text-slate-600 hover:text-purple-600 transition-colors text-lg font-medium">
-                        +7 (917) 525-50-95
+                      <a href="tel:+79933636464" className="text-slate-600 hover:text-purple-600 transition-colors text-lg font-medium">
+                        +7 (993) 363-64-64
                       </a>
                     </div>
                   </div>
@@ -156,7 +156,7 @@ export default function ContactPage() {
                   <h3 className="font-bold text-slate-900 text-xl mb-6">Мы в социальных сетях</h3>
                   <div className="flex gap-4">
                     <a
-                      href="tg://resolve?domain=@vozmimenya_bot&start=chat79175255095"
+                      href="tg://resolve?domain=@vozmimenya_bot&start=chat79933636464"
                       onClick={(e) => {
                         const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
                         if (!isMobile) {
@@ -173,7 +173,7 @@ export default function ContactPage() {
                       </svg>
                     </a>
                     <a
-                      href="https://wa.me/79175255095"
+                      href="https://wa.me/79933636464"
                       target="_blank"
                       rel="noopener noreferrer"
                       className="group/social relative w-14 h-14 bg-gradient-to-br from-green-500 to-green-600 rounded-xl flex items-center justify-center text-white hover:shadow-xl transition-all duration-300 hover:scale-110"

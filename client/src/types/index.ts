@@ -1,6 +1,34 @@
 // Export admin types
 export * from './admin'
 
+export interface Article {
+  id: number
+  title: string
+  slug: string
+  excerpt: string
+  content: string
+  image_url: string | null
+  category: string
+  tags: string | null
+  author: string
+  published: boolean
+  views: number
+  created_at: string
+  updated_at: string
+}
+
+export interface CreateArticleDto {
+  title: string
+  slug: string
+  excerpt: string
+  content: string
+  image_url?: string | null
+  category: string
+  tags?: string | null
+  author?: string
+  published?: boolean
+}
+
 export interface PricingTier {
   day1_10to20: number  // 1 день с 10:00 до 20:00
   day1: number         // 1 сутки

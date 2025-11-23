@@ -25,11 +25,17 @@ const RentAdminCustomersPage = lazy(() => import('./pages/admin/CustomersPage'))
 const RentAdminFinancesPage = lazy(() => import('./pages/admin/FinancesPage'))
 const RentAdminEquipmentPage = lazy(() => import('./pages/admin/EquipmentPage'))
 const AdminLayout = lazy(() => import('./components/admin/Layout'))
+const UnifiedAdminLayout = lazy(() => import('./components/admin/UnifiedAdminLayout'))
 
 // Посадочные страницы категорий
 const CategoryPylesosyPage = lazy(() => import('./pages/CategoryPylesosyPage'))
 const CategoryCamerasPage = lazy(() => import('./pages/CategoryCamerasPage'))
 const CategoryAudioPage = lazy(() => import('./pages/CategoryAudioPage'))
+
+// Блог
+const BlogPage = lazy(() => import('./pages/BlogPage'))
+const BlogArticlePage = lazy(() => import('./pages/BlogArticlePage'))
+const AdminArticlesPage = lazy(() => import('./pages/admin/ArticlesPage'))
 
 // Компонент загрузки
 const PageLoader = () => (
@@ -95,6 +101,7 @@ function App() {
           <Route path="/admin/customers" element={<AdminLayout><RentAdminCustomersPage /></AdminLayout>} />
           <Route path="/admin/equipment" element={<AdminLayout><RentAdminEquipmentPage /></AdminLayout>} />
           <Route path="/admin/finances" element={<AdminLayout><RentAdminFinancesPage /></AdminLayout>} />
+          <Route path="/admin/articles" element={<UnifiedAdminLayout><AdminArticlesPage /></UnifiedAdminLayout>} />
 
           {/* Public routes with layout */}
           <Route path="/*" element={
@@ -107,6 +114,10 @@ function App() {
                 <Route path="/arenda-pylesosov-moskva" element={<CategoryPylesosyPage />} />
                 <Route path="/arenda-gopro-moskva" element={<CategoryCamerasPage />} />
                 <Route path="/arenda-audiooborudovaniya-moskva" element={<CategoryAudioPage />} />
+
+                {/* Блог */}
+                <Route path="/blog" element={<BlogPage />} />
+                <Route path="/blog/:slug" element={<BlogArticlePage />} />
 
                 <Route path="/about" element={<AboutPage />} />
                 <Route path="/contact" element={<ContactPage />} />

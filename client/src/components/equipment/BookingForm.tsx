@@ -274,7 +274,7 @@ export default function BookingForm({ equipment, onClose }: BookingFormProps) {
                   name="customerPhone"
                   value={formData.customerPhone}
                   onChange={handleInputChange}
-                  placeholder="+7 (917) 525-50-95"
+                  placeholder="+7 (993) 363-64-64"
                   required
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 />

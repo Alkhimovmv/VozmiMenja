@@ -36,7 +36,7 @@ export default function Footer() {
                 <div className="space-y-2 mb-6">
                   <div className="flex items-center space-x-2 text-gray-300">
                     <Phone className="w-4 h-4" />
-                    <span>+7 (917) 525-50-95</span>
+                    <span>+7 (993) 363-64-64</span>
                   </div>
                   <div className="flex items-center space-x-2 text-gray-300">
                     <Mail className="w-4 h-4" />
@@ -69,7 +69,7 @@ export default function Footer() {
                   </svg>
                 </a>
                 <a
-                  href="https://wa.me/79175255095"
+                  href="https://wa.me/79933636464"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="group relative w-12 h-12 bg-gray-800/50 backdrop-blur-sm rounded-xl flex items-center justify-center text-gray-300 hover:text-white transition-all duration-300 hover:scale-110 border border-gray-700/50 hover:border-green-500/50"

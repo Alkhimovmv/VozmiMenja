@@ -44,7 +44,7 @@ export default function CategoryCamerasPage() {
     <div className="min-h-screen bg-gray-50">
       <SEO
         title="Аренда GoPro в Москве от 400₽/день - Прокат экшн-камер и фототехники"
-        description="✅ Аренда GoPro Hero 11/12 и других экшн-камер в Москве. Полный комплект креплений. Доставка 24/7. ☎️ +7 (917) 525-50-95"
+        description="✅ Аренда GoPro Hero 11/12 и других экшн-камер в Москве. Полный комплект креплений. Доставка 24/7. ☎️ +7 (993) 363-64-64"
         keywords="аренда gopro москва, прокат экшн камер, аренда gopro hero 12, прокат видеокамер, фототехника напрокат москва"
         url="https://vozmimenya.ru/arenda-gopro-moskva"
         structuredData={categoryStructuredData}
@@ -71,9 +71,9 @@ export default function CategoryCamerasPage() {
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4">
-              <a href="tel:+79175255095" className="inline-flex items-center justify-center px-8 py-4 bg-white text-orange-600 rounded-xl font-semibold hover:bg-orange-50 transition-all shadow-xl">
+              <a href="tel:+79933636464" className="inline-flex items-center justify-center px-8 py-4 bg-white text-orange-600 rounded-xl font-semibold hover:bg-orange-50 transition-all shadow-xl">
                 <Phone className="w-5 h-5 mr-2" />
-                +7 (917) 525-50-95
+                +7 (993) 363-64-64
               </a>
             </div>
           </div>
@@ -178,9 +178,9 @@ export default function CategoryCamerasPage() {
           <p className="text-xl text-orange-50 mb-8 max-w-2xl mx-auto">
             Арендуйте GoPro сегодня и получите полный комплект креплений бесплатно!
           </p>
-          <a href="tel:+79175255095" className="inline-flex items-center justify-center px-8 py-4 bg-white text-orange-600 rounded-xl font-semibold text-lg hover:bg-orange-50 transition-all shadow-xl">
+          <a href="tel:+79933636464" className="inline-flex items-center justify-center px-8 py-4 bg-white text-orange-600 rounded-xl font-semibold text-lg hover:bg-orange-50 transition-all shadow-xl">
             <Phone className="w-5 h-5 mr-2" />
-            +7 (917) 525-50-95
+            +7 (993) 363-64-64
           </a>
         </div>
       </section>

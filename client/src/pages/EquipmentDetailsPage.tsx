@@ -98,7 +98,7 @@ export default function EquipmentDetailsPage() {
     <div className="min-h-screen bg-gray-50">
       <SEO
         title={`Аренда ${equipment.name} в Москве`}
-        description={`${equipment.description} - Аренда от ${formatPrice(getMinPrice())}/день. Быстрая доставка по Москве. Звоните: +7 (917) 525-50-95`}
+        description={`${equipment.description} - Аренда от ${formatPrice(getMinPrice())}/день. Быстрая доставка по Москве. Звоните: +7 (993) 363-64-64`}
         keywords={`аренда ${equipment.name}, прокат ${equipment.name}, ${equipment.category} Москва, аренда оборудования`}
         url={`https://vozmimenya.ru/equipment/${equipment.id}`}
         type="product"

@@ -13,6 +13,7 @@ import rentalsRoutes from './routes/rentals'
 import expensesRoutes from './routes/expenses'
 import customersRoutes from './routes/customers'
 import analyticsRoutes from './routes/analytics'
+import articlesRoutes from './routes/articles'
 
 dotenv.config()
 
@@ -55,6 +56,7 @@ app.use('/uploads', (req, res, next) => {
 app.use('/api/equipment', equipmentRoutes)
 app.use('/api/bookings', bookingsRoutes)
 app.use('/api/contact', contactRoutes)
+app.use('/api/articles', articlesRoutes)
 
 // Admin API Routes (RentAdmin integrated) - ВАЖНО: регистрируем специфичные роуты ДО общего /api/admin
 app.use('/api/admin/equipment', rentalEquipmentRoutes) // Используем отдельную модель RentalEquipment для админки

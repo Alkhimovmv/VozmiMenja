@@ -126,7 +126,7 @@ export default function CategoryPylesosyPage() {
     <div className="min-h-screen bg-gray-50">
       <SEO
         title="Аренда пылесосов в Москве от 400₽/день - Строительные и промышленные"
-        description="✅ Аренда строительных и промышленных пылесосов в Москве. Низкие цены от 400₽/день. Доставка 24/7. Без залога для постоянных клиентов. ☎️ +7 (917) 525-50-95"
+        description="✅ Аренда строительных и промышленных пылесосов в Москве. Низкие цены от 400₽/день. Доставка 24/7. Без залога для постоянных клиентов. ☎️ +7 (993) 363-64-64"
         keywords="аренда пылесосов москва, прокат строительных пылесосов, промышленные пылесосы аренда, клининговое оборудование напрокат, строительный пылесос москва"
         url="https://vozmimenya.ru/arenda-pylesosov-moskva"
         structuredData={[categoryStructuredData, faqStructuredData]}
@@ -158,11 +158,11 @@ export default function CategoryPylesosyPage() {
 
             <div className="flex flex-col sm:flex-row gap-4 mb-8">
               <a
-                href="tel:+79175255095"
+                href="tel:+79933636464"
                 className="inline-flex items-center justify-center px-8 py-4 bg-white text-blue-600 rounded-xl font-semibold text-lg hover:bg-blue-50 transition-all shadow-xl hover:shadow-2xl transform hover:scale-105"
               >
                 <Phone className="w-5 h-5 mr-2" />
-                +7 (917) 525-50-95
+                +7 (993) 363-64-64
               </a>
               <a
                 href="#catalog"
@@ -357,11 +357,11 @@ export default function CategoryPylesosyPage() {
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <a
-              href="tel:+79175255095"
+              href="tel:+79933636464"
               className="inline-flex items-center justify-center px-8 py-4 bg-white text-blue-600 rounded-xl font-semibold text-lg hover:bg-blue-50 transition-all shadow-xl"
             >
               <Phone className="w-5 h-5 mr-2" />
-              +7 (917) 525-50-95
+              +7 (993) 363-64-64
             </a>
             <a
               href="https://t.me/alhimooov"

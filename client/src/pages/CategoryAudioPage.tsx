@@ -29,7 +29,7 @@ export default function CategoryAudioPage() {
     <div className="min-h-screen bg-gray-50">
       <SEO
         title="Аренда аудиооборудования в Москве - Микрофоны, колонки, акустика"
-        description="✅ Аренда профессионального аудиооборудования в Москве. Микрофоны, колонки, акустические системы. Доставка 24/7. ☎️ +7 (917) 525-50-95"
+        description="✅ Аренда профессионального аудиооборудования в Москве. Микрофоны, колонки, акустические системы. Доставка 24/7. ☎️ +7 (993) 363-64-64"
         keywords="аренда аудиооборудования москва, прокат микрофонов, аренда колонок, звуковое оборудование напрокат, акустика в аренду"
         url="https://vozmimenya.ru/arenda-audiooborudovaniya-moskva"
       />
@@ -54,9 +54,9 @@ export default function CategoryAudioPage() {
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4">
-              <a href="tel:+79175255095" className="inline-flex items-center justify-center px-8 py-4 bg-white text-purple-600 rounded-xl font-semibold hover:bg-purple-50 transition-all shadow-xl">
+              <a href="tel:+79933636464" className="inline-flex items-center justify-center px-8 py-4 bg-white text-purple-600 rounded-xl font-semibold hover:bg-purple-50 transition-all shadow-xl">
                 <Phone className="w-5 h-5 mr-2" />
-                +7 (917) 525-50-95
+                +7 (993) 363-64-64
               </a>
             </div>
           </div>
@@ -186,9 +186,9 @@ export default function CategoryAudioPage() {
           <p className="text-xl text-purple-50 mb-8 max-w-2xl mx-auto">
             Звоните прямо сейчас — подберем оптимальное решение для ваших задач!
           </p>
-          <a href="tel:+79175255095" className="inline-flex items-center justify-center px-8 py-4 bg-white text-purple-600 rounded-xl font-semibold text-lg hover:bg-purple-50 transition-all shadow-xl">
+          <a href="tel:+79933636464" className="inline-flex items-center justify-center px-8 py-4 bg-white text-purple-600 rounded-xl font-semibold text-lg hover:bg-purple-50 transition-all shadow-xl">
             <Phone className="w-5 h-5 mr-2" />
-            +7 (917) 525-50-95
+            +7 (993) 363-64-64
           </a>
         </div>
       </section>

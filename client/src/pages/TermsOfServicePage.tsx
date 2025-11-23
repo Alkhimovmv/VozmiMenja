@@ -117,7 +117,7 @@ export default function TermsOfServicePage() {
               <div className="text-gray-700">
                 <p>ООО "ВозьмиМеня"</p>
                 <p>Email: alkhimovmv@yandex.ru</p>
-                <p>Телефон: +7 (917) 525-50-95</p>
+                <p>Телефон: +7 (993) 363-64-64</p>
                 <p>Адрес: г. Москва, ул. Федора Полетаева, д. 15, корпус 3</p>
               </div>
 

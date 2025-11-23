@@ -1,11 +1,13 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuthenticatedQuery } from '../../hooks/useAuthenticatedQuery';
 import { rentalsApi } from '../../api/admin/rentals';
 import { equipmentApi } from '../../api/admin/equipment';
-import { type Rental, type Equipment } from '../../types/index';
+import { type Rental, type Equipment, type CreateRentalDto } from '../../types/index';
 import { format, parseISO, startOfWeek, endOfWeek, addDays } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import { getStatusColor, getStatusText } from '../../utils/dateUtils';
+import RentalModal from '../../components/admin/RentalModal';
 
 interface EquipmentInstance {
   id: string;
@@ -24,6 +26,9 @@ const SchedulePage: React.FC = () => {
     y: number;
     content: React.ReactNode;
   }>({ visible: false, x: 0, y: 0, content: null });
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingRental, setEditingRental] = useState<Rental | null>(null);
+  const queryClient = useQueryClient();
 
   const weekStart = startOfWeek(selectedDate, { locale: ru });
   const weekEnd = endOfWeek(selectedDate, { locale: ru });
@@ -243,6 +248,30 @@ const SchedulePage: React.FC = () => {
 
   const hideTooltip = () => {
     setTooltip({ visible: false, x: 0, y: 0, content: null });
+  };
+
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }: { id: number; data: Partial<CreateRentalDto & { status: string }> }) =>
+      rentalsApi.update(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['rentals'] });
+      queryClient.invalidateQueries({ queryKey: ['rentals', 'gantt'] });
+      queryClient.invalidateQueries({ queryKey: ['analytics'] });
+      setIsModalOpen(false);
+      setEditingRental(null);
+    },
+  });
+
+  const handleEditRental = (rental: Rental) => {
+    setEditingRental(rental);
+    setIsModalOpen(true);
+    hideTooltip();
+  };
+
+  const handleUpdateRental = (data: Partial<CreateRentalDto & { status: string }>) => {
+    if (editingRental) {
+      updateMutation.mutate({ id: editingRental.id, data });
+    }
   };
 
   // Синхронизация скроллов
@@ -523,6 +552,7 @@ const SchedulePage: React.FC = () => {
                                   ? 'bg-red-500 text-white border-2 border-red-700 animate-pulse'
                                   : getStatusColor(rental.status)
                               }`}
+                              onClick={() => handleEditRental(rental)}
                               onMouseEnter={(e) => showTooltip(e, rental, conflictingRentalsForSlot)}
                               onMouseLeave={hideTooltip}
                               onTouchStart={(e) => showTooltip(e, rental, conflictingRentalsForSlot)}
@@ -537,6 +567,7 @@ const SchedulePage: React.FC = () => {
                                 </span>
                               ) : (
                                 <span className="truncate text-xs sm:text-sm font-medium">
+                                  {rental.needs_delivery && <span className="mr-0.5">🚚</span>}
                                   {rental.customer_name.split(' ')[0]}
                                 </span>
                               )}
@@ -613,6 +644,19 @@ const SchedulePage: React.FC = () => {
           {tooltip.content}
         </div>
       )}
+
+      {/* Модальное окно редактирования аренды */}
+      <RentalModal
+        isOpen={isModalOpen}
+        onClose={() => {
+          setIsModalOpen(false);
+          setEditingRental(null);
+        }}
+        onSubmit={(data) => handleUpdateRental(data as Partial<CreateRentalDto & { status: string }>)}
+        rental={editingRental}
+        equipment={equipment}
+        isLoading={updateMutation.isPending}
+      />
     </div>
   );
 };

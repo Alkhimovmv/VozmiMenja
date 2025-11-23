@@ -92,6 +92,12 @@ export default function Header() {
                 О нас
               </Link>
               <Link
+                to="/blog"
+                className="px-4 py-2 text-gray-700 hover:text-primary-600 font-medium transition-all hover:bg-primary-50 rounded-xl"
+              >
+                Блог
+              </Link>
+              <Link
                 to="/contact"
                 className="px-4 py-2 text-gray-700 hover:text-primary-600 font-medium transition-all hover:bg-primary-50 rounded-xl"
               >
@@ -102,7 +108,7 @@ export default function Header() {
             {/* Social links - Современный дизайн */}
             <div className="flex items-center space-x-2 ml-4 pl-4 border-l border-gray-200">
               <a
-                href="https://wa.me/79175255095"
+                href="https://wa.me/79933636464"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="p-2.5 text-green-600 hover:text-white bg-green-50 hover:bg-green-600 rounded-xl transition-all transform hover:scale-110 shadow-sm hover:shadow-md"
@@ -194,6 +200,13 @@ export default function Header() {
                 О нас
               </Link>
               <Link
+                to="/blog"
+                className="px-4 py-3 text-gray-700 hover:text-primary-600 hover:bg-primary-50 font-medium transition-all rounded-xl"
+                onClick={() => setIsMenuOpen(false)}
+              >
+                Блог
+              </Link>
+              <Link
                 to="/contact"
                 className="px-4 py-3 text-gray-700 hover:text-primary-600 hover:bg-primary-50 font-medium transition-all rounded-xl"
                 onClick={() => setIsMenuOpen(false)}
@@ -204,7 +217,7 @@ export default function Header() {
               {/* Mobile Social links */}
               <div className="grid grid-cols-3 gap-2 pt-4 px-2">
                 <a
-                  href="https://wa.me/79175255095"
+                  href="https://wa.me/79933636464"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex flex-col items-center justify-center space-y-1 px-3 py-3 text-white bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 rounded-xl transition-all shadow-md"
