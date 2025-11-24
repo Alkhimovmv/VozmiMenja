@@ -13,7 +13,7 @@ module.exports = {
         PORT: 3003,
         FRONTEND_URL: 'https://vozmimenya.ru',
         TELEGRAM_BOT_TOKEN: '8274899003:AAFbO3D219EQk4xBWzUDeYuCCgtWWlgdE6o',
-        TELEGRAM_CHAT_ID: '466787348'
+        TELEGRAM_CHAT_ID: '8466742074'
       },
       error_file: './server/logs/err.log',
       out_file: './server/logs/out.log',
