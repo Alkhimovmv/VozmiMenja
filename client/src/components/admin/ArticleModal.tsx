@@ -167,6 +167,22 @@ export default function ArticleModal({ article, onClose }: ArticleModalProps) {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
+                URL изображения
+              </label>
+              <input
+                type="text"
+                value={formData.image_url}
+                onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
+                className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                placeholder="http://localhost:3002/uploads/image.jpg"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Главное изображение статьи для превью
+              </p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
                 Краткое описание *
               </label>
               <textarea
