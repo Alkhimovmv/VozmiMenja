@@ -359,7 +359,7 @@ const RentalsPage: React.FC = () => {
                       Начать аренду
                     </button>
                   )}
-                  {rental.status === 'active' && (
+                  {(rental.status === 'active' || rental.status === 'overdue') && (
                     <>
                       <button
                         onClick={() => handleCompleteRentalNow(rental)}

@@ -244,13 +244,14 @@ router.delete('/:id', authMiddleware, async (req: Request, res: Response) => {
 
 // Функция расчета статуса аренды
 function calculateStatus(rental: any): RentalStatus {
-  const now = new Date()
-  const endDate = new Date(rental.endDate)
-  const startDate = new Date(rental.startDate)
-
+  // Если статус вручную установлен как completed - не меняем его
   if (rental.status === 'completed') {
     return 'completed'
   }
+
+  const now = new Date()
+  const endDate = new Date(rental.endDate)
+  const startDate = new Date(rental.startDate)
 
   if (now > endDate) {
     return 'overdue'
