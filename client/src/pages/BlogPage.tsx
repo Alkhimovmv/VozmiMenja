@@ -135,9 +135,9 @@ export default function BlogPage() {
                       key={article.id}
                       className="bg-white rounded-2xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden group"
                     >
-                      <div className="md:flex">
+                      <div className="md:flex md:max-w-full">
                         {article.image_url && (
-                          <div className="md:w-1/3 h-64 md:h-72 overflow-hidden flex-shrink-0">
+                          <div className="w-full md:w-80 md:min-w-80 md:max-w-80 h-64 md:h-72 overflow-hidden flex-shrink-0">
                             <img
                               src={article.image_url}
                               alt={article.title}
@@ -145,7 +145,7 @@ export default function BlogPage() {
                             />
                           </div>
                         )}
-                        <div className={`p-6 ${article.image_url ? 'md:w-2/3' : 'w-full'}`}>
+                        <div className={`p-6 flex-1 min-w-0 ${article.image_url ? '' : 'w-full'}`}>
                           {/* Meta */}
                           <div className="flex flex-wrap gap-4 mb-3 text-sm text-gray-500">
                             <span className="flex items-center gap-1.5">
