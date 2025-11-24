@@ -137,7 +137,7 @@ export default function BlogPage() {
                     >
                       <div className="md:flex">
                         {article.image_url && (
-                          <div className="md:w-1/3 h-64 md:h-auto overflow-hidden">
+                          <div className="md:w-1/3 h-64 md:h-72 overflow-hidden flex-shrink-0">
                             <img
                               src={article.image_url}
                               alt={article.title}
