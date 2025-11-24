@@ -322,10 +322,11 @@ export class RentalModel {
   }
 
   async getMonthlyRevenue(): Promise<Array<{
-    month: string
+    month: number
     year: number
-    totalRevenue: number
-    rentalCount: number
+    month_name: string
+    total_revenue: number
+    rental_count: number
   }>> {
     const rows = await all(`
       SELECT
@@ -339,12 +340,21 @@ export class RentalModel {
       ORDER BY year DESC, month DESC
     `) as any[]
 
-    return rows.map(row => ({
-      month: row.month,
-      year: parseInt(row.year),
-      totalRevenue: row.total_revenue || 0,
-      rentalCount: row.rental_count
-    }))
+    const monthNames = [
+      'Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь',
+      'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'
+    ]
+
+    return rows.map(row => {
+      const monthNum = parseInt(row.month)
+      return {
+        month: monthNum,
+        year: parseInt(row.year),
+        month_name: monthNames[monthNum - 1],
+        total_revenue: row.total_revenue || 0,
+        rental_count: row.rental_count
+      }
+    })
   }
 
   async getMonthlyRevenueDetails(year: number, month: number): Promise<{
