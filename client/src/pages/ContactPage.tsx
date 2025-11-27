@@ -161,7 +161,7 @@ export default function ContactPage() {
                         const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
                         if (!isMobile) {
                           e.preventDefault()
-                          window.open('https://t.me/alhimooov', '_blank')
+                          window.open('https://t.me/VozmiMenyaRent', '_blank')
                         }
                       }}
                       className="group/social relative w-14 h-14 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center text-white hover:shadow-xl transition-all duration-300 hover:scale-110"

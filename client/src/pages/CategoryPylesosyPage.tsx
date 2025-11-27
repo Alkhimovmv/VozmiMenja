@@ -364,7 +364,7 @@ export default function CategoryPylesosyPage() {
               +7 (993) 363-64-64
             </a>
             <a
-              href="https://t.me/alhimooov"
+              href="https://t.me/VozmiMenyaRent"
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center justify-center px-8 py-4 bg-white/10 backdrop-blur-md text-white rounded-xl font-semibold text-lg hover:bg-white/20 transition-all border border-white/20"

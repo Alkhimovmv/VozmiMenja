@@ -409,4 +409,4 @@ sudo chmod -R 755 /var/www/vozmimenya/server/uploads
 ## Контакты для поддержки
 
 - Email: alkhimovmv@yandex.ru
-- Telegram: @alhimooov
+- Telegram: @VozmiMenyaRent

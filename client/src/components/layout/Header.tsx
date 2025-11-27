@@ -119,7 +119,7 @@ export default function Header() {
                 </svg>
               </a>
               <a
-                href="https://t.me/alhimooov"
+                href="https://t.me/VozmiMenyaRent"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="p-2.5 text-blue-600 hover:text-white bg-blue-50 hover:bg-blue-600 rounded-xl transition-all transform hover:scale-110 shadow-sm hover:shadow-md"
@@ -228,7 +228,7 @@ export default function Header() {
                   <span className="text-xs font-medium">WhatsApp</span>
                 </a>
                 <a
-                  href="https://t.me/alhimooov"
+                  href="https://t.me/VozmiMenyaRent"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex flex-col items-center justify-center space-y-1 px-3 py-3 text-white bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 rounded-xl transition-all shadow-md"

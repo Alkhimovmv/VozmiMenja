@@ -57,7 +57,7 @@ export default function Footer() {
                   <h3 className="text-lg font-semibold mb-4">Мы в социальных сетях</h3>
                   <div className="flex space-x-3">
                 <a
-                  href="https://t.me/alhimooov"
+                  href="https://t.me/VozmiMenyaRent"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="group relative w-12 h-12 bg-gray-800/50 backdrop-blur-sm rounded-xl flex items-center justify-center text-gray-300 hover:text-white transition-all duration-300 hover:scale-110 border border-gray-700/50 hover:border-blue-500/50"
