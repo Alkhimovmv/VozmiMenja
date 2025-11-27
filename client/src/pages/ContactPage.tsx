@@ -156,7 +156,7 @@ export default function ContactPage() {
                   <h3 className="font-bold text-slate-900 text-xl mb-6">Мы в социальных сетях</h3>
                   <div className="flex gap-4">
                     <a
-                      href="tg://resolve?domain=@vozmimenya_bot&start=chat79933636464"
+                      href="tg://resolve?domain=@VozmiMenyaRent&start=chat79933636464"
                       onClick={(e) => {
                         const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
                         if (!isMobile) {

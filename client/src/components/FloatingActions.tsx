@@ -35,7 +35,7 @@ export default function FloatingActions() {
 
         {/* Telegram button */}
         <a
-          href="tg://resolve?domain=@vozmimenya_bot&start=chat79933636464"
+          href="tg://resolve?domain=@VozmiMenyaRent&start=chat79933636464"
           onClick={(e) => {
             // Фоллбэк для веб-версии если приложение не установлено
             const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
