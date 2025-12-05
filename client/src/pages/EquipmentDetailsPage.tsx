@@ -168,8 +168,10 @@ export default function EquipmentDetailsPage() {
                 {equipment.name}
               </h1>
 
-              <div className="text-4xl font-bold text-gray-900 mb-4">
-                от {formatPrice(getMinPrice())}
+              <div className="flex items-baseline gap-1 mb-4 whitespace-nowrap">
+                <span className="text-4xl font-bold text-gray-900">
+                  от {formatPrice(getMinPrice())}
+                </span>
                 <span className="text-lg font-normal text-gray-500">/сутки</span>
               </div>
 

@@ -75,10 +75,10 @@ export default function EquipmentCard({ equipment, priority = false }: Equipment
 
             {/* Price */}
             <div className="flex items-center justify-between mb-4">
-              <div>
-                <div className="text-2xl font-bold bg-gradient-to-r from-primary-600 to-purple-600 bg-clip-text text-transparent">
+              <div className="flex items-baseline gap-1 whitespace-nowrap">
+                <span className="text-2xl font-bold bg-gradient-to-r from-primary-600 to-purple-600 bg-clip-text text-transparent">
                   от {formatPrice(getMinPrice())}
-                </div>
+                </span>
                 <span className="text-sm font-normal text-gray-500">/день</span>
               </div>
             </div>
