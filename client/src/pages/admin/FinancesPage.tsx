@@ -33,6 +33,11 @@ const FinancesPage: React.FC = () => {
     analyticsApi.getMonthlyRevenue
   );
 
+  // Временная отладка
+  React.useEffect(() => {
+    console.log('📊 Monthly Revenue Data:', monthlyRevenue);
+  }, [monthlyRevenue]);
+
   const { data: financialSummary } = useAuthenticatedQuery<FinancialSummary>(
     ['analytics', 'financial-summary', filterYear, filterMonth],
     () => analyticsApi.getFinancialSummary(filterYear, filterMonth),
