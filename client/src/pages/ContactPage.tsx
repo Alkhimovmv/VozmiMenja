@@ -360,7 +360,7 @@ export default function ContactPage() {
                 <div className="absolute -inset-2 bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 rounded-3xl blur-xl opacity-20"></div>
                 <div className="relative bg-slate-200 rounded-3xl h-[450px] overflow-hidden shadow-2xl border-4 border-white">
                   <iframe
-                    src="https://yandex.ru/map-widget/v1/?ll=37.784785%2C55.710646&z=17&l=map&pt=37.784785%2C55.710646%2Cpm2rdm~ВозьмиМеня%20-%20улица%20Федора%20Полетаева%2C%2015к3"
+                    src="https://yandex.ru/map-widget/v1/?ll=37.665068%2C55.704319&z=17&l=map&pt=37.665068%2C55.704319%2Cpm2rdm~ВозьмиМеня%20-%20Волжский%20бульвар%2C%2051с15"
                     width="100%"
                     height="100%"
                     frameBorder={0}

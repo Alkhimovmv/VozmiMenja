@@ -88,7 +88,7 @@ export default function PrivacyPolicyPage() {
               <div className="text-gray-700">
                 <p>Email: alkhimovmv@yandex.ru</p>
                 <p>Телефон: +7 (993) 363-64-64</p>
-                <p>Адрес: г. Москва, ул. Федора Полетаева, д. 15, корпус 3</p>
+                <p>Адрес: г. Москва, ул. Волжский бульвар, д. 51, строение 15</p>
               </div>
 
               <div className="mt-8 p-4 bg-gray-50 rounded-lg">

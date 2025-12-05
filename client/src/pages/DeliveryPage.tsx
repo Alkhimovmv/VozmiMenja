@@ -35,7 +35,7 @@ export default function DeliveryPage() {
                   Забрать оборудование можно по адресу:
                 </p>
                 <p className="font-semibold text-gray-900 mb-2">
-                  г. Москва, ул. Федора Полетаева, д. 15к3
+                  г. Москва, Волжский бульвар, д. 51, строение 15
                 </p>
                 <div className="flex items-center text-gray-600">
                   <Clock className="w-4 h-4 mr-2" />
