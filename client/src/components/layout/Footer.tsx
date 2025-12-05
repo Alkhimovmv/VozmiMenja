@@ -44,7 +44,7 @@ export default function Footer() {
                   </div>
                   <div className="flex items-center space-x-2 text-gray-300">
                     <MapPin className="w-4 h-4" />
-                    <span>г. Москва, ул. Федора Полетаева, 15к3</span>
+                    <span>г. Москва, ул. Волжский бульвар, 51с15</span>
                   </div>
                   <div className="flex items-center space-x-2 text-gray-300">
                     <Clock className="w-4 h-4" />

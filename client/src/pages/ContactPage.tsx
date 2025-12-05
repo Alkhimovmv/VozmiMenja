@@ -107,7 +107,7 @@ export default function ContactPage() {
                     </div>
                     <div>
                       <h3 className="font-bold text-slate-900 text-lg mb-2">Адрес офиса</h3>
-                      <p className="text-slate-600 leading-relaxed">г. Москва, ул. Федора Полетаева, 15к3</p>
+                      <p className="text-slate-600 leading-relaxed">г. Москва, ул. Волжский бульвар, 51с15</p>
                     </div>
                   </div>
 
@@ -367,7 +367,7 @@ export default function ContactPage() {
                     style={{ border: 0 }}
                     allowFullScreen
                     loading="lazy"
-                    title="Яндекс карта - улица Федора Полетаева, 15к3"
+                    title="Яндекс карта - улица Волжский бульвар, 51с15"
                   ></iframe>
                 </div>
               </div>
