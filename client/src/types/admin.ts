@@ -103,6 +103,7 @@ export interface MonthlyRevenue {
   month: number;
   month_name: string;
   total_revenue: number;
+  net_profit: number;
   rental_count: number;
 }
 

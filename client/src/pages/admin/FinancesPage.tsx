@@ -207,8 +207,8 @@ const FinancesPage: React.FC = () => {
                     {item.rental_count || 0} аренд
                   </div>
                 </div>
-                <div className="text-sm font-medium text-gray-900">
-                  {(item.total_revenue || 0).toLocaleString()}₽
+                <div className={`text-sm font-medium ${item.net_profit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                  {(item.net_profit || 0).toLocaleString()}₽
                 </div>
               </div>
             ))}

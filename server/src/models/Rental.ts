@@ -326,16 +326,18 @@ export class RentalModel {
     year: number
     month_name: string
     total_revenue: number
+    net_profit: number
     rental_count: number
   }>> {
     const rows = await all(`
       SELECT
-        strftime('%m', start_date) as month,
-        strftime('%Y', start_date) as year,
-        SUM(rental_price + COALESCE(delivery_price, 0)) as total_revenue,
+        strftime('%m', r.start_date) as month,
+        strftime('%Y', r.start_date) as year,
+        SUM(r.rental_price + COALESCE(r.delivery_price, 0)) as total_revenue,
+        SUM(COALESCE(r.delivery_costs, 0)) as delivery_costs,
         COUNT(*) as rental_count
-      FROM rentals
-      WHERE status != 'cancelled'
+      FROM rentals r
+      WHERE r.status != 'cancelled'
       GROUP BY month, year
       ORDER BY year DESC, month DESC
     `) as any[]
@@ -345,13 +347,38 @@ export class RentalModel {
       'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'
     ]
 
+    // Получаем расходы по месяцам
+    const expenseRows = await all(`
+      SELECT
+        strftime('%m', date) as month,
+        strftime('%Y', date) as year,
+        SUM(amount) as total_expenses
+      FROM expenses
+      GROUP BY month, year
+    `) as any[]
+
+    // Создаем map для быстрого доступа к расходам
+    const expensesMap = new Map<string, number>()
+    expenseRows.forEach(row => {
+      const key = `${row.year}-${row.month}`
+      expensesMap.set(key, row.total_expenses || 0)
+    })
+
     return rows.map(row => {
       const monthNum = parseInt(row.month)
+      const year = parseInt(row.year)
+      const key = `${year}-${row.month}`
+      const totalRevenue = row.total_revenue || 0
+      const deliveryCosts = row.delivery_costs || 0
+      const operationalExpenses = expensesMap.get(key) || 0
+      const netProfit = totalRevenue - deliveryCosts - operationalExpenses
+
       return {
         month: monthNum,
-        year: parseInt(row.year),
+        year: year,
         month_name: monthNames[monthNum - 1],
-        total_revenue: row.total_revenue || 0,
+        total_revenue: totalRevenue,
+        net_profit: netProfit,
         rental_count: row.rental_count
       }
     })
