@@ -337,7 +337,7 @@ export class RentalModel {
         SUM(COALESCE(r.delivery_costs, 0)) as delivery_costs,
         COUNT(*) as rental_count
       FROM rentals r
-      WHERE r.status != 'cancelled'
+      WHERE r.status = 'completed'
       GROUP BY month, year
       ORDER BY year DESC, month DESC
     `) as any[]
