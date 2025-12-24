@@ -36,6 +36,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     { path: '/admin/customers', label: 'Арендаторы', icon: '👥' },
     { path: '/admin/equipment', label: 'Оборудование', icon: '🎥' },
     { path: '/admin/finances', label: 'Финансы', icon: '💰' },
+    { path: '/admin/lockers', label: 'Ячейки постомата', icon: '🔐' },
   ];
 
   const isActive = (path: string) => {

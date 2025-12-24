@@ -37,6 +37,9 @@ const BlogPage = lazy(() => import('./pages/BlogPage'))
 const BlogArticlePage = lazy(() => import('./pages/BlogArticlePage'))
 const AdminArticlesPage = lazy(() => import('./pages/admin/ArticlesPage'))
 
+// Ячейки постомата
+const LockersPage = lazy(() => import('./pages/admin/LockersPage'))
+
 // Компонент загрузки
 const PageLoader = () => (
   <div className="flex items-center justify-center min-h-screen">
@@ -101,6 +104,7 @@ function App() {
           <Route path="/admin/customers" element={<AdminLayout><RentAdminCustomersPage /></AdminLayout>} />
           <Route path="/admin/equipment" element={<AdminLayout><RentAdminEquipmentPage /></AdminLayout>} />
           <Route path="/admin/finances" element={<AdminLayout><RentAdminFinancesPage /></AdminLayout>} />
+          <Route path="/admin/lockers" element={<AdminLayout><LockersPage /></AdminLayout>} />
           <Route path="/admin/articles" element={<UnifiedAdminLayout><AdminArticlesPage /></UnifiedAdminLayout>} />
 
           {/* Public routes with layout */}

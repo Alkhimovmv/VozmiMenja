@@ -149,6 +149,19 @@ class Database {
       )
     `)
 
+    // Таблица ячеек постомата
+    await run(`
+      CREATE TABLE IF NOT EXISTS lockers (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        locker_number TEXT NOT NULL UNIQUE,
+        access_code TEXT NOT NULL,
+        description TEXT,
+        is_active INTEGER NOT NULL DEFAULT 1,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      )
+    `)
+
     // Индексы для VozmiMenja
     await run(`
       CREATE INDEX IF NOT EXISTS idx_equipment_category ON equipment(category);

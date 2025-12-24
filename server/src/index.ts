@@ -14,6 +14,7 @@ import expensesRoutes from './routes/expenses'
 import customersRoutes from './routes/customers'
 import analyticsRoutes from './routes/analytics'
 import articlesRoutes from './routes/articles'
+import lockersRoutes from './routes/lockers'
 
 dotenv.config()
 
@@ -64,6 +65,7 @@ app.use('/api/admin/rentals', rentalsRoutes)
 app.use('/api/admin/expenses', expensesRoutes)
 app.use('/api/admin/customers', customersRoutes)
 app.use('/api/admin/analytics', analyticsRoutes)
+app.use('/api/admin/lockers', lockersRoutes)
 app.use('/api/admin', adminRoutes)
 
 // Health check

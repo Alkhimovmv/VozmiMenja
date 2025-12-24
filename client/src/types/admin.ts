@@ -114,3 +114,20 @@ export interface EquipmentUtilization {
   total_rentals: number;
   total_revenue: number;
 }
+
+export interface Locker {
+  id: number;
+  locker_number: string;
+  access_code: string;
+  description?: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CreateLockerDto {
+  locker_number: string;
+  access_code: string;
+  description?: string;
+  is_active?: boolean;
+}
