@@ -3,6 +3,8 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuthenticatedQuery } from '../../hooks/useAuthenticatedQuery';
 import { lockersApi } from '../../api/admin/lockers';
 import { type Locker, type CreateLockerDto } from '../../types/admin';
+import LockerCabinet from '../../components/admin/LockerCabinet';
+import apiClient from '../../api/admin/client';
 
 const LockersPage: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -48,6 +50,16 @@ const LockersPage: React.FC = () => {
     mutationFn: lockersApi.generateCode,
     onSuccess: (data) => {
       setFormData(prev => ({ ...prev, access_code: data.code }));
+    },
+  });
+
+  const initializeMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiClient.post('/lockers/initialize');
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['lockers'] });
     },
   });
 
@@ -104,17 +116,42 @@ const LockersPage: React.FC = () => {
     generateCodeMutation.mutate();
   };
 
+  const handleInitialize = () => {
+    if (window.confirm('Вы уверены, что хотите инициализировать 13 ячеек постомата? Существующие ячейки не будут изменены.')) {
+      initializeMutation.mutate();
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold text-gray-900">Ячейки постомата</h1>
-        <button
-          onClick={openCreateModal}
-          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md font-medium"
-        >
-          + Добавить ячейку
-        </button>
+        <div className="flex gap-2">
+          {lockers.length === 0 && (
+            <button
+              onClick={handleInitialize}
+              disabled={initializeMutation.isPending}
+              className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-md font-medium disabled:opacity-50"
+            >
+              {initializeMutation.isPending ? 'Инициализация...' : '⚡ Инициализировать 13 ячеек'}
+            </button>
+          )}
+          <button
+            onClick={openCreateModal}
+            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md font-medium"
+          >
+            + Добавить ячейку
+          </button>
+        </div>
       </div>
+
+      {/* Визуализация постомата */}
+      {lockers.length > 0 && (
+        <LockerCabinet
+          lockers={lockers}
+          onLockerClick={(locker) => openEditModal(locker)}
+        />
+      )}
 
       {/* Список ячеек */}
       <div className="bg-white shadow rounded-lg overflow-hidden">

@@ -156,11 +156,39 @@ class Database {
         locker_number TEXT NOT NULL UNIQUE,
         access_code TEXT NOT NULL,
         description TEXT,
+        size TEXT NOT NULL DEFAULT 'medium',
+        row_number INTEGER NOT NULL DEFAULT 1,
+        position_in_row INTEGER NOT NULL DEFAULT 1,
         is_active INTEGER NOT NULL DEFAULT 1,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
       )
     `)
+
+    // Добавляем поля size, row_number, position_in_row если их нет
+    try {
+      await run(`ALTER TABLE lockers ADD COLUMN size TEXT NOT NULL DEFAULT 'medium'`)
+    } catch (error: any) {
+      if (!error.message?.includes('duplicate column name')) {
+        throw error
+      }
+    }
+
+    try {
+      await run(`ALTER TABLE lockers ADD COLUMN row_number INTEGER NOT NULL DEFAULT 1`)
+    } catch (error: any) {
+      if (!error.message?.includes('duplicate column name')) {
+        throw error
+      }
+    }
+
+    try {
+      await run(`ALTER TABLE lockers ADD COLUMN position_in_row INTEGER NOT NULL DEFAULT 1`)
+    } catch (error: any) {
+      if (!error.message?.includes('duplicate column name')) {
+        throw error
+      }
+    }
 
     // Индексы для VozmiMenja
     await run(`

@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express'
 import { lockerModel, CreateLockerData } from '../models/Locker'
 import { authMiddleware } from '../middleware/auth'
+import { initializeLockers } from '../scripts/initializeLockers'
 
 const router = Router()
 
@@ -11,6 +12,9 @@ function toSnakeCase(locker: any) {
     locker_number: locker.lockerNumber,
     access_code: locker.accessCode,
     description: locker.description,
+    size: locker.size,
+    row_number: locker.rowNumber,
+    position_in_row: locker.positionInRow,
     is_active: locker.isActive,
     created_at: locker.createdAt,
     updated_at: locker.updatedAt
@@ -25,6 +29,17 @@ router.get('/', authMiddleware, async (req: Request, res: Response) => {
   } catch (error) {
     console.error('Error getting lockers:', error)
     res.status(500).json({ error: 'Ошибка получения списка ячеек' })
+  }
+})
+
+// POST /api/admin/lockers/initialize - Инициализировать 13 ячеек постомата
+router.post('/initialize', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    await initializeLockers()
+    res.json({ message: '13 ячеек успешно инициализированы' })
+  } catch (error) {
+    console.error('Error initializing lockers:', error)
+    res.status(500).json({ error: 'Ошибка инициализации ячеек' })
   }
 })
 

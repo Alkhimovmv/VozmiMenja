@@ -115,11 +115,16 @@ export interface EquipmentUtilization {
   total_revenue: number;
 }
 
+export type LockerSize = 'large' | 'medium' | 'small';
+
 export interface Locker {
   id: number;
   locker_number: string;
   access_code: string;
   description?: string;
+  size: LockerSize;
+  row_number: number;
+  position_in_row: number;
   is_active: boolean;
   created_at: string;
   updated_at: string;
@@ -129,5 +134,8 @@ export interface CreateLockerDto {
   locker_number: string;
   access_code: string;
   description?: string;
+  size?: LockerSize;
+  row_number?: number;
+  position_in_row?: number;
   is_active?: boolean;
 }

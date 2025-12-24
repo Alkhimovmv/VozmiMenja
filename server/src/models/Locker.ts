@@ -1,10 +1,15 @@
 import { database, run, get, all } from './database'
 
+export type LockerSize = 'large' | 'medium' | 'small'
+
 export interface Locker {
   id: number
   lockerNumber: string
   accessCode: string
   description?: string
+  size: LockerSize
+  rowNumber: number
+  positionInRow: number
   isActive: boolean
   createdAt: string
   updatedAt: string
@@ -14,6 +19,9 @@ export interface CreateLockerData {
   lockerNumber: string
   accessCode: string
   description?: string
+  size?: LockerSize
+  rowNumber?: number
+  positionInRow?: number
   isActive?: boolean
 }
 
@@ -59,6 +67,9 @@ export class LockerModel {
       lockerNumber: row.locker_number,
       accessCode: row.access_code,
       description: row.description,
+      size: row.size || 'medium',
+      rowNumber: row.row_number || 1,
+      positionInRow: row.position_in_row || 1,
       isActive: row.is_active === 1,
       createdAt: row.created_at,
       updatedAt: row.updated_at
@@ -103,12 +114,15 @@ export class LockerModel {
 
     const lockerId = await new Promise<number>((resolve, reject) => {
       this.db.run(`
-        INSERT INTO lockers (locker_number, access_code, description, is_active)
-        VALUES (?, ?, ?, ?)
+        INSERT INTO lockers (locker_number, access_code, description, size, row_number, position_in_row, is_active)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
       `, [
         data.lockerNumber,
         data.accessCode,
         data.description || null,
+        data.size || 'medium',
+        data.rowNumber || 1,
+        data.positionInRow || 1,
         data.isActive !== undefined ? (data.isActive ? 1 : 0) : 1
       ], function(err) {
         if (err) reject(err)
@@ -146,6 +160,21 @@ export class LockerModel {
     if (data.description !== undefined) {
       updates.push('description = ?')
       values.push(data.description)
+    }
+
+    if (data.size !== undefined) {
+      updates.push('size = ?')
+      values.push(data.size)
+    }
+
+    if (data.rowNumber !== undefined) {
+      updates.push('row_number = ?')
+      values.push(data.rowNumber)
+    }
+
+    if (data.positionInRow !== undefined) {
+      updates.push('position_in_row = ?')
+      values.push(data.positionInRow)
     }
 
     if (data.isActive !== undefined) {
