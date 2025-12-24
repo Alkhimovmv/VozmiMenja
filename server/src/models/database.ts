@@ -190,6 +190,15 @@ class Database {
       }
     }
 
+    // Добавляем поле items для хранения списка предметов в ячейке
+    try {
+      await run(`ALTER TABLE lockers ADD COLUMN items TEXT`)
+    } catch (error: any) {
+      if (!error.message?.includes('duplicate column name')) {
+        throw error
+      }
+    }
+
     // Индексы для VozmiMenja
     await run(`
       CREATE INDEX IF NOT EXISTS idx_equipment_category ON equipment(category);

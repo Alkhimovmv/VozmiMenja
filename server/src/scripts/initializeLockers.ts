@@ -1,26 +1,26 @@
 import { lockerModel } from '../models/Locker';
 
 const LOCKERS_CONFIG = [
-  // Ряд 1: 2 большие ячейки
-  { number: '1', size: 'large' as const, row: 1, position: 1 },
-  { number: '2', size: 'large' as const, row: 1, position: 2 },
+  // Ряд 4 (сверху): 6 маленьких ячеек (1-6)
+  { number: '1', size: 'small' as const, row: 4, position: 1 },
+  { number: '2', size: 'small' as const, row: 4, position: 2 },
+  { number: '3', size: 'small' as const, row: 4, position: 3 },
+  { number: '4', size: 'small' as const, row: 4, position: 4 },
+  { number: '5', size: 'small' as const, row: 4, position: 5 },
+  { number: '6', size: 'small' as const, row: 4, position: 6 },
 
-  // Ряд 2: 2 большие ячейки
-  { number: '3', size: 'large' as const, row: 2, position: 1 },
-  { number: '4', size: 'large' as const, row: 2, position: 2 },
+  // Ряд 3: 3 средние ячейки (7-9)
+  { number: '7', size: 'medium' as const, row: 3, position: 1 },
+  { number: '8', size: 'medium' as const, row: 3, position: 2 },
+  { number: '9', size: 'medium' as const, row: 3, position: 3 },
 
-  // Ряд 3: 3 средние ячейки
-  { number: '5', size: 'medium' as const, row: 3, position: 1 },
-  { number: '6', size: 'medium' as const, row: 3, position: 2 },
-  { number: '7', size: 'medium' as const, row: 3, position: 3 },
+  // Ряд 2: 2 большие ячейки (10-11)
+  { number: '10', size: 'large' as const, row: 2, position: 1 },
+  { number: '11', size: 'large' as const, row: 2, position: 2 },
 
-  // Ряд 4: 6 маленьких ячеек
-  { number: '8', size: 'small' as const, row: 4, position: 1 },
-  { number: '9', size: 'small' as const, row: 4, position: 2 },
-  { number: '10', size: 'small' as const, row: 4, position: 3 },
-  { number: '11', size: 'small' as const, row: 4, position: 4 },
-  { number: '12', size: 'small' as const, row: 4, position: 5 },
-  { number: '13', size: 'small' as const, row: 4, position: 6 },
+  // Ряд 1 (снизу): 2 большие ячейки (12-13)
+  { number: '12', size: 'large' as const, row: 1, position: 1 },
+  { number: '13', size: 'large' as const, row: 1, position: 2 },
 ];
 
 export async function initializeLockers(): Promise<void> {

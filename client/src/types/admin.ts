@@ -122,6 +122,7 @@ export interface Locker {
   locker_number: string;
   access_code: string;
   description?: string;
+  items: string[]; // Список предметов в ячейке
   size: LockerSize;
   row_number: number;
   position_in_row: number;
@@ -134,6 +135,7 @@ export interface CreateLockerDto {
   locker_number: string;
   access_code: string;
   description?: string;
+  items?: string[];
   size?: LockerSize;
   row_number?: number;
   position_in_row?: number;

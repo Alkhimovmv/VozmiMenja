@@ -7,6 +7,7 @@ export interface Locker {
   lockerNumber: string
   accessCode: string
   description?: string
+  items: string[] // Список предметов в ячейке
   size: LockerSize
   rowNumber: number
   positionInRow: number
@@ -19,6 +20,7 @@ export interface CreateLockerData {
   lockerNumber: string
   accessCode: string
   description?: string
+  items?: string[]
   size?: LockerSize
   rowNumber?: number
   positionInRow?: number
@@ -62,11 +64,21 @@ export class LockerModel {
   }
 
   private mapRow(row: any): Locker {
+    let items: string[] = []
+    if (row.items) {
+      try {
+        items = JSON.parse(row.items)
+      } catch (e) {
+        items = []
+      }
+    }
+
     return {
       id: row.id,
       lockerNumber: row.locker_number,
       accessCode: row.access_code,
       description: row.description,
+      items: items,
       size: row.size || 'medium',
       rowNumber: row.row_number || 1,
       positionInRow: row.position_in_row || 1,
@@ -79,7 +91,7 @@ export class LockerModel {
   async findAll(): Promise<Locker[]> {
     const rows = await all(`
       SELECT * FROM lockers
-      ORDER BY locker_number ASC
+      ORDER BY CAST(locker_number AS INTEGER) ASC
     `) as any[]
 
     return rows.map(this.mapRow)
@@ -112,14 +124,17 @@ export class LockerModel {
       throw new Error(`Ячейка с номером "${data.lockerNumber}" уже существует`)
     }
 
+    const itemsJson = data.items ? JSON.stringify(data.items) : '[]'
+
     const lockerId = await new Promise<number>((resolve, reject) => {
       this.db.run(`
-        INSERT INTO lockers (locker_number, access_code, description, size, row_number, position_in_row, is_active)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO lockers (locker_number, access_code, description, items, size, row_number, position_in_row, is_active)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
       `, [
         data.lockerNumber,
         data.accessCode,
         data.description || null,
+        itemsJson,
         data.size || 'medium',
         data.rowNumber || 1,
         data.positionInRow || 1,
@@ -160,6 +175,11 @@ export class LockerModel {
     if (data.description !== undefined) {
       updates.push('description = ?')
       values.push(data.description)
+    }
+
+    if (data.items !== undefined) {
+      updates.push('items = ?')
+      values.push(JSON.stringify(data.items))
     }
 
     if (data.size !== undefined) {

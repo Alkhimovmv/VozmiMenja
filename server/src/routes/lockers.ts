@@ -12,6 +12,7 @@ function toSnakeCase(locker: any) {
     locker_number: locker.lockerNumber,
     access_code: locker.accessCode,
     description: locker.description,
+    items: locker.items || [],
     size: locker.size,
     row_number: locker.rowNumber,
     position_in_row: locker.positionInRow,
@@ -78,6 +79,7 @@ router.post('/', authMiddleware, async (req: Request, res: Response) => {
       lockerNumber: req.body.locker_number || req.body.lockerNumber,
       accessCode: req.body.access_code || req.body.accessCode,
       description: req.body.description,
+      items: req.body.items || [],
       isActive: req.body.is_active !== undefined ? req.body.is_active : req.body.isActive
     }
 
@@ -108,6 +110,10 @@ router.put('/:id', authMiddleware, async (req: Request, res: Response) => {
 
     if (req.body.description !== undefined) {
       data.description = req.body.description
+    }
+
+    if (req.body.items !== undefined) {
+      data.items = req.body.items
     }
 
     if (req.body.is_active !== undefined || req.body.isActive !== undefined) {

@@ -13,8 +13,10 @@ const LockersPage: React.FC = () => {
     locker_number: '',
     access_code: '',
     description: '',
+    items: [],
     is_active: true
   });
+  const [newItem, setNewItem] = useState('');
   const queryClient = useQueryClient();
 
   const { data: lockers = [] } = useAuthenticatedQuery<Locker[]>(
@@ -69,8 +71,10 @@ const LockersPage: React.FC = () => {
       locker_number: '',
       access_code: '',
       description: '',
+      items: [],
       is_active: true
     });
+    setNewItem('');
     setIsModalOpen(true);
   };
 
@@ -80,8 +84,10 @@ const LockersPage: React.FC = () => {
       locker_number: locker.locker_number,
       access_code: locker.access_code,
       description: locker.description || '',
+      items: locker.items || [],
       is_active: locker.is_active
     });
+    setNewItem('');
     setIsModalOpen(true);
   };
 
@@ -92,8 +98,23 @@ const LockersPage: React.FC = () => {
       locker_number: '',
       access_code: '',
       description: '',
+      items: [],
       is_active: true
     });
+    setNewItem('');
+  };
+
+  const handleAddItem = () => {
+    if (newItem.trim()) {
+      setFormData({ ...formData, items: [...(formData.items || []), newItem.trim()] });
+      setNewItem('');
+    }
+  };
+
+  const handleRemoveItem = (index: number) => {
+    const newItems = [...(formData.items || [])];
+    newItems.splice(index, 1);
+    setFormData({ ...formData, items: newItems });
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -165,7 +186,7 @@ const LockersPage: React.FC = () => {
                 Код доступа
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Описание
+                Содержимое
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Статус
@@ -185,7 +206,17 @@ const LockersPage: React.FC = () => {
                   {locker.access_code}
                 </td>
                 <td className="px-6 py-4 text-sm text-gray-500">
-                  {locker.description || '—'}
+                  {locker.items && locker.items.length > 0 ? (
+                    <div className="space-y-1">
+                      {locker.items.map((item, idx) => (
+                        <div key={idx} className="text-xs bg-gray-100 px-2 py-1 rounded inline-block mr-1">
+                          {item}
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <span className="text-gray-400">—</span>
+                  )}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <span
@@ -280,9 +311,48 @@ const LockersPage: React.FC = () => {
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  rows={3}
+                  rows={2}
                   placeholder="Например: Маленькая ячейка"
                 />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Содержимое ячейки
+                </label>
+                <div className="flex space-x-2 mb-2">
+                  <input
+                    type="text"
+                    value={newItem}
+                    onChange={(e) => setNewItem(e.target.value)}
+                    onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddItem())}
+                    className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="Добавить предмет"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleAddItem}
+                    className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md font-medium"
+                  >
+                    +
+                  </button>
+                </div>
+                {formData.items && formData.items.length > 0 && (
+                  <div className="space-y-1 max-h-32 overflow-y-auto border border-gray-200 rounded-md p-2">
+                    {formData.items.map((item, index) => (
+                      <div key={index} className="flex justify-between items-center bg-gray-50 px-2 py-1 rounded">
+                        <span className="text-sm">{item}</span>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveItem(index)}
+                          className="text-red-600 hover:text-red-800 text-sm font-bold"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
               <div className="flex items-center">
