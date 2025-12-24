@@ -138,7 +138,65 @@ export class RentalModel {
     }
   }
 
+  // Проверка доступности экземпляра оборудования в указанный период
+  async checkEquipmentAvailability(
+    equipmentId: number,
+    instanceNumber: number,
+    startDate: string,
+    endDate: string,
+    excludeRentalId?: number
+  ): Promise<boolean> {
+    // Ищем пересечения с существующими бронированиями
+    // Пересечение есть, если:
+    // (новая_начало <= существующая_конец) И (новая_конец >= существующая_начало)
+    const query = `
+      SELECT COUNT(*) as count
+      FROM rental_equipment_items rei
+      JOIN rentals r ON rei.rental_id = r.id
+      WHERE rei.equipment_id = ?
+        AND rei.instance_number = ?
+        AND r.status != 'cancelled'
+        AND r.status != 'completed'
+        AND (
+          (? <= r.end_date AND ? >= r.start_date)
+        )
+        ${excludeRentalId ? 'AND r.id != ?' : ''}
+    `
+
+    const params = excludeRentalId
+      ? [equipmentId, instanceNumber, startDate, endDate, excludeRentalId]
+      : [equipmentId, instanceNumber, startDate, endDate]
+
+    const result = await get(query, params) as any
+    return result.count === 0
+  }
+
   async create(data: CreateRentalData): Promise<Rental> {
+    // Проверяем доступность оборудования перед созданием
+    if (data.equipmentInstances && data.equipmentInstances.length > 0) {
+      for (const instance of data.equipmentInstances) {
+        const isAvailable = await this.checkEquipmentAvailability(
+          instance.equipmentId,
+          instance.instanceNumber,
+          data.startDate,
+          data.endDate
+        )
+
+        if (!isAvailable) {
+          // Получаем название оборудования для сообщения об ошибке
+          const equipment = await get(
+            'SELECT name FROM rental_equipment WHERE id = ?',
+            [instance.equipmentId]
+          ) as any
+
+          throw new Error(
+            `Оборудование "${equipment?.name || 'неизвестно'}" (экземпляр #${instance.instanceNumber}) уже забронировано на выбранные даты`
+          )
+        }
+      }
+    }
+
+
     const rentalId = await new Promise<number>((resolve, reject) => {
       this.db.run(`
         INSERT INTO rentals (
@@ -194,6 +252,41 @@ export class RentalModel {
   }
 
   async update(id: number, data: Partial<CreateRentalData & { status: RentalStatus }>): Promise<Rental> {
+    // Получаем текущую аренду для проверки дат
+    const currentRental = await this.findById(id)
+    if (!currentRental) {
+      throw new Error('Rental not found')
+    }
+
+    // Определяем даты для проверки (используем новые, если указаны, иначе текущие)
+    const startDate = data.startDate || currentRental.startDate
+    const endDate = data.endDate || currentRental.endDate
+
+    // Проверяем доступность оборудования перед обновлением
+    if (data.equipmentInstances && data.equipmentInstances.length > 0) {
+      for (const instance of data.equipmentInstances) {
+        const isAvailable = await this.checkEquipmentAvailability(
+          instance.equipmentId,
+          instance.instanceNumber,
+          startDate,
+          endDate,
+          id  // Исключаем текущую аренду из проверки
+        )
+
+        if (!isAvailable) {
+          // Получаем название оборудования для сообщения об ошибке
+          const equipment = await get(
+            'SELECT name FROM rental_equipment WHERE id = ?',
+            [instance.equipmentId]
+          ) as any
+
+          throw new Error(
+            `Оборудование "${equipment?.name || 'неизвестно'}" (экземпляр #${instance.instanceNumber}) уже забронировано на выбранные даты`
+          )
+        }
+      }
+    }
+
     const updates: string[] = []
     const values: any[] = []
 

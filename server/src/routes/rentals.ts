@@ -162,9 +162,14 @@ router.post('/', authMiddleware, async (req: Request, res: Response) => {
     }
     const rental = await rentalModel.create(data)
     res.status(201).json(toSnakeCase(rental))
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error creating rental:', error)
-    res.status(500).json({ error: 'Ошибка создания аренды' })
+    // Если это ошибка проверки доступности, возвращаем 400 с сообщением
+    if (error.message && error.message.includes('уже забронировано')) {
+      res.status(400).json({ error: error.message })
+    } else {
+      res.status(500).json({ error: 'Ошибка создания аренды' })
+    }
   }
 })
 
@@ -225,9 +230,16 @@ router.put('/:id', authMiddleware, async (req: Request, res: Response) => {
 
     const rental = await rentalModel.update(parseInt(req.params.id), data)
     res.json(toSnakeCase(rental))
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error updating rental:', error)
-    res.status(500).json({ error: 'Ошибка обновления аренды' })
+    // Если это ошибка проверки доступности, возвращаем 400 с сообщением
+    if (error.message && error.message.includes('уже забронировано')) {
+      res.status(400).json({ error: error.message })
+    } else if (error.message === 'Rental not found') {
+      res.status(404).json({ error: 'Аренда не найдена' })
+    } else {
+      res.status(500).json({ error: 'Ошибка обновления аренды' })
+    }
   }
 })
 
