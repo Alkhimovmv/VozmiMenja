@@ -20,6 +20,14 @@ const LOCKER_LAYOUT = [
 ];
 
 const LockerCabinet: React.FC<LockerCabinetProps> = ({ lockers, onLockerClick }) => {
+  // Отладка: проверяем, что приходит в items
+  React.useEffect(() => {
+    console.log('LockerCabinet lockers:', lockers);
+    lockers.forEach(locker => {
+      console.log(`Locker ${locker.locker_number}: items =`, locker.items, ', type =', typeof locker.items, ', is array =', Array.isArray(locker.items));
+    });
+  }, [lockers]);
+
   // Создаем карту ячеек по позициям
   const lockerMap = new Map<string, Locker>();
   lockers.forEach(locker => {
@@ -47,7 +55,7 @@ const LockerCabinet: React.FC<LockerCabinetProps> = ({ lockers, onLockerClick })
     } else if (size === 'medium') {
       return { width: '32%', height: '120px' }; // 3 ячейки в ряду
     } else {
-      return { width: '15.5%', height: '100px' }; // 6 ячеек в ряду
+      return { width: '15.5%', height: '200px' }; // 6 ячеек в ряду - увеличена высота в 2 раза
     }
   };
 
@@ -81,11 +89,15 @@ const LockerCabinet: React.FC<LockerCabinetProps> = ({ lockers, onLockerClick })
                         <div className="font-mono text-sm sm:text-xl md:text-2xl font-bold text-gray-900 mt-0.5 sm:mt-1">
                           {locker.access_code}
                         </div>
-                        {locker.items && locker.items.length > 0 && (
-                          <div className="mt-0.5 sm:mt-1 text-[10px] sm:text-xs md:text-sm text-gray-600 text-center max-w-full overflow-hidden">
-                            {locker.items.map((item, idx) => (
-                              <div key={idx} className="truncate leading-tight">{item}</div>
-                            ))}
+                        {locker.items && Array.isArray(locker.items) && locker.items.length > 0 && (
+                          <div className={`mt-1 sm:mt-2 font-medium text-center max-w-full ${
+                            locker.size === 'small' ? 'text-[9px] sm:text-[10px]' :
+                            locker.size === 'medium' ? 'text-[10px] sm:text-xs' :
+                            'text-xs sm:text-sm md:text-base'
+                          } text-gray-700`}>
+                            <div className="break-words px-1 leading-tight">
+                              {locker.items.join(', ')}
+                            </div>
                           </div>
                         )}
                         {!locker.is_active && (

@@ -10,12 +10,13 @@ import CustomSelect from '../../components/admin/CustomSelect';
 import ConfirmDialog from '../../components/admin/ConfirmDialog';
 import { subDays, startOfDay, endOfDay, isWithinInterval, startOfMonth, endOfMonth, addDays, isSameDay } from 'date-fns';
 
-type DateFilter = 'week' | 'month' | 'all' | 'ends_today' | 'ends_tomorrow';
+type DateFilter = 'week' | 'month' | 'all' | 'ends_today' | 'ends_tomorrow' | 'specific_date';
 
 const RentalsPage: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingRental, setEditingRental] = useState<Rental | null>(null);
   const [dateFilter, setDateFilter] = useState<DateFilter>('all');
+  const [specificDate, setSpecificDate] = useState<string>('');
   const [equipmentFilter, setEquipmentFilter] = useState<string>('all');
   const [deleteConfirm, setDeleteConfirm] = useState<{ isOpen: boolean; rentalId: number | null }>({
     isOpen: false,
@@ -50,6 +51,15 @@ const RentalsPage: React.FC = () => {
           const rentalStart = new Date(rental.start_date);
           const rentalEnd = new Date(rental.end_date);
           return (isSameDay(rentalStart, tomorrow) || isSameDay(rentalEnd, tomorrow)) && rental.status !== 'completed';
+        });
+      } else if (dateFilter === 'specific_date' && specificDate) {
+        // Конкретная дата - аренда начинается или заканчивается в этот день
+        const targetDate = new Date(specificDate);
+        filtered = filtered.filter(rental => {
+          const rentalStart = new Date(rental.start_date);
+          const rentalEnd = new Date(rental.end_date);
+          // Проверяем, начинается или заканчивается аренда в выбранную дату
+          return isSameDay(rentalStart, targetDate) || isSameDay(rentalEnd, targetDate);
         });
       } else {
         let dateRange: { start: Date; end: Date };
@@ -105,7 +115,7 @@ const RentalsPage: React.FC = () => {
     });
 
     return filtered;
-  }, [rentals, dateFilter, equipmentFilter]);
+  }, [rentals, dateFilter, specificDate, equipmentFilter]);
 
   const createMutation = useMutation({
     mutationFn: rentalsApi.create,
@@ -194,6 +204,15 @@ const RentalsPage: React.FC = () => {
     });
   };
 
+  const handleReturnRental = (rental: Rental) => {
+    updateMutation.mutate({
+      id: rental.id,
+      data: {
+        status: 'active'
+      },
+    });
+  };
+
   const handleDeleteRental = (id: number) => {
     setDeleteConfirm({ isOpen: true, rentalId: id });
   };
@@ -258,18 +277,36 @@ const RentalsPage: React.FC = () => {
             <div className="w-full sm:w-auto">
               <CustomSelect
                 value={dateFilter}
-                onChange={(value) => setDateFilter(value as DateFilter)}
+                onChange={(value) => {
+                  setDateFilter(value as DateFilter);
+                  if (value !== 'specific_date') {
+                    setSpecificDate('');
+                  }
+                }}
                 options={[
                   { value: 'ends_today', label: 'Сегодня' },
                   { value: 'ends_tomorrow', label: 'Завтра' },
                   { value: 'week', label: 'Последние 7 дней' },
                   { value: 'month', label: 'Текущий месяц' },
+                  { value: 'specific_date', label: 'Конкретная дата' },
                   { value: 'all', label: 'Все время' }
                 ]}
                 placeholder="Выберите период"
               />
             </div>
           </div>
+
+          {dateFilter === 'specific_date' && (
+            <div className="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-4">
+              <label className="text-sm font-medium text-gray-700">Дата:</label>
+              <input
+                type="date"
+                value={specificDate}
+                onChange={(e) => setSpecificDate(e.target.value)}
+                className="w-full sm:w-auto px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              />
+            </div>
+          )}
 
           <div className="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-4">
             <label className="text-sm font-medium text-gray-700">Оборудование:</label>
@@ -339,9 +376,11 @@ const RentalsPage: React.FC = () => {
                     </div>
                     <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-4 space-y-1 sm:space-y-0 text-sm text-gray-500">
                       <span>🕐 {formatDate(rental.start_date)} - {formatDate(rental.end_date)}</span>
-                      <span>💰 {rental.rental_price}₽</span>
+                    </div>
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-4 space-y-1 sm:space-y-0 text-sm text-gray-500">
+                      <span className="font-semibold text-base text-gray-900">💰 {rental.rental_price}₽</span>
                       {!!rental.needs_delivery && (
-                        <span className="text-blue-600">🚚 Доставка: {rental.delivery_price}₽</span>
+                        <span className="text-blue-600 font-medium">🚚 Доставка: {rental.delivery_price}₽</span>
                       )}
                     </div>
                     <div className="text-sm text-gray-500">
@@ -350,7 +389,7 @@ const RentalsPage: React.FC = () => {
                     </div>
                   </div>
                 </div>
-                <div className="flex flex-col sm:flex-row items-stretch sm:items-center space-y-3 sm:space-y-0 sm:space-x-3">
+                <div className="flex flex-col sm:flex-row items-center justify-center space-y-3 sm:space-y-0 sm:space-x-3">
                   {rental.status === 'pending' && (
                     <button
                       onClick={() => handleStartRental(rental)}
@@ -374,6 +413,14 @@ const RentalsPage: React.FC = () => {
                         Завершить
                       </button>
                     </>
+                  )}
+                  {rental.status === 'completed' && (
+                    <button
+                      onClick={() => handleReturnRental(rental)}
+                      className="bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-3 rounded text-sm font-medium min-h-[44px] touch-manipulation"
+                    >
+                      Вернуть
+                    </button>
                   )}
                   <button
                     onClick={() => handleEditRental(rental)}
@@ -421,6 +468,11 @@ const RentalsPage: React.FC = () => {
         rental={editingRental}
         equipment={equipment}
         isLoading={createMutation.isPending || updateMutation.isPending}
+        errorMessage={
+          (createMutation.error as any)?.response?.data?.error ||
+          (updateMutation.error as any)?.response?.data?.error ||
+          null
+        }
       />
 
       <ConfirmDialog

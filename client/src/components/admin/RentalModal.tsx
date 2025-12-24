@@ -11,6 +11,7 @@ interface RentalModalProps {
   rental?: Rental | null;
   equipment: Equipment[];
   isLoading?: boolean;
+  errorMessage?: string | null;
 }
 
 const RentalModal: React.FC<RentalModalProps> = ({
@@ -20,6 +21,7 @@ const RentalModal: React.FC<RentalModalProps> = ({
   rental,
   equipment,
   isLoading = false,
+  errorMessage = null,
 }) => {
   const [formData, setFormData] = useState<CreateRentalDto>({
     equipment_id: 0,
@@ -49,6 +51,16 @@ const RentalModal: React.FC<RentalModalProps> = ({
     start_date?: string | null;
     end_date?: string | null;
   }>({});
+
+  // Ошибка конфликта бронирования (синхронизируется с errorMessage из пропсов)
+  const [bookingConflictError, setBookingConflictError] = useState<string | null>(null);
+
+  // Синхронизация ошибки из пропсов с локальным состоянием
+  useEffect(() => {
+    if (errorMessage) {
+      setBookingConflictError(errorMessage);
+    }
+  }, [errorMessage]);
 
   // Храним ID редактируемой аренды для отслеживания изменений
   const [initialRentalId, setInitialRentalId] = useState<number | null>(null);
@@ -150,6 +162,7 @@ const RentalModal: React.FC<RentalModalProps> = ({
       // Очищаем ошибки валидации при открытии
       if (isNewOpen || !rental) {
         setValidationErrors({});
+        setBookingConflictError(null);
       }
     } else {
       // При закрытии модального окна сбрасываем ID
@@ -338,6 +351,9 @@ const RentalModal: React.FC<RentalModalProps> = ({
     if (!validateAllFields()) {
       return;
     }
+
+    // Очищаем предыдущие ошибки конфликта
+    setBookingConflictError(null);
 
     onSubmit(formData);
   };
@@ -713,6 +729,26 @@ const RentalModal: React.FC<RentalModalProps> = ({
               />
             </div>
             </div>
+
+            {/* Ошибка конфликта бронирования */}
+            {bookingConflictError && (
+              <div className="bg-red-50 border border-red-400 text-red-800 px-4 py-3 rounded-md mt-4">
+                <div className="flex items-start">
+                  <div className="flex-shrink-0">
+                    <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                  <div className="ml-3 flex-1">
+                    {bookingConflictError.split('\n').map((error, index) => (
+                      <p key={index} className={`text-sm font-medium ${index > 0 ? 'mt-2' : ''}`}>
+                        {error}
+                      </p>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
 
             <div className="sticky bottom-0 bg-white border-t p-4 flex flex-row justify-end space-x-3">
               <button

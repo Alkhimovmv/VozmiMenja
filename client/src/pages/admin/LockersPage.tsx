@@ -179,19 +179,19 @@ const LockersPage: React.FC = () => {
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Номер ячейки
+              <th className="px-2 sm:px-6 py-2 sm:py-3 text-left text-[10px] sm:text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Номер
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Код доступа
+              <th className="px-2 sm:px-6 py-2 sm:py-3 text-left text-[10px] sm:text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Код
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-2 sm:px-6 py-2 sm:py-3 text-left text-[10px] sm:text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell">
                 Содержимое
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-2 sm:px-6 py-2 sm:py-3 text-left text-[10px] sm:text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Статус
               </th>
-              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-2 sm:px-6 py-2 sm:py-3 text-right text-[10px] sm:text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Действия
               </th>
             </tr>
@@ -199,13 +199,13 @@ const LockersPage: React.FC = () => {
           <tbody className="bg-white divide-y divide-gray-200">
             {lockers.map((locker) => (
               <tr key={locker.id}>
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                <td className="px-2 sm:px-6 py-2 sm:py-4 whitespace-nowrap text-xs sm:text-sm font-medium text-gray-900">
                   {locker.locker_number}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-mono font-bold">
+                <td className="px-2 sm:px-6 py-2 sm:py-4 whitespace-nowrap text-xs sm:text-sm text-gray-900 font-mono font-bold">
                   {locker.access_code}
                 </td>
-                <td className="px-6 py-4 text-sm text-gray-500">
+                <td className="px-2 sm:px-6 py-2 sm:py-4 text-xs sm:text-sm text-gray-500 hidden md:table-cell">
                   {locker.items && locker.items.length > 0 ? (
                     <div className="space-y-1">
                       {locker.items.map((item, idx) => (
@@ -218,30 +218,32 @@ const LockersPage: React.FC = () => {
                     <span className="text-gray-400">—</span>
                   )}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap">
+                <td className="px-2 sm:px-6 py-2 sm:py-4 whitespace-nowrap">
                   <span
-                    className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                    className={`px-1.5 sm:px-2 inline-flex text-[10px] sm:text-xs leading-5 font-semibold rounded-full ${
                       locker.is_active
                         ? 'bg-green-100 text-green-800'
                         : 'bg-gray-100 text-gray-800'
                     }`}
                   >
-                    {locker.is_active ? 'Активна' : 'Неактивна'}
+                    {locker.is_active ? 'Акт.' : 'Неакт.'}
                   </span>
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
-                  <button
-                    onClick={() => openEditModal(locker)}
-                    className="text-blue-600 hover:text-blue-900"
-                  >
-                    Изменить
-                  </button>
-                  <button
-                    onClick={() => handleDelete(locker.id)}
-                    className="text-red-600 hover:text-red-900"
-                  >
-                    Удалить
-                  </button>
+                <td className="px-2 sm:px-6 py-2 sm:py-4 whitespace-nowrap text-right text-xs sm:text-sm font-medium">
+                  <div className="flex flex-col sm:flex-row sm:space-x-2 space-y-1 sm:space-y-0 items-end">
+                    <button
+                      onClick={() => openEditModal(locker)}
+                      className="text-blue-600 hover:text-blue-900 text-xs sm:text-sm"
+                    >
+                      Изм.
+                    </button>
+                    <button
+                      onClick={() => handleDelete(locker.id)}
+                      className="text-red-600 hover:text-red-900 text-xs sm:text-sm"
+                    >
+                      Удал.
+                    </button>
+                  </div>
                 </td>
               </tr>
             ))}
@@ -301,19 +303,6 @@ const LockersPage: React.FC = () => {
                   </button>
                 </div>
                 <p className="text-xs text-gray-500 mt-1">4-значный код</p>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Описание
-                </label>
-                <textarea
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  rows={2}
-                  placeholder="Например: Маленькая ячейка"
-                />
               </div>
 
               <div>

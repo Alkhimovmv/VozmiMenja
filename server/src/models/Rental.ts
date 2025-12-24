@@ -171,8 +171,46 @@ export class RentalModel {
     return result.count === 0
   }
 
+  // Поиск свободных экземпляров оборудования в указанный период
+  async findAvailableInstances(
+    equipmentId: number,
+    startDate: string,
+    endDate: string,
+    excludeRentalId?: number
+  ): Promise<number[]> {
+    // Сначала получаем общее количество экземпляров
+    const equipmentQuery = 'SELECT quantity FROM rental_equipment WHERE id = ?'
+    const equipment = await get(equipmentQuery, [equipmentId]) as any
+
+    if (!equipment) {
+      return []
+    }
+
+    const totalInstances = equipment.quantity
+    const availableInstances: number[] = []
+
+    // Проверяем каждый экземпляр
+    for (let instanceNumber = 1; instanceNumber <= totalInstances; instanceNumber++) {
+      const isAvailable = await this.checkEquipmentAvailability(
+        equipmentId,
+        instanceNumber,
+        startDate,
+        endDate,
+        excludeRentalId
+      )
+
+      if (isAvailable) {
+        availableInstances.push(instanceNumber)
+      }
+    }
+
+    return availableInstances
+  }
+
   async create(data: CreateRentalData): Promise<Rental> {
     // Проверяем доступность оборудования перед созданием
+    const errors: string[] = []
+
     if (data.equipmentInstances && data.equipmentInstances.length > 0) {
       for (const instance of data.equipmentInstances) {
         const isAvailable = await this.checkEquipmentAvailability(
@@ -183,17 +221,35 @@ export class RentalModel {
         )
 
         if (!isAvailable) {
-          // Получаем название оборудования для сообщения об ошибке
+          // Получаем название оборудования и свободные экземпляры для сообщения об ошибке
           const equipment = await get(
-            'SELECT name FROM rental_equipment WHERE id = ?',
+            'SELECT name, quantity FROM rental_equipment WHERE id = ?',
             [instance.equipmentId]
           ) as any
 
-          throw new Error(
-            `Оборудование "${equipment?.name || 'неизвестно'}" (экземпляр #${instance.instanceNumber}) уже забронировано на выбранные даты`
+          // Ищем свободные экземпляры
+          const availableInstances = await this.findAvailableInstances(
+            instance.equipmentId,
+            data.startDate,
+            data.endDate
           )
+
+          let errorMessage = `Оборудование "${equipment?.name || 'неизвестно'}" (экземпляр #${instance.instanceNumber}) уже забронировано на выбранные даты.`
+
+          if (availableInstances.length > 0) {
+            errorMessage += ` Свободны экземпляры: ${availableInstances.map(n => `#${n}`).join(', ')}`
+          } else {
+            errorMessage += ` Все экземпляры (${equipment?.quantity || 0}) заняты`
+          }
+
+          errors.push(errorMessage)
         }
       }
+    }
+
+    // Если есть ошибки, выбрасываем их все вместе
+    if (errors.length > 0) {
+      throw new Error(errors.join('\n'))
     }
 
 
@@ -263,6 +319,8 @@ export class RentalModel {
     const endDate = data.endDate || currentRental.endDate
 
     // Проверяем доступность оборудования перед обновлением
+    const errors: string[] = []
+
     if (data.equipmentInstances && data.equipmentInstances.length > 0) {
       for (const instance of data.equipmentInstances) {
         const isAvailable = await this.checkEquipmentAvailability(
@@ -274,17 +332,36 @@ export class RentalModel {
         )
 
         if (!isAvailable) {
-          // Получаем название оборудования для сообщения об ошибке
+          // Получаем название оборудования и свободные экземпляры для сообщения об ошибке
           const equipment = await get(
-            'SELECT name FROM rental_equipment WHERE id = ?',
+            'SELECT name, quantity FROM rental_equipment WHERE id = ?',
             [instance.equipmentId]
           ) as any
 
-          throw new Error(
-            `Оборудование "${equipment?.name || 'неизвестно'}" (экземпляр #${instance.instanceNumber}) уже забронировано на выбранные даты`
+          // Ищем свободные экземпляры
+          const availableInstances = await this.findAvailableInstances(
+            instance.equipmentId,
+            startDate,
+            endDate,
+            id  // Исключаем текущую аренду из проверки
           )
+
+          let errorMessage = `Оборудование "${equipment?.name || 'неизвестно'}" (экземпляр #${instance.instanceNumber}) уже забронировано на выбранные даты.`
+
+          if (availableInstances.length > 0) {
+            errorMessage += ` Свободны экземпляры: ${availableInstances.map(n => `#${n}`).join(', ')}`
+          } else {
+            errorMessage += ` Все экземпляры (${equipment?.quantity || 0}) заняты`
+          }
+
+          errors.push(errorMessage)
         }
       }
+    }
+
+    // Если есть ошибки, выбрасываем их все вместе
+    if (errors.length > 0) {
+      throw new Error(errors.join('\n'))
     }
 
     const updates: string[] = []
