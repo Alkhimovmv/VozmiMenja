@@ -71,20 +71,20 @@ const LockerCabinet: React.FC<LockerCabinetProps> = ({ lockers, onLockerClick })
                     key={position}
                     onClick={() => locker && onLockerClick?.(locker)}
                     style={{ width: dimensions.width, height: dimensions.height }}
-                    className={`${colorClass} border-2 rounded flex flex-col items-center justify-center transition-all duration-200 relative p-2 overflow-hidden`}
+                    className={`${colorClass} border-2 rounded flex flex-col items-center justify-center transition-all duration-200 relative p-1 sm:p-2 overflow-hidden`}
                   >
                     {locker ? (
                       <>
-                        <div className="font-bold text-2xl sm:text-3xl text-gray-800">
+                        <div className="font-bold text-base sm:text-2xl md:text-3xl text-gray-800">
                           {locker.locker_number}
                         </div>
-                        <div className="font-mono text-xl sm:text-2xl font-bold text-gray-900 mt-1">
+                        <div className="font-mono text-sm sm:text-xl md:text-2xl font-bold text-gray-900 mt-0.5 sm:mt-1">
                           {locker.access_code}
                         </div>
                         {locker.items && locker.items.length > 0 && (
-                          <div className="mt-1 text-xs sm:text-sm text-gray-600 text-center max-w-full overflow-hidden">
+                          <div className="mt-0.5 sm:mt-1 text-[10px] sm:text-xs md:text-sm text-gray-600 text-center max-w-full overflow-hidden">
                             {locker.items.map((item, idx) => (
-                              <div key={idx} className="truncate">{item}</div>
+                              <div key={idx} className="truncate leading-tight">{item}</div>
                             ))}
                           </div>
                         )}
