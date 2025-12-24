@@ -193,10 +193,19 @@ class Database {
     // Добавляем поле items для хранения списка предметов в ячейке
     try {
       await run(`ALTER TABLE lockers ADD COLUMN items TEXT`)
+      console.log('✅ Добавлено поле items в таблицу lockers')
     } catch (error: any) {
       if (!error.message?.includes('duplicate column name')) {
         throw error
       }
+    }
+
+    // Обновляем существующие записи, у которых items = NULL
+    try {
+      await run(`UPDATE lockers SET items = '[]' WHERE items IS NULL`)
+      console.log('✅ Обновлены существующие ячейки с пустым items')
+    } catch (error: any) {
+      console.error('Ошибка обновления items:', error)
     }
 
     // Индексы для VozmiMenja

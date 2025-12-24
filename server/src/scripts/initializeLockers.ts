@@ -39,6 +39,7 @@ export async function initializeLockers(): Promise<void> {
           lockerNumber: config.number,
           accessCode: code,
           description: `Ячейка ${config.number} (${config.size})`,
+          items: [], // Пустой массив при инициализации
           size: config.size,
           rowNumber: config.row,
           positionInRow: config.position,
