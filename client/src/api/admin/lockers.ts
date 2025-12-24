@@ -1,5 +1,5 @@
 import { CreateLockerDto, Locker } from '../../types/admin';
-import { authenticatedRequest } from '../client';
+import { authenticatedRequest } from './client';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3002';
 
