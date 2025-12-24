@@ -401,7 +401,7 @@ export class RentalModel {
       FROM rentals
       WHERE strftime('%Y', start_date) = ?
         AND strftime('%m', start_date) = ?
-        AND status != 'cancelled'
+        AND status = 'completed'
     `, [year.toString(), monthStr]) as any
 
     return {
