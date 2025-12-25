@@ -7,22 +7,22 @@ export const equipmentApi = {
     return response.data.data || response.data;
   },
 
-  getById: async (id: number): Promise<Equipment> => {
+  getById: async (id: string): Promise<Equipment> => {
     const response = await apiClient.get(`/equipment/${id}`);
-    return response.data;
+    return response.data.data || response.data;
   },
 
   create: async (data: CreateEquipmentDto): Promise<Equipment> => {
     const response = await apiClient.post('/equipment', data);
-    return response.data;
+    return response.data.data || response.data;
   },
 
-  update: async (id: number, data: Partial<CreateEquipmentDto>): Promise<Equipment> => {
+  update: async (id: string, data: Partial<CreateEquipmentDto>): Promise<Equipment> => {
     const response = await apiClient.put(`/equipment/${id}`, data);
-    return response.data;
+    return response.data.data || response.data;
   },
 
-  delete: async (id: number): Promise<void> => {
+  delete: async (id: string): Promise<void> => {
     await apiClient.delete(`/equipment/${id}`);
   },
 

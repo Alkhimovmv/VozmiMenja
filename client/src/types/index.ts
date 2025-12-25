@@ -58,6 +58,18 @@ export interface PublicEquipment {
 // Keep Equipment exported for backward compatibility with public API
 export type { PublicEquipment as Equipment }
 
+export interface CreateEquipmentDto {
+  name: string
+  category: string
+  pricePerDay: number
+  pricing?: PricingTier
+  quantity: number
+  availableQuantity?: number
+  images: string[]
+  description: string
+  specifications: Record<string, string>
+}
+
 export interface Booking {
   id: string
   equipmentId: string

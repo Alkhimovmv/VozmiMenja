@@ -1,4 +1,5 @@
-export interface Equipment {
+// DEPRECATED: старая модель для rental_equipment (использовалась до перехода на общую таблицу equipment)
+export interface RentalEquipment {
   id: number;
   name: string;
   quantity: number;
@@ -8,7 +9,8 @@ export interface Equipment {
   updated_at: string;
 }
 
-export interface CreateEquipmentDto {
+// DEPRECATED: старый DTO для rental_equipment
+export interface CreateRentalEquipmentDto {
   name: string;
   quantity: number;
   description?: string;

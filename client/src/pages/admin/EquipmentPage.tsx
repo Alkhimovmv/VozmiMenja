@@ -23,7 +23,7 @@ const EquipmentPage: React.FC = () => {
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: number; data: Partial<CreateEquipmentDto> }) =>
+    mutationFn: ({ id, data }: { id: string; data: Partial<CreateEquipmentDto> }) =>
       equipmentApi.update(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['equipment'] });
@@ -51,7 +51,7 @@ const EquipmentPage: React.FC = () => {
     }
   };
 
-  const handleDeleteEquipment = (id: number) => {
+  const handleDeleteEquipment = (id: string) => {
     if (window.confirm('Вы уверены, что хотите удалить это оборудование?')) {
       deleteMutation.mutate(id);
     }
