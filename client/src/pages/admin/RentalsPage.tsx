@@ -389,11 +389,11 @@ const RentalsPage: React.FC = () => {
                     </div>
                   </div>
                 </div>
-                <div className="flex flex-col sm:flex-row items-center justify-center space-y-3 sm:space-y-0 sm:space-x-3">
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center space-y-3 sm:space-y-0 sm:space-x-3 w-full sm:w-auto">
                   {rental.status === 'pending' && (
                     <button
                       onClick={() => handleStartRental(rental)}
-                      className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-3 rounded text-sm font-medium min-h-[44px] touch-manipulation"
+                      className="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-3 rounded text-sm font-medium min-h-[44px] touch-manipulation"
                     >
                       Начать аренду
                     </button>
@@ -402,13 +402,13 @@ const RentalsPage: React.FC = () => {
                     <>
                       <button
                         onClick={() => handleCompleteRentalNow(rental)}
-                        className="bg-green-500 hover:bg-green-600 text-white px-4 py-3 rounded text-sm font-medium min-h-[44px] touch-manipulation"
+                        className="w-full sm:w-auto bg-green-500 hover:bg-green-600 text-white px-4 py-3 rounded text-sm font-medium min-h-[44px] touch-manipulation"
                       >
                         Завершить сейчас
                       </button>
                       <button
                         onClick={() => handleCompleteRental(rental)}
-                        className="bg-green-600 hover:bg-green-700 text-white px-4 py-3 rounded text-sm font-medium min-h-[44px] touch-manipulation"
+                        className="w-full sm:w-auto bg-green-600 hover:bg-green-700 text-white px-4 py-3 rounded text-sm font-medium min-h-[44px] touch-manipulation"
                       >
                         Завершить
                       </button>
@@ -417,20 +417,20 @@ const RentalsPage: React.FC = () => {
                   {rental.status === 'completed' && (
                     <button
                       onClick={() => handleReturnRental(rental)}
-                      className="bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-3 rounded text-sm font-medium min-h-[44px] touch-manipulation"
+                      className="w-full sm:w-auto bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-3 rounded text-sm font-medium min-h-[44px] touch-manipulation"
                     >
                       Вернуть
                     </button>
                   )}
                   <button
                     onClick={() => handleEditRental(rental)}
-                    className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-3 rounded text-sm font-medium min-h-[44px] touch-manipulation"
+                    className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white px-4 py-3 rounded text-sm font-medium min-h-[44px] touch-manipulation"
                   >
                     Изменить
                   </button>
                   <button
                     onClick={() => handleDeleteRental(rental.id)}
-                    className="bg-red-600 hover:bg-red-700 text-white px-4 py-3 rounded text-sm font-medium min-h-[44px] touch-manipulation"
+                    className="w-full sm:w-auto bg-red-600 hover:bg-red-700 text-white px-4 py-3 rounded text-sm font-medium min-h-[44px] touch-manipulation"
                   >
                     Удалить
                   </button>
