@@ -1,37 +1,9 @@
 import { Router, Request, Response } from 'express'
 import { equipmentModel } from '../models/Equipment'
-import { rentalEquipmentModel } from '../models/RentalEquipment'
 import { authMiddleware } from '../middleware/auth'
 import { v4 as uuidv4 } from 'uuid'
 
 const router = Router()
-
-// GET /api/admin/equipment/for-rental - Получить все оборудование для аренды
-router.get('/for-rental', async (req: Request, res: Response) => {
-  try {
-    const equipment = await rentalEquipmentModel.findAll()
-    const snakeCaseEquipment = equipment.map(eq => ({
-      id: eq.id,
-      name: eq.name,
-      category: eq.category,
-      price_per_day: eq.pricePerDay,
-      quantity: eq.quantity,
-      available_quantity: eq.availableQuantity,
-      images: eq.images,
-      description: eq.description,
-      specifications: eq.specifications,
-      created_at: eq.createdAt,
-      updated_at: eq.updatedAt
-    }))
-    res.json(snakeCaseEquipment)
-  } catch (error) {
-    console.error('Error getting rental equipment:', error)
-    res.status(500).json({
-      success: false,
-      message: 'Ошибка получения оборудования'
-    })
-  }
-})
 
 router.get('/stats', async (req: Request, res: Response) => {
   try {

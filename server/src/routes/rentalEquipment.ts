@@ -17,11 +17,28 @@ function toSnakeCase(equipment: any) {
   }
 }
 
+// Функция для трансформации в формат для модального окна аренды (совместимость с Equipment)
+function toRentalFormat(equipment: any) {
+  return {
+    id: equipment.id,
+    name: equipment.name,
+    category: 'Оборудование',
+    price_per_day: equipment.basePrice,
+    quantity: equipment.quantity,
+    available_quantity: equipment.quantity,
+    images: [],
+    description: equipment.description || '',
+    specifications: {},
+    created_at: equipment.createdAt,
+    updated_at: equipment.updatedAt
+  }
+}
+
 // GET /api/admin/equipment/for-rental - Получить все оборудование для аренды
 router.get('/for-rental', async (req: Request, res: Response) => {
   try {
     const equipment = await rentalEquipmentModel.findAll()
-    res.json(equipment.map(toSnakeCase))
+    res.json(equipment.map(toRentalFormat))
   } catch (error) {
     console.error('Error getting rental equipment:', error)
     res.status(500).json({ error: 'Ошибка получения оборудования' })
