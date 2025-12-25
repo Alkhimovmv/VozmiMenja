@@ -125,19 +125,19 @@ const RentalModal: React.FC<RentalModalProps> = ({
           comment: rental.comment || '',
         });
 
-        // Восстанавливаем selectedInstances только при новом открытии модального окна
+        // Восстанавливаем selectedInstances при каждом открытии существующей аренды
         if (isNewOpen) {
           setInitialRentalId(rental.id);
+        }
 
-          if (rental.equipment_list) {
-            const instances = new Set<string>();
-            rental.equipment_list.forEach((eq: { id: number; name: string; instance_number: number }) => {
-              instances.add(`${eq.id}:${eq.instance_number}`);
-            });
-            setSelectedInstances(instances);
-          } else {
-            setSelectedInstances(new Set());
-          }
+        if (rental.equipment_list) {
+          const instances = new Set<string>();
+          rental.equipment_list.forEach((eq: { id: number; name: string; instance_number: number }) => {
+            instances.add(`${eq.id}:${eq.instance_number}`);
+          });
+          setSelectedInstances(instances);
+        } else {
+          setSelectedInstances(new Set());
         }
       } else {
         // Новая аренда
