@@ -15,6 +15,7 @@ import customersRoutes from './routes/customers'
 import analyticsRoutes from './routes/analytics'
 import articlesRoutes from './routes/articles'
 import lockersRoutes from './routes/lockers'
+import { schedulerService } from './services/scheduler'
 
 dotenv.config()
 
@@ -100,6 +101,9 @@ async function startServer() {
     await database.init()
     console.log('✅ База данных инициализирована')
 
+    // Инициализируем планировщик уведомлений
+    schedulerService.init()
+
     app.listen(PORT, () => {
       console.log(`🚀 Сервер запущен на порту ${PORT}`)
       console.log(`📋 Health check: http://localhost:${PORT}/health`)
@@ -114,6 +118,7 @@ async function startServer() {
 // Graceful shutdown
 process.on('SIGINT', async () => {
   console.log('\n🔄 Получен сигнал SIGINT, завершение работы...')
+  schedulerService.stop()
   await database.close()
   console.log('✅ База данных закрыта')
   process.exit(0)
@@ -121,6 +126,7 @@ process.on('SIGINT', async () => {
 
 process.on('SIGTERM', async () => {
   console.log('\n🔄 Получен сигнал SIGTERM, завершение работы...')
+  schedulerService.stop()
   await database.close()
   console.log('✅ База данных закрыта')
   process.exit(0)

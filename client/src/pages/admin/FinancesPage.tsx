@@ -116,15 +116,54 @@ const FinancesPage: React.FC = () => {
     setIsExpenseModalOpen(true);
   };
 
-  const monthOptions = Array.from({ length: 12 }, (_, i) => {
-    const month = i + 1;
-    const value = `${currentYear}-${month.toString().padStart(2, '0')}`;
-    const label = new Date(currentYear, i).toLocaleDateString('ru-RU', {
-      year: 'numeric',
-      month: 'long',
+  // Генерируем опции месяцев на основе реальных данных
+  const monthOptions = (() => {
+    const monthsSet = new Set<string>();
+
+    // Добавляем месяцы из доходов
+    monthlyRevenue.forEach((item) => {
+      const value = `${item.year}-${item.month.toString().padStart(2, '0')}`;
+      monthsSet.add(value);
     });
-    return { value, label };
-  });
+
+    // Добавляем месяцы из расходов
+    expenses.forEach((expense) => {
+      const expenseDate = new Date(expense.date);
+      const value = `${expenseDate.getFullYear()}-${(expenseDate.getMonth() + 1).toString().padStart(2, '0')}`;
+      monthsSet.add(value);
+    });
+
+    // Всегда добавляем текущий месяц
+    const currentMonthValue = `${currentYear}-${currentMonth.toString().padStart(2, '0')}`;
+    monthsSet.add(currentMonthValue);
+
+    // Конвертируем в массив и сортируем
+    const sortedMonths = Array.from(monthsSet).sort((a, b) => {
+      const [yearA, monthA] = a.split('-').map(Number);
+      const [yearB, monthB] = b.split('-').map(Number);
+      // Сортируем по убыванию (сначала новые)
+      if (yearA !== yearB) return yearB - yearA;
+      return monthB - monthA;
+    });
+
+    // Формируем опции с читаемыми названиями
+    return sortedMonths
+      .filter(value => {
+        const [year, month] = value.split('-').map(Number);
+        // Показываем только текущий и прошлые месяцы
+        if (year > currentYear) return false;
+        if (year === currentYear && month > currentMonth) return false;
+        return true;
+      })
+      .map((value) => {
+        const [year, month] = value.split('-').map(Number);
+        const label = new Date(year, month - 1).toLocaleDateString('ru-RU', {
+          year: 'numeric',
+          month: 'long',
+        });
+        return { value, label };
+      });
+  })();
 
   return (
     <div className="space-y-4 sm:space-y-6">

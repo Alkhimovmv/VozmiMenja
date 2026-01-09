@@ -121,6 +121,23 @@ ${data.message}
     }
   }
 
+  async sendDailyRentalsReminder(message: string) {
+    if (!this.bot || !this.chatId) {
+      console.log('Telegram бот не настроен, уведомление не отправлено')
+      return
+    }
+
+    try {
+      await this.bot.sendMessage(this.chatId, message, {
+        parse_mode: 'HTML'
+      })
+
+      console.log('✅ Ежедневное уведомление о предстоящих арендах отправлено в Telegram')
+    } catch (error) {
+      console.error('❌ Ошибка отправки ежедневного уведомления в Telegram:', error)
+    }
+  }
+
   private formatDate(dateString: string): string {
     const date = new Date(dateString)
     return date.toLocaleDateString('ru-RU', {

@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express'
 import { upload } from '../middleware/upload'
 import { authMiddleware } from '../middleware/auth'
+import { schedulerService } from '../services/scheduler'
 
 const router = Router()
 
@@ -62,6 +63,26 @@ router.post('/login', async (req: Request, res: Response) => {
 })
 
 // Удалены роуты /equipment (POST, PUT, DELETE), так как они обрабатываются через rentalEquipmentRoutes
+
+// Тестовая отправка ежедневного уведомления о предстоящих арендах
+router.post('/test-daily-reminder', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    console.log('🧪 Тестовая отправка ежедневного напоминания')
+    await schedulerService.sendDailyRentalsReminder()
+
+    res.json({
+      success: true,
+      message: 'Уведомление отправлено'
+    })
+  } catch (error) {
+    console.error('❌ Ошибка тестовой отправки:', error)
+    res.status(500).json({
+      success: false,
+      message: 'Ошибка отправки уведомления',
+      error: error instanceof Error ? error.message : 'Unknown error'
+    })
+  }
+})
 
 // Загрузить изображения
 router.post('/upload', authMiddleware, upload.array('images', 10), async (req: Request, res: Response) => {
