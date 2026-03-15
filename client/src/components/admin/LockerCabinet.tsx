@@ -94,31 +94,43 @@ const LockerCabinet: React.FC<LockerCabinetProps> = ({ lockers, onLockerClick })
                           {locker.access_code}
                         </div>
 
-                        {/* Список оборудования */}
-                        {locker.equipment_items && locker.equipment_items.length > 0 && (
+                        {/* Содержимое ячейки */}
+                        {(locker.equipment_items?.length > 0 || locker.items?.length > 0) && (
                           <div className={`mt-1 text-center max-w-full ${
                             layout.size === 'small' ? 'text-[8px] sm:text-[9px]' :
                             layout.size === 'medium' ? 'text-[9px] sm:text-[10px]' :
                             'text-[10px] sm:text-xs'
                           }`}>
-                            {(() => {
-                              const free = locker.free_equipment;
-                              const total = locker.total_equipment;
-                              return (
-                                <>
-                                  <span className="text-gray-700 truncate block max-w-full px-0.5 leading-tight">
-                                    {locker.equipment_items.map(e => e.equipment_name).join(', ')}
-                                  </span>
-                                  <span className={`font-bold ${
-                                    free === 0 ? 'text-red-600' :
-                                    free < total ? 'text-yellow-700' :
-                                    'text-green-700'
-                                  }`}>
-                                    {free}/{total} св.
-                                  </span>
-                                </>
-                              );
-                            })()}
+                            {locker.equipment_items?.length > 0 && (
+                              <>
+                                <div className="max-w-full px-0.5">
+                                  {locker.equipment_items.map(e => {
+                                    const sameEquip = locker.equipment_items.filter(x => x.equipment_id === e.equipment_id);
+                                    const name = sameEquip.length > 1 ? `${e.equipment_name} #${e.instance_number}` : e.equipment_name;
+                                    return (
+                                      <div key={e.id} className="leading-tight truncate">
+                                        <span className="text-gray-700">{name}</span>
+                                        {!e.is_free && e.customer_last_name && (
+                                          <span className="text-red-600 font-medium"> ({e.customer_last_name})</span>
+                                        )}
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                                <span className={`font-bold ${
+                                  locker.free_equipment === 0 ? 'text-red-600' :
+                                  locker.free_equipment < locker.total_equipment ? 'text-yellow-700' :
+                                  'text-green-700'
+                                }`}>
+                                  {locker.free_equipment}/{locker.total_equipment} св.
+                                </span>
+                              </>
+                            )}
+                            {locker.items?.length > 0 && (
+                              <span className="text-gray-500 truncate block max-w-full px-0.5 leading-tight">
+                                {locker.items.join(', ')}
+                              </span>
+                            )}
                           </div>
                         )}
 

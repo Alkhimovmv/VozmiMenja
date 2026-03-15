@@ -7,7 +7,8 @@ export interface LockerEquipmentItem {
   equipmentId: number
   equipmentName: string
   instanceNumber: number
-  isFree: boolean   // свободен ли конкретно этот экземпляр
+  isFree: boolean
+  customerLastName?: string  // фамилия арендатора если занят
 }
 
 export interface Locker {
@@ -94,22 +95,29 @@ export class LockerModel {
     const items: LockerEquipmentItem[] = []
 
     for (const row of rows) {
-      // Проверяем, занят ли конкретно этот экземпляр (active или pending аренда)
-      const busyResult = await get(`
-        SELECT COUNT(*) as cnt
+      // Проверяем, занят ли конкретно этот экземпляр, и берём имя арендатора
+      const activeResult = await get(`
+        SELECT r.customer_name
         FROM rental_equipment_items rei
         JOIN rentals r ON rei.rental_id = r.id
         WHERE rei.equipment_id = ?
           AND rei.instance_number = ?
-          AND r.status IN ('active', 'pending')
+          AND r.status IN ('active', 'overdue')
+        LIMIT 1
       `, [row.equipment_id, row.instance_number]) as any
+
+      const isFree = !activeResult
+      const customerLastName = activeResult?.customer_name
+        ? activeResult.customer_name.trim().split(/\s+/)[0]
+        : undefined
 
       items.push({
         id: row.id,
         equipmentId: row.equipment_id,
         equipmentName: row.equipment_name,
         instanceNumber: row.instance_number,
-        isFree: (busyResult?.cnt || 0) === 0
+        isFree,
+        customerLastName
       })
     }
 

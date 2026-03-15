@@ -23,6 +23,7 @@ function toSnakeCase(locker: any) {
       equipment_name: e.equipmentName,
       instance_number: e.instanceNumber,
       is_free: e.isFree,
+      customer_last_name: e.customerLastName || null,
     })),
     total_equipment: locker.totalEquipment,
     free_equipment: locker.freeEquipment,

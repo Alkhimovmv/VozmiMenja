@@ -125,6 +125,7 @@ export interface LockerEquipmentItem {
   equipment_name: string;
   instance_number: number;
   is_free: boolean;
+  customer_last_name: string | null;
 }
 
 export interface Locker {

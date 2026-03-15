@@ -241,7 +241,7 @@ const LockersPage: React.FC = () => {
                             <span className={`text-xs font-medium px-1.5 py-0.5 rounded ${
                               item.is_free ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
                             }`}>
-                              {item.is_free ? 'св.' : 'занят'}
+                              {item.is_free ? 'св.' : item.customer_last_name ? item.customer_last_name : 'занят'}
                             </span>
                           </div>
                         ))}
