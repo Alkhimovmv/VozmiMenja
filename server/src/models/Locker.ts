@@ -102,7 +102,12 @@ export class LockerModel {
         JOIN rentals r ON rei.rental_id = r.id
         WHERE rei.equipment_id = ?
           AND rei.instance_number = ?
-          AND r.status IN ('active', 'overdue')
+          AND r.status != 'completed'
+          AND (
+            r.status IN ('active', 'overdue')
+            OR (datetime('now') >= datetime(r.start_date) AND datetime('now') <= datetime(r.end_date))
+            OR datetime('now') > datetime(r.end_date)
+          )
         LIMIT 1
       `, [row.equipment_id, row.instance_number]) as any
 
