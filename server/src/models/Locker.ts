@@ -2,16 +2,28 @@ import { database, run, get, all } from './database'
 
 export type LockerSize = 'large' | 'medium' | 'small'
 
+export interface LockerEquipmentItem {
+  id: number
+  equipmentId: number
+  equipmentName: string
+  instanceNumber: number
+  isFree: boolean   // свободен ли конкретно этот экземпляр
+}
+
 export interface Locker {
   id: number
   lockerNumber: string
   accessCode: string
   description?: string
-  items: string[] // Список предметов в ячейке
+  items: string[] // Список предметов в ячейке (legacy, оставляем для совместимости)
   size: LockerSize
   rowNumber: number
   positionInRow: number
   isActive: boolean
+  // Новые поля
+  equipmentItems: LockerEquipmentItem[]
+  totalEquipment: number   // сколько единиц оборудования в ячейке
+  freeEquipment: number    // сколько из них свободно
   createdAt: string
   updatedAt: string
 }
@@ -63,7 +75,48 @@ export class LockerModel {
     return code
   }
 
-  private mapRow(row: any): Locker {
+  // Получить оборудование в ячейке — каждый экземпляр отдельной строкой
+  private async getEquipmentItems(lockerId: number): Promise<LockerEquipmentItem[]> {
+    const rows = await all(`
+      SELECT
+        le.id,
+        le.equipment_id,
+        le.instance_number,
+        re.name as equipment_name
+      FROM locker_equipment le
+      JOIN rental_equipment re ON le.equipment_id = re.id
+      WHERE le.locker_id = ?
+      ORDER BY re.name, le.instance_number
+    `, [lockerId]) as any[]
+
+    if (rows.length === 0) return []
+
+    const items: LockerEquipmentItem[] = []
+
+    for (const row of rows) {
+      // Проверяем, занят ли конкретно этот экземпляр (active или pending аренда)
+      const busyResult = await get(`
+        SELECT COUNT(*) as cnt
+        FROM rental_equipment_items rei
+        JOIN rentals r ON rei.rental_id = r.id
+        WHERE rei.equipment_id = ?
+          AND rei.instance_number = ?
+          AND r.status IN ('active', 'pending')
+      `, [row.equipment_id, row.instance_number]) as any
+
+      items.push({
+        id: row.id,
+        equipmentId: row.equipment_id,
+        equipmentName: row.equipment_name,
+        instanceNumber: row.instance_number,
+        isFree: (busyResult?.cnt || 0) === 0
+      })
+    }
+
+    return items
+  }
+
+  private async mapRow(row: any): Promise<Locker> {
     let items: string[] = []
     if (row.items) {
       try {
@@ -73,16 +126,23 @@ export class LockerModel {
       }
     }
 
+    const equipmentItems = await this.getEquipmentItems(row.id)
+    const totalEquipment = equipmentItems.length
+    const freeEquipment = equipmentItems.filter(e => e.isFree).length
+
     return {
       id: row.id,
       lockerNumber: row.locker_number,
       accessCode: row.access_code,
       description: row.description,
-      items: items,
+      items,
       size: row.size || 'medium',
       rowNumber: row.row_number || 1,
       positionInRow: row.position_in_row || 1,
       isActive: row.is_active === 1,
+      equipmentItems,
+      totalEquipment,
+      freeEquipment,
       createdAt: row.created_at,
       updatedAt: row.updated_at
     }
@@ -94,7 +154,7 @@ export class LockerModel {
       ORDER BY CAST(locker_number AS INTEGER) ASC
     `) as any[]
 
-    return rows.map(this.mapRow)
+    return Promise.all(rows.map(row => this.mapRow(row)))
   }
 
   async findById(id: number): Promise<Locker | null> {
@@ -221,6 +281,18 @@ export class LockerModel {
     }
 
     return locker
+  }
+
+  // Установить оборудование в ячейке (заменяет весь список)
+  async setEquipment(lockerId: number, items: Array<{ equipmentId: number; instanceNumber: number }>): Promise<void> {
+    await run('DELETE FROM locker_equipment WHERE locker_id = ?', [lockerId])
+
+    for (const item of items) {
+      await run(`
+        INSERT INTO locker_equipment (locker_id, equipment_id, instance_number)
+        VALUES (?, ?, ?)
+      `, [lockerId, item.equipmentId, item.instanceNumber])
+    }
   }
 
   async delete(id: number): Promise<void> {

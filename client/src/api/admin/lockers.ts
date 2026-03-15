@@ -1,4 +1,4 @@
-import { CreateLockerDto, Locker } from '../../types/admin';
+import { CreateLockerDto, Locker, SetLockerEquipmentDto } from '../../types/admin';
 import apiClient from './client';
 
 export const lockersApi = {
@@ -19,6 +19,11 @@ export const lockersApi = {
 
   async update(id: number, data: Partial<CreateLockerDto>): Promise<Locker> {
     const response = await apiClient.put(`/lockers/${id}`, data);
+    return response.data;
+  },
+
+  async setEquipment(id: number, data: SetLockerEquipmentDto): Promise<Locker> {
+    const response = await apiClient.put(`/lockers/${id}/equipment`, data);
     return response.data;
   },
 

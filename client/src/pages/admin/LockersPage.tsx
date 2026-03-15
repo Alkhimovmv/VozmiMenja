@@ -2,9 +2,14 @@ import React, { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuthenticatedQuery } from '../../hooks/useAuthenticatedQuery';
 import { lockersApi } from '../../api/admin/lockers';
+import { equipmentApi } from '../../api/admin/equipment';
 import { type Locker, type CreateLockerDto } from '../../types/admin';
+import type { Equipment } from '../../types/index';
 import LockerCabinet from '../../components/admin/LockerCabinet';
 import apiClient from '../../api/admin/client';
+
+// Ключ выбранного экземпляра: "equipmentId:instanceNumber"
+type InstanceKey = string;
 
 const LockersPage: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -16,6 +21,7 @@ const LockersPage: React.FC = () => {
     items: [],
     is_active: true
   });
+  const [selectedInstances, setSelectedInstances] = useState<Set<InstanceKey>>(new Set());
   const [newItem, setNewItem] = useState('');
   const queryClient = useQueryClient();
 
@@ -24,9 +30,22 @@ const LockersPage: React.FC = () => {
     lockersApi.getAll
   );
 
+  const { data: allEquipment = [] } = useAuthenticatedQuery<Equipment[]>(
+    ['equipment-rental'],
+    equipmentApi.getForRental
+  );
+
+  // Конвертация Set<"id:instance"> в массив для API
+  const instancesToApiItems = (instances: Set<InstanceKey>) =>
+    Array.from(instances).map(key => {
+      const [idStr, instStr] = key.split(':');
+      return { equipment_id: Number(idStr), instance_number: Number(instStr) };
+    });
+
   const createMutation = useMutation({
     mutationFn: lockersApi.create,
-    onSuccess: () => {
+    onSuccess: async (locker) => {
+      await lockersApi.setEquipment(locker.id, { items: instancesToApiItems(selectedInstances) });
       queryClient.invalidateQueries({ queryKey: ['lockers'] });
       closeModal();
     },
@@ -35,7 +54,8 @@ const LockersPage: React.FC = () => {
   const updateMutation = useMutation({
     mutationFn: ({ id, data }: { id: number; data: Partial<CreateLockerDto> }) =>
       lockersApi.update(id, data),
-    onSuccess: () => {
+    onSuccess: async (locker) => {
+      await lockersApi.setEquipment(locker.id, { items: instancesToApiItems(selectedInstances) });
       queryClient.invalidateQueries({ queryKey: ['lockers'] });
       closeModal();
     },
@@ -74,7 +94,7 @@ const LockersPage: React.FC = () => {
       items: [],
       is_active: true
     });
-    setNewItem('');
+    setSelectedInstances(new Set());
     setIsModalOpen(true);
   };
 
@@ -87,7 +107,12 @@ const LockersPage: React.FC = () => {
       items: locker.items || [],
       is_active: locker.is_active
     });
-    setNewItem('');
+    // Восстанавливаем выбранные экземпляры из ячейки
+    const instances = new Set<InstanceKey>();
+    (locker.equipment_items || []).forEach(e => {
+      instances.add(`${e.equipment_id}:${e.instance_number}`);
+    });
+    setSelectedInstances(instances);
     setIsModalOpen(true);
   };
 
@@ -101,29 +126,31 @@ const LockersPage: React.FC = () => {
       items: [],
       is_active: true
     });
+    setSelectedInstances(new Set());
     setNewItem('');
   };
 
-  const handleAddItem = () => {
-    if (newItem.trim()) {
-      setFormData({ ...formData, items: [...(formData.items || []), newItem.trim()] });
-      setNewItem('');
-    }
-  };
-
-  const handleRemoveItem = (index: number) => {
-    const newItems = [...(formData.items || [])];
-    newItems.splice(index, 1);
-    setFormData({ ...formData, items: newItems });
+  const toggleInstance = (equipmentId: number, instanceNumber: number) => {
+    const key: InstanceKey = `${equipmentId}:${instanceNumber}`;
+    setSelectedInstances(prev => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
+    const dataToSave = newItem.trim()
+      ? { ...formData, items: [...(formData.items || []), newItem.trim()] }
+      : formData;
+
     if (editingLocker) {
-      updateMutation.mutate({ id: editingLocker.id, data: formData });
+      updateMutation.mutate({ id: editingLocker.id, data: dataToSave });
     } else {
-      createMutation.mutate(formData);
+      createMutation.mutate(dataToSave);
     }
   };
 
@@ -131,10 +158,6 @@ const LockersPage: React.FC = () => {
     if (window.confirm('Вы уверены, что хотите удалить эту ячейку?')) {
       deleteMutation.mutate(id);
     }
-  };
-
-  const handleGenerateCode = () => {
-    generateCodeMutation.mutate();
   };
 
   const handleInitialize = () => {
@@ -186,7 +209,7 @@ const LockersPage: React.FC = () => {
                 Код
               </th>
               <th className="px-2 sm:px-6 py-2 sm:py-3 text-left text-[10px] sm:text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell">
-                Содержимое
+                Оборудование
               </th>
               <th className="px-2 sm:px-6 py-2 sm:py-3 text-left text-[10px] sm:text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Статус
@@ -197,56 +220,78 @@ const LockersPage: React.FC = () => {
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {lockers.map((locker) => (
-              <tr key={locker.id}>
-                <td className="px-2 sm:px-6 py-2 sm:py-4 whitespace-nowrap text-xs sm:text-sm font-medium text-gray-900">
-                  {locker.locker_number}
-                </td>
-                <td className="px-2 sm:px-6 py-2 sm:py-4 whitespace-nowrap text-xs sm:text-sm text-gray-900 font-mono font-bold">
-                  {locker.access_code}
-                </td>
-                <td className="px-2 sm:px-6 py-2 sm:py-4 text-xs sm:text-sm text-gray-500 hidden md:table-cell">
-                  {locker.items && locker.items.length > 0 ? (
-                    <div className="space-y-1">
-                      {locker.items.map((item, idx) => (
-                        <div key={idx} className="text-xs bg-gray-100 px-2 py-1 rounded inline-block mr-1">
-                          {item}
-                        </div>
-                      ))}
+            {lockers.map((locker) => {
+              const isOccupied = locker.total_equipment > 0 && locker.free_equipment === 0;
+              return (
+                <tr key={locker.id}>
+                  <td className="px-2 sm:px-6 py-2 sm:py-4 whitespace-nowrap text-xs sm:text-sm font-medium text-gray-900">
+                    {locker.locker_number}
+                  </td>
+                  <td className="px-2 sm:px-6 py-2 sm:py-4 whitespace-nowrap text-xs sm:text-sm text-gray-900 font-mono font-bold">
+                    {locker.access_code}
+                  </td>
+                  <td className="px-2 sm:px-6 py-2 sm:py-4 text-xs sm:text-sm text-gray-500 hidden md:table-cell">
+                    {locker.equipment_items && locker.equipment_items.length > 0 ? (
+                      <div className="space-y-1">
+                        {locker.equipment_items.map((item) => (
+                          <div key={item.id} className="flex items-center gap-1">
+                            <span className="text-xs bg-gray-100 px-2 py-0.5 rounded">
+                              {item.equipment_name}{locker.equipment_items.filter(e => e.equipment_id === item.equipment_id).length > 1 ? ` #${item.instance_number}` : ''}
+                            </span>
+                            <span className={`text-xs font-medium px-1.5 py-0.5 rounded ${
+                              item.is_free ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                            }`}>
+                              {item.is_free ? 'св.' : 'занят'}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    ) : null}
+                    {locker.items && locker.items.length > 0 && (
+                      <div className="space-y-1 mt-1">
+                        {locker.items.map((item, idx) => (
+                          <span key={idx} className="text-xs bg-blue-50 text-blue-700 px-2 py-0.5 rounded inline-block mr-1">
+                            {item}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                    {(!locker.equipment_items || locker.equipment_items.length === 0) && (!locker.items || locker.items.length === 0) && (
+                      <span className="text-gray-400">—</span>
+                    )}
+                  </td>
+                  <td className="px-2 sm:px-6 py-2 sm:py-4 whitespace-nowrap">
+                    <span
+                      className={`px-1.5 sm:px-2 inline-flex text-[10px] sm:text-xs leading-5 font-semibold rounded-full ${
+                        !locker.is_active
+                          ? 'bg-gray-100 text-gray-800'
+                          : isOccupied
+                          ? 'bg-red-100 text-red-800'
+                          : 'bg-green-100 text-green-800'
+                      }`}
+                    >
+                      {!locker.is_active ? 'Неакт.' : isOccupied ? 'Занята' : 'Свободна'}
+                    </span>
+                  </td>
+                  <td className="px-2 sm:px-6 py-2 sm:py-4 whitespace-nowrap text-right text-xs sm:text-sm font-medium">
+                    <div className="flex flex-col sm:flex-row sm:space-x-2 space-y-1 sm:space-y-0 items-end">
+                      <button
+                        onClick={() => openEditModal(locker)}
+                        className="text-blue-600 hover:text-blue-900 text-xs sm:text-sm"
+                      >
+                        Изм.
+                      </button>
+                      <button
+                        onClick={() => handleDelete(locker.id)}
+                        className="text-red-600 hover:text-red-900 text-xs sm:text-sm"
+                      >
+                        Удал.
+                      </button>
                     </div>
-                  ) : (
-                    <span className="text-gray-400">—</span>
-                  )}
-                </td>
-                <td className="px-2 sm:px-6 py-2 sm:py-4 whitespace-nowrap">
-                  <span
-                    className={`px-1.5 sm:px-2 inline-flex text-[10px] sm:text-xs leading-5 font-semibold rounded-full ${
-                      locker.is_active
-                        ? 'bg-green-100 text-green-800'
-                        : 'bg-gray-100 text-gray-800'
-                    }`}
-                  >
-                    {locker.is_active ? 'Акт.' : 'Неакт.'}
-                  </span>
-                </td>
-                <td className="px-2 sm:px-6 py-2 sm:py-4 whitespace-nowrap text-right text-xs sm:text-sm font-medium">
-                  <div className="flex flex-col sm:flex-row sm:space-x-2 space-y-1 sm:space-y-0 items-end">
-                    <button
-                      onClick={() => openEditModal(locker)}
-                      className="text-blue-600 hover:text-blue-900 text-xs sm:text-sm"
-                    >
-                      Изм.
-                    </button>
-                    <button
-                      onClick={() => handleDelete(locker.id)}
-                      className="text-red-600 hover:text-red-900 text-xs sm:text-sm"
-                    >
-                      Удал.
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
         {lockers.length === 0 && (
@@ -259,7 +304,7 @@ const LockersPage: React.FC = () => {
       {/* Модальное окно */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+          <div className="bg-white rounded-lg p-6 max-w-lg w-full mx-4 max-h-[90vh] overflow-y-auto">
             <h2 className="text-xl font-bold mb-4">
               {editingLocker ? 'Редактировать ячейку' : 'Добавить ячейку'}
             </h2>
@@ -274,7 +319,7 @@ const LockersPage: React.FC = () => {
                   value={formData.locker_number}
                   onChange={(e) => setFormData({ ...formData, locker_number: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="Например: A1"
+                  placeholder="Например: 1"
                 />
               </div>
 
@@ -295,7 +340,7 @@ const LockersPage: React.FC = () => {
                   />
                   <button
                     type="button"
-                    onClick={handleGenerateCode}
+                    onClick={() => generateCodeMutation.mutate()}
                     disabled={generateCodeMutation.isPending}
                     className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-md font-medium disabled:opacity-50"
                   >
@@ -305,22 +350,79 @@ const LockersPage: React.FC = () => {
                 <p className="text-xs text-gray-500 mt-1">4-значный код</p>
               </div>
 
+              {/* Оборудование в ячейке */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Содержимое ячейки
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Оборудование в ячейке
+                </label>
+                <div className="space-y-1 max-h-48 overflow-y-auto border border-gray-300 rounded-md p-3">
+                  {allEquipment.length === 0 ? (
+                    <p className="text-sm text-gray-400 italic">Нет оборудования в системе</p>
+                  ) : (
+                    allEquipment.flatMap((eq) => {
+                      const eqId = Number((eq as any).id);
+                      const qty = (eq as any).quantity as number;
+                      return Array.from({ length: qty }, (_, i) => {
+                        const instanceNumber = i + 1;
+                        const key: InstanceKey = `${eqId}:${instanceNumber}`;
+                        const checked = selectedInstances.has(key);
+                        return (
+                          <label key={key} className="flex items-center space-x-3 hover:bg-gray-50 p-2 rounded cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={checked}
+                              onChange={() => toggleInstance(eqId, instanceNumber)}
+                              className="w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                            />
+                            <span className="text-sm text-gray-900">
+                              {eq.name}{qty > 1 ? ` #${instanceNumber}` : ''}
+                            </span>
+                          </label>
+                        );
+                      });
+                    })
+                  )}
+                </div>
+                {selectedInstances.size > 0 && (
+                  <p className="text-xs text-gray-600 mt-1">
+                    Выбрано: {selectedInstances.size} единиц
+                  </p>
+                )}
+                <p className="text-xs text-gray-400 mt-0.5">
+                  Ячейка станет неактивной, когда всё оборудование будет в аренде
+                </p>
+              </div>
+
+              {/* Дополнительные предметы вручную */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Дополнительно (вручную)
                 </label>
                 <div className="flex space-x-2 mb-2">
                   <input
                     type="text"
                     value={newItem}
                     onChange={(e) => setNewItem(e.target.value)}
-                    onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddItem())}
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="Добавить предмет"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        if (newItem.trim()) {
+                          setFormData(prev => ({ ...prev, items: [...(prev.items || []), newItem.trim()] }));
+                          setNewItem('');
+                        }
+                      }
+                    }}
+                    className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                    placeholder="Например: Трекинговые палки"
                   />
                   <button
                     type="button"
-                    onClick={handleAddItem}
+                    onClick={() => {
+                      if (newItem.trim()) {
+                        setFormData(prev => ({ ...prev, items: [...(prev.items || []), newItem.trim()] }));
+                        setNewItem('');
+                      }
+                    }}
                     className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md font-medium"
                   >
                     +
@@ -333,8 +435,8 @@ const LockersPage: React.FC = () => {
                         <span className="text-sm">{item}</span>
                         <button
                           type="button"
-                          onClick={() => handleRemoveItem(index)}
-                          className="text-red-600 hover:text-red-800 text-sm font-bold"
+                          onClick={() => setFormData(prev => ({ ...prev, items: (prev.items || []).filter((_, i) => i !== index) }))}
+                          className="text-red-600 hover:text-red-800 font-bold"
                         >
                           ×
                         </button>

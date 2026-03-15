@@ -119,16 +119,27 @@ export interface EquipmentUtilization {
 
 export type LockerSize = 'large' | 'medium' | 'small';
 
+export interface LockerEquipmentItem {
+  id: number;
+  equipment_id: number;
+  equipment_name: string;
+  instance_number: number;
+  is_free: boolean;
+}
+
 export interface Locker {
   id: number;
   locker_number: string;
   access_code: string;
   description?: string;
-  items: string[]; // Список предметов в ячейке
+  items: string[]; // legacy
   size: LockerSize;
   row_number: number;
   position_in_row: number;
   is_active: boolean;
+  equipment_items: LockerEquipmentItem[];
+  total_equipment: number;
+  free_equipment: number;
   created_at: string;
   updated_at: string;
 }
@@ -142,4 +153,8 @@ export interface CreateLockerDto {
   row_number?: number;
   position_in_row?: number;
   is_active?: boolean;
+}
+
+export interface SetLockerEquipmentDto {
+  items: Array<{ equipment_id: number; instance_number: number }>;
 }

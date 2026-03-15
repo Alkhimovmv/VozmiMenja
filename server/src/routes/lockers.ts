@@ -17,6 +17,15 @@ function toSnakeCase(locker: any) {
     row_number: locker.rowNumber,
     position_in_row: locker.positionInRow,
     is_active: locker.isActive,
+    equipment_items: (locker.equipmentItems || []).map((e: any) => ({
+      id: e.id,
+      equipment_id: e.equipmentId,
+      equipment_name: e.equipmentName,
+      instance_number: e.instanceNumber,
+      is_free: e.isFree,
+    })),
+    total_equipment: locker.totalEquipment,
+    free_equipment: locker.freeEquipment,
     created_at: locker.createdAt,
     updated_at: locker.updatedAt
   }
@@ -131,6 +140,32 @@ router.put('/:id', authMiddleware, async (req: Request, res: Response) => {
     } else {
       res.status(500).json({ error: 'Ошибка обновления ячейки' })
     }
+  }
+})
+
+// PUT /api/admin/lockers/:id/equipment - Установить оборудование в ячейке
+// Body: { items: [{ equipment_id: number, instance_number: number }] }
+router.put('/:id/equipment', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const lockerId = parseInt(req.params.id)
+    const locker = await lockerModel.findById(lockerId)
+    if (!locker) {
+      res.status(404).json({ error: 'Ячейка не найдена' })
+      return
+    }
+
+    const items: Array<{ equipmentId: number; instanceNumber: number }> = (req.body.items || []).map((item: any) => ({
+      equipmentId: item.equipment_id,
+      instanceNumber: item.instance_number || 1,
+    }))
+
+    await lockerModel.setEquipment(lockerId, items)
+
+    const updated = await lockerModel.findById(lockerId)
+    res.json(toSnakeCase(updated!))
+  } catch (error: any) {
+    console.error('Error setting locker equipment:', error)
+    res.status(500).json({ error: 'Ошибка обновления оборудования в ячейке' })
   }
 })
 

@@ -123,6 +123,7 @@ const RentalsPage: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ['rentals'] });
       queryClient.invalidateQueries({ queryKey: ['rentals', 'gantt'] });
       queryClient.invalidateQueries({ queryKey: ['analytics'] });
+      queryClient.invalidateQueries({ queryKey: ['lockers'] });
 
       setIsModalOpen(false);
     },
@@ -135,6 +136,7 @@ const RentalsPage: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ['rentals'] });
       queryClient.invalidateQueries({ queryKey: ['rentals', 'gantt'] });
       queryClient.invalidateQueries({ queryKey: ['analytics'] });
+      queryClient.invalidateQueries({ queryKey: ['lockers'] });
       setIsModalOpen(false);
       setEditingRental(null);
     },
@@ -146,6 +148,7 @@ const RentalsPage: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ['rentals'] });
       queryClient.invalidateQueries({ queryKey: ['rentals', 'gantt'] });
       queryClient.invalidateQueries({ queryKey: ['analytics'] });
+      queryClient.invalidateQueries({ queryKey: ['lockers'] });
     },
   });
 

@@ -208,6 +208,27 @@ class Database {
       console.error('Ошибка обновления items:', error)
     }
 
+    // Таблица связи ячеек постомата с оборудованием
+    await run(`
+      CREATE TABLE IF NOT EXISTS locker_equipment (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        locker_id INTEGER NOT NULL,
+        equipment_id INTEGER NOT NULL,
+        instance_number INTEGER NOT NULL DEFAULT 1,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (locker_id) REFERENCES lockers (id) ON DELETE CASCADE,
+        FOREIGN KEY (equipment_id) REFERENCES rental_equipment (id) ON DELETE CASCADE
+      )
+    `)
+
+    await run(`
+      CREATE INDEX IF NOT EXISTS idx_locker_equipment_locker_id ON locker_equipment(locker_id);
+    `)
+
+    await run(`
+      CREATE INDEX IF NOT EXISTS idx_locker_equipment_equipment_id ON locker_equipment(equipment_id);
+    `)
+
     // Индексы для VozmiMenja
     await run(`
       CREATE INDEX IF NOT EXISTS idx_equipment_category ON equipment(category);
