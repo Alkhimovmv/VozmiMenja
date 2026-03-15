@@ -35,7 +35,11 @@ const LockerCabinet: React.FC<LockerCabinetProps> = ({ lockers, onLockerClick })
   const getLockerStatus = (locker?: Locker): 'empty' | 'free' | 'partial' | 'occupied' | 'inactive' => {
     if (!locker) return 'empty';
     if (!locker.is_active) return 'inactive';
-    if (!locker.equipment_items || locker.equipment_items.length === 0) return 'empty';
+    if (!locker.equipment_items || locker.equipment_items.length === 0) {
+      // Если есть только ручные items — показываем как свободную (зелёную)
+      if (locker.items && locker.items.length > 0) return 'free';
+      return 'empty';
+    }
     if (locker.free_equipment === 0) return 'occupied';
     if (locker.free_equipment < locker.total_equipment) return 'partial';
     return 'free';
@@ -83,7 +87,7 @@ const LockerCabinet: React.FC<LockerCabinetProps> = ({ lockers, onLockerClick })
                     key={position}
                     onClick={() => locker && onLockerClick?.(locker)}
                     style={{ width: dimensions.width, height: dimensions.height }}
-                    className={`${colorClass} border-2 rounded flex flex-col items-center justify-center transition-all duration-200 relative p-1 sm:p-2 overflow-hidden`}
+                    className={`${colorClass} border-2 rounded flex flex-col items-center justify-center transition-all duration-200 relative p-1 sm:p-2 overflow-auto`}
                   >
                     {locker ? (
                       <>
@@ -108,7 +112,7 @@ const LockerCabinet: React.FC<LockerCabinetProps> = ({ lockers, onLockerClick })
                                     const sameEquip = locker.equipment_items.filter(x => x.equipment_id === e.equipment_id);
                                     const name = sameEquip.length > 1 ? `${e.equipment_name} #${e.instance_number}` : e.equipment_name;
                                     return (
-                                      <div key={e.id} className="leading-tight truncate">
+                                      <div key={e.id} className="leading-tight break-words">
                                         <span className="text-gray-700">{name}</span>
                                         {!e.is_free && e.customer_last_name && (
                                           <span className="text-red-600 font-medium"> ({e.customer_last_name})</span>
@@ -127,7 +131,7 @@ const LockerCabinet: React.FC<LockerCabinetProps> = ({ lockers, onLockerClick })
                               </>
                             )}
                             {locker.items?.length > 0 && (
-                              <span className="text-gray-500 truncate block max-w-full px-0.5 leading-tight">
+                              <span className="text-gray-500 break-words block max-w-full px-0.5 leading-tight">
                                 {locker.items.join(', ')}
                               </span>
                             )}
