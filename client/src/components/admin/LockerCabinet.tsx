@@ -109,8 +109,7 @@ const LockerCabinet: React.FC<LockerCabinetProps> = ({ lockers, onLockerClick })
                               <>
                                 <div className="max-w-full px-0.5">
                                   {locker.equipment_items.map(e => {
-                                    const sameEquip = locker.equipment_items.filter(x => x.equipment_id === e.equipment_id);
-                                    const name = sameEquip.length > 1 ? `${e.equipment_name} #${e.instance_number}` : e.equipment_name;
+                                    const name = `${e.equipment_name} #${e.instance_number}`;
                                     return (
                                       <div key={e.id} className="leading-tight break-words">
                                         <span className="text-gray-700">{name}</span>
