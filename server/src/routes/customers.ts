@@ -1,9 +1,9 @@
 import { Router, Request, Response } from 'express'
 import { rentalModel } from '../models/Rental'
+import { rentalToSnakeCase } from '../utils/transformers'
 
 const router = Router()
 
-// Функция для трансформации camelCase -> snake_case для фронтенда
 function customerToSnakeCase(customer: any) {
   return {
     customer_name: customer.customerName,
@@ -22,29 +22,6 @@ router.get('/', async (req: Request, res: Response) => {
     res.status(500).json({ error: 'Ошибка получения клиентов' })
   }
 })
-
-// Функция для трансформации аренды camelCase -> snake_case
-function rentalToSnakeCase(rental: any) {
-  return {
-    id: rental.id,
-    equipment_id: rental.equipmentId,
-    start_date: rental.startDate,
-    end_date: rental.endDate,
-    customer_name: rental.customerName,
-    customer_phone: rental.customerPhone,
-    needs_delivery: rental.needsDelivery,
-    delivery_address: rental.deliveryAddress,
-    rental_price: rental.rentalPrice,
-    delivery_price: rental.deliveryPrice,
-    delivery_costs: rental.deliveryCosts,
-    source: rental.source,
-    comment: rental.comment,
-    status: rental.status,
-    created_at: rental.createdAt,
-    updated_at: rental.updatedAt,
-    equipment_name: rental.equipmentName
-  }
-}
 
 // GET /api/admin/customers/:phone/rentals - Получить аренды клиента
 router.get('/:phone/rentals', async (req: Request, res: Response) => {

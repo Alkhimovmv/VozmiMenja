@@ -8,8 +8,9 @@ export interface Customer {
 }
 
 export const rentalsApi = {
-  getAll: async (): Promise<Rental[]> => {
-    const response = await apiClient.get('/rentals');
+  getAll: async (officeId?: number): Promise<Rental[]> => {
+    const params = officeId ? `?officeId=${officeId}` : '';
+    const response = await apiClient.get(`/rentals${params}`);
     return response.data;
   },
 
@@ -18,10 +19,11 @@ export const rentalsApi = {
     return response.data;
   },
 
-  getGanttData: async (startDate?: string, endDate?: string): Promise<Rental[]> => {
+  getGanttData: async (startDate?: string, endDate?: string, officeId?: number): Promise<Rental[]> => {
     const params = new URLSearchParams();
     if (startDate) params.append('startDate', startDate);
     if (endDate) params.append('endDate', endDate);
+    if (officeId) params.append('officeId', String(officeId));
 
     const response = await apiClient.get(`/rentals/gantt?${params.toString()}`);
     return response.data;

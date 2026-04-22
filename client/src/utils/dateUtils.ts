@@ -37,13 +37,3 @@ export const getStatusColor = (status: string): string => {
   };
   return colorMap[status as keyof typeof colorMap] || 'bg-blue-300 border-blue-400';
 };
-
-export const getSourceText = (source: string): string => {
-  const sourceMap = {
-    avito: 'Авито',
-    website: 'Сайт',
-    referral: 'Рекомендация',
-    maps: 'Карты',
-  };
-  return sourceMap[source as keyof typeof sourceMap] || source;
-};

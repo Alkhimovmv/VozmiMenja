@@ -6,6 +6,7 @@ export interface Expense {
   amount: number
   date: string
   category?: string
+  officeId: number
   createdAt: string
   updatedAt: string
 }
@@ -15,6 +16,7 @@ export interface CreateExpenseData {
   amount: number
   date: string
   category?: string
+  officeId?: number
 }
 
 export class ExpenseModel {
@@ -24,28 +26,34 @@ export class ExpenseModel {
     category?: string
     startDate?: string
     endDate?: string
+    officeId?: number
   } = {}): Promise<Expense[]> {
-    const { category, startDate, endDate } = options
+    const { category, startDate, endDate, officeId } = options
 
-    let whereClause = ''
+    const conditions: string[] = []
     const params: any[] = []
 
     if (category) {
-      whereClause += ' WHERE category = ?'
+      conditions.push('category = ?')
       params.push(category)
     }
 
     if (startDate) {
-      whereClause += category ? ' AND' : ' WHERE'
-      whereClause += ' date >= ?'
+      conditions.push('date >= ?')
       params.push(startDate)
     }
 
     if (endDate) {
-      whereClause += (category || startDate) ? ' AND' : ' WHERE'
-      whereClause += ' date <= ?'
+      conditions.push('date <= ?')
       params.push(endDate)
     }
+
+    if (officeId) {
+      conditions.push('office_id = ?')
+      params.push(officeId)
+    }
+
+    const whereClause = conditions.length > 0 ? ' WHERE ' + conditions.join(' AND ') : ''
 
     const rows = await all(`
       SELECT * FROM expenses
@@ -65,9 +73,9 @@ export class ExpenseModel {
   async create(data: CreateExpenseData): Promise<Expense> {
     const result = await new Promise<number>((resolve, reject) => {
       this.db.run(`
-        INSERT INTO expenses (description, amount, date, category)
-        VALUES (?, ?, ?, ?)
-      `, [data.description, data.amount, data.date, data.category || null], function(err) {
+        INSERT INTO expenses (description, amount, date, category, office_id)
+        VALUES (?, ?, ?, ?, ?)
+      `, [data.description, data.amount, data.date, data.category || null, data.officeId || 1], function(err) {
         if (err) reject(err)
         else resolve(this.lastID)
       })
@@ -208,6 +216,7 @@ export class ExpenseModel {
       amount: row.amount,
       date: row.date,
       category: row.category || undefined,
+      officeId: row.office_id || 1,
       createdAt: row.created_at,
       updatedAt: row.updated_at
     }

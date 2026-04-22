@@ -7,11 +7,13 @@ import { type Locker, type CreateLockerDto } from '../../types/admin';
 import type { Equipment } from '../../types/index';
 import LockerCabinet from '../../components/admin/LockerCabinet';
 import apiClient from '../../api/admin/client';
+import { useOffice } from '../../hooks/useOffice';
 
 // Ключ выбранного экземпляра: "equipmentId:instanceNumber"
 type InstanceKey = string;
 
 const LockersPage: React.FC = () => {
+  const { currentOfficeId, currentOffice } = useOffice();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingLocker, setEditingLocker] = useState<Locker | null>(null);
   const [formData, setFormData] = useState<CreateLockerDto>({
@@ -26,8 +28,8 @@ const LockersPage: React.FC = () => {
   const queryClient = useQueryClient();
 
   const { data: lockers = [] } = useAuthenticatedQuery<Locker[]>(
-    ['lockers'],
-    lockersApi.getAll
+    ['lockers', currentOfficeId],
+    () => lockersApi.getAll(currentOfficeId)
   );
 
   const { data: allEquipment = [] } = useAuthenticatedQuery<Equipment[]>(
@@ -150,7 +152,7 @@ const LockersPage: React.FC = () => {
     if (editingLocker) {
       updateMutation.mutate({ id: editingLocker.id, data: dataToSave });
     } else {
-      createMutation.mutate(dataToSave);
+      createMutation.mutate({ ...dataToSave, office_id: currentOfficeId } as any);
     }
   };
 
@@ -167,7 +169,7 @@ const LockersPage: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 overflow-y-auto flex-1 px-4 sm:px-6 py-4 sm:py-8">
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold text-gray-900">Ячейки постомата</h1>
         <div className="flex gap-2">
@@ -194,6 +196,7 @@ const LockersPage: React.FC = () => {
         <LockerCabinet
           lockers={lockers}
           onLockerClick={(locker) => openEditModal(locker)}
+          lockerRows={currentOffice?.locker_rows}
         />
       )}
 

@@ -2,8 +2,9 @@ import apiClient from './client';
 import { type Expense, type CreateExpenseDto } from '../types/index';
 
 export const expensesApi = {
-  getAll: async (): Promise<Expense[]> => {
-    const response = await apiClient.get('/expenses');
+  getAll: async (officeId?: number): Promise<Expense[]> => {
+    const params = officeId ? `?officeId=${officeId}` : '';
+    const response = await apiClient.get(`/expenses${params}`);
     return response.data;
   },
 

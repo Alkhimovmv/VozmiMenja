@@ -18,6 +18,7 @@ export interface Rental {
   source: RentalSource
   comment?: string
   status: RentalStatus
+  officeId: number
   createdAt: string
   updatedAt: string
 }
@@ -47,6 +48,7 @@ export interface CreateRentalData {
   deliveryCosts?: number
   source: RentalSource
   comment?: string
+  officeId?: number
 }
 
 export class RentalModel {
@@ -55,22 +57,29 @@ export class RentalModel {
   async findAll(options: {
     status?: RentalStatus
     equipmentId?: number
+    officeId?: number
   } = {}): Promise<RentalWithEquipment[]> {
-    const { status, equipmentId } = options
+    const { status, equipmentId, officeId } = options
 
-    let whereClause = ''
+    const conditions: string[] = []
     const params: any[] = []
 
     if (status) {
-      whereClause += ' WHERE r.status = ?'
+      conditions.push('r.status = ?')
       params.push(status)
     }
 
     if (equipmentId) {
-      whereClause += status ? ' AND' : ' WHERE'
-      whereClause += ' r.equipment_id = ?'
+      conditions.push('r.equipment_id = ?')
       params.push(equipmentId)
     }
+
+    if (officeId) {
+      conditions.push('r.office_id = ?')
+      params.push(officeId)
+    }
+
+    const whereClause = conditions.length > 0 ? ' WHERE ' + conditions.join(' AND ') : ''
 
     const rows = await all(`
       SELECT
@@ -82,29 +91,36 @@ export class RentalModel {
       ORDER BY r.created_at DESC
     `, params) as any[]
 
-    // Для каждой аренды получаем список дополнительного оборудования с номерами экземпляров
-    const rentalsWithEquipment = await Promise.all(
-      rows.map(async (row) => {
-        const equipmentItems = await all(`
-          SELECT re.id, re.name, rei.instance_number
-          FROM rental_equipment_items rei
-          JOIN rental_equipment re ON rei.equipment_id = re.id
-          WHERE rei.rental_id = ?
-        `, [row.id]) as Array<{ id: number; name: string; instance_number: number }>
+    if (rows.length === 0) return []
 
-        return {
-          ...this.mapRow(row),
-          equipmentName: row.equipment_name,
-          equipmentList: equipmentItems.length > 0 ? equipmentItems.map(item => ({
-            id: item.id,
-            name: item.name,
-            instanceNumber: item.instance_number || 1  // Default to 1 for old records
-          })) : undefined
-        }
+    // Один запрос для всех equipment_items вместо N запросов
+    const rentalIds = rows.map(r => r.id)
+    const placeholders = rentalIds.map(() => '?').join(',')
+    const allEquipmentItems = await all(`
+      SELECT rei.rental_id, re.id, re.name, rei.instance_number
+      FROM rental_equipment_items rei
+      JOIN rental_equipment re ON rei.equipment_id = re.id
+      WHERE rei.rental_id IN (${placeholders})
+    `, rentalIds) as Array<{ rental_id: number; id: number; name: string; instance_number: number }>
+
+    // Группируем по rental_id
+    const itemsByRentalId = new Map<number, Array<{ id: number; name: string; instanceNumber: number }>>()
+    for (const item of allEquipmentItems) {
+      if (!itemsByRentalId.has(item.rental_id)) {
+        itemsByRentalId.set(item.rental_id, [])
+      }
+      itemsByRentalId.get(item.rental_id)!.push({
+        id: item.id,
+        name: item.name,
+        instanceNumber: item.instance_number || 1
       })
-    )
+    }
 
-    return rentalsWithEquipment
+    return rows.map(row => ({
+      ...this.mapRow(row),
+      equipmentName: row.equipment_name,
+      equipmentList: itemsByRentalId.get(row.id) || undefined
+    }))
   }
 
   async findById(id: number): Promise<RentalWithEquipment | null> {
@@ -258,8 +274,8 @@ export class RentalModel {
         INSERT INTO rentals (
           equipment_id, start_date, end_date, customer_name, customer_phone,
           needs_delivery, delivery_address, rental_price, delivery_price,
-          delivery_costs, source, comment, status
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          delivery_costs, source, comment, status, office_id
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `, [
         data.equipmentId,
         data.startDate,
@@ -273,7 +289,8 @@ export class RentalModel {
         data.deliveryCosts || null,
         data.source,
         data.comment || null,
-        'pending'
+        'pending',
+        data.officeId || 1
       ], function(err) {
         if (err) reject(err)
         else resolve(this.lastID)
@@ -615,6 +632,7 @@ export class RentalModel {
       source: row.source as RentalSource,
       comment: row.comment || undefined,
       status: row.status as RentalStatus,
+      officeId: row.office_id || 1,
       createdAt: row.created_at,
       updatedAt: row.updated_at
     }

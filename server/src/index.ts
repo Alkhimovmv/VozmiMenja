@@ -15,6 +15,7 @@ import customersRoutes from './routes/customers'
 import analyticsRoutes from './routes/analytics'
 import articlesRoutes from './routes/articles'
 import lockersRoutes from './routes/lockers'
+import officesRoutes from './routes/offices'
 import { schedulerService } from './services/scheduler'
 
 dotenv.config()
@@ -35,15 +36,13 @@ app.use(cors({
 app.use(express.json({ limit: '10mb' }))
 app.use(express.urlencoded({ extended: true }))
 
-// Логирование запросов
-app.use((req, res, next) => {
-  console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`)
-  if (req.method === 'PUT' || req.method === 'POST') {
-    console.log('Request body:', req.body)
-    console.log('Content-Type:', req.headers['content-type'])
-  }
-  next()
-})
+// Логирование запросов (только в development)
+if (process.env.NODE_ENV !== 'production') {
+  app.use((req, _res, next) => {
+    console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`)
+    next()
+  })
+}
 
 // Статическая раздача загруженных файлов с CORS и долгим кешированием
 app.use('/uploads', (req, res, next) => {
@@ -67,6 +66,7 @@ app.use('/api/admin/expenses', expensesRoutes)
 app.use('/api/admin/customers', customersRoutes)
 app.use('/api/admin/analytics', analyticsRoutes)
 app.use('/api/admin/lockers', lockersRoutes)
+app.use('/api/admin/offices', officesRoutes)
 app.use('/api/admin', adminRoutes)
 
 // Health check

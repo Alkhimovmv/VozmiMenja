@@ -2,8 +2,9 @@ import { CreateLockerDto, Locker, SetLockerEquipmentDto } from '../../types/admi
 import apiClient from './client';
 
 export const lockersApi = {
-  async getAll(): Promise<Locker[]> {
-    const response = await apiClient.get('/lockers');
+  async getAll(officeId?: number): Promise<Locker[]> {
+    const params = officeId ? `?officeId=${officeId}` : '';
+    const response = await apiClient.get(`/lockers${params}`);
     return response.data;
   },
 

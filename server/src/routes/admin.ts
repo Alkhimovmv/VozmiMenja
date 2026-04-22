@@ -2,10 +2,11 @@ import { Router, Request, Response } from 'express'
 import { upload } from '../middleware/upload'
 import { authMiddleware } from '../middleware/auth'
 import { schedulerService } from '../services/scheduler'
+import { emailBackupService } from '../services/emailBackup'
 
 const router = Router()
 
-const ADMIN_PASSWORD = '20031997'
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || '20031997'
 
 // Логин для админки аренды
 router.post('/auth/login', async (req: Request, res: Response) => {
@@ -81,6 +82,17 @@ router.post('/test-daily-reminder', authMiddleware, async (req: Request, res: Re
       message: 'Ошибка отправки уведомления',
       error: error instanceof Error ? error.message : 'Unknown error'
     })
+  }
+})
+
+// Ручная отправка email бэкапа БД
+router.post('/send-db-backup', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    await emailBackupService.sendDatabaseBackup()
+    res.json({ success: true, message: 'Бэкап отправлен на email' })
+  } catch (error: any) {
+    console.error('❌ Ошибка отправки бэкапа:', error)
+    res.status(500).json({ success: false, message: error.message || 'Ошибка отправки' })
   }
 })
 

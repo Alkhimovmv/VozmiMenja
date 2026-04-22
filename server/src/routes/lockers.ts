@@ -1,11 +1,20 @@
 import { Router, Request, Response } from 'express'
+import { z } from 'zod'
 import { lockerModel, CreateLockerData } from '../models/Locker'
 import { authMiddleware } from '../middleware/auth'
 import { initializeLockers } from '../scripts/initializeLockers'
 
 const router = Router()
 
-// Функция для трансформации camelCase -> snake_case для фронтенда
+const createLockerSchema = z.object({
+  locker_number: z.string().min(1, 'locker_number обязателен').max(20),
+  access_code: z.string().min(1, 'access_code обязателен').max(20),
+  description: z.string().max(500).optional(),
+  items: z.array(z.string()).optional().default([]),
+  is_active: z.boolean().optional().default(true),
+  office_id: z.number().int().positive().optional().default(1)
+})
+
 function toSnakeCase(locker: any) {
   return {
     id: locker.id,
@@ -17,6 +26,7 @@ function toSnakeCase(locker: any) {
     row_number: locker.rowNumber,
     position_in_row: locker.positionInRow,
     is_active: locker.isActive,
+    office_id: locker.officeId || 1,
     equipment_items: (locker.equipmentItems || []).map((e: any) => ({
       id: e.id,
       equipment_id: e.equipmentId,
@@ -35,7 +45,8 @@ function toSnakeCase(locker: any) {
 // GET /api/admin/lockers - Получить все ячейки
 router.get('/', authMiddleware, async (req: Request, res: Response) => {
   try {
-    const lockers = await lockerModel.findAll()
+    const officeId = req.query.officeId ? parseInt(req.query.officeId as string) : undefined
+    const lockers = await lockerModel.findAll(officeId)
     res.json(lockers.map(toSnakeCase))
   } catch (error) {
     console.error('Error getting lockers:', error)
@@ -85,12 +96,17 @@ router.get('/:id', authMiddleware, async (req: Request, res: Response) => {
 // POST /api/admin/lockers - Создать ячейку
 router.post('/', authMiddleware, async (req: Request, res: Response) => {
   try {
+    const parsed = createLockerSchema.safeParse(req.body)
+    if (!parsed.success) {
+      return res.status(400).json({ error: parsed.error.errors.map(e => e.message).join(', ') })
+    }
     const data: CreateLockerData = {
-      lockerNumber: req.body.locker_number || req.body.lockerNumber,
-      accessCode: req.body.access_code || req.body.accessCode,
-      description: req.body.description,
-      items: req.body.items || [],
-      isActive: req.body.is_active !== undefined ? req.body.is_active : req.body.isActive
+      lockerNumber: parsed.data.locker_number,
+      accessCode: parsed.data.access_code,
+      description: parsed.data.description,
+      items: parsed.data.items,
+      isActive: parsed.data.is_active,
+      officeId: parsed.data.office_id
     }
 
     const locker = await lockerModel.create(data)

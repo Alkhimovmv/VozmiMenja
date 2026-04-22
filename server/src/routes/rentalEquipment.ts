@@ -1,38 +1,9 @@
 import { Router, Request, Response } from 'express'
 import { rentalEquipmentModel, CreateRentalEquipmentData } from '../models/RentalEquipment'
 import { authMiddleware } from '../middleware/auth'
+import { equipmentToSnakeCase as toSnakeCase, equipmentToRentalFormat as toRentalFormat } from '../utils/transformers'
 
 const router = Router()
-
-// Функция для трансформации camelCase -> snake_case для фронтенда
-function toSnakeCase(equipment: any) {
-  return {
-    id: equipment.id,
-    name: equipment.name,
-    quantity: equipment.quantity,
-    description: equipment.description,
-    base_price: equipment.basePrice,
-    created_at: equipment.createdAt,
-    updated_at: equipment.updatedAt
-  }
-}
-
-// Функция для трансформации в формат для модального окна аренды (совместимость с Equipment)
-function toRentalFormat(equipment: any) {
-  return {
-    id: equipment.id,
-    name: equipment.name,
-    category: 'Оборудование',
-    price_per_day: equipment.basePrice,
-    quantity: equipment.quantity,
-    available_quantity: equipment.quantity,
-    images: [],
-    description: equipment.description || '',
-    specifications: {},
-    created_at: equipment.createdAt,
-    updated_at: equipment.updatedAt
-  }
-}
 
 // GET /api/admin/equipment/for-rental - Получить все оборудование для аренды
 router.get('/for-rental', async (req: Request, res: Response) => {

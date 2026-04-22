@@ -21,6 +21,7 @@ export interface Locker {
   rowNumber: number
   positionInRow: number
   isActive: boolean
+  officeId: number
   // Новые поля
   equipmentItems: LockerEquipmentItem[]
   totalEquipment: number   // сколько единиц оборудования в ячейке
@@ -38,6 +39,7 @@ export interface CreateLockerData {
   rowNumber?: number
   positionInRow?: number
   isActive?: boolean
+  officeId?: number
 }
 
 export class LockerModel {
@@ -153,6 +155,7 @@ export class LockerModel {
       rowNumber: row.row_number || 1,
       positionInRow: row.position_in_row || 1,
       isActive: row.is_active === 1,
+      officeId: row.office_id || 1,
       equipmentItems,
       totalEquipment,
       freeEquipment,
@@ -161,11 +164,10 @@ export class LockerModel {
     }
   }
 
-  async findAll(): Promise<Locker[]> {
-    const rows = await all(`
-      SELECT * FROM lockers
-      ORDER BY CAST(locker_number AS INTEGER) ASC
-    `) as any[]
+  async findAll(officeId?: number): Promise<Locker[]> {
+    const rows = officeId
+      ? await all(`SELECT * FROM lockers WHERE office_id = ? ORDER BY CAST(locker_number AS INTEGER) ASC`, [officeId]) as any[]
+      : await all(`SELECT * FROM lockers ORDER BY CAST(locker_number AS INTEGER) ASC`) as any[]
 
     return Promise.all(rows.map(row => this.mapRow(row)))
   }
@@ -201,8 +203,8 @@ export class LockerModel {
 
     const lockerId = await new Promise<number>((resolve, reject) => {
       this.db.run(`
-        INSERT INTO lockers (locker_number, access_code, description, items, size, row_number, position_in_row, is_active)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO lockers (locker_number, access_code, description, items, size, row_number, position_in_row, is_active, office_id)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
       `, [
         data.lockerNumber,
         data.accessCode,
@@ -211,7 +213,8 @@ export class LockerModel {
         data.size || 'medium',
         data.rowNumber || 1,
         data.positionInRow || 1,
-        data.isActive !== undefined ? (data.isActive ? 1 : 0) : 1
+        data.isActive !== undefined ? (data.isActive ? 1 : 0) : 1,
+        data.officeId || 1
       ], function(err) {
         if (err) reject(err)
         else resolve(this.lastID)

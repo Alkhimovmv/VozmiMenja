@@ -4,15 +4,18 @@ import { useAuthenticatedQuery } from '../../hooks/useAuthenticatedQuery';
 import { rentalsApi } from '../../api/admin/rentals';
 import { equipmentApi } from '../../api/admin/equipment';
 import type { Rental, CreateRentalDto, Equipment } from '../../types/index';
-import { formatDate, getStatusText, getStatusColor, getSourceText } from '../../utils/dateUtils';
+import { formatDate, getStatusText, getStatusColor } from '../../utils/dateUtils';
 import RentalModal from '../../components/admin/RentalModal';
 import CustomSelect from '../../components/admin/CustomSelect';
 import ConfirmDialog from '../../components/admin/ConfirmDialog';
 import { subDays, startOfDay, endOfDay, isWithinInterval, startOfMonth, endOfMonth, addDays, isSameDay } from 'date-fns';
+import toast from 'react-hot-toast';
+import { useOffice } from '../../hooks/useOffice';
 
 type DateFilter = 'week' | 'month' | 'all' | 'ends_today' | 'ends_tomorrow' | 'specific_date';
 
 const RentalsPage: React.FC = () => {
+  const { currentOfficeId } = useOffice();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingRental, setEditingRental] = useState<Rental | null>(null);
   const [dateFilter, setDateFilter] = useState<DateFilter>('all');
@@ -24,7 +27,10 @@ const RentalsPage: React.FC = () => {
   });
   const queryClient = useQueryClient();
 
-  const { data: rentals = [], isLoading } = useAuthenticatedQuery<Rental[]>(['rentals'], rentalsApi.getAll);
+  const { data: rentals = [], isLoading } = useAuthenticatedQuery<Rental[]>(
+    ['rentals', currentOfficeId],
+    () => rentalsApi.getAll(currentOfficeId)
+  );
 
   const { data: equipment = [] } = useAuthenticatedQuery<Equipment[]>(['equipment-rental'], equipmentApi.getForRental);
 
@@ -153,7 +159,7 @@ const RentalsPage: React.FC = () => {
   });
 
   const handleCreateRental = (data: CreateRentalDto) => {
-    createMutation.mutate(data);
+    createMutation.mutate({ ...data, office_id: currentOfficeId } as any);
   };
 
   const handleUpdateRental = (data: Partial<CreateRentalDto & { status: string }>) => {
@@ -182,6 +188,10 @@ const RentalsPage: React.FC = () => {
   };
 
   const handleCompleteRental = (rental: Rental) => {
+    if (!rental.rental_price && rental.rental_price !== 0) {
+      toast.error('Нельзя закрыть аренду без указания цены аренды');
+      return;
+    }
     updateMutation.mutate({
       id: rental.id,
       data: { status: 'completed' },
@@ -189,6 +199,10 @@ const RentalsPage: React.FC = () => {
   };
 
   const handleCompleteRentalNow = (rental: Rental) => {
+    if (!rental.rental_price && rental.rental_price !== 0) {
+      toast.error('Нельзя закрыть аренду без указания цены аренды');
+      return;
+    }
     // Получаем текущую дату и время в формате ISO и берём первые 16 символов (без секунд)
     const now = new Date();
     const year = now.getFullYear();
@@ -244,17 +258,8 @@ const RentalsPage: React.FC = () => {
     );
   }
 
-  // const getFilterLabel = (filter: DateFilter) => {
-  //   switch (filter) {
-  //     case 'week': return 'Последние 7 дней';
-  //     case 'month': return 'Текущий месяц';
-  //     case 'all': return 'Все время';
-  //     default: return 'Все время';
-  //   }
-  // };
-
   return (
-    <div className="space-y-4 sm:space-y-6">
+    <div className="space-y-4 sm:space-y-6 overflow-y-auto flex-1 px-4 sm:px-6 py-4 sm:py-8">
       <div className="flex flex-col space-y-4">
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start space-y-2 sm:space-y-0">
           <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-4">
@@ -387,7 +392,7 @@ const RentalsPage: React.FC = () => {
                       )}
                     </div>
                     <div className="text-sm text-gray-500">
-                      <span>📊 {getSourceText(rental.source)}</span>
+                      {!!rental.needs_delivery && rental.delivery_address && <span>📍 {rental.delivery_address}</span>}
                       {rental.comment && <span className="block sm:inline sm:ml-4">💬 {rental.comment}</span>}
                     </div>
                   </div>

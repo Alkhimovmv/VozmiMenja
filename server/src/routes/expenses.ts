@@ -1,18 +1,30 @@
 import { Router, Request, Response } from 'express'
+import { z } from 'zod'
 import { expenseModel, CreateExpenseData } from '../models/Expense'
 import { authMiddleware } from '../middleware/auth'
 
 const router = Router()
 
+const createExpenseSchema = z.object({
+  description: z.string().min(1, 'description обязателен').max(500),
+  amount: z.number().positive('amount должен быть положительным'),
+  date: z.string().min(1, 'date обязателен'),
+  category: z.string().max(100).optional(),
+  office_id: z.number().int().positive().optional().default(1)
+})
+
+const updateExpenseSchema = createExpenseSchema.partial()
+
 // GET /api/expenses - Получить все расходы
 router.get('/', async (req: Request, res: Response) => {
   try {
-    const { category, startDate, endDate } = req.query
+    const { category, startDate, endDate, officeId } = req.query
 
     const expenses = await expenseModel.findAll({
       category: category as string | undefined,
       startDate: startDate as string | undefined,
-      endDate: endDate as string | undefined
+      endDate: endDate as string | undefined,
+      officeId: officeId ? parseInt(officeId as string) : undefined
     })
 
     res.json(expenses)
@@ -64,7 +76,12 @@ router.get('/:id', async (req: Request, res: Response) => {
 // POST /api/admin/expenses - Создать расход
 router.post('/', authMiddleware, async (req: Request, res: Response) => {
   try {
-    const data: CreateExpenseData = req.body
+    const parsed = createExpenseSchema.safeParse(req.body)
+    if (!parsed.success) {
+      return res.status(400).json({ error: parsed.error.errors.map(e => e.message).join(', ') })
+    }
+    const { description, amount, date, category, office_id } = parsed.data
+    const data: CreateExpenseData = { description, amount, date, category, officeId: office_id }
     const expense = await expenseModel.create(data)
     res.status(201).json(expense)
   } catch (error) {
@@ -76,7 +93,12 @@ router.post('/', authMiddleware, async (req: Request, res: Response) => {
 // PUT /api/admin/expenses/:id - Обновить расход
 router.put('/:id', authMiddleware, async (req: Request, res: Response) => {
   try {
-    const data: Partial<CreateExpenseData> = req.body
+    const parsed = updateExpenseSchema.safeParse(req.body)
+    if (!parsed.success) {
+      return res.status(400).json({ error: parsed.error.errors.map(e => e.message).join(', ') })
+    }
+    const { description, amount, date, category, office_id } = parsed.data
+    const data: Partial<CreateExpenseData> = { description, amount, date, category, officeId: office_id }
     const expense = await expenseModel.update(parseInt(req.params.id), data)
     res.json(expense)
   } catch (error) {

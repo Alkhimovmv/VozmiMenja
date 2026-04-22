@@ -1,25 +1,24 @@
 import React from 'react';
 import { Locker } from '../../types/admin';
+import type { LockerRow } from '../../api/admin/offices';
+
+const DEFAULT_LOCKER_LAYOUT: LockerRow[] = [
+  { row: 4, count: 6, size: 'small' },
+  { row: 3, count: 3, size: 'medium' },
+  { row: 2, count: 2, size: 'large' },
+  { row: 1, count: 2, size: 'large' },
+];
 
 interface LockerCabinetProps {
   lockers: Locker[];
   onLockerClick?: (locker: Locker) => void;
+  lockerRows?: LockerRow[];
 }
 
-// Структура постомата: 13 ячеек (нумерация слева направо, сверху вниз)
-// Ряд 4 (сверху): 6 маленьких ячеек (1, 2, 3, 4, 5, 6)
-// Ряд 3: 3 средние ячейки (7, 8, 9)
-// Ряд 2: 2 большие ячейки (10, 11)
-// Ряд 1 (снизу): 2 большие ячейки (12, 13)
-
-const LOCKER_LAYOUT = [
-  { row: 4, count: 6, size: 'small' as const },
-  { row: 3, count: 3, size: 'medium' as const },
-  { row: 2, count: 2, size: 'large' as const },
-  { row: 1, count: 2, size: 'large' as const },
-];
-
-const LockerCabinet: React.FC<LockerCabinetProps> = ({ lockers, onLockerClick }) => {
+const LockerCabinet: React.FC<LockerCabinetProps> = ({ lockers, onLockerClick, lockerRows }) => {
+  const LOCKER_LAYOUT = (lockerRows && lockerRows.length > 0 ? lockerRows : DEFAULT_LOCKER_LAYOUT)
+    .slice()
+    .sort((a, b) => b.row - a.row);
   // Создаем карту ячеек по позициям
   const lockerMap = new Map<string, Locker>();
   lockers.forEach(locker => {

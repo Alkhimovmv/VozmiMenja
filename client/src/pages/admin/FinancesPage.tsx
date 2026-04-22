@@ -8,8 +8,10 @@ import { formatDateShort } from '../../utils/dateUtils';
 import ExpenseModal from '../../components/admin/ExpenseModal';
 import CustomSelect from '../../components/admin/CustomSelect';
 import ConfirmDialog from '../../components/admin/ConfirmDialog';
+import { useOffice } from '../../hooks/useOffice';
 
 const FinancesPage: React.FC = () => {
+  const { currentOfficeId } = useOffice();
   const [selectedMonth, setSelectedMonth] = useState<string>('');
   const [isExpenseModalOpen, setIsExpenseModalOpen] = useState(false);
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
@@ -54,8 +56,8 @@ const FinancesPage: React.FC = () => {
   );
 
   const { data: expenses = [] } = useAuthenticatedQuery<Expense[]>(
-    ['expenses'],
-    expensesApi.getAll
+    ['expenses', currentOfficeId],
+    () => expensesApi.getAll(currentOfficeId)
   );
 
   const createExpenseMutation = useMutation({
@@ -87,7 +89,7 @@ const FinancesPage: React.FC = () => {
   });
 
   const handleCreateExpense = (data: CreateExpenseDto) => {
-    createExpenseMutation.mutate(data);
+    createExpenseMutation.mutate({ ...data, office_id: currentOfficeId } as any);
   };
 
   const handleUpdateExpense = (data: Partial<CreateExpenseDto>) => {
@@ -166,7 +168,7 @@ const FinancesPage: React.FC = () => {
   })();
 
   return (
-    <div className="space-y-4 sm:space-y-6">
+    <div className="space-y-4 sm:space-y-6 overflow-y-auto flex-1 px-4 sm:px-6 py-4 sm:py-8">
       <div className="flex flex-col space-y-4">
         <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Финансовые итоги</h1>
         <div className="flex flex-col sm:flex-row sm:items-center space-y-3 sm:space-y-0 sm:space-x-4">

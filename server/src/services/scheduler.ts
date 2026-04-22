@@ -1,33 +1,38 @@
 import * as cron from 'node-cron'
 import { rentalModel } from '../models/Rental'
 import { telegramService } from './telegram'
+import { emailBackupService } from './emailBackup'
 
 class SchedulerService {
   private dailyReminderTask: cron.ScheduledTask | null = null
+  private weeklyBackupTask: cron.ScheduledTask | null = null
 
   /**
    * Инициализация планировщика задач
    */
   init() {
-    // Запуск ежедневного уведомления в 23:45
+    // Ежедневное уведомление в 23:45
     this.dailyReminderTask = cron.schedule('45 23 * * *', async () => {
       console.log('⏰ Запуск ежедневного уведомления о предстоящих арендах')
       await this.sendDailyRentalsReminder()
-    }, {
-      timezone: 'Europe/Moscow' // Устанавливаем часовой пояс
-    })
+    }, { timezone: 'Europe/Moscow' })
 
-    console.log('✅ Планировщик задач инициализирован (уведомления в 23:45 МСК)')
+    // Еженедельный email бэкап — каждое воскресенье в 10:00
+    this.weeklyBackupTask = cron.schedule('0 10 * * 0', async () => {
+      console.log('⏰ Запуск еженедельного email бэкапа БД')
+      await emailBackupService.sendDatabaseBackup()
+    }, { timezone: 'Europe/Moscow' })
+
+    console.log('✅ Планировщик задач инициализирован (уведомления 23:45, бэкап по воскресеньям 10:00 МСК)')
   }
 
   /**
    * Остановка планировщика
    */
   stop() {
-    if (this.dailyReminderTask) {
-      this.dailyReminderTask.stop()
-      console.log('⏹️  Планировщик задач остановлен')
-    }
+    this.dailyReminderTask?.stop()
+    this.weeklyBackupTask?.stop()
+    console.log('⏹️  Планировщик задач остановлен')
   }
 
   /**

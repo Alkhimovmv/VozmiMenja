@@ -30,7 +30,7 @@ const CustomersPage: React.FC = () => {
   }
 
   return (
-    <div className="space-y-4 sm:space-y-6">
+    <div className="space-y-4 sm:space-y-6 overflow-y-auto flex-1 px-4 sm:px-6 py-4 sm:py-8">
       <div className="flex flex-col space-y-4">
         <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Список арендаторов</h1>
         <div className="flex flex-col sm:flex-row sm:items-center space-y-3 sm:space-y-0 sm:space-x-4">

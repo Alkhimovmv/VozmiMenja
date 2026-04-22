@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express'
 
-const ADMIN_PASSWORD = '20031997'
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || '20031997'
 
 // Middleware для проверки авторизации
 export function authMiddleware(req: Request, res: Response, next: NextFunction) {
@@ -15,7 +15,6 @@ export function authMiddleware(req: Request, res: Response, next: NextFunction) 
 
   const token = authHeader.substring(7)
 
-  // Простая проверка токена (в реальном приложении использовать JWT)
   if (token !== ADMIN_PASSWORD) {
     return res.status(401).json({
       success: false,

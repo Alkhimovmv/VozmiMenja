@@ -1,46 +1,59 @@
 import { Router, Request, Response } from 'express'
+import { z } from 'zod'
 import { rentalModel, CreateRentalData, RentalStatus } from '../models/Rental'
 import { authMiddleware } from '../middleware/auth'
+import { rentalToSnakeCase as toSnakeCase } from '../utils/transformers'
 
 const router = Router()
 
-// Функция для трансформации camelCase -> snake_case для фронтенда
-function toSnakeCase(rental: any) {
-  return {
-    id: rental.id,
-    equipment_id: rental.equipmentId,
-    instance_number: rental.instanceNumber, // Для диаграммы Ганта
-    start_date: rental.startDate,
-    end_date: rental.endDate,
-    customer_name: rental.customerName,
-    customer_phone: rental.customerPhone,
-    needs_delivery: rental.needsDelivery,
-    delivery_address: rental.deliveryAddress,
-    rental_price: rental.rentalPrice,
-    delivery_price: rental.deliveryPrice,
-    delivery_costs: rental.deliveryCosts,
-    source: rental.source,
-    comment: rental.comment,
-    status: rental.status,
-    created_at: rental.createdAt,
-    updated_at: rental.updatedAt,
-    equipment_name: rental.equipmentName,
-    equipment_list: rental.equipmentList?.map((item: any) => ({
-      id: item.id,
-      name: item.name,
-      instance_number: item.instanceNumber
-    }))
-  }
-}
+const equipmentInstanceSchema = z.object({
+  equipment_id: z.number().int().positive(),
+  instance_number: z.number().int().positive()
+})
+
+const createRentalSchema = z.object({
+  equipment_id: z.number().int().positive({ message: 'equipment_id обязателен' }),
+  equipment_instances: z.array(equipmentInstanceSchema).optional(),
+  start_date: z.string().min(1, 'start_date обязателен'),
+  end_date: z.string().min(1, 'end_date обязателен'),
+  customer_name: z.string().min(1, 'customer_name обязателен').max(200),
+  customer_phone: z.string().min(1, 'customer_phone обязателен').max(50),
+  needs_delivery: z.boolean().optional().default(false),
+  delivery_address: z.string().max(500).optional(),
+  rental_price: z.number().min(0).optional().nullable(),
+  delivery_price: z.number().min(0).optional().nullable(),
+  delivery_costs: z.number().min(0).optional().nullable(),
+  source: z.string().optional().default('авито'),
+  comment: z.string().max(1000).optional(),
+  office_id: z.number().int().positive().optional().default(1)
+})
+
+const updateRentalSchema = z.object({
+  equipment_id: z.number().int().positive().optional(),
+  equipment_instances: z.array(equipmentInstanceSchema).optional(),
+  start_date: z.string().optional(),
+  end_date: z.string().optional(),
+  customer_name: z.string().min(1).max(200).optional(),
+  customer_phone: z.string().min(1).max(50).optional(),
+  needs_delivery: z.boolean().optional(),
+  delivery_address: z.string().max(500).optional().nullable(),
+  rental_price: z.number().min(0).optional().nullable(),
+  delivery_price: z.number().min(0).optional().nullable(),
+  delivery_costs: z.number().min(0).optional().nullable(),
+  source: z.string().optional(),
+  comment: z.string().max(1000).optional().nullable(),
+  status: z.enum(['pending', 'active', 'completed', 'overdue']).optional()
+})
 
 // GET /api/rentals - Получить все аренды
 router.get('/', async (req: Request, res: Response) => {
   try {
-    const { status, equipmentId } = req.query
+    const { status, equipmentId, officeId } = req.query
 
     const rentals = await rentalModel.findAll({
       status: status as RentalStatus | undefined,
-      equipmentId: equipmentId ? parseInt(equipmentId as string) : undefined
+      equipmentId: equipmentId ? parseInt(equipmentId as string) : undefined,
+      officeId: officeId ? parseInt(officeId as string) : undefined
     })
 
     // Автоматический расчет статуса
@@ -59,7 +72,8 @@ router.get('/', async (req: Request, res: Response) => {
 // GET /api/rentals/gantt - Получить данные для диаграммы Ганта
 router.get('/gantt', async (req: Request, res: Response) => {
   try {
-    const rentals = await rentalModel.findAll()
+    const officeId = req.query.officeId ? parseInt(req.query.officeId as string) : undefined
+    const rentals = await rentalModel.findAll({ officeId })
 
     // Для диаграммы Ганта разворачиваем каждую аренду в отдельные записи
     // для каждого экземпляра оборудования из equipment_list
@@ -140,25 +154,29 @@ router.get('/:id', async (req: Request, res: Response) => {
 // POST /api/admin/rentals - Создать аренду
 router.post('/', authMiddleware, async (req: Request, res: Response) => {
   try {
-    // Трансформируем snake_case в camelCase для модели
+    const parsed = createRentalSchema.safeParse(req.body)
+    if (!parsed.success) {
+      return res.status(400).json({ error: parsed.error.errors.map(e => e.message).join(', ') })
+    }
+    const body = parsed.data
     const data: CreateRentalData = {
-      equipmentId: req.body.equipment_id || req.body.equipmentId,
-      equipmentIds: req.body.equipment_ids || req.body.equipmentIds,
-      equipmentInstances: req.body.equipment_instances?.map((inst: any) => ({
+      equipmentId: body.equipment_id,
+      equipmentInstances: body.equipment_instances?.map(inst => ({
         equipmentId: inst.equipment_id,
         instanceNumber: inst.instance_number
-      })) || req.body.equipmentInstances,
-      startDate: req.body.start_date || req.body.startDate,
-      endDate: req.body.end_date || req.body.endDate,
-      customerName: req.body.customer_name || req.body.customerName,
-      customerPhone: req.body.customer_phone || req.body.customerPhone,
-      needsDelivery: req.body.needs_delivery !== undefined ? req.body.needs_delivery : req.body.needsDelivery,
-      deliveryAddress: req.body.delivery_address || req.body.deliveryAddress,
-      rentalPrice: req.body.rental_price || req.body.rentalPrice,
-      deliveryPrice: req.body.delivery_price || req.body.deliveryPrice,
-      deliveryCosts: req.body.delivery_costs || req.body.deliveryCosts,
-      source: req.body.source,
-      comment: req.body.comment
+      })),
+      startDate: body.start_date,
+      endDate: body.end_date,
+      customerName: body.customer_name,
+      customerPhone: body.customer_phone,
+      needsDelivery: body.needs_delivery ?? false,
+      deliveryAddress: body.delivery_address,
+      rentalPrice: body.rental_price ?? undefined,
+      deliveryPrice: body.delivery_price ?? undefined,
+      deliveryCosts: body.delivery_costs ?? undefined,
+      source: body.source as any,
+      comment: body.comment,
+      officeId: body.office_id
     }
     const rental = await rentalModel.create(data)
     res.status(201).json(toSnakeCase(rental))
@@ -176,57 +194,32 @@ router.post('/', authMiddleware, async (req: Request, res: Response) => {
 // PUT /api/admin/rentals/:id - Обновить аренду
 router.put('/:id', authMiddleware, async (req: Request, res: Response) => {
   try {
-    // Трансформируем snake_case в camelCase для модели
+    const parsed = updateRentalSchema.safeParse(req.body)
+    if (!parsed.success) {
+      return res.status(400).json({ error: parsed.error.errors.map(e => e.message).join(', ') })
+    }
+    const body = parsed.data
     const data: Partial<CreateRentalData & { status: RentalStatus }> = {}
 
-    if (req.body.equipment_id !== undefined || req.body.equipmentId !== undefined) {
-      data.equipmentId = req.body.equipment_id || req.body.equipmentId
-    }
-    if (req.body.equipment_ids !== undefined || req.body.equipmentIds !== undefined) {
-      data.equipmentIds = req.body.equipment_ids || req.body.equipmentIds
-    }
-    if (req.body.equipment_instances !== undefined || req.body.equipmentInstances !== undefined) {
-      data.equipmentInstances = req.body.equipment_instances?.map((inst: any) => ({
+    if (body.equipment_id !== undefined) data.equipmentId = body.equipment_id
+    if (body.equipment_instances !== undefined) {
+      data.equipmentInstances = body.equipment_instances.map(inst => ({
         equipmentId: inst.equipment_id,
         instanceNumber: inst.instance_number
-      })) || req.body.equipmentInstances
+      }))
     }
-    if (req.body.start_date !== undefined || req.body.startDate !== undefined) {
-      data.startDate = req.body.start_date || req.body.startDate
-    }
-    if (req.body.end_date !== undefined || req.body.endDate !== undefined) {
-      data.endDate = req.body.end_date || req.body.endDate
-    }
-    if (req.body.customer_name !== undefined || req.body.customerName !== undefined) {
-      data.customerName = req.body.customer_name || req.body.customerName
-    }
-    if (req.body.customer_phone !== undefined || req.body.customerPhone !== undefined) {
-      data.customerPhone = req.body.customer_phone || req.body.customerPhone
-    }
-    if (req.body.needs_delivery !== undefined || req.body.needsDelivery !== undefined) {
-      data.needsDelivery = req.body.needs_delivery !== undefined ? req.body.needs_delivery : req.body.needsDelivery
-    }
-    if (req.body.delivery_address !== undefined || req.body.deliveryAddress !== undefined) {
-      data.deliveryAddress = req.body.delivery_address || req.body.deliveryAddress
-    }
-    if (req.body.rental_price !== undefined || req.body.rentalPrice !== undefined) {
-      data.rentalPrice = req.body.rental_price || req.body.rentalPrice
-    }
-    if (req.body.delivery_price !== undefined || req.body.deliveryPrice !== undefined) {
-      data.deliveryPrice = req.body.delivery_price || req.body.deliveryPrice
-    }
-    if (req.body.delivery_costs !== undefined || req.body.deliveryCosts !== undefined) {
-      data.deliveryCosts = req.body.delivery_costs || req.body.deliveryCosts
-    }
-    if (req.body.source !== undefined) {
-      data.source = req.body.source
-    }
-    if (req.body.comment !== undefined) {
-      data.comment = req.body.comment
-    }
-    if (req.body.status !== undefined) {
-      data.status = req.body.status
-    }
+    if (body.start_date !== undefined) data.startDate = body.start_date
+    if (body.end_date !== undefined) data.endDate = body.end_date
+    if (body.customer_name !== undefined) data.customerName = body.customer_name
+    if (body.customer_phone !== undefined) data.customerPhone = body.customer_phone
+    if (body.needs_delivery !== undefined) data.needsDelivery = body.needs_delivery
+    if (body.delivery_address !== undefined) data.deliveryAddress = body.delivery_address ?? undefined
+    if (body.rental_price !== undefined) data.rentalPrice = body.rental_price ?? undefined
+    if (body.delivery_price !== undefined) data.deliveryPrice = body.delivery_price ?? undefined
+    if (body.delivery_costs !== undefined) data.deliveryCosts = body.delivery_costs ?? undefined
+    if (body.source !== undefined) data.source = body.source as any
+    if (body.comment !== undefined) data.comment = body.comment ?? undefined
+    if (body.status !== undefined) data.status = body.status
 
     const rental = await rentalModel.update(parseInt(req.params.id), data)
     res.json(toSnakeCase(rental))

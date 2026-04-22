@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { type Rental, type CreateRentalDto, type Equipment, type RentalSource, type EquipmentInstance } from '../../types/index';
-import CustomSelect from './CustomSelect';
+import { type Rental, type CreateRentalDto, type Equipment, type EquipmentInstance } from '../../types/index';
 import { rentalsApi, type Customer } from '../../api/admin/rentals';
 
 interface RentalModalProps {
@@ -12,6 +11,12 @@ interface RentalModalProps {
   equipment: Equipment[];
   isLoading?: boolean;
   errorMessage?: string | null;
+}
+
+// Обнуляет минуты: "2024-04-20T14:35" -> "2024-04-20T14:00"
+function stripMinutes(dt: string): string {
+  if (!dt) return '';
+  return dt.slice(0, 13) + ':00';
 }
 
 const RentalModal: React.FC<RentalModalProps> = ({
@@ -39,8 +44,6 @@ const RentalModal: React.FC<RentalModalProps> = ({
     comment: '',
   });
 
-  // Дополнительное состояние для отслеживания выбранных экземпляров
-  // Формат: Set<"equipmentId:instanceNumber">
   const [selectedInstances, setSelectedInstances] = useState<Set<string>>(new Set());
 
   const [validationErrors, setValidationErrors] = useState<{
@@ -52,20 +55,14 @@ const RentalModal: React.FC<RentalModalProps> = ({
     end_date?: string | null;
   }>({});
 
-  // Ошибка конфликта бронирования (синхронизируется с errorMessage из пропсов)
   const [bookingConflictError, setBookingConflictError] = useState<string | null>(null);
 
-  // Синхронизация ошибки из пропсов с локальным состоянием
   useEffect(() => {
-    if (errorMessage) {
-      setBookingConflictError(errorMessage);
-    }
+    if (errorMessage) setBookingConflictError(errorMessage);
   }, [errorMessage]);
 
-  // Храним ID редактируемой аренды для отслеживания изменений
   const [initialRentalId, setInitialRentalId] = useState<number | null>(null);
 
-  // Состояние для автокомплита клиентов
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [showCustomerSuggestions, setShowCustomerSuggestions] = useState(false);
   const [filteredCustomers, setFilteredCustomers] = useState<Customer[]>([]);
@@ -74,14 +71,12 @@ const RentalModal: React.FC<RentalModalProps> = ({
   const phoneInputRef = useRef<HTMLInputElement>(null);
   const suggestionsRef = useRef<HTMLDivElement>(null);
 
-  // Загрузка списка клиентов при открытии модального окна
   useEffect(() => {
     if (isOpen) {
       rentalsApi.getCustomers().then(setCustomers).catch(console.error);
     }
   }, [isOpen]);
 
-  // Обработка клика вне выпадающего списка
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
@@ -93,18 +88,15 @@ const RentalModal: React.FC<RentalModalProps> = ({
         setShowCustomerSuggestions(false);
       }
     };
-
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
   useEffect(() => {
     if (isOpen) {
-      // Проверяем, это новое открытие модального окна или просто обновление данных
       const isNewOpen = rental?.id !== initialRentalId;
 
       if (rental) {
-        // Если есть equipment_list, используем его для множественного выбора
         const equipmentIds = rental.equipment_list
           ? rental.equipment_list.map((eq: { id: number; name: string; instance_number: number }) => eq.id)
           : [rental.equipment_id];
@@ -112,8 +104,8 @@ const RentalModal: React.FC<RentalModalProps> = ({
         setFormData({
           equipment_id: rental.equipment_id,
           equipment_ids: equipmentIds,
-          start_date: rental.start_date.slice(0, 16),
-          end_date: rental.end_date.slice(0, 16),
+          start_date: stripMinutes(rental.start_date.slice(0, 16)),
+          end_date: stripMinutes(rental.end_date.slice(0, 16)),
           customer_name: rental.customer_name,
           customer_phone: rental.customer_phone,
           needs_delivery: rental.needs_delivery,
@@ -125,10 +117,7 @@ const RentalModal: React.FC<RentalModalProps> = ({
           comment: rental.comment || '',
         });
 
-        // Восстанавливаем selectedInstances при каждом открытии существующей аренды
-        if (isNewOpen) {
-          setInitialRentalId(rental.id);
-        }
+        if (isNewOpen) setInitialRentalId(rental.id);
 
         if (rental.equipment_list) {
           const instances = new Set<string>();
@@ -140,7 +129,6 @@ const RentalModal: React.FC<RentalModalProps> = ({
           setSelectedInstances(new Set());
         }
       } else {
-        // Новая аренда
         setInitialRentalId(null);
         setFormData({
           equipment_id: 0,
@@ -159,79 +147,69 @@ const RentalModal: React.FC<RentalModalProps> = ({
         });
         setSelectedInstances(new Set());
       }
-      // Очищаем ошибки валидации при открытии
       if (isNewOpen || !rental) {
         setValidationErrors({});
         setBookingConflictError(null);
       }
     } else {
-      // При закрытии модального окна сбрасываем ID
       setInitialRentalId(null);
     }
   }, [rental, isOpen]);
 
   const validatePhone = (phone: string): string | null => {
     const cleanPhone = phone.replace(/\D/g, '');
-    if (cleanPhone.length < 11) {
-      return 'Номер телефона должен содержать 11 цифр';
-    }
+    if (cleanPhone.length < 11) return 'Номер телефона должен содержать 11 цифр';
     return null;
   };
 
   const validateDates = (startDate: string, endDate: string): string | null => {
     if (!startDate || !endDate) return null;
-
-    const start = new Date(startDate);
-    const end = new Date(endDate);
-
-    if (end <= start) {
-      return 'Дата окончания должна быть позже даты начала';
-    }
+    if (new Date(endDate) <= new Date(startDate)) return 'Дата окончания должна быть позже даты начала';
     return null;
   };
 
-  // Helper-функция для синхронизации equipment_instances из selectedInstances
+  const handleDateChange = (field: 'start_date' | 'end_date', value: string) => {
+    const stripped = stripMinutes(value);
+    setFormData(prev => {
+      const updated = { ...prev, [field]: stripped };
+      const dateError = validateDates(
+        field === 'start_date' ? stripped : prev.start_date,
+        field === 'end_date' ? stripped : prev.end_date
+      );
+      setValidationErrors(e => ({ ...e, [field]: stripped ? null : e[field], dates: dateError }));
+      return updated;
+    });
+  };
+
   const syncEquipmentInstances = () => {
     const equipmentMap = new Map<number, number[]>();
-
     selectedInstances.forEach(inst => {
       const [idStr, instanceStr] = inst.split(':');
       const id = Number(idStr);
       const instanceNum = Number(instanceStr);
-
-      if (!equipmentMap.has(id)) {
-        equipmentMap.set(id, []);
-      }
+      if (!equipmentMap.has(id)) equipmentMap.set(id, []);
       equipmentMap.get(id)!.push(instanceNum);
     });
-
     const equipmentIdsArray: number[] = [];
     const equipmentInstancesArray: EquipmentInstance[] = [];
-
     equipmentMap.forEach((instances, id) => {
       instances.sort((a, b) => a - b);
-      instances.forEach((instanceNum) => {
+      instances.forEach(instanceNum => {
         equipmentIdsArray.push(id);
-        equipmentInstancesArray.push({
-          equipment_id: id,
-          instance_number: instanceNum
-        });
+        equipmentInstancesArray.push({ equipment_id: id, instance_number: instanceNum });
       });
     });
-
     return { equipmentIdsArray, equipmentInstancesArray };
   };
 
-  // Обёртка для setFormData, которая автоматически синхронизирует equipment_instances
   const updateFormData = (updates: Partial<CreateRentalDto>) => {
     const { equipmentIdsArray, equipmentInstancesArray } = syncEquipmentInstances();
-
-    setFormData({
-      ...formData,
+    setFormData(prev => ({
+      ...prev,
       ...updates,
       equipment_ids: equipmentIdsArray,
       equipment_instances: equipmentInstancesArray
-    });
+    }));
   };
 
   const filterCustomers = (searchName: string, searchPhone: string) => {
@@ -240,26 +218,17 @@ const RentalModal: React.FC<RentalModalProps> = ({
       setShowCustomerSuggestions(false);
       return;
     }
-
     const filtered = customers.filter(customer => {
-      const nameMatch = searchName
-        ? customer.customerName.toLowerCase().includes(searchName.toLowerCase())
-        : true;
-      const phoneMatch = searchPhone
-        ? customer.customerPhone.includes(searchPhone)
-        : true;
+      const nameMatch = searchName ? customer.customerName.toLowerCase().includes(searchName.toLowerCase()) : true;
+      const phoneMatch = searchPhone ? customer.customerPhone.includes(searchPhone) : true;
       return nameMatch && phoneMatch;
     });
-
     setFilteredCustomers(filtered);
     setShowCustomerSuggestions(filtered.length > 0);
   };
 
   const handleCustomerSelect = (customer: Customer) => {
-    updateFormData({
-      customer_name: customer.customerName,
-      customer_phone: customer.customerPhone
-    });
+    updateFormData({ customer_name: customer.customerName, customer_phone: customer.customerPhone });
     setShowCustomerSuggestions(false);
     setValidationErrors(prev => ({ ...prev, customer_name: null, phone: null }));
   };
@@ -267,103 +236,51 @@ const RentalModal: React.FC<RentalModalProps> = ({
   const handleNameChange = (value: string) => {
     updateFormData({ customer_name: value });
     filterCustomers(value, formData.customer_phone);
-
-    if (value.trim()) {
-      setValidationErrors(prev => ({ ...prev, customer_name: null }));
-    }
+    if (value.trim()) setValidationErrors(prev => ({ ...prev, customer_name: null }));
   };
 
   const handlePhoneChange = (value: string) => {
-    // Разрешаем только цифры и ограничиваем до 11 символов
     const cleanValue = value.replace(/\D/g, '').slice(0, 11);
     updateFormData({ customer_phone: cleanValue });
     filterCustomers(formData.customer_name, cleanValue);
-
-    // Валидация телефона
     const phoneError = validatePhone(cleanValue);
     setValidationErrors(prev => ({ ...prev, phone: phoneError }));
-  };
-
-  const handleDateChange = (field: 'start_date' | 'end_date', value: string) => {
-    updateFormData({ [field]: value });
-
-    // Валидация дат
-    const start = field === 'start_date' ? value : formData.start_date;
-    const end = field === 'end_date' ? value : formData.end_date;
-    const dateError = validateDates(start, end);
-    setValidationErrors(prev => ({ ...prev, dates: dateError }));
   };
 
   const isFormValid = () => {
     const phoneError = validatePhone(formData.customer_phone);
     const dateError = validateDates(formData.start_date, formData.end_date);
-
-    // Проверяем все обязательные поля
     const isEquipmentSelected = (formData.equipment_ids && formData.equipment_ids.length > 0) || formData.equipment_id > 0;
-    const hasStartDate = formData.start_date.trim() !== '';
-    const hasEndDate = formData.end_date.trim() !== '';
-    const hasCustomerName = formData.customer_name.trim() !== '';
-    const hasValidPhone = !phoneError && formData.customer_phone.length === 11;
-
-    return isEquipmentSelected && hasStartDate && hasEndDate && hasCustomerName && hasValidPhone && !dateError;
+    return isEquipmentSelected &&
+      formData.start_date.trim() !== '' &&
+      formData.end_date.trim() !== '' &&
+      formData.customer_name.trim() !== '' &&
+      !phoneError && formData.customer_phone.length === 11 &&
+      !dateError;
   };
 
   const validateAllFields = () => {
     const errors: typeof validationErrors = {};
-
-    // Валидация оборудования
     if ((!formData.equipment_ids || formData.equipment_ids.length === 0) && !formData.equipment_id) {
       errors.equipment = 'Необходимо выбрать хотя бы одно оборудование';
     }
-
-    // Валидация дат
-    if (!formData.start_date.trim()) {
-      errors.start_date = 'Необходимо указать дату начала';
-    }
-    if (!formData.end_date.trim()) {
-      errors.end_date = 'Необходимо указать дату окончания';
-    }
-
-    // Валидация ФИО
-    if (!formData.customer_name.trim()) {
-      errors.customer_name = 'Необходимо указать ФИО арендатора';
-    }
-
-    // Валидация телефона
+    if (!formData.start_date.trim()) errors.start_date = 'Необходимо указать дату начала';
+    if (!formData.end_date.trim()) errors.end_date = 'Необходимо указать дату окончания';
+    if (!formData.customer_name.trim()) errors.customer_name = 'Необходимо указать ФИО арендатора';
     const phoneError = validatePhone(formData.customer_phone);
-    if (phoneError) {
-      errors.phone = phoneError;
-    }
-
-    // Валидация дат (соотношение)
+    if (phoneError) errors.phone = phoneError;
     const dateError = validateDates(formData.start_date, formData.end_date);
-    if (dateError) {
-      errors.dates = dateError;
-    }
-
+    if (dateError) errors.dates = dateError;
     setValidationErrors(errors);
     return Object.keys(errors).length === 0;
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-
-    if (!validateAllFields()) {
-      return;
-    }
-
-    // Очищаем предыдущие ошибки конфликта
+    if (!validateAllFields()) return;
     setBookingConflictError(null);
-
     onSubmit(formData);
   };
-
-  const sources: { value: RentalSource; label: string }[] = [
-    { value: 'авито', label: 'Авито' },
-    { value: 'сайт', label: 'Сайт' },
-    { value: 'рекомендация', label: 'Рекомендация' },
-    { value: 'карты', label: 'Карты' }
-  ];
 
   if (!isOpen) return null;
 
@@ -377,360 +294,274 @@ const RentalModal: React.FC<RentalModalProps> = ({
 
           <form onSubmit={handleSubmit} className="flex-1 flex flex-col">
             <div className="flex-1 space-y-0">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-              <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Оборудование (можно выбрать несколько)
-                </label>
-                <div className="space-y-2 max-h-48 overflow-y-auto border border-gray-300 rounded-md p-3">
-                  {equipment.flatMap((item) =>
-                    Array.from({ length: item.quantity }, (_, index) => {
-                      const instanceNumber = index + 1;
-                      const instanceKey = `${item.id}-${instanceNumber}`;
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
 
-                      // Уникальный ключ для этого экземпляра
-                      const instanceId = `${item.id}:${instanceNumber}`;
-                      const isThisInstanceSelected = selectedInstances.has(instanceId);
+                {/* Оборудование */}
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Оборудование (можно выбрать несколько)
+                  </label>
+                  <div className="space-y-2 max-h-48 overflow-y-auto border border-gray-300 rounded-md p-3">
+                    {equipment.flatMap((item) =>
+                      Array.from({ length: item.quantity }, (_, index) => {
+                        const instanceNumber = index + 1;
+                        const instanceKey = `${item.id}-${instanceNumber}`;
+                        const instanceId = `${item.id}:${instanceNumber}`;
+                        const isThisInstanceSelected = selectedInstances.has(instanceId);
+                        return (
+                          <label key={instanceKey} className="flex items-center space-x-3 hover:bg-gray-50 p-2 rounded cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={isThisInstanceSelected}
+                              onChange={(e) => {
+                                const newSelectedInstances = new Set(selectedInstances);
+                                if (e.target.checked) newSelectedInstances.add(instanceId);
+                                else newSelectedInstances.delete(instanceId);
+                                setSelectedInstances(newSelectedInstances);
 
-                      return (
-                        <label key={instanceKey} className="flex items-center space-x-3 hover:bg-gray-50 p-2 rounded cursor-pointer">
-                          <input
-                            type="checkbox"
-                            checked={isThisInstanceSelected}
-                            onChange={(e) => {
-                              const newSelectedInstances = new Set(selectedInstances);
-
-                              if (e.target.checked) {
-                                // Добавляем этот конкретный экземпляр
-                                newSelectedInstances.add(instanceId);
-                              } else {
-                                // Удаляем этот конкретный экземпляр
-                                newSelectedInstances.delete(instanceId);
-                              }
-
-                              setSelectedInstances(newSelectedInstances);
-
-                              // Преобразуем Set в массив для отправки на сервер
-                              // Создаём два массива: equipment_ids (для обратной совместимости) и equipment_instances (с номерами)
-                              const equipmentMap = new Map<number, number[]>(); // id -> [instanceNumbers]
-
-                              newSelectedInstances.forEach(inst => {
-                                const [idStr, instanceStr] = inst.split(':');
-                                const id = Number(idStr);
-                                const instanceNum = Number(instanceStr);
-
-                                if (!equipmentMap.has(id)) {
-                                  equipmentMap.set(id, []);
-                                }
-                                equipmentMap.get(id)!.push(instanceNum);
-                              });
-
-                              // Создаём массивы ID и инстансов
-                              const equipmentIdsArray: number[] = [];
-                              const equipmentInstancesArray: EquipmentInstance[] = [];
-
-                              equipmentMap.forEach((instances, id) => {
-                                // Сортируем номера экземпляров
-                                instances.sort((a, b) => a - b);
-                                // Добавляем в оба массива
-                                instances.forEach((instanceNum) => {
-                                  equipmentIdsArray.push(id);
-                                  equipmentInstancesArray.push({
-                                    equipment_id: id,
-                                    instance_number: instanceNum
+                                const equipmentMap = new Map<number, number[]>();
+                                newSelectedInstances.forEach(inst => {
+                                  const [idStr, instanceStr] = inst.split(':');
+                                  const id = Number(idStr);
+                                  const instanceNum = Number(instanceStr);
+                                  if (!equipmentMap.has(id)) equipmentMap.set(id, []);
+                                  equipmentMap.get(id)!.push(instanceNum);
+                                });
+                                const equipmentIdsArray: number[] = [];
+                                const equipmentInstancesArray: EquipmentInstance[] = [];
+                                equipmentMap.forEach((instances, id) => {
+                                  instances.sort((a, b) => a - b);
+                                  instances.forEach(instanceNum => {
+                                    equipmentIdsArray.push(id);
+                                    equipmentInstancesArray.push({ equipment_id: id, instance_number: instanceNum });
                                   });
                                 });
-                              });
-
-                              setFormData({
-                                ...formData,
-                                equipment_id: equipmentIdsArray.length > 0 ? equipmentIdsArray[0] : 0,
-                                equipment_ids: equipmentIdsArray,
-                                equipment_instances: equipmentInstancesArray
-                              });
-
-                              // Очищаем ошибку при выборе
-                              if (equipmentIdsArray.length > 0) {
-                                setValidationErrors(prev => ({ ...prev, equipment: null }));
-                              }
-                            }}
-                            className="w-5 h-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
-                          />
-                          <span className="text-sm text-gray-900">
-                            {item.name} {item.quantity > 1 ? `#${instanceNumber}` : ''}
-                          </span>
-                        </label>
-                      );
-                    })
+                                setFormData(prev => ({
+                                  ...prev,
+                                  equipment_id: equipmentIdsArray.length > 0 ? equipmentIdsArray[0] : 0,
+                                  equipment_ids: equipmentIdsArray,
+                                  equipment_instances: equipmentInstancesArray
+                                }));
+                                if (equipmentIdsArray.length > 0) {
+                                  setValidationErrors(prev => ({ ...prev, equipment: null }));
+                                }
+                              }}
+                              className="w-5 h-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                            />
+                            <span className="text-sm text-gray-900">
+                              {item.name} {item.quantity > 1 ? `#${instanceNumber}` : ''}
+                            </span>
+                          </label>
+                        );
+                      })
+                    )}
+                  </div>
+                  {formData.equipment_ids && formData.equipment_ids.length > 0 && (
+                    <div className="text-sm text-gray-600 mt-2">
+                      Выбрано: {formData.equipment_ids.length} единиц оборудования
+                    </div>
+                  )}
+                  {validationErrors.equipment && (
+                    <div className="text-red-600 text-sm mt-1">{validationErrors.equipment}</div>
                   )}
                 </div>
-                {formData.equipment_ids && formData.equipment_ids.length > 0 && (
-                  <div className="text-sm text-gray-600 mt-2">
-                    Выбрано: {formData.equipment_ids.length} единиц оборудования
-                  </div>
-                )}
-                {validationErrors.equipment && (
-                  <div className="text-red-600 text-sm mt-1">
-                    {validationErrors.equipment}
-                  </div>
-                )}
-              </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  Источник
-                </label>
-                <CustomSelect
-                  value={formData.source}
-                  onChange={(value) => updateFormData({ source: value as RentalSource })}
-                  options={sources}
-                  placeholder="Выберите источник"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  Дата начала
-                </label>
-                <input
-                  type="datetime-local"
-                  value={formData.start_date}
-                  onChange={(e) => {
-                    handleDateChange('start_date', e.target.value);
-                    // Очищаем ошибку при вводе
-                    if (e.target.value.trim()) {
-                      setValidationErrors(prev => ({ ...prev, start_date: null }));
-                    }
-                  }}
-                  className={`mt-1 block w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 ${
-                    validationErrors.dates || validationErrors.start_date ? 'border-red-500' : 'border-gray-300'
-                  }`}
-                  max="9999-12-31T23:59"
-                  required
-                />
-                {validationErrors.start_date && (
-                  <div className="text-red-600 text-sm mt-1">
-                    {validationErrors.start_date}
-                  </div>
-                )}
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  Дата окончания
-                </label>
-                <input
-                  type="datetime-local"
-                  value={formData.end_date}
-                  onChange={(e) => {
-                    handleDateChange('end_date', e.target.value);
-                    // Очищаем ошибку при вводе
-                    if (e.target.value.trim()) {
-                      setValidationErrors(prev => ({ ...prev, end_date: null }));
-                    }
-                  }}
-                  className={`mt-1 block w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 ${
-                    validationErrors.dates || validationErrors.end_date ? 'border-red-500' : 'border-gray-300'
-                  }`}
-                  max="9999-12-31T23:59"
-                  required
-                />
-                {validationErrors.end_date && (
-                  <div className="text-red-600 text-sm mt-1">
-                    {validationErrors.end_date}
-                  </div>
-                )}
-                {validationErrors.dates && (
-                  <div className="text-red-600 text-sm mt-1">
-                    {validationErrors.dates}
-                  </div>
-                )}
-              </div>
-
-              <div className="relative">
-                <label className="block text-sm font-medium text-gray-700">
-                  ФИО арендатора
-                </label>
-                <input
-                  ref={nameInputRef}
-                  type="text"
-                  value={formData.customer_name}
-                  onChange={(e) => handleNameChange(e.target.value)}
-                  onFocus={() => {
-                    setActiveField('name');
-                    if (formData.customer_name || formData.customer_phone) {
-                      filterCustomers(formData.customer_name, formData.customer_phone);
-                    }
-                  }}
-                  className={`mt-1 block w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 ${
-                    validationErrors.customer_name ? 'border-red-500' : 'border-gray-300'
-                  }`}
-                  required
-                  autoComplete="off"
-                />
-                {validationErrors.customer_name && (
-                  <div className="text-red-600 text-sm mt-1">
-                    {validationErrors.customer_name}
-                  </div>
-                )}
-                {showCustomerSuggestions && filteredCustomers.length > 0 && activeField === 'name' && (
-                  <div
-                    ref={suggestionsRef}
-                    className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto"
-                  >
-                    {filteredCustomers.map((customer, index) => (
-                      <div
-                        key={index}
-                        onClick={() => handleCustomerSelect(customer)}
-                        className="px-3 py-2 hover:bg-indigo-50 cursor-pointer border-b border-gray-100 last:border-b-0"
-                      >
-                        <div className="font-medium text-gray-900">{customer.customerName}</div>
-                        <div className="text-sm text-gray-600">{customer.customerPhone}</div>
-                        <div className="text-xs text-gray-500">Аренд: {customer.rentalCount}</div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              <div className="relative">
-                <label className="block text-sm font-medium text-gray-700">
-                  Телефон
-                </label>
-                <input
-                  ref={phoneInputRef}
-                  type="tel"
-                  value={formData.customer_phone}
-                  onChange={(e) => handlePhoneChange(e.target.value)}
-                  onFocus={() => {
-                    setActiveField('phone');
-                    if (formData.customer_name || formData.customer_phone) {
-                      filterCustomers(formData.customer_name, formData.customer_phone);
-                    }
-                  }}
-                  className={`mt-1 block w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 ${
-                    validationErrors.phone ? 'border-red-500' : 'border-gray-300'
-                  }`}
-                  placeholder="11 цифр"
-                  required
-                  autoComplete="off"
-                />
-                {validationErrors.phone && (
-                  <div className="text-red-600 text-sm mt-1">
-                    {validationErrors.phone}
-                  </div>
-                )}
-                {showCustomerSuggestions && filteredCustomers.length > 0 && activeField === 'phone' && (
-                  <div
-                    ref={suggestionsRef}
-                    className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto"
-                  >
-                    {filteredCustomers.map((customer, index) => (
-                      <div
-                        key={index}
-                        onClick={() => handleCustomerSelect(customer)}
-                        className="px-3 py-2 hover:bg-indigo-50 cursor-pointer border-b border-gray-100 last:border-b-0"
-                      >
-                        <div className="font-medium text-gray-900">{customer.customerName}</div>
-                        <div className="text-sm text-gray-600">{customer.customerPhone}</div>
-                        <div className="text-xs text-gray-500">Аренд: {customer.rentalCount}</div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  Цена аренды (₽)
-                </label>
-                <input
-                  type="number"
-                  value={formData.rental_price ?? ''}
-                  onChange={(e) => updateFormData({ rental_price: e.target.value === '' ? null : Number(e.target.value) })}
-                  className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                  placeholder="Не указана"
-                  min="0"
-                  step="10"
-                />
-              </div>
-
-              <div className="flex items-center">
-                <label className="flex items-center space-x-3">
-                  <input
-                    type="checkbox"
-                    checked={formData.needs_delivery}
-                    onChange={(e) => updateFormData({ needs_delivery: e.target.checked })}
-                    className="w-5 h-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
-                  />
-                  <span className="text-sm font-medium text-gray-700">Нужна доставка</span>
-                </label>
-              </div>
-            </div>
-
-            {!!formData.needs_delivery && (
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {/* Дата начала */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">
-                    Адрес доставки
-                  </label>
-                  <textarea
-                    value={formData.delivery_address}
-                    onChange={(e) => updateFormData({ delivery_address: e.target.value })}
-                    className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                    rows={2}
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Дата начала</label>
+                  <input
+                    type="datetime-local"
+                    value={formData.start_date}
+                    onChange={e => handleDateChange('start_date', e.target.value)}
+                    step="3600"
+                    className={`w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 ${
+                      validationErrors.start_date || validationErrors.dates ? 'border-red-500' : 'border-gray-300'
+                    }`}
+                    required
                   />
+                  {validationErrors.start_date && (
+                    <div className="text-red-600 text-sm mt-1">{validationErrors.start_date}</div>
+                  )}
                 </div>
 
+                {/* Дата окончания */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">
-                    Цена доставки (₽)
-                  </label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Дата окончания</label>
+                  <input
+                    type="datetime-local"
+                    value={formData.end_date}
+                    onChange={e => handleDateChange('end_date', e.target.value)}
+                    step="3600"
+                    className={`w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 ${
+                      validationErrors.end_date || validationErrors.dates ? 'border-red-500' : 'border-gray-300'
+                    }`}
+                    required
+                  />
+                  {validationErrors.end_date && (
+                    <div className="text-red-600 text-sm mt-1">{validationErrors.end_date}</div>
+                  )}
+                  {validationErrors.dates && (
+                    <div className="text-red-600 text-sm mt-1">{validationErrors.dates}</div>
+                  )}
+                </div>
+
+                {/* ФИО */}
+                <div className="relative">
+                  <label className="block text-sm font-medium text-gray-700">ФИО арендатора</label>
+                  <input
+                    ref={nameInputRef}
+                    type="text"
+                    value={formData.customer_name}
+                    onChange={(e) => handleNameChange(e.target.value)}
+                    onFocus={() => {
+                      setActiveField('name');
+                      if (formData.customer_name || formData.customer_phone) {
+                        filterCustomers(formData.customer_name, formData.customer_phone);
+                      }
+                    }}
+                    className={`mt-1 block w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 ${
+                      validationErrors.customer_name ? 'border-red-500' : 'border-gray-300'
+                    }`}
+                    required
+                    autoComplete="off"
+                  />
+                  {validationErrors.customer_name && (
+                    <div className="text-red-600 text-sm mt-1">{validationErrors.customer_name}</div>
+                  )}
+                  {showCustomerSuggestions && filteredCustomers.length > 0 && activeField === 'name' && (
+                    <div ref={suggestionsRef} className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto">
+                      {filteredCustomers.map((customer, index) => (
+                        <div key={index} onClick={() => handleCustomerSelect(customer)} className="px-3 py-2 hover:bg-indigo-50 cursor-pointer border-b border-gray-100 last:border-b-0">
+                          <div className="font-medium text-gray-900">{customer.customerName}</div>
+                          <div className="text-sm text-gray-600">{customer.customerPhone}</div>
+                          <div className="text-xs text-gray-500">Аренд: {customer.rentalCount}</div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Телефон */}
+                <div className="relative">
+                  <label className="block text-sm font-medium text-gray-700">Телефон</label>
+                  <input
+                    ref={phoneInputRef}
+                    type="tel"
+                    value={formData.customer_phone}
+                    onChange={(e) => handlePhoneChange(e.target.value)}
+                    onFocus={() => {
+                      setActiveField('phone');
+                      if (formData.customer_name || formData.customer_phone) {
+                        filterCustomers(formData.customer_name, formData.customer_phone);
+                      }
+                    }}
+                    className={`mt-1 block w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 ${
+                      validationErrors.phone ? 'border-red-500' : 'border-gray-300'
+                    }`}
+                    placeholder="11 цифр"
+                    required
+                    autoComplete="off"
+                  />
+                  {validationErrors.phone && (
+                    <div className="text-red-600 text-sm mt-1">{validationErrors.phone}</div>
+                  )}
+                  {showCustomerSuggestions && filteredCustomers.length > 0 && activeField === 'phone' && (
+                    <div ref={suggestionsRef} className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto">
+                      {filteredCustomers.map((customer, index) => (
+                        <div key={index} onClick={() => handleCustomerSelect(customer)} className="px-3 py-2 hover:bg-indigo-50 cursor-pointer border-b border-gray-100 last:border-b-0">
+                          <div className="font-medium text-gray-900">{customer.customerName}</div>
+                          <div className="text-sm text-gray-600">{customer.customerPhone}</div>
+                          <div className="text-xs text-gray-500">Аренд: {customer.rentalCount}</div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Цена аренды */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Цена аренды (₽)</label>
                   <input
                     type="number"
-                    value={formData.delivery_price ?? ''}
-                    onChange={(e) => updateFormData({ delivery_price: e.target.value === '' ? null : Number(e.target.value) })}
+                    value={formData.rental_price ?? ''}
+                    onChange={(e) => updateFormData({ rental_price: e.target.value === '' ? null : Number(e.target.value) })}
                     className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
                     placeholder="Не указана"
                     min="0"
                     step="10"
                   />
-                  <p className="mt-1 text-xs text-gray-500">Сколько тебе перевели</p>
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">
-                    Расходы на доставку (₽)
-                  </label>
-                  <input
-                    type="number"
-                    value={formData.delivery_costs ?? ''}
-                    onChange={(e) => updateFormData({ delivery_costs: e.target.value === '' ? null : Number(e.target.value) })}
-                    className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                    placeholder="Не указаны"
-                    min="0"
-                    step="10"
-                  />
-                  <p className="mt-1 text-xs text-gray-500">Цена Яндекса</p>
+                {/* Доставка + адрес */}
+                <div className="flex flex-col gap-2">
+                  <div className="flex items-center">
+                    <label className="flex items-center space-x-3">
+                      <input
+                        type="checkbox"
+                        checked={formData.needs_delivery}
+                        onChange={(e) => updateFormData({ needs_delivery: e.target.checked })}
+                        className="w-5 h-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                      />
+                      <span className="text-sm font-medium text-gray-700">Нужна доставка</span>
+                    </label>
+                  </div>
+                  {!!formData.needs_delivery && (
+                    <textarea
+                      value={formData.delivery_address}
+                      onChange={(e) => updateFormData({ delivery_address: e.target.value })}
+                      className="block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 text-sm"
+                      rows={2}
+                      placeholder="Адрес доставки"
+                    />
+                  )}
                 </div>
+
               </div>
-            )}
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700">
-                Комментарий
-              </label>
-              <textarea
-                value={formData.comment}
-                onChange={(e) => updateFormData({ comment: e.target.value })}
-                className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                rows={3}
-              />
-            </div>
+              {/* Цены доставки */}
+              {!!formData.needs_delivery && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Цена доставки (₽)</label>
+                    <input
+                      type="number"
+                      value={formData.delivery_price ?? ''}
+                      onChange={(e) => updateFormData({ delivery_price: e.target.value === '' ? null : Number(e.target.value) })}
+                      className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                      placeholder="Не указана"
+                      min="0"
+                      step="10"
+                    />
+                    <p className="mt-1 text-xs text-gray-500">Сколько тебе перевели</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Расходы на доставку (₽)</label>
+                    <input
+                      type="number"
+                      value={formData.delivery_costs ?? ''}
+                      onChange={(e) => updateFormData({ delivery_costs: e.target.value === '' ? null : Number(e.target.value) })}
+                      className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                      placeholder="Не указаны"
+                      min="0"
+                      step="10"
+                    />
+                    <p className="mt-1 text-xs text-gray-500">Цена Яндекса</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Комментарий */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Комментарий</label>
+                <textarea
+                  value={formData.comment}
+                  onChange={(e) => updateFormData({ comment: e.target.value })}
+                  className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                  rows={3}
+                />
+              </div>
             </div>
 
-            {/* Ошибка конфликта бронирования */}
             {bookingConflictError && (
               <div className="bg-red-50 border border-red-400 text-red-800 px-4 py-3 rounded-md mt-4">
                 <div className="flex items-start">
@@ -741,9 +572,7 @@ const RentalModal: React.FC<RentalModalProps> = ({
                   </div>
                   <div className="ml-3 flex-1">
                     {bookingConflictError.split('\n').map((error, index) => (
-                      <p key={index} className={`text-sm font-medium ${index > 0 ? 'mt-2' : ''}`}>
-                        {error}
-                      </p>
+                      <p key={index} className={`text-sm font-medium ${index > 0 ? 'mt-2' : ''}`}>{error}</p>
                     ))}
                   </div>
                 </div>
@@ -764,11 +593,7 @@ const RentalModal: React.FC<RentalModalProps> = ({
                 className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md disabled:opacity-50 font-medium min-h-[44px] touch-manipulation flex items-center justify-center gap-2"
                 disabled={isLoading || !isFormValid()}
               >
-                {isLoading ? (
-                  'Сохранение...'
-                ) : rental ? (
-                  'Обновить'
-                ) : (
+                {isLoading ? 'Сохранение...' : rental ? 'Обновить' : (
                   <>
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />

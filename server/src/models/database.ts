@@ -149,6 +149,24 @@ class Database {
       )
     `)
 
+    // Таблица офисов
+    await run(`
+      CREATE TABLE IF NOT EXISTS offices (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        address TEXT,
+        locker_rows TEXT NOT NULL DEFAULT '[{"row":4,"count":6,"size":"small"},{"row":3,"count":3,"size":"medium"},{"row":2,"count":2,"size":"large"},{"row":1,"count":2,"size":"large"}]',
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      )
+    `)
+
+    // Создаём офис по умолчанию если нет ни одного
+    const officeCount = await this.get('SELECT COUNT(*) as cnt FROM offices')
+    if (officeCount.cnt === 0) {
+      await run(`INSERT INTO offices (name, address) VALUES ('Офис 1', '')`)
+    }
+
     // Таблица ячеек постомата
     await run(`
       CREATE TABLE IF NOT EXISTS lockers (
@@ -164,6 +182,25 @@ class Database {
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
       )
     `)
+
+    // Добавляем office_id в таблицы (миграция)
+    try {
+      await run(`ALTER TABLE rentals ADD COLUMN office_id INTEGER NOT NULL DEFAULT 1`)
+    } catch (error: any) {
+      if (!error.message?.includes('duplicate column name')) throw error
+    }
+
+    try {
+      await run(`ALTER TABLE lockers ADD COLUMN office_id INTEGER NOT NULL DEFAULT 1`)
+    } catch (error: any) {
+      if (!error.message?.includes('duplicate column name')) throw error
+    }
+
+    try {
+      await run(`ALTER TABLE expenses ADD COLUMN office_id INTEGER NOT NULL DEFAULT 1`)
+    } catch (error: any) {
+      if (!error.message?.includes('duplicate column name')) throw error
+    }
 
     // Добавляем поля size, row_number, position_in_row если их нет
     try {
@@ -253,6 +290,18 @@ class Database {
 
     await run(`
       CREATE INDEX IF NOT EXISTS idx_rentals_status ON rentals(status);
+    `)
+
+    await run(`
+      CREATE INDEX IF NOT EXISTS idx_rentals_office_id ON rentals(office_id);
+    `)
+
+    await run(`
+      CREATE INDEX IF NOT EXISTS idx_lockers_office_id ON lockers(office_id);
+    `)
+
+    await run(`
+      CREATE INDEX IF NOT EXISTS idx_expenses_office_id ON expenses(office_id);
     `)
 
     await run(`

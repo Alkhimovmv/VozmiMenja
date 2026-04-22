@@ -4,6 +4,7 @@ import { useAuthenticatedQuery } from '../../hooks/useAuthenticatedQuery';
 import { rentalsApi } from '../../api/admin/rentals';
 import { equipmentApi } from '../../api/admin/equipment';
 import { type Rental, type Equipment, type CreateRentalDto } from '../../types/index';
+import { useOffice } from '../../hooks/useOffice';
 import { format, parseISO, startOfWeek, endOfWeek, addDays } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import { getStatusColor, getStatusText } from '../../utils/dateUtils';
@@ -17,6 +18,7 @@ interface EquipmentInstance {
 }
 
 const SchedulePage: React.FC = () => {
+  const { currentOfficeId } = useOffice();
   const [selectedDate, setSelectedDate] = useState(new Date());
   const isInitialLoadRef = useRef(true);
   const prevWeekStartRef = useRef<Date | null>(null);
@@ -36,8 +38,8 @@ const SchedulePage: React.FC = () => {
   const { data: equipment = [] } = useAuthenticatedQuery<Equipment[]>(['equipment', 'rental'], equipmentApi.getForRental);
 
   const { data: rentals = [] } = useAuthenticatedQuery<Rental[]>(
-    ['rentals', 'gantt'],
-    () => rentalsApi.getGanttData()
+    ['rentals', 'gantt', currentOfficeId],
+    () => rentalsApi.getGanttData(undefined, undefined, currentOfficeId)
   );
 
   // Создаем список всех экземпляров оборудования
@@ -367,7 +369,7 @@ const SchedulePage: React.FC = () => {
   }, [weekStart, weekEnd]);
 
   return (
-    <div className="space-y-2 sm:space-y-4 w-full h-full flex flex-col" style={{ height: 'calc(100vh - 4rem)' }}>
+    <div className="space-y-2 sm:space-y-4 w-full flex flex-col flex-1 overflow-hidden px-4 sm:px-6 py-4 sm:py-8">
       {/* Компактный заголовок для мобильных устройств */}
       <div className="flex flex-col space-y-2 lg:hidden">
         <div className="flex flex-row justify-between items-center">
