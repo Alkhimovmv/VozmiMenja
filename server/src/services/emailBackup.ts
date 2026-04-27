@@ -32,13 +32,11 @@ class EmailBackupService {
 
   async sendDatabaseBackup(): Promise<void> {
     if (!this.isConfigured()) {
-      console.log('ℹ️  Email бэкап не настроен (BACKUP_EMAIL_* переменные отсутствуют)')
-      return
+      throw new Error('Email бэкап не настроен: добавь BACKUP_EMAIL_FROM, BACKUP_EMAIL_TO, BACKUP_EMAIL_PASS в server/.env')
     }
 
     if (!fs.existsSync(DB_PATH)) {
-      console.error('❌ Файл базы данных не найден:', DB_PATH)
-      return
+      throw new Error(`Файл базы данных не найден: ${DB_PATH}`)
     }
 
     const now = new Date()
