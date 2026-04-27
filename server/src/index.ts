@@ -18,7 +18,8 @@ import lockersRoutes from './routes/lockers'
 import officesRoutes from './routes/offices'
 import { schedulerService } from './services/scheduler'
 
-dotenv.config()
+// Явно указываем путь к .env относительно этого файла
+dotenv.config({ path: path.join(__dirname, '../../.env') })
 
 const app = express()
 const PORT = process.env.PORT || 3001
