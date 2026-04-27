@@ -2,7 +2,8 @@ import nodemailer from 'nodemailer'
 import fs from 'fs'
 import path from 'path'
 
-const DB_PATH = path.join(__dirname, '../../../database.sqlite')
+// server/dist/services/ -> server/database.sqlite
+const DB_PATH = path.join(__dirname, '../../database.sqlite')
 
 class EmailBackupService {
   private transporter: nodemailer.Transporter | null = null
