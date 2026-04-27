@@ -7,7 +7,8 @@ const router = Router()
 // GET /api/admin/analytics/monthly-revenue - Получить месячную выручку
 router.get('/monthly-revenue', async (req: Request, res: Response) => {
   try {
-    const revenue = await rentalModel.getMonthlyRevenue()
+    const officeId = req.query.officeId ? parseInt(req.query.officeId as string) : undefined
+    const revenue = await rentalModel.getMonthlyRevenue(officeId)
     res.json(revenue)
   } catch (error) {
     console.error('Error getting monthly revenue:', error)
@@ -18,7 +19,7 @@ router.get('/monthly-revenue', async (req: Request, res: Response) => {
 // GET /api/admin/analytics/financial-summary - Получить финансовую сводку
 router.get('/financial-summary', async (req: Request, res: Response) => {
   try {
-    const { year, month } = req.query
+    const { year, month, officeId } = req.query
 
     if (!year || !month) {
       return res.status(400).json({ error: 'Year and month are required' })
@@ -26,12 +27,10 @@ router.get('/financial-summary', async (req: Request, res: Response) => {
 
     const yearNum = parseInt(year as string)
     const monthNum = parseInt(month as string)
+    const officeIdNum = officeId ? parseInt(officeId as string) : undefined
 
-    // Получаем детальную выручку за месяц из модели Rental
-    const revenueDetails = await rentalModel.getMonthlyRevenueDetails(yearNum, monthNum)
-
-    // Получаем расходы за месяц
-    const expensesDetails = await expenseModel.getMonthlyExpensesDetails(yearNum, monthNum)
+    const revenueDetails = await rentalModel.getMonthlyRevenueDetails(yearNum, monthNum, officeIdNum)
+    const expensesDetails = await expenseModel.getMonthlyExpensesDetails(yearNum, monthNum, officeIdNum)
 
     const summary = {
       total_revenue: revenueDetails.rental_revenue + revenueDetails.delivery_revenue,

@@ -31,28 +31,15 @@ const FinancesPage: React.FC = () => {
     : [currentYear, currentMonth];
 
   const { data: monthlyRevenue = [] } = useAuthenticatedQuery<MonthlyRevenue[]>(
-    ['analytics', 'monthly-revenue'],
-    analyticsApi.getMonthlyRevenue,
-    {
-      // Принудительная перезагрузка при каждом монтировании
-      staleTime: 0,
-      cacheTime: 0,
-    }
+    ['analytics', 'monthly-revenue', currentOfficeId],
+    () => analyticsApi.getMonthlyRevenue(currentOfficeId),
+    { staleTime: 0, cacheTime: 0 }
   );
 
-  // Временная отладка
-  React.useEffect(() => {
-    console.log('📊 Monthly Revenue Data:', monthlyRevenue);
-    console.log('📊 First item:', monthlyRevenue[0]);
-    console.log('📊 Has net_profit?', monthlyRevenue[0]?.net_profit !== undefined);
-  }, [monthlyRevenue]);
-
   const { data: financialSummary } = useAuthenticatedQuery<FinancialSummary>(
-    ['analytics', 'financial-summary', filterYear, filterMonth],
-    () => analyticsApi.getFinancialSummary(filterYear, filterMonth),
-    {
-      enabled: !!filterYear && !!filterMonth,
-    }
+    ['analytics', 'financial-summary', filterYear, filterMonth, currentOfficeId],
+    () => analyticsApi.getFinancialSummary(filterYear, filterMonth, currentOfficeId),
+    { enabled: !!filterYear && !!filterMonth }
   );
 
   const { data: expenses = [] } = useAuthenticatedQuery<Expense[]>(

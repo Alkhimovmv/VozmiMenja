@@ -508,7 +508,7 @@ export class RentalModel {
     }))
   }
 
-  async getMonthlyRevenue(): Promise<Array<{
+  async getMonthlyRevenue(officeId?: number): Promise<Array<{
     month: number
     year: number
     month_name: string
@@ -516,6 +516,9 @@ export class RentalModel {
     net_profit: number
     rental_count: number
   }>> {
+    const officeFilter = officeId ? 'AND r.office_id = ?' : ''
+    const officeParams = officeId ? [officeId] : []
+
     const rows = await all(`
       SELECT
         strftime('%m', r.start_date) as month,
@@ -525,26 +528,28 @@ export class RentalModel {
         COUNT(*) as rental_count
       FROM rentals r
       WHERE r.status = 'completed'
+      ${officeFilter}
       GROUP BY month, year
       ORDER BY year DESC, month DESC
-    `) as any[]
+    `, officeParams) as any[]
 
     const monthNames = [
       'Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь',
       'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'
     ]
 
-    // Получаем расходы по месяцам
+    const expenseOfficeFilter = officeId ? 'AND office_id = ?' : ''
     const expenseRows = await all(`
       SELECT
         strftime('%m', date) as month,
         strftime('%Y', date) as year,
         SUM(amount) as total_expenses
       FROM expenses
+      WHERE 1=1
+      ${expenseOfficeFilter}
       GROUP BY month, year
-    `) as any[]
+    `, officeParams) as any[]
 
-    // Создаем map для быстрого доступа к расходам
     const expensesMap = new Map<string, number>()
     expenseRows.forEach(row => {
       const key = `${row.year}-${row.month}`
@@ -571,13 +576,15 @@ export class RentalModel {
     })
   }
 
-  async getMonthlyRevenueDetails(year: number, month: number): Promise<{
+  async getMonthlyRevenueDetails(year: number, month: number, officeId?: number): Promise<{
     rental_revenue: number
     delivery_revenue: number
     delivery_costs: number
     total_rentals: number
   }> {
     const monthStr = month.toString().padStart(2, '0')
+    const officeFilter = officeId ? 'AND office_id = ?' : ''
+    const officeParams = officeId ? [officeId] : []
 
     const row = await get(`
       SELECT
@@ -589,7 +596,8 @@ export class RentalModel {
       WHERE strftime('%Y', start_date) = ?
         AND strftime('%m', start_date) = ?
         AND status = 'completed'
-    `, [year.toString(), monthStr]) as any
+        ${officeFilter}
+    `, [year.toString(), monthStr, ...officeParams]) as any
 
     return {
       rental_revenue: row?.rental_revenue || 0,

@@ -174,29 +174,31 @@ export class ExpenseModel {
     }))
   }
 
-  async getMonthlyExpensesDetails(year: number, month: number): Promise<{
+  async getMonthlyExpensesDetails(year: number, month: number, officeId?: number): Promise<{
     operational_expenses: number
     by_category: Record<string, number>
   }> {
     const monthStr = month.toString().padStart(2, '0')
+    const officeFilter = officeId ? 'AND office_id = ?' : ''
+    const officeParams = officeId ? [officeId] : []
 
-    // Получаем общую сумму операционных расходов
     const totalRow = await get(`
       SELECT COALESCE(SUM(amount), 0) as total
       FROM expenses
       WHERE strftime('%Y', date) = ?
         AND strftime('%m', date) = ?
-    `, [year.toString(), monthStr]) as any
+        ${officeFilter}
+    `, [year.toString(), monthStr, ...officeParams]) as any
 
-    // Получаем расходы по категориям
     const categoryRows = await all(`
       SELECT category, SUM(amount) as total
       FROM expenses
       WHERE strftime('%Y', date) = ?
         AND strftime('%m', date) = ?
         AND category IS NOT NULL
+        ${officeFilter}
       GROUP BY category
-    `, [year.toString(), monthStr]) as Array<{ category: string; total: number }>
+    `, [year.toString(), monthStr, ...officeParams]) as Array<{ category: string; total: number }>
 
     const byCategory: Record<string, number> = {}
     categoryRows.forEach(row => {
