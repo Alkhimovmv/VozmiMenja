@@ -4,6 +4,7 @@ module.exports = {
     {
       name: 'vozmimenya-api',
       script: './server/dist/index.js',
+      cwd: '/var/www/vozmimenya/server',
       instances: 1,
       autorestart: true,
       watch: false,
@@ -12,7 +13,6 @@ module.exports = {
         NODE_ENV: 'production',
         PORT: 3003,
         FRONTEND_URL: 'https://vozmimenya.ru'
-        // ADMIN_PASSWORD, TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID — задаются в server/.env на сервере
       },
       error_file: './server/logs/err.log',
       out_file: './server/logs/out.log',
