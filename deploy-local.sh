@@ -225,7 +225,7 @@ build_projects() {
 
         # Установка dev зависимостей для сборки
         sudo -u $SUDO_USER npm install
-        sudo -u $SUDO_USER npm run build
+        sudo -u $SUDO_USER NODE_OPTIONS="--max-old-space-size=512" npm run build
 
         # Удаление dev зависимостей после сборки
         sudo -u $SUDO_USER npm prune --production
@@ -239,7 +239,27 @@ build_projects() {
         cd client
         # Установка всех зависимостей (включая dev) для сборки
         sudo -u $SUDO_USER npm install
-        sudo -u $SUDO_USER npm run build
+
+        # Создаём временный swap если мало RAM (защита от OOM killer)
+        TOTAL_RAM_MB=$(free -m | awk '/^Mem:/{print $2}')
+        if [ "$TOTAL_RAM_MB" -lt 1500 ]; then
+            echo "⚠️  Мало RAM (${TOTAL_RAM_MB}MB), создаём временный swap..."
+            if [ ! -f /swapfile_build ]; then
+                fallocate -l 1G /swapfile_build
+                chmod 600 /swapfile_build
+                mkswap /swapfile_build
+            fi
+            swapon /swapfile_build 2>/dev/null || true
+        fi
+
+        sudo -u $SUDO_USER NODE_OPTIONS="--max-old-space-size=512" npm run build
+        EXIT_CODE=$?
+
+        # Убираем временный swap
+        swapoff /swapfile_build 2>/dev/null || true
+        rm -f /swapfile_build
+
+        [ $EXIT_CODE -ne 0 ] && { print_error "Сборка frontend завершилась с ошибкой"; exit 1; }
         cd ..
 
         # Копирование собранного frontend в директорию nginx
