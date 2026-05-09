@@ -30,7 +30,7 @@ export default function Header() {
   const navLinks = [
     { to: '/about', label: 'О нас' },
     { to: '/delivery', label: 'Условия доставки' },
-    { to: '/contact', label: 'Свяжитесь с нами' },
+    { to: '/contact', label: 'Контакты' },
     { to: '/faq', label: 'FAQ' },
   ]
 
