@@ -3,7 +3,7 @@ module.exports = {
     // VozmiMenja API сервер (включает интегрированную админку)
     {
       name: 'vozmimenya-api',
-      script: './server/dist/index.js',
+      script: '/var/www/vozmimenya/server/dist/index.js',
       cwd: '/var/www/vozmimenya/server',
       instances: 1,
       autorestart: true,
