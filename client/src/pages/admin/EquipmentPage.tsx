@@ -4,10 +4,12 @@ import { useAuthenticatedQuery } from '../../hooks/useAuthenticatedQuery';
 import { equipmentApi } from '../../api/admin/equipment';
 import { type Equipment, type CreateEquipmentDto } from '../../types/index';
 import EquipmentModal from '../../components/admin/EquipmentModal';
+import ConfirmDialog from '../../components/admin/ConfirmDialog';
 
 const EquipmentPage: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingEquipment, setEditingEquipment] = useState<Equipment | null>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState<{ isOpen: boolean; equipmentId: string | null }>({ isOpen: false, equipmentId: null });
   const queryClient = useQueryClient();
 
   const { data: equipment = [], isLoading } = useAuthenticatedQuery<Equipment[]>(['equipment'], equipmentApi.getAll);
@@ -52,9 +54,7 @@ const EquipmentPage: React.FC = () => {
   };
 
   const handleDeleteEquipment = (id: string) => {
-    if (window.confirm('Вы уверены, что хотите удалить это оборудование?')) {
-      deleteMutation.mutate(id);
-    }
+    setDeleteConfirm({ isOpen: true, equipmentId: id });
   };
 
   const handleEditEquipment = (equipment: Equipment) => {
@@ -176,6 +176,17 @@ const EquipmentPage: React.FC = () => {
         onSubmit={editingEquipment ? handleUpdateEquipment : handleCreateEquipment}
         equipment={editingEquipment}
         isLoading={createMutation.isPending || updateMutation.isPending}
+      />
+
+      <ConfirmDialog
+        isOpen={deleteConfirm.isOpen}
+        title="Удаление оборудования"
+        message="Вы уверены, что хотите удалить это оборудование? Это действие нельзя будет отменить."
+        confirmText="Удалить"
+        cancelText="Отмена"
+        type="danger"
+        onConfirm={() => { if (deleteConfirm.equipmentId) deleteMutation.mutate(deleteConfirm.equipmentId); setDeleteConfirm({ isOpen: false, equipmentId: null }); }}
+        onCancel={() => setDeleteConfirm({ isOpen: false, equipmentId: null })}
       />
     </div>
   );

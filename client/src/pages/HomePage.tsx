@@ -80,7 +80,7 @@ export default function HomePage() {
     return {
       value: key,
       count,
-      label: key,
+      label: ({ 'Аудиооборудование': 'Аудио', 'Пылесосы, уборка и клининг': 'Пылесосы и клининг' } as Record<string, string>)[key] ?? key,
       gradient: cfg?.gradient ?? fallback.gradient,
       iconBg: cfg?.iconBg ?? fallback.iconBg,
       blobColor: cfg?.blobColor ?? 'rgba(209,213,219,0.6)',

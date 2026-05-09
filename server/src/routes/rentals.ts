@@ -3,6 +3,8 @@ import { z } from 'zod'
 import { rentalModel, CreateRentalData, RentalStatus } from '../models/Rental'
 import { authMiddleware } from '../middleware/auth'
 import { rentalToSnakeCase as toSnakeCase } from '../utils/transformers'
+import { lockerModel } from '../models/Locker'
+import { get, all } from '../models/database'
 
 const router = Router()
 
@@ -220,8 +222,35 @@ router.put('/:id', authMiddleware, async (req: Request, res: Response) => {
     if (body.source !== undefined) data.source = body.source as any
     if (body.comment !== undefined) data.comment = body.comment ?? undefined
     if (body.status !== undefined) data.status = body.status
+    if ((body as any).locker_id !== undefined) (data as any).lockerId = (body as any).locker_id
 
     const rental = await rentalModel.update(parseInt(req.params.id), data)
+
+    // Если аренда завершена — найти ячейку с этим оборудованием и пометить как требующую проверки
+    if (body.status === 'completed') {
+      const rentalId = parseInt(req.params.id)
+      // Берём все equipment_id + instance_number из аренды
+      const items = await all(`
+        SELECT equipment_id, instance_number FROM rental_equipment_items WHERE rental_id = ?
+      `, [rentalId]) as Array<{ equipment_id: number; instance_number: number }>
+
+      if (items.length > 0) {
+        // Ищем ячейку где лежит любой из этих экземпляров
+        const placeholders = items.map(() => '(le.equipment_id = ? AND le.instance_number = ?)').join(' OR ')
+        const params = items.flatMap(i => [i.equipment_id, i.instance_number])
+        const lockerRow = await get(`
+          SELECT DISTINCT l.id FROM lockers l
+          JOIN locker_equipment le ON le.locker_id = l.id
+          WHERE ${placeholders}
+          LIMIT 1
+        `, params) as any
+
+        if (lockerRow) {
+          await lockerModel.markNeedsCheck(lockerRow.id)
+        }
+      }
+    }
+
     res.json(toSnakeCase(rental))
   } catch (error: any) {
     console.error('Error updating rental:', error)

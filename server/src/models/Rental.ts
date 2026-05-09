@@ -19,6 +19,7 @@ export interface Rental {
   comment?: string
   status: RentalStatus
   officeId: number
+  lockerId?: number
   createdAt: string
   updatedAt: string
 }
@@ -436,6 +437,10 @@ export class RentalModel {
       updates.push('status = ?')
       values.push(data.status)
     }
+    if ((data as any).lockerId !== undefined) {
+      updates.push('locker_id = ?')
+      values.push((data as any).lockerId)
+    }
 
     if (updates.length === 0) {
       throw new Error('No fields to update')
@@ -641,6 +646,7 @@ export class RentalModel {
       comment: row.comment || undefined,
       status: row.status as RentalStatus,
       officeId: row.office_id || 1,
+      lockerId: row.locker_id || undefined,
       createdAt: row.created_at,
       updatedAt: row.updated_at
     }

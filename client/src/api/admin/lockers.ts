@@ -36,4 +36,14 @@ export const lockersApi = {
     const response = await apiClient.get('/lockers/generate-code');
     return response.data;
   },
+
+  async markChecked(id: number): Promise<Locker> {
+    const response = await apiClient.post(`/lockers/${id}/mark-checked`);
+    return response.data;
+  },
+
+  async markNeedsCheck(id: number): Promise<Locker> {
+    const response = await apiClient.post(`/lockers/${id}/needs-check`);
+    return response.data;
+  },
 };

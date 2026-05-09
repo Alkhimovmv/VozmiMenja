@@ -6,6 +6,7 @@ import { equipmentApi } from '../../api/admin/equipment';
 import { type Locker, type CreateLockerDto } from '../../types/admin';
 import type { Equipment } from '../../types/index';
 import LockerCabinet from '../../components/admin/LockerCabinet';
+import ConfirmDialog from '../../components/admin/ConfirmDialog';
 import apiClient from '../../api/admin/client';
 import { useOffice } from '../../hooks/useOffice';
 
@@ -87,6 +88,13 @@ const LockersPage: React.FC = () => {
     },
   });
 
+  const markCheckedMutation = useMutation({
+    mutationFn: (id: number) => lockersApi.markChecked(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['lockers'] });
+    },
+  });
+
   const openCreateModal = () => {
     setEditingLocker(null);
     setFormData({
@@ -156,17 +164,11 @@ const LockersPage: React.FC = () => {
     }
   };
 
-  const handleDelete = (id: number) => {
-    if (window.confirm('Вы уверены, что хотите удалить эту ячейку?')) {
-      deleteMutation.mutate(id);
-    }
-  };
+  const [deleteConfirm, setDeleteConfirm] = useState<{ isOpen: boolean; lockerId: number | null }>({ isOpen: false, lockerId: null });
+  const [initConfirm, setInitConfirm] = useState(false);
 
-  const handleInitialize = () => {
-    if (window.confirm('Вы уверены, что хотите инициализировать 13 ячеек постомата? Существующие ячейки не будут изменены.')) {
-      initializeMutation.mutate();
-    }
-  };
+  const handleDelete = (id: number) => setDeleteConfirm({ isOpen: true, lockerId: id });
+  const handleInitialize = () => setInitConfirm(true);
 
   return (
     <div className="space-y-6 overflow-y-auto flex-1 px-4 sm:px-6 py-4 sm:py-8">
@@ -226,9 +228,16 @@ const LockersPage: React.FC = () => {
             {lockers.map((locker) => {
               const isOccupied = locker.total_equipment > 0 && locker.free_equipment === 0;
               return (
-                <tr key={locker.id}>
+                <tr key={locker.id} className={locker.needs_check ? 'bg-amber-50' : ''}>
                   <td className="px-2 sm:px-6 py-2 sm:py-4 whitespace-nowrap text-xs sm:text-sm font-medium text-gray-900">
-                    {locker.locker_number}
+                    <div className="flex items-center gap-1.5">
+                      {locker.locker_number}
+                      {locker.needs_check && (
+                        <span className="inline-flex items-center gap-1 bg-amber-100 text-amber-800 text-[10px] font-semibold px-1.5 py-0.5 rounded-full">
+                          ⚠ Проверить
+                        </span>
+                      )}
+                    </div>
                   </td>
                   <td className="px-2 sm:px-6 py-2 sm:py-4 whitespace-nowrap text-xs sm:text-sm text-gray-900 font-mono font-bold">
                     {locker.access_code}
@@ -278,6 +287,15 @@ const LockersPage: React.FC = () => {
                   </td>
                   <td className="px-2 sm:px-6 py-2 sm:py-4 whitespace-nowrap text-right text-xs sm:text-sm font-medium">
                     <div className="flex flex-col sm:flex-row sm:space-x-2 space-y-1 sm:space-y-0 items-end">
+                      {locker.needs_check && (
+                        <button
+                          onClick={() => markCheckedMutation.mutate(locker.id)}
+                          disabled={markCheckedMutation.isPending}
+                          className="text-amber-700 hover:text-amber-900 text-xs sm:text-sm font-semibold bg-amber-100 hover:bg-amber-200 px-2 py-0.5 rounded transition-colors"
+                        >
+                          ✓ Готова
+                        </button>
+                      )}
                       <button
                         onClick={() => openEditModal(locker)}
                         className="text-blue-600 hover:text-blue-900 text-xs sm:text-sm"
@@ -470,6 +488,16 @@ const LockersPage: React.FC = () => {
                 >
                   Отмена
                 </button>
+                {editingLocker?.needs_check && (
+                  <button
+                    type="button"
+                    onClick={() => { markCheckedMutation.mutate(editingLocker.id); closeModal(); }}
+                    disabled={markCheckedMutation.isPending}
+                    className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-md disabled:opacity-50 font-semibold"
+                  >
+                    ✓ Проверена
+                  </button>
+                )}
                 <button
                   type="submit"
                   disabled={createMutation.isPending || updateMutation.isPending}
@@ -484,6 +512,27 @@ const LockersPage: React.FC = () => {
           </div>
         </div>
       )}
+      <ConfirmDialog
+        isOpen={deleteConfirm.isOpen}
+        title="Удаление ячейки"
+        message="Вы уверены, что хотите удалить эту ячейку? Это действие нельзя будет отменить."
+        confirmText="Удалить"
+        cancelText="Отмена"
+        type="danger"
+        onConfirm={() => { if (deleteConfirm.lockerId) deleteMutation.mutate(deleteConfirm.lockerId); setDeleteConfirm({ isOpen: false, lockerId: null }); }}
+        onCancel={() => setDeleteConfirm({ isOpen: false, lockerId: null })}
+      />
+
+      <ConfirmDialog
+        isOpen={initConfirm}
+        title="Инициализация ячеек"
+        message="Инициализировать 13 ячеек постамата? Существующие ячейки не будут изменены."
+        confirmText="Инициализировать"
+        cancelText="Отмена"
+        type="warning"
+        onConfirm={() => { initializeMutation.mutate(); setInitConfirm(false); }}
+        onCancel={() => setInitConfirm(false)}
+      />
     </div>
   );
 };

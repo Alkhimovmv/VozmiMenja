@@ -36,6 +36,7 @@ export interface Rental {
   source: RentalSource;
   comment?: string;
   status: RentalStatus;
+  locker_id?: number | null;
   total_price: number;
   profit: number;
   created_at: string;
@@ -138,9 +139,11 @@ export interface Locker {
   row_number: number;
   position_in_row: number;
   is_active: boolean;
+  needs_check: boolean;
   equipment_items: LockerEquipmentItem[];
   total_equipment: number;
   free_equipment: number;
+  office_id: number;
   created_at: string;
   updated_at: string;
 }

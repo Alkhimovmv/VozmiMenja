@@ -21,6 +21,7 @@ export interface Locker {
   rowNumber: number
   positionInRow: number
   isActive: boolean
+  needsCheck: boolean
   officeId: number
   // Новые поля
   equipmentItems: LockerEquipmentItem[]
@@ -155,6 +156,7 @@ export class LockerModel {
       rowNumber: row.row_number || 1,
       positionInRow: row.position_in_row || 1,
       isActive: row.is_active === 1,
+      needsCheck: row.needs_check === 1,
       officeId: row.office_id || 1,
       equipmentItems,
       totalEquipment,
@@ -309,6 +311,14 @@ export class LockerModel {
         VALUES (?, ?, ?)
       `, [lockerId, item.equipmentId, item.instanceNumber])
     }
+  }
+
+  async markNeedsCheck(id: number): Promise<void> {
+    await run('UPDATE lockers SET needs_check = 1, updated_at = CURRENT_TIMESTAMP WHERE id = ?', [id])
+  }
+
+  async markChecked(id: number): Promise<void> {
+    await run('UPDATE lockers SET needs_check = 0, updated_at = CURRENT_TIMESTAMP WHERE id = ?', [id])
   }
 
   async delete(id: number): Promise<void> {

@@ -3,11 +3,13 @@ import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query'
 import { articlesApi } from '../../api/articles'
 import { type Article } from '../../types/index'
 import ArticleModal from '../../components/admin/ArticleModal'
+import ConfirmDialog from '../../components/admin/ConfirmDialog'
 import { Eye, Calendar, Edit2, Trash2, Plus, FileText, CheckCircle, XCircle } from 'lucide-react'
 
 export default function ArticlesPage() {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingArticle, setEditingArticle] = useState<Article | null>(null)
+  const [deleteConfirm, setDeleteConfirm] = useState<{ isOpen: boolean; articleId: number | null }>({ isOpen: false, articleId: null })
   const queryClient = useQueryClient()
 
   const token = localStorage.getItem('adminToken')
@@ -27,12 +29,7 @@ export default function ArticlesPage() {
   })
 
   const handleDeleteArticle = (id: number) => {
-    if (window.confirm('Вы уверены, что хотите удалить эту статью?')) {
-      const token = localStorage.getItem('adminToken')
-      if (token) {
-        deleteMutation.mutate({ id, token })
-      }
-    }
+    setDeleteConfirm({ isOpen: true, articleId: id })
   }
 
   const handleEditArticle = (article: Article) => {
@@ -244,6 +241,23 @@ export default function ArticlesPage() {
           onClose={handleCloseModal}
         />
       )}
+
+      <ConfirmDialog
+        isOpen={deleteConfirm.isOpen}
+        title="Удаление статьи"
+        message="Вы уверены, что хотите удалить эту статью? Это действие нельзя будет отменить."
+        confirmText="Удалить"
+        cancelText="Отмена"
+        type="danger"
+        onConfirm={() => {
+          if (deleteConfirm.articleId) {
+            const token = localStorage.getItem('adminToken')
+            if (token) deleteMutation.mutate({ id: deleteConfirm.articleId, token })
+          }
+          setDeleteConfirm({ isOpen: false, articleId: null })
+        }}
+        onCancel={() => setDeleteConfirm({ isOpen: false, articleId: null })}
+      />
     </div>
   )
 }

@@ -26,6 +26,7 @@ function toSnakeCase(locker: any) {
     row_number: locker.rowNumber,
     position_in_row: locker.positionInRow,
     is_active: locker.isActive,
+    needs_check: locker.needsCheck,
     office_id: locker.officeId || 1,
     equipment_items: (locker.equipmentItems || []).map((e: any) => ({
       id: e.id,
@@ -183,6 +184,34 @@ router.put('/:id/equipment', authMiddleware, async (req: Request, res: Response)
   } catch (error: any) {
     console.error('Error setting locker equipment:', error)
     res.status(500).json({ error: 'Ошибка обновления оборудования в ячейке' })
+  }
+})
+
+// POST /api/admin/lockers/:id/mark-checked - Отметить ячейку как проверенную (готова к выдаче)
+router.post('/:id/mark-checked', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const lockerId = parseInt(req.params.id)
+    await lockerModel.markChecked(lockerId)
+    const locker = await lockerModel.findById(lockerId)
+    if (!locker) return res.status(404).json({ error: 'Ячейка не найдена' })
+    res.json(toSnakeCase(locker))
+  } catch (error) {
+    console.error('Error marking locker checked:', error)
+    res.status(500).json({ error: 'Ошибка обновления ячейки' })
+  }
+})
+
+// POST /api/admin/lockers/:id/needs-check - Пометить ячейку как требующую проверки
+router.post('/:id/needs-check', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const lockerId = parseInt(req.params.id)
+    await lockerModel.markNeedsCheck(lockerId)
+    const locker = await lockerModel.findById(lockerId)
+    if (!locker) return res.status(404).json({ error: 'Ячейка не найдена' })
+    res.json(toSnakeCase(locker))
+  } catch (error) {
+    console.error('Error marking locker needs-check:', error)
+    res.status(500).json({ error: 'Ошибка обновления ячейки' })
   }
 })
 

@@ -142,7 +142,7 @@ const RentalsPage: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ['rentals'] });
       queryClient.invalidateQueries({ queryKey: ['rentals', 'gantt'] });
       queryClient.invalidateQueries({ queryKey: ['analytics'] });
-      queryClient.invalidateQueries({ queryKey: ['lockers'] });
+      queryClient.invalidateQueries({ queryKey: ['lockers'], exact: false });
       setIsModalOpen(false);
       setEditingRental(null);
     },
@@ -192,10 +192,7 @@ const RentalsPage: React.FC = () => {
       toast.error('Нельзя закрыть аренду без указания цены аренды');
       return;
     }
-    updateMutation.mutate({
-      id: rental.id,
-      data: { status: 'completed' },
-    });
+    updateMutation.mutate({ id: rental.id, data: { status: 'completed' } });
   };
 
   const handleCompleteRentalNow = (rental: Rental) => {
@@ -203,22 +200,9 @@ const RentalsPage: React.FC = () => {
       toast.error('Нельзя закрыть аренду без указания цены аренды');
       return;
     }
-    // Получаем текущую дату и время в формате ISO и берём первые 16 символов (без секунд)
     const now = new Date();
-    const year = now.getFullYear();
-    const month = String(now.getMonth() + 1).padStart(2, '0');
-    const day = String(now.getDate()).padStart(2, '0');
-    const hours = String(now.getHours()).padStart(2, '0');
-    const minutes = String(now.getMinutes()).padStart(2, '0');
-    const currentDateTime = `${year}-${month}-${day}T${hours}:${minutes}`;
-
-    updateMutation.mutate({
-      id: rental.id,
-      data: {
-        end_date: currentDateTime,
-        status: 'completed'
-      },
-    });
+    const currentDateTime = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}T${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+    updateMutation.mutate({ id: rental.id, data: { end_date: currentDateTime, status: 'completed' } });
   };
 
   const handleReturnRental = (rental: Rental) => {
@@ -493,6 +477,7 @@ const RentalsPage: React.FC = () => {
         onConfirm={confirmDelete}
         onCancel={cancelDelete}
       />
+
     </div>
   );
 };

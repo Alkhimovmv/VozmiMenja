@@ -31,11 +31,11 @@ const LockerCabinet: React.FC<LockerCabinetProps> = ({ lockers, onLockerClick, l
   };
 
   // Определяем статус ячейки
-  const getLockerStatus = (locker?: Locker): 'empty' | 'free' | 'partial' | 'occupied' | 'inactive' => {
+  const getLockerStatus = (locker?: Locker): 'empty' | 'free' | 'partial' | 'occupied' | 'inactive' | 'needs_check' => {
     if (!locker) return 'empty';
     if (!locker.is_active) return 'inactive';
+    if (locker.needs_check) return 'needs_check';
     if (!locker.equipment_items || locker.equipment_items.length === 0) {
-      // Если есть только ручные items — показываем как свободную (зелёную)
       if (locker.items && locker.items.length > 0) return 'free';
       return 'empty';
     }
@@ -47,11 +47,12 @@ const LockerCabinet: React.FC<LockerCabinetProps> = ({ lockers, onLockerClick, l
   const getLockerColor = (locker?: Locker): string => {
     const status = getLockerStatus(locker);
     switch (status) {
-      case 'occupied': return 'bg-red-100 border-red-500 hover:bg-red-200 cursor-pointer';
-      case 'partial':  return 'bg-yellow-100 border-yellow-500 hover:bg-yellow-200 cursor-pointer';
-      case 'free':     return 'bg-green-100 border-green-500 hover:bg-green-200 cursor-pointer';
-      case 'inactive': return 'bg-gray-400 border-gray-500';
-      default:         return 'bg-gray-100 border-gray-300 hover:bg-gray-200 cursor-pointer';
+      case 'needs_check': return 'bg-orange-200 border-orange-500 hover:bg-orange-300 cursor-pointer';
+      case 'occupied':    return 'bg-red-100 border-red-500 hover:bg-red-200 cursor-pointer';
+      case 'partial':     return 'bg-yellow-100 border-yellow-500 hover:bg-yellow-200 cursor-pointer';
+      case 'free':        return 'bg-green-100 border-green-500 hover:bg-green-200 cursor-pointer';
+      case 'inactive':    return 'bg-gray-400 border-gray-500';
+      default:            return 'bg-gray-100 border-gray-300 hover:bg-gray-200 cursor-pointer';
     }
   };
 
@@ -137,6 +138,11 @@ const LockerCabinet: React.FC<LockerCabinetProps> = ({ lockers, onLockerClick, l
                         )}
 
                         {/* Иконка статуса */}
+                        {status === 'needs_check' && (
+                          <div className="absolute top-1 right-1">
+                            <span className="text-amber-600 text-xs font-bold">⚠</span>
+                          </div>
+                        )}
                         {status === 'inactive' && (
                           <div className="absolute top-1 right-1">
                             <span className="text-red-600 text-xs">●</span>
@@ -176,6 +182,10 @@ const LockerCabinet: React.FC<LockerCabinetProps> = ({ lockers, onLockerClick, l
         <div className="flex items-center gap-1">
           <div className="w-4 h-4 bg-gray-100 border border-gray-300 rounded"></div>
           <span>Пустая</span>
+        </div>
+        <div className="flex items-center gap-1">
+          <div className="w-4 h-4 bg-orange-200 border border-orange-500 rounded"></div>
+          <span>Требует проверки</span>
         </div>
         <div className="flex items-center gap-1">
           <div className="w-4 h-4 bg-gray-400 border border-gray-500 rounded"></div>

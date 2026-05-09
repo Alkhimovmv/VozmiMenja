@@ -18,6 +18,7 @@ export function rentalToSnakeCase(rental: any) {
     comment: rental.comment,
     status: rental.status,
     office_id: rental.officeId || 1,
+    locker_id: rental.lockerId || null,
     created_at: rental.createdAt,
     updated_at: rental.updatedAt,
     equipment_name: rental.equipmentName,
