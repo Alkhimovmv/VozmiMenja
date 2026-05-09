@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import toast from 'react-hot-toast'
 import type { Equipment } from '../../types'
 import { useCreateBooking } from '../../hooks/useEquipment'
@@ -11,6 +11,19 @@ interface BookingFormProps {
 }
 
 export default function BookingForm({ equipment, onClose }: BookingFormProps) {
+  useEffect(() => {
+    document.body.style.overflow = 'hidden'
+    if (window.innerWidth < 768) {
+      const nav = document.querySelector('nav.fixed.bottom-0') as HTMLElement | null
+      if (nav) {
+        document.documentElement.style.setProperty('--mobile-nav-height', nav.offsetHeight + 'px')
+      }
+    } else {
+      document.documentElement.style.removeProperty('--mobile-nav-height')
+    }
+    return () => { document.body.style.overflow = '' }
+  }, [])
+
   const [formData, setFormData] = useState({
     customerName: '',
     customerPhone: '',
@@ -22,6 +35,7 @@ export default function BookingForm({ equipment, onClose }: BookingFormProps) {
   const [totalPrice, setTotalPrice] = useState(0)
   const [totalDays, setTotalDays] = useState(0)
   const [discountedPricePerDay, setDiscountedPricePerDay] = useState(0)
+  const [consent, setConsent] = useState(false)
 
   const createBookingMutation = useCreateBooking()
 
@@ -122,14 +136,18 @@ export default function BookingForm({ equipment, onClose }: BookingFormProps) {
     : []
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
+    <div className="fixed inset-0 z-50">
       {/* Backdrop */}
       <div className="fixed inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
 
-      {/* Modal */}
-      <div className="relative w-full sm:max-w-xl max-h-[95vh] bg-white sm:rounded-2xl rounded-t-2xl shadow-2xl flex flex-col" style={{ overflowY: 'auto', scrollbarWidth: 'thin', scrollbarColor: '#e2e8f0 transparent' }}>
+      {/* Modal — mobile: fixed inset-0, desktop: centered sheet */}
+      <div className="
+        fixed inset-0 flex flex-col bg-white shadow-2xl
+        md:inset-auto md:top-1/2 md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2
+        md:w-full md:max-w-xl md:max-h-[90vh] md:rounded-2xl
+      ">
         {/* Header */}
-        <div className="sticky top-0 bg-white border-b border-gray-100 px-6 py-4 flex items-center justify-between z-10 rounded-t-2xl">
+        <div className="flex-shrink-0 bg-white border-b border-gray-100 px-6 py-4 flex items-center justify-between md:rounded-t-2xl">
           <div>
             <h2 className="text-lg font-bold text-gray-900">Забронировать</h2>
             <p className="text-xs text-gray-400 mt-0.5">Мы перезвоним для подтверждения</p>
@@ -139,7 +157,8 @@ export default function BookingForm({ equipment, onClose }: BookingFormProps) {
           </button>
         </div>
 
-        <div className="p-6 space-y-5">
+        {/* Скроллящееся тело */}
+        <div className="flex-1 overflow-y-auto overscroll-contain p-6 space-y-5 booking-modal-scroll">
           {/* Equipment card */}
           <div className="flex items-center gap-4 p-4 bg-[#F8FAFC] rounded-2xl border border-gray-100">
             <div className="w-16 h-16 rounded-xl overflow-hidden bg-white border border-gray-100 flex-shrink-0">
@@ -152,7 +171,7 @@ export default function BookingForm({ equipment, onClose }: BookingFormProps) {
             </div>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-5">
+          <form id="booking-form" onSubmit={handleSubmit} className="space-y-5">
             {/* Dates */}
             <div>
               <p className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
@@ -286,41 +305,64 @@ export default function BookingForm({ equipment, onClose }: BookingFormProps) {
               </div>
             </div>
 
+            {/* Consent */}
+            <label className="flex items-start gap-3 cursor-pointer group">
+              <input
+                type="checkbox"
+                checked={consent}
+                onChange={(e) => setConsent(e.target.checked)}
+                required
+                className="mt-0.5 w-4 h-4 rounded border-gray-300 text-[#2563EB] focus:ring-[#2563EB]/30 flex-shrink-0 cursor-pointer"
+              />
+              <span className="text-xs text-gray-400 leading-relaxed">
+                Я согласен(а) на обработку персональных данных в соответствии с{' '}
+                <a href="/privacy" target="_blank" className="text-[#2563EB] hover:underline">Политикой конфиденциальности</a>{' '}
+                согласно ФЗ-152. Данные используются только для оформления аренды и удаляются после её окончания.
+              </span>
+            </label>
+
             {/* Conditions */}
-            <div className="text-xs text-gray-400 space-y-1">
+            <div className="bg-blue-50 rounded-xl p-3 text-xs text-blue-800 space-y-1">
+              <p className="font-semibold mb-1.5">Что потребуется при получении:</p>
+              <p>• Фото первой страницы паспорта и страницы с пропиской</p>
               <p>• Оплата при получении оборудования</p>
-              <p>• Возврат в указанные сроки обязателен</p>
               <p>• Мы перезвоним для подтверждения</p>
+              <a href="/delivery" target="_blank" className="inline-block mt-1.5 text-[#2563EB] hover:underline font-medium">
+                Подробнее об условиях аренды →
+              </a>
             </div>
 
-            {/* Actions */}
-            <div className="flex gap-3 pt-1">
-              <button
-                type="button"
-                onClick={onClose}
-                className="btn-secondary flex-1"
-              >
-                Отмена
-              </button>
-              <button
-                type="submit"
-                disabled={createBookingMutation.isPending || !totalPrice}
-                className="btn-primary flex-1 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {createBookingMutation.isPending ? (
-                  <>
-                    <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" />
-                    Создание...
-                  </>
-                ) : (
-                  <>
-                    Забронировать
-                    <ChevronRight className="w-4 h-4" />
-                  </>
-                )}
-              </button>
-            </div>
           </form>
+        </div>
+
+        {/* Footer — всегда виден, на мобильном отступ под нижнее меню */}
+        <div className="flex-shrink-0 border-t border-gray-100 px-6 pt-4 pb-4 md:pb-4 md:rounded-b-2xl flex gap-3 bg-white" style={{paddingBottom: 'calc(16px + var(--mobile-nav-height, 0px))'}}>
+
+          <button
+            type="button"
+            onClick={onClose}
+            className="btn-secondary flex-1"
+          >
+            Отмена
+          </button>
+          <button
+            type="submit"
+            form="booking-form"
+            disabled={createBookingMutation.isPending || !totalPrice}
+            className="btn-primary flex-1 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {createBookingMutation.isPending ? (
+              <>
+                <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" />
+                Создание...
+              </>
+            ) : (
+              <>
+                Забронировать
+                <ChevronRight className="w-4 h-4" />
+              </>
+            )}
+          </button>
         </div>
       </div>
     </div>

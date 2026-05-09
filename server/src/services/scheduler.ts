@@ -2,6 +2,7 @@ import * as cron from 'node-cron'
 import { rentalModel } from '../models/Rental'
 import { telegramService } from './telegram'
 import { emailBackupService } from './emailBackup'
+import { vkNotifyService } from './vkNotify'
 
 class SchedulerService {
   private dailyReminderTask: cron.ScheduledTask | null = null
@@ -74,8 +75,10 @@ class SchedulerService {
       // Формируем сообщение
       const message = this.formatDailyRentalsMessage(tomorrowRentals, tomorrow)
 
-      // Отправляем в Telegram
-      await telegramService.sendDailyRentalsReminder(message)
+      await Promise.allSettled([
+        telegramService.sendDailyRentalsReminder(message),
+        vkNotifyService.sendMessage(message)
+      ])
 
       console.log(`✅ Уведомление о ${tomorrowRentals.length} арендах отправлено`)
     } catch (error) {

@@ -116,7 +116,8 @@ export default function HomePage() {
       />
 
       {/* ── Mobile Hero ── */}
-      <section className="md:hidden px-4 pt-4 pb-3">
+      <section className="md:hidden pt-4 pb-3">
+        <div className="container mx-auto px-4">
         <div className="relative rounded-2xl overflow-hidden p-5 min-h-[180px] flex flex-col justify-between"
           style={{ background: 'linear-gradient(135deg, #f0f4ff 0%, #e8eeff 40%, #ede9fe 100%)' }}>
           <div className="absolute top-0 right-0 w-48 h-48 rounded-full pointer-events-none"
@@ -137,6 +138,7 @@ export default function HomePage() {
               Открыть каталог <ChevronRight className="w-4 h-4" />
             </button>
           </div>
+        </div>
         </div>
       </section>
 
@@ -222,7 +224,7 @@ export default function HomePage() {
                       onClick={() => document.getElementById('catalog')?.scrollIntoView({ behavior: 'smooth' })}
                       className="btn-primary"
                       style={{ padding: '10px 20px', fontSize: '14px', borderRadius: '12px' }}>
-                      В каталог →
+                      В каталог <ChevronRight className="w-4 h-4" />
                     </button>
                   </div>
                 </div>
@@ -469,7 +471,8 @@ export default function HomePage() {
             </div>
             <div className="hidden md:grid grid-cols-1 gap-3">
               {[
-                { icon: '📍', label: 'АДРЕС ОФИСА', value: 'ул. Волжский бульвар, 51с15' },
+                { icon: '📍', label: 'ОФИС 1 — М. ВОЛЖСКАЯ', value: 'Волжский бульвар, 51с15' },
+                { icon: '📍', label: 'ОФИС 2 — М. ДИНАМО', value: 'ул. Расковой, 1' },
                 { icon: '⏰', label: 'ЧАСЫ РАБОТЫ', value: 'Круглосуточно, 24/7' },
                 { icon: '✉️', label: 'EMAIL', value: 'alkhimovmv@yandex.ru' },
               ].map((item) => (

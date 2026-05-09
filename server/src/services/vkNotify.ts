@@ -60,6 +60,17 @@ class VkNotifyService {
     }
   }
 
+  async sendMessage(text: string) {
+    if (!this.vk || !this.peerId) return
+    try {
+      const message = text.replace(/<[^>]+>/g, '')
+      await this.vk.api.messages.send({ peer_id: this.peerId, message, random_id: Date.now() })
+      console.log('✅ VK сообщение отправлено')
+    } catch (error) {
+      console.error('❌ Ошибка отправки VK сообщения:', error)
+    }
+  }
+
   async sendContactMessage(data: {
     name: string
     phone: string

@@ -83,7 +83,7 @@ export default function AboutPage() {
 
           {/* Stats */}
           <div className="rounded-3xl bg-gradient-to-br from-[#2563EB] via-[#4F46E5] to-[#7C3AED] p-12 text-white text-center">
-            <h2 className="text-2xl md:text-3xl font-bold mb-2">Наши достижения</h2>
+            <h2 className="text-2xl md:text-3xl font-bold mb-2 text-white">Наши достижения</h2>
             <p className="text-blue-200 text-sm mb-10">Цифры, которые говорят о нашем опыте и надёжности</p>
             <div className="grid md:grid-cols-3 gap-6">
               {[

@@ -99,14 +99,13 @@ export default function Footer() {
         </div>
 
         <div className="border-t border-gray-800 mt-6 pt-5 flex flex-col sm:flex-row justify-between items-center gap-3">
-          <p className="text-gray-600 text-xs">© 2024 ВозьмиМеня. Все права защищены.</p>
-          <div className="flex gap-5">
-            <Link to="/privacy" className="text-gray-600 hover:text-gray-400 text-xs transition-colors">
-              Политика конфиденциальности
-            </Link>
-            <Link to="/terms" className="text-gray-600 hover:text-gray-400 text-xs transition-colors">
-              Условия использования
-            </Link>
+          <p className="text-gray-600 text-xs">© 2024 ИП Алхимова С.В. Все права защищены.</p>
+          <div className="flex flex-wrap gap-4 justify-center">
+            <Link to="/offer" className="text-gray-600 hover:text-gray-400 text-xs transition-colors">Договор оферты</Link>
+            <Link to="/rental-agreement" className="text-gray-600 hover:text-gray-400 text-xs transition-colors">Договор аренды</Link>
+            <Link to="/privacy" className="text-gray-600 hover:text-gray-400 text-xs transition-colors">Политика конфиденциальности</Link>
+            <Link to="/terms" className="text-gray-600 hover:text-gray-400 text-xs transition-colors">Условия использования</Link>
+            <Link to="/requisites" className="text-gray-600 hover:text-gray-400 text-xs transition-colors">Реквизиты</Link>
           </div>
         </div>
       </div>

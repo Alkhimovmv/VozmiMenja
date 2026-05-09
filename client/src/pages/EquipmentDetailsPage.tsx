@@ -214,6 +214,12 @@ export default function EquipmentDetailsPage() {
                   Перезвоним за 15 мин
                 </span>
               </div>
+
+              {/* Conditions hint */}
+              <div className="mt-3 text-center text-xs text-muted">
+                Для получения потребуется фото паспорта.{' '}
+                <a href="/delivery" className="text-[#2563EB] hover:underline">Условия аренды →</a>
+              </div>
             </div>
 
             {/* Phone CTA */}

@@ -3,6 +3,7 @@ import { useEffect, lazy, Suspense } from 'react'
 import { Toaster } from 'react-hot-toast'
 import Layout from './components/layout/Layout'
 import FloatingActions from './components/FloatingActions'
+import CookieBanner from './components/CookieBanner'
 import HomePage from './pages/HomePage'
 
 
@@ -13,6 +14,8 @@ const ContactPage = lazy(() => import('./pages/ContactPage'))
 const DeliveryPage = lazy(() => import('./pages/DeliveryPage'))
 const PrivacyPolicyPage = lazy(() => import('./pages/PrivacyPolicyPage'))
 const TermsOfServicePage = lazy(() => import('./pages/TermsOfServicePage'))
+const OfferPage = lazy(() => import('./pages/OfferPage'))
+const RequisitesPage = lazy(() => import('./pages/RequisitesPage'))
 const FAQPage = lazy(() => import('./pages/FAQPage'))
 const AdminLoginPage = lazy(() => import('./pages/AdminLoginPage'))
 const AdminDashboardPage = lazy(() => import('./pages/AdminDashboardPage'))
@@ -42,6 +45,8 @@ const LockersPage = lazy(() => import('./pages/admin/LockersPage'))
 
 // Настройка офисов
 const OfficesPage = lazy(() => import('./pages/admin/OfficesPage'))
+const NotFoundPage = lazy(() => import('./pages/NotFoundPage'))
+const RentalAgreementPage = lazy(() => import('./pages/RentalAgreementPage'))
 
 // Компонент загрузки
 const PageLoader = () => (
@@ -94,6 +99,7 @@ function App() {
       />
       <ScrollToTop />
       {!isAdminRoute && <FloatingActions />}
+      {!isAdminRoute && <CookieBanner />}
       <Suspense fallback={<PageLoader />}>
         <Routes>
           {/* Admin routes without layout */}
@@ -132,7 +138,11 @@ function App() {
                 <Route path="/delivery" element={<DeliveryPage />} />
                 <Route path="/privacy" element={<PrivacyPolicyPage />} />
                 <Route path="/terms" element={<TermsOfServicePage />} />
+                <Route path="/offer" element={<OfferPage />} />
+                <Route path="/requisites" element={<RequisitesPage />} />
                 <Route path="/faq" element={<FAQPage />} />
+                <Route path="/rental-agreement" element={<RentalAgreementPage />} />
+                <Route path="*" element={<NotFoundPage />} />
               </Routes>
             </Layout>
           } />

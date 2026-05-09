@@ -67,7 +67,7 @@
   <!-- Политика конфиденциальности -->
   <url>
     <loc>https://vozmimenya.ru/privacy</loc>
-    <lastmod>2025-10-06</lastmod>
+    <lastmod>2026-05-09</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.3</priority>
   </url>
@@ -75,7 +75,23 @@
   <!-- Условия использования -->
   <url>
     <loc>https://vozmimenya.ru/terms</loc>
-    <lastmod>2025-10-06</lastmod>
+    <lastmod>2026-05-09</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
+  </url>
+
+  <!-- Договор оферты -->
+  <url>
+    <loc>https://vozmimenya.ru/offer</loc>
+    <lastmod>2026-05-09</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
+  </url>
+
+  <!-- Реквизиты -->
+  <url>
+    <loc>https://vozmimenya.ru/requisites</loc>
+    <lastmod>2026-05-09</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.3</priority>
   </url>

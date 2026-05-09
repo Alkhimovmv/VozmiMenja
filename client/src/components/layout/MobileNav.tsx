@@ -1,25 +1,11 @@
-import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { Home, Grid3X3, Info, Truck, Phone, HelpCircle } from 'lucide-react'
+import { Link, useLocation } from 'react-router-dom'
+import { Home, Info, Truck, Phone, HelpCircle } from 'lucide-react'
 
 export default function MobileNav() {
   const { pathname } = useLocation()
-  const navigate = useNavigate()
-
-  const handleCatalog = (e: React.MouseEvent) => {
-    e.preventDefault()
-    if (pathname === '/') {
-      document.getElementById('catalog')?.scrollIntoView({ behavior: 'smooth' })
-    } else {
-      navigate('/')
-      setTimeout(() => {
-        document.getElementById('catalog')?.scrollIntoView({ behavior: 'smooth' })
-      }, 300)
-    }
-  }
 
   const tabs = [
     { to: '/', icon: Home, label: 'Главная' },
-    { to: '/#catalog', icon: Grid3X3, label: 'Каталог', onClick: handleCatalog },
     { to: '/about', icon: Info, label: 'О нас' },
     { to: '/delivery', icon: Truck, label: 'Доставка' },
     { to: '/contact', icon: Phone, label: 'Контакты' },

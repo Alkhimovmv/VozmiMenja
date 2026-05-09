@@ -139,7 +139,7 @@ export default function ContactPage() {
               {/* Socials */}
               <div>
                 <h3 className="font-bold text-gray-900 mb-3">Мы в социальных сетях</h3>
-                <div className="flex gap-3">
+                <div className="flex gap-2">
                   <a href="https://t.me/VozmiMenyaRent" target="_blank" rel="noopener noreferrer"
                     className="w-12 h-12 bg-[#2AABEE] rounded-xl flex items-center justify-center text-white hover:opacity-90 transition-opacity">
                     <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
@@ -153,13 +153,13 @@ export default function ContactPage() {
                     </svg>
                   </a>
                   <a href="https://max.ru/+79933636464" target="_blank" rel="noopener noreferrer"
-                    className="w-12 h-12 bg-white border border-gray-200 rounded-xl flex items-center justify-center hover:shadow-sm transition-shadow">
-                    <img src={maxIcon} alt="Max" className="w-7 h-7 rounded-lg" />
+                    className="w-12 h-12 bg-white border border-gray-200 rounded-xl flex items-center justify-center hover:shadow-sm transition-shadow overflow-hidden">
+                    <img src={maxIcon} alt="Max" className="w-7 h-7 object-contain" />
                   </a>
                   <a href="https://www.avito.ru/brands/bec2558749c417a5576049cbce277ace/all?page_from=from_item_card&iid=7408898363&sellerId=f68e169e975bcc285ceb9bab886e60f3"
                     target="_blank" rel="noopener noreferrer"
-                    className="w-12 h-12 bg-white border border-gray-200 rounded-xl flex items-center justify-center hover:shadow-sm transition-shadow">
-                    <img src={avitoIcon} alt="Avito" className="w-7 h-7 rounded-lg" />
+                    className="w-12 h-12 bg-white border border-gray-200 rounded-xl flex items-center justify-center hover:shadow-sm transition-shadow overflow-hidden">
+                    <img src={avitoIcon} alt="Avito" className="w-7 h-7 object-contain" />
                   </a>
                 </div>
               </div>
