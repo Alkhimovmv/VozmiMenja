@@ -6,7 +6,7 @@ import { emailBackupService } from '../services/emailBackup'
 
 const router = Router()
 
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || '20031997'
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD!
 
 // Логин для админки аренды
 router.post('/auth/login', async (req: Request, res: Response) => {
@@ -99,30 +99,21 @@ router.post('/send-db-backup', authMiddleware, async (req: Request, res: Respons
 // Загрузить изображения
 router.post('/upload', authMiddleware, upload.array('images', 10), async (req: Request, res: Response) => {
   try {
-    console.log('📸 Upload route called')
-    console.log('   Files received:', req.files ? (req.files as any[]).length : 0)
-    console.log('   User:', req.headers.authorization ? 'Authenticated' : 'Not authenticated')
-
     if (!req.files || !Array.isArray(req.files)) {
-      console.error('❌ No files in request')
       return res.status(400).json({
         success: false,
         message: 'No files uploaded'
       })
     }
 
-    // Возвращаем относительные пути вместо полных URL
-    // Frontend сам добавит нужный домен через API_SERVER_URL
     const imageUrls = req.files.map(file => `/uploads/${file.filename}`)
-    console.log('✅ Files uploaded successfully:', imageUrls)
 
     res.json({
       success: true,
       data: imageUrls
     })
   } catch (error) {
-    console.error('❌ Upload error:', error)
-    console.error('   Error stack:', error instanceof Error ? error.stack : 'No stack')
+    console.error('Upload error:', error)
     res.status(500).json({
       success: false,
       message: 'Failed to upload images',

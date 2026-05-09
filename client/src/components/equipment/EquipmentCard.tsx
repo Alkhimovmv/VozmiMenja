@@ -1,26 +1,22 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
+import { Heart } from 'lucide-react'
 import type { Equipment } from '../../types'
 import { getImageUrl } from '../../lib/utils'
 import BookingForm from './BookingForm'
 
 interface EquipmentCardProps {
   equipment: Equipment
-  priority?: boolean // Для первого изображения на странице (LCP оптимизация)
+  priority?: boolean
 }
 
 export default function EquipmentCard({ equipment, priority = false }: EquipmentCardProps) {
   const [showBookingForm, setShowBookingForm] = useState(false)
+  const [liked, setLiked] = useState(false)
 
-  const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('ru-RU', {
-      style: 'currency',
-      currency: 'RUB',
-      minimumFractionDigits: 0,
-    }).format(price)
-  }
+  const formatPrice = (price: number) =>
+    new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', minimumFractionDigits: 0 }).format(price)
 
-  // Расчет минимальной цены из pricing
   const getMinPrice = () => {
     if (equipment.pricing) {
       const prices = [
@@ -30,82 +26,105 @@ export default function EquipmentCard({ equipment, priority = false }: Equipment
         equipment.pricing.days3,
         equipment.pricing.days7,
         equipment.pricing.days14,
-        equipment.pricing.days30
-      ].filter(p => p > 0) // Фильтруем нулевые значения
+        equipment.pricing.days30,
+      ].filter((p) => p > 0)
       return prices.length > 0 ? Math.min(...prices) : equipment.pricePerDay
     }
     return equipment.pricePerDay
   }
 
+  const getWeekPrice = () => {
+    if (equipment.pricing?.days7 && equipment.pricing.days7 > 0) {
+      return equipment.pricing.days7 * 7
+    }
+    return getMinPrice() * 7
+  }
+
   return (
     <>
-      <div className="group bg-white rounded-2xl shadow-sm border border-gray-200 hover:shadow-2xl hover:border-primary-200 transition-all duration-300 transform hover:-translate-y-1">
-        {/* Кликабельная область - изображение и информация */}
-        <Link to={`/equipment/${equipment.id}`} className="block">
-          {/* Image */}
-          <div className="relative bg-gray-50 rounded-t-2xl overflow-hidden aspect-[4/3]">
+      {/* ── Mobile: горизонтальная карточка ── */}
+      <div className="md:hidden group bg-white rounded-2xl border border-gray-100 overflow-hidden active:scale-[0.99] transition-transform">
+        <Link to={`/equipment/${equipment.id}`} className="flex gap-3 p-3">
+          <div className="relative flex-shrink-0 w-24 h-24 rounded-xl overflow-hidden bg-gray-50">
             <img
               src={getImageUrl(equipment.images[0])}
-              alt={`Аренда ${equipment.name} в Москве - ${equipment.category}`}
-              className="w-full h-full object-contain transform group-hover:scale-105 transition-transform duration-300"
-              loading={priority ? "eager" : "lazy"}
+              alt={`Аренда ${equipment.name}`}
+              className="w-full h-full object-contain"
+              loading={priority ? 'eager' : 'lazy'}
               decoding="async"
-              fetchPriority={priority ? "high" : "auto"}
-              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, (max-width: 1280px) 33vw, 25vw"
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
           </div>
-
-          {/* Content */}
-          <div className="p-5">
-            {/* Category */}
-            <div className="inline-block px-3 py-1 text-xs font-medium text-primary-600 bg-primary-50 rounded-full mb-3">
-              {equipment.category}
+          <div className="flex-1 min-w-0 flex flex-col justify-between py-0.5">
+            <div>
+              <h3 className="font-bold text-gray-900 text-sm line-clamp-1">{equipment.name}</h3>
+              <p className="text-xs text-gray-400 line-clamp-1 mt-0.5">{equipment.description}</p>
             </div>
-
-            {/* Title */}
-            <h3 className="text-lg font-bold text-gray-900 mb-2 line-clamp-2 group-hover:text-primary-600 transition-colors">
-              {equipment.name}
-            </h3>
-
-            {/* Description */}
-            <p className="text-gray-600 text-sm mb-4 line-clamp-2">
-              {equipment.description}
-            </p>
-
-            {/* Price */}
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-baseline gap-1 whitespace-nowrap">
-                <span className="text-2xl font-bold bg-gradient-to-r from-primary-600 to-purple-600 bg-clip-text text-transparent">
-                  от {formatPrice(getMinPrice())}
-                </span>
-                <span className="text-sm font-normal text-gray-500">/день</span>
+            <div className="flex items-end justify-between mt-2">
+              <div>
+                <div className="text-base font-bold text-gray-900">
+                  {formatPrice(getMinPrice())}
+                  <span className="text-xs font-normal text-gray-400 ml-0.5">/сут</span>
+                </div>
+                <div className="text-[11px] text-gray-400">от {formatPrice(getWeekPrice())}/нед</div>
               </div>
+              <button
+                onClick={(e) => { e.preventDefault(); setShowBookingForm(true) }}
+                className="text-xs font-semibold text-primary bg-blue-50 px-3 py-1.5 rounded-xl"
+              >
+                Забронировать
+              </button>
             </div>
           </div>
         </Link>
+      </div>
 
-        {/* Action button - вне Link чтобы не переходить на детали */}
-        <div className="p-5 pt-0">
+      {/* ── Desktop: вертикальная карточка ── */}
+      <div className="hidden md:block group bg-white rounded-2xl border border-gray-100 hover:shadow-lg transition-all duration-200 overflow-hidden">
+        <Link to={`/equipment/${equipment.id}`} className="block relative bg-gray-50 aspect-[4/3] overflow-hidden">
+          <img
+            src={getImageUrl(equipment.images[0])}
+            alt={`Аренда ${equipment.name}`}
+            className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-300"
+            loading={priority ? 'eager' : 'lazy'}
+            decoding="async"
+            fetchPriority={priority ? 'high' : 'auto'}
+          />
           <button
-            className="w-full py-3 px-4 rounded-xl font-semibold transition-all duration-200 bg-gradient-to-r from-primary-600 to-primary-700 text-white hover:from-primary-700 hover:to-primary-800 shadow-md hover:shadow-xl transform hover:scale-[1.02]"
-            onClick={(e) => {
-              e.preventDefault()
-              e.stopPropagation()
-              setShowBookingForm(true)
-            }}
+            onClick={(e) => { e.preventDefault(); setLiked(!liked) }}
+            className="absolute top-3 right-3 w-8 h-8 bg-white rounded-full flex items-center justify-center shadow-sm hover:scale-110 transition-transform"
           >
-            Арендовать
+            <Heart className={`w-4 h-4 ${liked ? 'fill-red-500 text-red-500' : 'text-gray-400'}`} />
           </button>
+        </Link>
+        <div className="p-4">
+          <Link to={`/equipment/${equipment.id}`}>
+            <h3 className="font-bold text-gray-900 text-sm mb-1 line-clamp-1 hover:text-[#2563EB] transition-colors">
+              {equipment.name}
+            </h3>
+            <p className="text-xs text-gray-500 mb-3 line-clamp-1">{equipment.description}</p>
+          </Link>
+          <div className="flex items-end justify-between">
+            <div>
+              <div className="text-lg font-bold text-gray-900">
+                <span className="text-xs font-normal text-gray-500 mr-0.5">от</span>
+                {formatPrice(getMinPrice())}
+                <span className="text-xs font-normal text-gray-500">/сут</span>
+              </div>
+              <div className="text-xs text-gray-400">от {formatPrice(getWeekPrice())}/нед</div>
+            </div>
+            <button
+              onClick={(e) => { e.preventDefault(); setShowBookingForm(true) }}
+              className="btn-primary text-xs px-4 py-2"
+              style={{ borderRadius: '10px', padding: '8px 16px', fontSize: '13px' }}
+            >
+              Забронировать
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* Booking Modal */}
       {showBookingForm && (
-        <BookingForm
-          equipment={equipment}
-          onClose={() => setShowBookingForm(false)}
-        />
+        <BookingForm equipment={equipment} onClose={() => setShowBookingForm(false)} />
       )}
     </>
   )

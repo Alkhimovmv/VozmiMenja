@@ -5,6 +5,14 @@ import { authMiddleware } from '../middleware/auth'
 
 const router = Router()
 
+function parseLockerRows(raw: string | null): any[] {
+  try {
+    return JSON.parse(raw || '[]')
+  } catch {
+    return []
+  }
+}
+
 const lockerRowSchema = z.object({
   row: z.number().int().positive(),
   count: z.number().int().min(1).max(20),
@@ -25,7 +33,7 @@ router.get('/', authMiddleware, async (req: Request, res: Response) => {
       id: o.id,
       name: o.name,
       address: o.address || '',
-      locker_rows: JSON.parse(o.locker_rows || '[]'),
+      locker_rows: parseLockerRows(o.locker_rows),
       created_at: o.created_at,
       updated_at: o.updated_at,
     }))
@@ -59,7 +67,7 @@ router.post('/', authMiddleware, async (req: Request, res: Response) => {
       id: office.id,
       name: office.name,
       address: office.address || '',
-      locker_rows: JSON.parse(office.locker_rows || '[]'),
+      locker_rows: parseLockerRows(office.locker_rows),
     })
   } catch (error) {
     console.error('Error creating office:', error)
@@ -92,7 +100,7 @@ router.put('/:id', authMiddleware, async (req: Request, res: Response) => {
       id: office.id,
       name: office.name,
       address: office.address || '',
-      locker_rows: JSON.parse(office.locker_rows || '[]'),
+      locker_rows: parseLockerRows(office.locker_rows),
     })
   } catch (error) {
     console.error('Error updating office:', error)

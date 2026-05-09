@@ -1,9 +1,13 @@
 import { Request, Response, NextFunction } from 'express'
 
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || '20031997'
-
 // Middleware для проверки авторизации
 export function authMiddleware(req: Request, res: Response, next: NextFunction) {
+  const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD
+  if (!ADMIN_PASSWORD) {
+    console.error('ADMIN_PASSWORD environment variable is not set')
+    return res.status(500).json({ success: false, message: 'Server misconfiguration' })
+  }
+
   const authHeader = req.headers.authorization
 
   if (!authHeader || !authHeader.startsWith('Bearer ')) {

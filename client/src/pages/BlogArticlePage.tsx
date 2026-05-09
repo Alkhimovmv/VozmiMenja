@@ -14,24 +14,17 @@ export default function BlogArticlePage() {
   const [relatedArticles, setRelatedArticles] = useState<Article[]>([])
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    if (slug) {
-      loadArticle()
-    }
-  }, [slug])
+  useEffect(() => { if (slug) loadArticle() }, [slug])
 
   const loadArticle = async () => {
     try {
       setLoading(true)
       if (!slug) return
-
       const data = await articlesApi.getBySlug(slug)
       setArticle(data)
-
-      // Load related articles from the same category
       if (data.category) {
         const related = await articlesApi.getByCategory(data.category)
-        setRelatedArticles(related.filter(a => a.id !== data.id).slice(0, 3))
+        setRelatedArticles(related.filter((a) => a.id !== data.id).slice(0, 3))
       }
     } catch (error) {
       console.error('Error loading article:', error)
@@ -41,26 +34,18 @@ export default function BlogArticlePage() {
     }
   }
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString)
-    return date.toLocaleDateString('ru-RU', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    })
-  }
+  const formatDate = (dateString: string) =>
+    new Date(dateString).toLocaleDateString('ru-RU', { year: 'numeric', month: 'long', day: 'numeric' })
 
-  const getTags = (tagsString: string | null) => {
-    if (!tagsString) return []
-    return tagsString.split(',').map(tag => tag.trim())
-  }
+  const getTags = (tagsString: string | null) =>
+    tagsString ? tagsString.split(',').map((t) => t.trim()) : []
 
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-primary-600 border-t-transparent"></div>
-          <p className="mt-4 text-gray-600">Загрузка статьи...</p>
+          <div className="inline-block animate-spin rounded-full h-10 w-10 border-4 border-[#2563EB] border-t-transparent"></div>
+          <p className="mt-4 text-gray-500 text-sm">Загрузка статьи...</p>
         </div>
       </div>
     )
@@ -71,38 +56,23 @@ export default function BlogArticlePage() {
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <h1 className="text-2xl font-bold text-gray-900 mb-4">Статья не найдена</h1>
-          <Link to="/blog" className="text-primary-600 hover:text-primary-700 font-semibold">
-            Вернуться к блогу
-          </Link>
+          <Link to="/blog" className="text-[#2563EB] hover:underline font-semibold">Вернуться к блогу</Link>
         </div>
       </div>
     )
   }
 
   const structuredData = {
-    "@context": "https://schema.org",
-    "@type": "BlogPosting",
-    "headline": article.title,
-    "description": article.excerpt,
-    "image": article.image_url || "https://vozmimenya.ru/og-image.jpg",
-    "datePublished": article.created_at,
-    "dateModified": article.updated_at,
-    "author": {
-      "@type": "Organization",
-      "name": article.author
-    },
-    "publisher": {
-      "@type": "Organization",
-      "name": "ВозьмиМеня",
-      "logo": {
-        "@type": "ImageObject",
-        "url": "https://vozmimenya.ru/logo.png"
-      }
-    },
-    "mainEntityOfPage": {
-      "@type": "WebPage",
-      "@id": `https://vozmimenya.ru/blog/${article.slug}`
-    }
+    '@context': 'https://schema.org',
+    '@type': 'BlogPosting',
+    headline: article.title,
+    description: article.excerpt,
+    image: article.image_url || 'https://vozmimenya.ru/og-image.jpg',
+    datePublished: article.created_at,
+    dateModified: article.updated_at,
+    author: { '@type': 'Organization', name: article.author },
+    publisher: { '@type': 'Organization', name: 'ВозьмиМеня', logo: { '@type': 'ImageObject', url: 'https://vozmimenya.ru/logo.png' } },
+    mainEntityOfPage: { '@type': 'WebPage', '@id': `https://vozmimenya.ru/blog/${article.slug}` },
   }
 
   return (
@@ -117,142 +87,79 @@ export default function BlogArticlePage() {
         structuredData={structuredData}
       />
 
-      <article className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
-        {/* Header */}
-        <div className="bg-white border-b">
-          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-            <Link
-              to="/blog"
-              className="inline-flex items-center gap-2 text-gray-600 hover:text-primary-600 font-medium transition-colors mb-4"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              Вернуться к блогу
+      <article className="min-h-screen bg-[#F8FAFC]">
+        {/* Back bar */}
+        <div className="bg-white border-b border-gray-100">
+          <div className="max-w-4xl mx-auto px-4 py-4">
+            <Link to="/blog" className="inline-flex items-center gap-2 text-gray-500 hover:text-gray-900 text-sm font-medium transition-colors">
+              <ArrowLeft className="w-4 h-4" /> Вернуться к блогу
             </Link>
           </div>
         </div>
 
-        {/* Article Content */}
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-          {/* Meta Info */}
-          <div className="mb-6">
-            <span className="inline-block px-3 py-1 bg-primary-100 text-primary-700 text-sm font-semibold rounded-full mb-4">
-              {article.category}
-            </span>
-
-            <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6 leading-tight">
-              {article.title}
-            </h1>
-
-            <div className="flex flex-wrap gap-6 text-gray-600 text-sm mb-6">
-              <span className="flex items-center gap-2">
-                <Calendar className="w-4 h-4" />
-                {formatDate(article.created_at)}
-              </span>
-              <span className="flex items-center gap-2">
-                <Eye className="w-4 h-4" />
-                {article.views} просмотров
-              </span>
-              <span className="flex items-center gap-2">
-                <User className="w-4 h-4" />
-                {article.author}
-              </span>
-            </div>
-
-            {/* Featured Image */}
-            {article.image_url && (
-              <div className="mb-8 rounded-2xl overflow-hidden shadow-lg">
-                <img
-                  src={article.image_url}
-                  alt={article.title}
-                  className="w-full h-auto"
-                />
-              </div>
-            )}
-
-            {/* Excerpt */}
-            <p className="text-xl text-gray-700 leading-relaxed mb-8 p-6 bg-primary-50 rounded-xl border-l-4 border-primary-600">
-              {article.excerpt}
-            </p>
+        <div className="max-w-4xl mx-auto px-4 py-10">
+          {/* Meta */}
+          <span className="inline-block px-3 py-1 bg-blue-50 text-[#2563EB] text-xs font-semibold rounded-full mb-4">
+            {article.category}
+          </span>
+          <h1 className="text-3xl md:text-4xl font-extrabold text-gray-900 mb-5 leading-tight">{article.title}</h1>
+          <div className="flex flex-wrap gap-5 text-gray-400 text-sm mb-6">
+            <span className="flex items-center gap-1.5"><Calendar className="w-4 h-4" />{formatDate(article.created_at)}</span>
+            <span className="flex items-center gap-1.5"><Eye className="w-4 h-4" />{article.views} просмотров</span>
+            <span className="flex items-center gap-1.5"><User className="w-4 h-4" />{article.author}</span>
           </div>
 
-          {/* Article Body with Markdown */}
+          {article.image_url && (
+            <div className="mb-8 rounded-2xl overflow-hidden">
+              <img src={article.image_url} alt={article.title} className="w-full h-auto" />
+            </div>
+          )}
+
+          <p className="text-lg text-gray-700 leading-relaxed mb-8 p-5 bg-blue-50 rounded-2xl border-l-4 border-[#2563EB]">
+            {article.excerpt}
+          </p>
+
+          {/* Body */}
           <div className="prose prose-lg max-w-none
             prose-headings:font-bold prose-headings:text-gray-900
-            prose-h1:text-4xl prose-h1:mt-8 prose-h1:mb-3
-            prose-h2:text-3xl prose-h2:mt-8 prose-h2:mb-3 prose-h2:pb-2 prose-h2:border-b prose-h2:border-gray-200
-            prose-h3:text-2xl prose-h3:mt-6 prose-h3:mb-2 prose-h3:text-primary-700
-            prose-h4:text-xl prose-h4:mt-5 prose-h4:mb-2 prose-h4:text-gray-800
-            prose-p:text-gray-700 prose-p:text-base prose-p:leading-relaxed prose-p:mb-3
-            prose-a:text-primary-600 prose-a:font-medium prose-a:no-underline hover:prose-a:underline hover:prose-a:text-primary-700
-            prose-strong:text-gray-900 prose-strong:font-bold
-            prose-ul:my-3 prose-ul:space-y-1.5 prose-ul:pl-6
-            prose-ol:my-3 prose-ol:space-y-1.5 prose-ol:pl-6
-            prose-li:text-gray-700 prose-li:text-base prose-li:leading-relaxed
-            prose-blockquote:border-l-4 prose-blockquote:border-primary-600 prose-blockquote:bg-primary-50 prose-blockquote:py-2 prose-blockquote:px-4 prose-blockquote:my-3 prose-blockquote:not-italic prose-blockquote:text-gray-700
-            prose-code:text-primary-600 prose-code:bg-gray-100 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:text-sm
-            prose-pre:bg-gray-900 prose-pre:text-gray-100 prose-pre:p-4 prose-pre:rounded-lg prose-pre:my-3
-            prose-table:w-full prose-table:border-collapse prose-table:border-2 prose-table:border-gray-300 prose-table:my-5 prose-table:shadow-md
-            prose-thead:bg-primary-50
-            prose-th:border-2 prose-th:border-gray-300 prose-th:p-2.5 prose-th:font-bold prose-th:text-left prose-th:text-gray-900
-            prose-td:border-2 prose-td:border-gray-300 prose-td:p-2.5 prose-td:text-gray-700
-            prose-tr:even:bg-gray-50
-            prose-hr:my-6 prose-hr:border-gray-300
+            prose-h2:text-2xl prose-h2:mt-8 prose-h2:mb-3 prose-h2:pb-2 prose-h2:border-b prose-h2:border-gray-100
+            prose-h3:text-xl prose-h3:mt-6 prose-h3:mb-2 prose-h3:text-[#2563EB]
+            prose-p:text-gray-600 prose-p:leading-relaxed prose-p:mb-3
+            prose-a:text-[#2563EB] prose-a:no-underline hover:prose-a:underline
+            prose-strong:text-gray-900
+            prose-ul:my-3 prose-ol:my-3
+            prose-li:text-gray-600
+            prose-blockquote:border-l-4 prose-blockquote:border-[#2563EB] prose-blockquote:bg-blue-50 prose-blockquote:py-2 prose-blockquote:px-4 prose-blockquote:rounded-r-xl
+            prose-code:text-[#2563EB] prose-code:bg-gray-100 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:text-sm
             prose-img:hidden">
-            <ReactMarkdown remarkPlugins={[remarkGfm]}>
-              {article.content}
-            </ReactMarkdown>
+            <ReactMarkdown remarkPlugins={[remarkGfm]}>{article.content}</ReactMarkdown>
           </div>
 
           {/* Tags */}
           {article.tags && (
-            <div className="mt-12 pt-8 border-t">
-              <div className="flex flex-wrap gap-2">
-                <Tag className="w-5 h-5 text-gray-400" />
-                {getTags(article.tags).map(tag => (
-                  <span
-                    key={tag}
-                    className="px-3 py-1 bg-gray-100 text-gray-700 text-sm rounded-full hover:bg-gray-200 transition-colors"
-                  >
-                    {tag}
-                  </span>
-                ))}
-              </div>
+            <div className="mt-10 pt-8 border-t border-gray-100 flex flex-wrap gap-2 items-center">
+              <Tag className="w-4 h-4 text-gray-400" />
+              {getTags(article.tags).map((tag) => (
+                <span key={tag} className="px-3 py-1 bg-gray-100 text-gray-600 text-sm rounded-full">{tag}</span>
+              ))}
             </div>
           )}
 
-          {/* Related Articles */}
+          {/* Related */}
           {relatedArticles.length > 0 && (
-            <div className="mt-16 pt-12 border-t">
-              <h2 className="text-3xl font-bold text-gray-900 mb-8">
-                Похожие статьи
-              </h2>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {relatedArticles.map(relatedArticle => (
-                  <Link
-                    key={relatedArticle.id}
-                    to={`/blog/${relatedArticle.slug}`}
-                    className="group bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden"
-                  >
-                    {relatedArticle.image_url && (
-                      <div className="h-48 overflow-hidden">
-                        <img
-                          src={relatedArticle.image_url}
-                          alt={relatedArticle.title}
-                          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                        />
+            <div className="mt-14 pt-10 border-t border-gray-100">
+              <h2 className="text-2xl font-bold text-gray-900 mb-6">Похожие статьи</h2>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                {relatedArticles.map((rel) => (
+                  <Link key={rel.id} to={`/blog/${rel.slug}`} className="group bg-white rounded-2xl border border-gray-100 hover:shadow-md transition-shadow overflow-hidden">
+                    {rel.image_url && (
+                      <div className="h-40 overflow-hidden">
+                        <img src={rel.image_url} alt={rel.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
                       </div>
                     )}
                     <div className="p-4">
-                      <h3 className="font-semibold text-gray-900 group-hover:text-primary-600 transition-colors line-clamp-2 mb-2">
-                        {relatedArticle.title}
-                      </h3>
-                      <p className="text-sm text-gray-600 line-clamp-2">
-                        {relatedArticle.excerpt}
-                      </p>
-                      <div className="mt-3 flex items-center gap-2 text-xs text-gray-500">
-                        <Eye className="w-3 h-3" />
-                        {relatedArticle.views} просмотров
-                      </div>
+                      <h3 className="font-bold text-gray-900 group-hover:text-[#2563EB] transition-colors line-clamp-2 mb-2 text-sm">{rel.title}</h3>
+                      <p className="text-xs text-gray-400 flex items-center gap-1"><Eye className="w-3 h-3" />{rel.views} просмотров</p>
                     </div>
                   </Link>
                 ))}
@@ -261,24 +168,16 @@ export default function BlogArticlePage() {
           )}
 
           {/* CTA */}
-          <div className="mt-16 bg-gradient-to-r from-primary-600 to-primary-700 rounded-2xl p-8 text-center text-white">
-            <h3 className="text-2xl font-bold mb-4">
-              Нужна помощь с выбором оборудования?
-            </h3>
-            <p className="text-primary-100 mb-6 max-w-2xl mx-auto">
+          <div className="mt-14 bg-gradient-to-br from-[#2563EB] via-[#4F46E5] to-[#7C3AED] rounded-2xl p-8 text-center text-white">
+            <h3 className="text-2xl font-bold mb-3">Нужна помощь с выбором оборудования?</h3>
+            <p className="text-blue-100 mb-6 max-w-xl mx-auto text-sm">
               Наши специалисты помогут подобрать идеальное оборудование для вашего проекта
             </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link
-                to="/contact"
-                className="px-8 py-3 bg-white text-primary-600 rounded-lg font-semibold hover:bg-gray-100 transition-colors"
-              >
+            <div className="flex flex-col sm:flex-row gap-3 justify-center">
+              <Link to="/contact" className="px-6 py-3 bg-white text-[#2563EB] rounded-xl font-semibold hover:bg-gray-50 transition-colors text-sm">
                 Связаться с нами
               </Link>
-              <a
-                href="tel:+79933636464"
-                className="px-8 py-3 bg-primary-500 text-white rounded-lg font-semibold hover:bg-primary-400 transition-colors"
-              >
+              <a href="tel:+79933636464" className="btn bg-white text-primary hover:bg-blue-50">
                 +7 (993) 363-64-64
               </a>
             </div>

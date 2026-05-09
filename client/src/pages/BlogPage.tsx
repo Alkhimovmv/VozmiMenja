@@ -11,21 +11,16 @@ export default function BlogPage() {
   const [loading, setLoading] = useState(true)
   const [selectedCategory, setSelectedCategory] = useState<string>('all')
 
-  useEffect(() => {
-    loadArticles()
-    loadPopularArticles()
-  }, [selectedCategory])
+  useEffect(() => { loadArticles() }, [selectedCategory])
+  useEffect(() => { loadPopularArticles() }, [])
 
   const loadArticles = async () => {
     try {
       setLoading(true)
-      if (selectedCategory === 'all') {
-        const data = await articlesApi.getAll()
-        setArticles(data)
-      } else {
-        const data = await articlesApi.getByCategory(selectedCategory)
-        setArticles(data)
-      }
+      const data = selectedCategory === 'all'
+        ? await articlesApi.getAll()
+        : await articlesApi.getByCategory(selectedCategory)
+      setArticles(data)
     } catch (error) {
       console.error('Error loading articles:', error)
     } finally {
@@ -42,21 +37,15 @@ export default function BlogPage() {
     }
   }
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString)
-    return date.toLocaleDateString('ru-RU', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    })
-  }
+  const formatDate = (dateString: string) =>
+    new Date(dateString).toLocaleDateString('ru-RU', { year: 'numeric', month: 'long', day: 'numeric' })
 
   const categories = [
     { id: 'all', name: 'Все статьи' },
     { id: 'Камеры', name: 'Камеры' },
     { id: 'Пылесосы', name: 'Пылесосы' },
     { id: 'Аудиооборудование', name: 'Аудиооборудование' },
-    { id: 'Общее', name: 'Общее' }
+    { id: 'Общее', name: 'Общее' },
   ]
 
   return (
@@ -67,125 +56,87 @@ export default function BlogPage() {
         keywords="блог аренда оборудования, гайды по съемке, советы по клинингу, подкастинг, видеография"
         url="https://vozmimenya.ru/blog"
         structuredData={{
-          "@context": "https://schema.org",
-          "@type": "Blog",
-          "name": "Блог ВозьмиМеня",
-          "description": "Статьи о прокате и использовании профессионального оборудования",
-          "url": "https://vozmimenya.ru/blog",
-          "publisher": {
-            "@type": "Organization",
-            "name": "ВозьмиМеня",
-            "logo": {
-              "@type": "ImageObject",
-              "url": "https://vozmimenya.ru/logo.png"
-            }
-          }
+          '@context': 'https://schema.org',
+          '@type': 'Blog',
+          name: 'Блог ВозьмиМеня',
+          description: 'Статьи о прокате и использовании профессионального оборудования',
+          url: 'https://vozmimenya.ru/blog',
+          publisher: { '@type': 'Organization', name: 'ВозьмиМеня', logo: { '@type': 'ImageObject', url: 'https://vozmimenya.ru/logo.png' } },
         }}
       />
 
-      <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
-        {/* Header */}
-        <div className="bg-gradient-to-r from-primary-600 to-primary-700 text-white py-16">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <h1 className="text-4xl md:text-5xl font-bold mb-4">
-              Блог ВозьмиМеня
-            </h1>
-            <p className="text-xl text-primary-100 max-w-3xl">
+      <div className="min-h-screen bg-[#F8FAFC]">
+        {/* Hero */}
+        <section className="bg-gradient-to-br from-[#2563EB] via-[#4F46E5] to-[#7C3AED] text-white py-16 md:py-20">
+          <div className="container mx-auto px-4">
+            <span className="inline-block text-xs font-semibold uppercase tracking-widest text-blue-200 mb-3">Полезное</span>
+            <h1 className="text-4xl md:text-5xl font-extrabold mb-4">Блог ВозьмиМеня</h1>
+            <p className="text-blue-100 text-lg max-w-2xl">
               Полезные статьи и гайды по выбору оборудования для съемки, уборки и записи звука.
               Профессиональные советы от экспертов проката.
             </p>
           </div>
-        </div>
+        </section>
 
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
-            {/* Main Content */}
+        <div className="container mx-auto px-4 py-10">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
+            {/* Main */}
             <div className="lg:col-span-2">
-              {/* Category Filter */}
-              <div className="mb-8 flex flex-wrap gap-3">
-                {categories.map(category => (
+              {/* Category filter */}
+              <div className="mb-8 flex flex-wrap gap-2">
+                {categories.map((cat) => (
                   <button
-                    key={category.id}
-                    onClick={() => setSelectedCategory(category.id)}
-                    className={`px-6 py-2.5 rounded-full font-medium transition-all duration-200 ${
-                      selectedCategory === category.id
-                        ? 'bg-primary-600 text-white shadow-lg shadow-primary-600/30'
-                        : 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-200'
+                    key={cat.id}
+                    onClick={() => setSelectedCategory(cat.id)}
+                    className={`px-5 py-2 rounded-xl text-sm font-semibold transition-colors ${
+                      selectedCategory === cat.id
+                        ? 'bg-[#2563EB] text-white'
+                        : 'bg-white border border-gray-200 text-gray-700 hover:border-gray-300'
                     }`}
                   >
-                    {category.name}
+                    {cat.name}
                   </button>
                 ))}
               </div>
 
-              {/* Articles Grid */}
               {loading ? (
-                <div className="text-center py-12">
-                  <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-primary-600 border-t-transparent"></div>
-                  <p className="mt-4 text-gray-600">Загрузка статей...</p>
+                <div className="text-center py-16">
+                  <div className="inline-block animate-spin rounded-full h-10 w-10 border-4 border-[#2563EB] border-t-transparent"></div>
+                  <p className="mt-4 text-gray-500 text-sm">Загрузка статей...</p>
                 </div>
               ) : articles.length === 0 ? (
-                <div className="text-center py-12 bg-white rounded-2xl shadow-sm">
-                  <p className="text-gray-600 text-lg">Статьи в этой категории пока не добавлены</p>
+                <div className="text-center py-16 bg-white rounded-2xl border border-gray-100">
+                  <p className="text-gray-500">Статьи в этой категории пока не добавлены</p>
                 </div>
               ) : (
-                <div className="space-y-8">
-                  {articles.map(article => (
-                    <article
-                      key={article.id}
-                      className="bg-white rounded-2xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden group"
-                    >
-                      <div className="md:flex md:max-w-full">
+                <div className="space-y-5">
+                  {articles.map((article) => (
+                    <article key={article.id} className="bg-white rounded-2xl border border-gray-100 hover:shadow-md transition-shadow overflow-hidden group">
+                      <div className="md:flex">
                         {article.image_url && (
-                          <div className="w-full md:w-80 md:min-w-80 md:max-w-80 h-64 md:h-72 overflow-hidden flex-shrink-0">
+                          <div className="w-full md:w-64 md:min-w-64 h-52 md:h-auto overflow-hidden flex-shrink-0">
                             <img
                               src={article.image_url}
                               alt={article.title}
-                              className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                             />
                           </div>
                         )}
-                        <div className={`p-6 flex-1 min-w-0 ${article.image_url ? '' : 'w-full'}`}>
-                          {/* Meta */}
-                          <div className="flex flex-wrap gap-4 mb-3 text-sm text-gray-500">
-                            <span className="flex items-center gap-1.5">
-                              <Calendar className="w-4 h-4" />
-                              {formatDate(article.created_at)}
-                            </span>
-                            <span className="flex items-center gap-1.5">
-                              <Eye className="w-4 h-4" />
-                              {article.views} просмотров
-                            </span>
-                            <span className="flex items-center gap-1.5">
-                              <User className="w-4 h-4" />
-                              {article.author}
-                            </span>
+                        <div className="p-6 flex-1">
+                          <div className="flex flex-wrap gap-3 mb-3 text-xs text-gray-400">
+                            <span className="flex items-center gap-1"><Calendar className="w-3.5 h-3.5" />{formatDate(article.created_at)}</span>
+                            <span className="flex items-center gap-1"><Eye className="w-3.5 h-3.5" />{article.views} просмотров</span>
+                            <span className="flex items-center gap-1"><User className="w-3.5 h-3.5" />{article.author}</span>
                           </div>
-
-                          {/* Category Badge */}
-                          <span className="inline-block px-3 py-1 bg-primary-100 text-primary-700 text-xs font-semibold rounded-full mb-3">
+                          <span className="inline-block px-2.5 py-1 bg-blue-50 text-[#2563EB] text-xs font-semibold rounded-full mb-3">
                             {article.category}
                           </span>
-
-                          {/* Title */}
-                          <h2 className="text-2xl font-bold text-gray-900 mb-3 group-hover:text-primary-600 transition-colors">
-                            <Link to={`/blog/${article.slug}`}>
-                              {article.title}
-                            </Link>
+                          <h2 className="text-lg font-bold text-gray-900 mb-2 group-hover:text-[#2563EB] transition-colors">
+                            <Link to={`/blog/${article.slug}`}>{article.title}</Link>
                           </h2>
-
-                          {/* Excerpt */}
-                          <p className="text-gray-600 mb-4 line-clamp-3">
-                            {article.excerpt}
-                          </p>
-
-                          {/* Read More */}
-                          <Link
-                            to={`/blog/${article.slug}`}
-                            className="inline-flex items-center gap-2 text-primary-600 font-semibold hover:gap-3 transition-all"
-                          >
-                            Читать далее
-                            <ChevronRight className="w-5 h-5" />
+                          <p className="text-gray-500 text-sm mb-4 line-clamp-2">{article.excerpt}</p>
+                          <Link to={`/blog/${article.slug}`} className="inline-flex items-center gap-1 text-[#2563EB] text-sm font-semibold hover:gap-2 transition-all">
+                            Читать далее <ChevronRight className="w-4 h-4" />
                           </Link>
                         </div>
                       </div>
@@ -196,50 +147,33 @@ export default function BlogPage() {
             </div>
 
             {/* Sidebar */}
-            <div className="lg:col-span-1">
-              {/* Popular Articles */}
-              <div className="bg-white rounded-2xl shadow-md p-6 sticky top-8">
-                <h3 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
-                  <Eye className="w-5 h-5 text-primary-600" />
-                  Популярные статьи
+            <div>
+              <div className="bg-white rounded-2xl border border-gray-100 p-6 sticky top-20">
+                <h3 className="text-base font-bold text-gray-900 mb-5 flex items-center gap-2">
+                  <Eye className="w-4 h-4 text-[#2563EB]" /> Популярные статьи
                 </h3>
                 <div className="space-y-4">
                   {popularArticles.map((article, index) => (
-                    <Link
-                      key={article.id}
-                      to={`/blog/${article.slug}`}
-                      className="block group"
-                    >
-                      <div className="flex gap-4">
-                        <span className="flex-shrink-0 w-8 h-8 bg-primary-100 text-primary-700 rounded-full flex items-center justify-center font-bold text-sm">
-                          {index + 1}
-                        </span>
-                        <div className="flex-1 min-w-0">
-                          <h4 className="font-semibold text-gray-900 group-hover:text-primary-600 transition-colors line-clamp-2 mb-1">
-                            {article.title}
-                          </h4>
-                          <p className="text-xs text-gray-500 flex items-center gap-1">
-                            <Eye className="w-3 h-3" />
-                            {article.views} просмотров
-                          </p>
-                        </div>
+                    <Link key={article.id} to={`/blog/${article.slug}`} className="flex gap-3 group">
+                      <span className="flex-shrink-0 w-7 h-7 bg-blue-50 text-[#2563EB] rounded-xl flex items-center justify-center font-bold text-xs">
+                        {index + 1}
+                      </span>
+                      <div>
+                        <h4 className="text-sm font-semibold text-gray-900 group-hover:text-[#2563EB] transition-colors line-clamp-2 mb-1">
+                          {article.title}
+                        </h4>
+                        <p className="text-xs text-gray-400 flex items-center gap-1">
+                          <Eye className="w-3 h-3" />{article.views} просмотров
+                        </p>
                       </div>
                     </Link>
                   ))}
                 </div>
 
-                {/* CTA */}
-                <div className="mt-8 p-4 bg-gradient-to-br from-primary-50 to-primary-100 rounded-xl">
-                  <h4 className="font-bold text-gray-900 mb-2">
-                    Нужна консультация?
-                  </h4>
-                  <p className="text-sm text-gray-600 mb-3">
-                    Поможем выбрать оборудование под вашу задачу
-                  </p>
-                  <Link
-                    to="/contact"
-                    className="block w-full bg-primary-600 text-white text-center py-2 rounded-lg font-semibold hover:bg-primary-700 transition-colors"
-                  >
+                <div className="mt-6 p-4 bg-blue-50 rounded-2xl">
+                  <h4 className="font-bold text-gray-900 text-sm mb-1">Нужна консультация?</h4>
+                  <p className="text-xs text-gray-500 mb-3">Поможем выбрать оборудование под вашу задачу</p>
+                  <Link to="/contact" className="block w-full bg-[#2563EB] hover:bg-[#1D4ED8] text-white text-center py-2 rounded-xl text-sm font-semibold transition-colors">
                     Связаться с нами
                   </Link>
                 </div>

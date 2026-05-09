@@ -33,7 +33,7 @@ const FinancesPage: React.FC = () => {
   const { data: monthlyRevenue = [] } = useAuthenticatedQuery<MonthlyRevenue[]>(
     ['analytics', 'monthly-revenue', currentOfficeId],
     () => analyticsApi.getMonthlyRevenue(currentOfficeId),
-    { staleTime: 0, cacheTime: 0 }
+    { staleTime: 60_000 }
   );
 
   const { data: financialSummary } = useAuthenticatedQuery<FinancialSummary>(
@@ -318,6 +318,11 @@ const FinancesPage: React.FC = () => {
         onSubmit={editingExpense ? handleUpdateExpense : handleCreateExpense}
         expense={editingExpense}
         isLoading={createExpenseMutation.isPending || updateExpenseMutation.isPending}
+        errorMessage={
+          (createExpenseMutation.error || updateExpenseMutation.error)
+            ? 'Ошибка сохранения расхода. Попробуйте ещё раз.'
+            : null
+        }
       />
 
       <ConfirmDialog

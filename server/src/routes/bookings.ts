@@ -4,6 +4,8 @@ import { z } from 'zod'
 import { bookingModel } from '../models/Booking'
 import { equipmentModel } from '../models/Equipment'
 import { telegramService } from '../services/telegram'
+import { emailNotifyService } from '../services/emailNotify'
+import { vkNotifyService } from '../services/vkNotify'
 
 const router = Router()
 
@@ -128,22 +130,23 @@ router.post('/', async (req: Request, res: Response) => {
     console.log('✅ Бронирование создано:', bookingId)
     console.log('📤 Отправка уведомления в Telegram...')
 
-    // Отправляем уведомление в Telegram (не прерываем процесс при ошибке)
-    try {
-      await telegramService.sendBookingNotification({
-        equipmentName: equipment.name,
-        customerName: validatedData.customerName,
-        customerPhone: validatedData.customerPhone,
-        customerEmail: validatedData.customerEmail || '',
-        startDate: validatedData.startDate,
-        endDate: validatedData.endDate,
-        totalPrice,
-        comment: validatedData.comment
-      })
-      console.log('✅ Уведомление в Telegram отправлено')
-    } catch (telegramError) {
-      console.error('❌ Ошибка отправки в Telegram (бронирование сохранено):', telegramError)
+    const notifyData = {
+      equipmentName: equipment.name,
+      customerName: validatedData.customerName,
+      customerPhone: validatedData.customerPhone,
+      customerEmail: validatedData.customerEmail || '',
+      startDate: validatedData.startDate,
+      endDate: validatedData.endDate,
+      totalPrice,
+      comment: validatedData.comment
     }
+
+    // Отправляем уведомления (не прерываем процесс при ошибке)
+    await Promise.allSettled([
+      telegramService.sendBookingNotification(notifyData),
+      emailNotifyService.sendBookingNotification(notifyData),
+      vkNotifyService.sendBookingNotification(notifyData)
+    ])
 
     res.status(201).json({
       success: true,

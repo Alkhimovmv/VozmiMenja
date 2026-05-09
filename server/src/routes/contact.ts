@@ -1,6 +1,8 @@
 import { Router, Request, Response } from 'express'
 import { z } from 'zod'
 import { telegramService } from '../services/telegram'
+import { emailNotifyService } from '../services/emailNotify'
+import { vkNotifyService } from '../services/vkNotify'
 
 const router = Router()
 
@@ -16,14 +18,19 @@ router.post('/', async (req: Request, res: Response) => {
   try {
     const validatedData = contactMessageSchema.parse(req.body)
 
-    // Отправляем уведомление в Telegram
-    await telegramService.sendContactMessage({
+    const contactData = {
       name: validatedData.name,
       phone: validatedData.phone,
       email: validatedData.email,
       subject: validatedData.subject,
       message: validatedData.message
-    })
+    }
+
+    await Promise.allSettled([
+      telegramService.sendContactMessage(contactData),
+      emailNotifyService.sendContactMessage(contactData),
+      vkNotifyService.sendContactMessage(contactData)
+    ])
 
     res.status(200).json({
       success: true,

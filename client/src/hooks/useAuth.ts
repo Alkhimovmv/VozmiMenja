@@ -21,7 +21,6 @@ export const useAuth = () => {
     onSuccess: (data) => {
       localStorage.setItem('authToken', data.token);
       setToken(data.token);
-      window.location.reload(); // Перезагрузить страницу после успешного входа
     },
     onError: () => {
       localStorage.removeItem('authToken');

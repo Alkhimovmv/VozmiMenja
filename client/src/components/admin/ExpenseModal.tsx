@@ -9,6 +9,7 @@ interface ExpenseModalProps {
   onSubmit: (data: CreateExpenseDto) => void;
   expense?: Expense | null;
   isLoading?: boolean;
+  errorMessage?: string | null;
 }
 
 const ExpenseModal: React.FC<ExpenseModalProps> = ({
@@ -17,6 +18,7 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({
   onSubmit,
   expense,
   isLoading = false,
+  errorMessage,
 }) => {
   const [formData, setFormData] = useState<CreateExpenseDto>({
     description: '',
@@ -130,6 +132,10 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({
               />
             </div>
             </div>
+
+            {errorMessage && (
+              <div className="text-red-600 text-sm py-2">{errorMessage}</div>
+            )}
 
             <div className="sticky bottom-0 bg-white border-t p-4 flex flex-row justify-end space-x-3">
               <button
