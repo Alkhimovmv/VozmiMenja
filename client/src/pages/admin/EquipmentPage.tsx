@@ -1,5 +1,12 @@
 import React, { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+
+const Spinner = () => (
+  <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"/>
+  </svg>
+);
 import { useAuthenticatedQuery } from '../../hooks/useAuthenticatedQuery';
 import { equipmentApi } from '../../api/admin/equipment';
 import { type Equipment, type CreateEquipmentDto } from '../../types/index';
@@ -142,14 +149,18 @@ const EquipmentPage: React.FC = () => {
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center space-y-3 sm:space-y-0 sm:space-x-3">
                   <button
                     onClick={() => handleEditEquipment(item)}
-                    className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-3 rounded text-sm font-medium min-h-[44px] touch-manipulation"
+                    disabled={updateMutation.isPending}
+                    className="bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white px-4 py-3 rounded text-sm font-medium min-h-[44px] touch-manipulation inline-flex items-center justify-center gap-2"
                   >
+                    {updateMutation.isPending ? <Spinner /> : null}
                     Изменить
                   </button>
                   <button
                     onClick={() => handleDeleteEquipment(item.id)}
-                    className="bg-red-600 hover:bg-red-700 text-white px-4 py-3 rounded text-sm font-medium min-h-[44px] touch-manipulation"
+                    disabled={deleteMutation.isPending}
+                    className="bg-red-600 hover:bg-red-700 disabled:opacity-60 text-white px-4 py-3 rounded text-sm font-medium min-h-[44px] touch-manipulation inline-flex items-center justify-center gap-2"
                   >
+                    {deleteMutation.isPending ? <Spinner /> : null}
                     Удалить
                   </button>
                 </div>

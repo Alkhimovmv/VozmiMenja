@@ -12,6 +12,13 @@ import { subDays, startOfDay, endOfDay, isWithinInterval, startOfMonth, endOfMon
 import toast from 'react-hot-toast';
 import { useOffice } from '../../hooks/useOffice';
 
+const Spinner = () => (
+  <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"/>
+  </svg>
+);
+
 type DateFilter = 'week' | 'month' | 'all' | 'ends_today' | 'ends_tomorrow' | 'specific_date';
 
 const RentalsPage: React.FC = () => {
@@ -123,39 +130,26 @@ const RentalsPage: React.FC = () => {
     return filtered;
   }, [rentals, dateFilter, specificDate, equipmentFilter]);
 
+  const invalidateAll = () => {
+    queryClient.invalidateQueries({ queryKey: ['rentals'], exact: false });
+    queryClient.invalidateQueries({ queryKey: ['analytics'], exact: false });
+    queryClient.invalidateQueries({ queryKey: ['lockers'], exact: false });
+  };
+
   const createMutation = useMutation({
     mutationFn: rentalsApi.create,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['rentals'] });
-      queryClient.invalidateQueries({ queryKey: ['rentals', 'gantt'] });
-      queryClient.invalidateQueries({ queryKey: ['analytics'] });
-      queryClient.invalidateQueries({ queryKey: ['lockers'] });
-
-      setIsModalOpen(false);
-    },
+    onSuccess: () => { invalidateAll(); setIsModalOpen(false); },
   });
 
   const updateMutation = useMutation({
     mutationFn: ({ id, data }: { id: number; data: Partial<CreateRentalDto & { status: string }> }) =>
       rentalsApi.update(id, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['rentals'] });
-      queryClient.invalidateQueries({ queryKey: ['rentals', 'gantt'] });
-      queryClient.invalidateQueries({ queryKey: ['analytics'] });
-      queryClient.invalidateQueries({ queryKey: ['lockers'], exact: false });
-      setIsModalOpen(false);
-      setEditingRental(null);
-    },
+    onSuccess: () => { invalidateAll(); setIsModalOpen(false); setEditingRental(null); },
   });
 
   const deleteMutation = useMutation({
     mutationFn: rentalsApi.delete,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['rentals'] });
-      queryClient.invalidateQueries({ queryKey: ['rentals', 'gantt'] });
-      queryClient.invalidateQueries({ queryKey: ['analytics'] });
-      queryClient.invalidateQueries({ queryKey: ['lockers'] });
-    },
+    onSuccess: () => { invalidateAll(); },
   });
 
   const handleCreateRental = (data: CreateRentalDto) => {
@@ -385,8 +379,10 @@ const RentalsPage: React.FC = () => {
                   {rental.status === 'pending' && (
                     <button
                       onClick={() => handleStartRental(rental)}
-                      className="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-3 rounded text-sm font-medium min-h-[44px] touch-manipulation"
+                      disabled={updateMutation.isPending}
+                      className="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white px-4 py-3 rounded text-sm font-medium min-h-[44px] touch-manipulation inline-flex items-center justify-center gap-2"
                     >
+                      {updateMutation.isPending ? <Spinner /> : null}
                       Начать аренду
                     </button>
                   )}
@@ -394,14 +390,18 @@ const RentalsPage: React.FC = () => {
                     <>
                       <button
                         onClick={() => handleCompleteRentalNow(rental)}
-                        className="w-full sm:w-auto bg-green-500 hover:bg-green-600 text-white px-4 py-3 rounded text-sm font-medium min-h-[44px] touch-manipulation"
+                        disabled={updateMutation.isPending}
+                        className="w-full sm:w-auto bg-green-500 hover:bg-green-600 disabled:opacity-60 text-white px-4 py-3 rounded text-sm font-medium min-h-[44px] touch-manipulation inline-flex items-center justify-center gap-2"
                       >
+                        {updateMutation.isPending ? <Spinner /> : null}
                         Завершить сейчас
                       </button>
                       <button
                         onClick={() => handleCompleteRental(rental)}
-                        className="w-full sm:w-auto bg-green-600 hover:bg-green-700 text-white px-4 py-3 rounded text-sm font-medium min-h-[44px] touch-manipulation"
+                        disabled={updateMutation.isPending}
+                        className="w-full sm:w-auto bg-green-600 hover:bg-green-700 disabled:opacity-60 text-white px-4 py-3 rounded text-sm font-medium min-h-[44px] touch-manipulation inline-flex items-center justify-center gap-2"
                       >
+                        {updateMutation.isPending ? <Spinner /> : null}
                         Завершить
                       </button>
                     </>
@@ -409,21 +409,26 @@ const RentalsPage: React.FC = () => {
                   {rental.status === 'completed' && (
                     <button
                       onClick={() => handleReturnRental(rental)}
-                      className="w-full sm:w-auto bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-3 rounded text-sm font-medium min-h-[44px] touch-manipulation"
+                      disabled={updateMutation.isPending}
+                      className="w-full sm:w-auto bg-yellow-600 hover:bg-yellow-700 disabled:opacity-60 text-white px-4 py-3 rounded text-sm font-medium min-h-[44px] touch-manipulation inline-flex items-center justify-center gap-2"
                     >
+                      {updateMutation.isPending ? <Spinner /> : null}
                       Вернуть
                     </button>
                   )}
                   <button
                     onClick={() => handleEditRental(rental)}
-                    className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white px-4 py-3 rounded text-sm font-medium min-h-[44px] touch-manipulation"
+                    disabled={updateMutation.isPending}
+                    className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white px-4 py-3 rounded text-sm font-medium min-h-[44px] touch-manipulation inline-flex items-center justify-center gap-2"
                   >
                     Изменить
                   </button>
                   <button
                     onClick={() => handleDeleteRental(rental.id)}
-                    className="w-full sm:w-auto bg-red-600 hover:bg-red-700 text-white px-4 py-3 rounded text-sm font-medium min-h-[44px] touch-manipulation"
+                    disabled={deleteMutation.isPending}
+                    className="w-full sm:w-auto bg-red-600 hover:bg-red-700 disabled:opacity-60 text-white px-4 py-3 rounded text-sm font-medium min-h-[44px] touch-manipulation inline-flex items-center justify-center gap-2"
                   >
+                    {deleteMutation.isPending ? <Spinner /> : null}
                     Удалить
                   </button>
                 </div>

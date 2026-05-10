@@ -1,5 +1,12 @@
 import React, { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+
+const Spinner = () => (
+  <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"/>
+  </svg>
+);
 import { useAuthenticatedQuery } from '../../hooks/useAuthenticatedQuery';
 import { lockersApi } from '../../api/admin/lockers';
 import { equipmentApi } from '../../api/admin/equipment';
@@ -298,14 +305,17 @@ const LockersPage: React.FC = () => {
                       )}
                       <button
                         onClick={() => openEditModal(locker)}
-                        className="text-blue-600 hover:text-blue-900 text-xs sm:text-sm"
+                        disabled={updateMutation.isPending}
+                        className="text-blue-600 hover:text-blue-900 text-xs sm:text-sm disabled:opacity-60"
                       >
                         Изм.
                       </button>
                       <button
                         onClick={() => handleDelete(locker.id)}
-                        className="text-red-600 hover:text-red-900 text-xs sm:text-sm"
+                        disabled={deleteMutation.isPending}
+                        className="text-red-600 hover:text-red-900 text-xs sm:text-sm disabled:opacity-60 inline-flex items-center gap-1"
                       >
+                        {deleteMutation.isPending ? <Spinner /> : null}
                         Удал.
                       </button>
                     </div>

@@ -1,5 +1,12 @@
 import { useState } from 'react'
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query'
+
+const Spinner = () => (
+  <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"/>
+  </svg>
+)
 import { articlesApi } from '../../api/articles'
 import { type Article } from '../../types/index'
 import ArticleModal from '../../components/admin/ArticleModal'
@@ -220,10 +227,11 @@ export default function ArticlesPage() {
                         </button>
                         <button
                           onClick={() => handleDeleteArticle(article.id)}
-                          className="text-red-600 hover:text-red-900 p-2 hover:bg-red-50 rounded transition-colors"
+                          disabled={deleteMutation.isPending}
+                          className="text-red-600 hover:text-red-900 p-2 hover:bg-red-50 rounded transition-colors disabled:opacity-60"
                           title="Удалить"
                         >
-                          <Trash2 className="w-4 h-4" />
+                          {deleteMutation.isPending ? <Spinner /> : <Trash2 className="w-4 h-4" />}
                         </button>
                       </div>
                     </td>
