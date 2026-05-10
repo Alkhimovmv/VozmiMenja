@@ -28,7 +28,7 @@ export function useAuthenticatedQuery<T = any>(
     const opts = queryKeyOrOptions as UseQueryOptions<T>;
     return useQuery<T>({
       ...opts,
-      enabled: isAuthenticated && !isVerifying && (opts.enabled !== false),
+      enabled: isAuthenticated && (opts.enabled !== false),
     });
   } else {
     // Старый синтаксис v4: useAuthenticatedQuery(['key'], fn, options)
@@ -37,7 +37,7 @@ export function useAuthenticatedQuery<T = any>(
       queryKey,
       queryFn,
       ...options,
-      enabled: isAuthenticated && !isVerifying && (options?.enabled !== false),
+      enabled: isAuthenticated && (options?.enabled !== false),
     });
   }
 }

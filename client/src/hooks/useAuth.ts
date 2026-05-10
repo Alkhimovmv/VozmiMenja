@@ -33,6 +33,9 @@ export const useAuth = () => {
     queryFn: authApi.verify,
     enabled: isAuthenticated,
     retry: false,
+    staleTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
   });
 
   // Обрабатываем ошибки верификации
