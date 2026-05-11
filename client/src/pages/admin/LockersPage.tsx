@@ -87,7 +87,7 @@ const LockersPage: React.FC = () => {
 
   const initializeMutation = useMutation({
     mutationFn: async () => {
-      const response = await apiClient.post('/lockers/initialize');
+      const response = await apiClient.post('/lockers/initialize', { office_id: currentOfficeId });
       return response.data;
     },
     onSuccess: () => {
@@ -174,6 +174,8 @@ const LockersPage: React.FC = () => {
   const [deleteConfirm, setDeleteConfirm] = useState<{ isOpen: boolean; lockerId: number | null }>({ isOpen: false, lockerId: null });
   const [initConfirm, setInitConfirm] = useState(false);
 
+  const totalLockersCount = (currentOffice?.locker_rows || []).reduce((sum: number, r: any) => sum + (r.count || 0), 0) || 13;
+
   const handleDelete = (id: number) => setDeleteConfirm({ isOpen: true, lockerId: id });
   const handleInitialize = () => setInitConfirm(true);
 
@@ -188,7 +190,7 @@ const LockersPage: React.FC = () => {
               disabled={initializeMutation.isPending}
               className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-md font-medium disabled:opacity-50"
             >
-              {initializeMutation.isPending ? 'Инициализация...' : '⚡ Инициализировать 13 ячеек'}
+              {initializeMutation.isPending ? 'Инициализация...' : `⚡ Инициализировать ${totalLockersCount} ячеек`}
             </button>
           )}
           <button
@@ -536,7 +538,7 @@ const LockersPage: React.FC = () => {
       <ConfirmDialog
         isOpen={initConfirm}
         title="Инициализация ячеек"
-        message="Инициализировать 13 ячеек постамата? Существующие ячейки не будут изменены."
+        message={`Инициализировать ${totalLockersCount} ячеек постамата? Существующие ячейки не будут изменены.`}
         confirmText="Инициализировать"
         cancelText="Отмена"
         type="warning"

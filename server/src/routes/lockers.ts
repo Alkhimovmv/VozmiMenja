@@ -55,11 +55,12 @@ router.get('/', authMiddleware, async (req: Request, res: Response) => {
   }
 })
 
-// POST /api/admin/lockers/initialize - Инициализировать 13 ячеек постомата
+// POST /api/admin/lockers/initialize - Инициализировать ячейки постомата
 router.post('/initialize', authMiddleware, async (req: Request, res: Response) => {
   try {
-    await initializeLockers()
-    res.json({ message: '13 ячеек успешно инициализированы' })
+    const officeId = req.body.office_id ? parseInt(req.body.office_id) : 1
+    await initializeLockers(officeId)
+    res.json({ message: 'Ячейки успешно инициализированы' })
   } catch (error) {
     console.error('Error initializing lockers:', error)
     res.status(500).json({ error: 'Ошибка инициализации ячеек' })

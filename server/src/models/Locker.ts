@@ -184,13 +184,12 @@ export class LockerModel {
     return this.mapRow(row)
   }
 
-  async findByLockerNumber(lockerNumber: string): Promise<Locker | null> {
-    const row = await get('SELECT * FROM lockers WHERE locker_number = ?', [lockerNumber]) as any
+  async findByLockerNumber(lockerNumber: string, officeId?: number): Promise<Locker | null> {
+    const row = officeId
+      ? await get('SELECT * FROM lockers WHERE locker_number = ? AND office_id = ?', [lockerNumber, officeId]) as any
+      : await get('SELECT * FROM lockers WHERE locker_number = ?', [lockerNumber]) as any
 
-    if (!row) {
-      return null
-    }
-
+    if (!row) return null
     return this.mapRow(row)
   }
 

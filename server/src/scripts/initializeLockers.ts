@@ -23,32 +23,31 @@ const LOCKERS_CONFIG = [
   { number: '13', size: 'large' as const, row: 1, position: 2 },
 ];
 
-export async function initializeLockers(): Promise<void> {
-  console.log('Инициализация ячеек постомата...');
+export async function initializeLockers(officeId: number = 1): Promise<void> {
+  console.log(`Инициализация ячеек постомата для офиса ${officeId}...`);
 
   for (const config of LOCKERS_CONFIG) {
     try {
-      // Проверяем, существует ли ячейка
-      const existing = await lockerModel.findByLockerNumber(config.number);
+      const existing = await lockerModel.findByLockerNumber(config.number, officeId);
 
       if (!existing) {
-        // Генерируем уникальный код
         const code = await lockerModel.generateUniqueCode();
 
         await lockerModel.create({
           lockerNumber: config.number,
           accessCode: code,
           description: `Ячейка ${config.number} (${config.size})`,
-          items: [], // Пустой массив при инициализации
+          items: [],
           size: config.size,
           rowNumber: config.row,
           positionInRow: config.position,
           isActive: true,
+          officeId,
         });
 
-        console.log(`✅ Создана ячейка ${config.number}`);
+        console.log(`✅ Создана ячейка ${config.number} (офис ${officeId})`);
       } else {
-        console.log(`⏭️  Ячейка ${config.number} уже существует`);
+        console.log(`⏭️  Ячейка ${config.number} уже существует в офисе ${officeId}`);
       }
     } catch (error) {
       console.error(`❌ Ошибка создания ячейки ${config.number}:`, error);
