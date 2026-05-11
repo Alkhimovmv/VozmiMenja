@@ -25,6 +25,25 @@ const officeSchema = z.object({
   locker_rows: z.array(lockerRowSchema).optional()
 })
 
+// GET /api/admin/offices/:id/lockers-codes - Публичный список ячеек с кодами для офиса
+router.get('/:id/lockers-codes', async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params
+    const lockers = await database.all(
+      'SELECT locker_number, access_code FROM lockers WHERE office_id = ? AND is_active = 1 ORDER BY CAST(locker_number AS INTEGER) ASC',
+      [id]
+    )
+    const result: Record<string, string> = {}
+    for (const locker of lockers) {
+      result[locker.locker_number] = locker.access_code
+    }
+    res.json(result)
+  } catch (error) {
+    console.error('Error getting lockers codes:', error)
+    res.status(500).json({ error: 'Ошибка получения кодов ячеек' })
+  }
+})
+
 // GET /api/admin/offices - Получить все офисы
 router.get('/', authMiddleware, async (req: Request, res: Response) => {
   try {
