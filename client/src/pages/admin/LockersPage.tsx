@@ -184,15 +184,13 @@ const LockersPage: React.FC = () => {
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold text-gray-900">Ячейки постомата</h1>
         <div className="flex gap-2">
-          {lockers.length === 0 && (
-            <button
-              onClick={handleInitialize}
-              disabled={initializeMutation.isPending}
-              className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-md font-medium disabled:opacity-50"
-            >
-              {initializeMutation.isPending ? 'Инициализация...' : `⚡ Инициализировать ${totalLockersCount} ячеек`}
-            </button>
-          )}
+          <button
+            onClick={handleInitialize}
+            disabled={initializeMutation.isPending}
+            className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-md font-medium disabled:opacity-50"
+          >
+            {initializeMutation.isPending ? 'Инициализация...' : `⚡ Инициализировать ${totalLockersCount} ячеек`}
+          </button>
           <button
             onClick={openCreateModal}
             className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md font-medium"

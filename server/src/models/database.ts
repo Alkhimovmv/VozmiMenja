@@ -259,6 +259,46 @@ class Database {
       if (!error.message?.includes('duplicate column name')) throw error
     }
 
+    // Миграция: замена UNIQUE(locker_number) на UNIQUE(locker_number, office_id)
+    // чтобы разные офисы могли иметь ячейки с одинаковыми номерами
+    try {
+      const tableInfo = await this.get(`SELECT sql FROM sqlite_master WHERE type='table' AND name='lockers'`)
+      if (tableInfo && tableInfo.sql && tableInfo.sql.includes('locker_number TEXT NOT NULL UNIQUE')) {
+        await run(`PRAGMA foreign_keys = OFF`)
+        await run(`BEGIN TRANSACTION`)
+        try {
+          await run(`CREATE TABLE lockers_new (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            locker_number TEXT NOT NULL,
+            access_code TEXT NOT NULL,
+            description TEXT,
+            size TEXT NOT NULL DEFAULT 'medium',
+            row_number INTEGER NOT NULL DEFAULT 1,
+            position_in_row INTEGER NOT NULL DEFAULT 1,
+            is_active INTEGER NOT NULL DEFAULT 1,
+            items TEXT,
+            office_id INTEGER NOT NULL DEFAULT 1,
+            needs_check INTEGER NOT NULL DEFAULT 0,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE(locker_number, office_id)
+          )`)
+          await run(`INSERT INTO lockers_new SELECT id, locker_number, access_code, description, size, row_number, position_in_row, is_active, items, office_id, needs_check, created_at, updated_at FROM lockers`)
+          await run(`DROP TABLE lockers`)
+          await run(`ALTER TABLE lockers_new RENAME TO lockers`)
+          await run(`CREATE INDEX IF NOT EXISTS idx_lockers_office_id ON lockers(office_id)`)
+          await run(`COMMIT`)
+          console.log('✅ Миграция lockers: UNIQUE(locker_number) → UNIQUE(locker_number, office_id)')
+        } catch (e) {
+          await run(`ROLLBACK`)
+          throw e
+        }
+        await run(`PRAGMA foreign_keys = ON`)
+      }
+    } catch (error: any) {
+      console.error('Ошибка миграции lockers unique constraint:', error)
+    }
+
     // Таблица связи ячеек постомата с оборудованием
     await run(`
       CREATE TABLE IF NOT EXISTS locker_equipment (

@@ -194,10 +194,9 @@ export class LockerModel {
   }
 
   async create(data: CreateLockerData): Promise<Locker> {
-    // Проверяем уникальность номера ячейки
-    const existing = await this.findByLockerNumber(data.lockerNumber)
+    const existing = await this.findByLockerNumber(data.lockerNumber, data.officeId || 1)
     if (existing) {
-      throw new Error(`Ячейка с номером "${data.lockerNumber}" уже существует`)
+      throw new Error(`Ячейка с номером "${data.lockerNumber}" уже существует в этом офисе`)
     }
 
     const itemsJson = data.items ? JSON.stringify(data.items) : '[]'

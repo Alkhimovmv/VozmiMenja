@@ -1,56 +1,58 @@
 import { lockerModel } from '../models/Locker';
-
-const LOCKERS_CONFIG = [
-  // Ряд 4 (сверху): 6 маленьких ячеек (1-6)
-  { number: '1', size: 'small' as const, row: 4, position: 1 },
-  { number: '2', size: 'small' as const, row: 4, position: 2 },
-  { number: '3', size: 'small' as const, row: 4, position: 3 },
-  { number: '4', size: 'small' as const, row: 4, position: 4 },
-  { number: '5', size: 'small' as const, row: 4, position: 5 },
-  { number: '6', size: 'small' as const, row: 4, position: 6 },
-
-  // Ряд 3: 3 средние ячейки (7-9)
-  { number: '7', size: 'medium' as const, row: 3, position: 1 },
-  { number: '8', size: 'medium' as const, row: 3, position: 2 },
-  { number: '9', size: 'medium' as const, row: 3, position: 3 },
-
-  // Ряд 2: 2 большие ячейки (10-11)
-  { number: '10', size: 'large' as const, row: 2, position: 1 },
-  { number: '11', size: 'large' as const, row: 2, position: 2 },
-
-  // Ряд 1 (снизу): 2 большие ячейки (12-13)
-  { number: '12', size: 'large' as const, row: 1, position: 1 },
-  { number: '13', size: 'large' as const, row: 1, position: 2 },
-];
+import { database } from '../models/database';
+import type { LockerSize } from '../models/Locker';
 
 export async function initializeLockers(officeId: number = 1): Promise<void> {
   console.log(`Инициализация ячеек постомата для офиса ${officeId}...`);
 
-  for (const config of LOCKERS_CONFIG) {
-    try {
-      const existing = await lockerModel.findByLockerNumber(config.number, officeId);
+  // Берём locker_rows из настроек офиса
+  const office = await database.get('SELECT locker_rows FROM offices WHERE id = ?', [officeId]);
+  if (!office) {
+    throw new Error(`Офис ${officeId} не найден`);
+  }
 
-      if (!existing) {
-        const code = await lockerModel.generateUniqueCode();
+  let lockerRows: Array<{ row: number; count: number; size: string }> = [];
+  try {
+    lockerRows = JSON.parse(office.locker_rows || '[]');
+  } catch {
+    throw new Error('Некорректный формат locker_rows в настройках офиса');
+  }
 
-        await lockerModel.create({
-          lockerNumber: config.number,
-          accessCode: code,
-          description: `Ячейка ${config.number} (${config.size})`,
-          items: [],
-          size: config.size,
-          rowNumber: config.row,
-          positionInRow: config.position,
-          isActive: true,
-          officeId,
-        });
+  if (lockerRows.length === 0) {
+    throw new Error('В настройках офиса не задана конфигурация ячеек');
+  }
 
-        console.log(`✅ Создана ячейка ${config.number} (офис ${officeId})`);
-      } else {
-        console.log(`⏭️  Ячейка ${config.number} уже существует в офисе ${officeId}`);
+  // Генерируем список ячеек из locker_rows (ряды идут сверху вниз по убыванию row)
+  // Нумеруем последовательно начиная с 1, от верхнего ряда к нижнему
+  const sortedRows = [...lockerRows].sort((a, b) => b.row - a.row);
+
+  let lockerNumber = 1;
+  for (const rowConfig of sortedRows) {
+    for (let position = 1; position <= rowConfig.count; position++) {
+      const numberStr = String(lockerNumber);
+      try {
+        const existing = await lockerModel.findByLockerNumber(numberStr, officeId);
+        if (!existing) {
+          const code = await lockerModel.generateUniqueCode();
+          await lockerModel.create({
+            lockerNumber: numberStr,
+            accessCode: code,
+            description: `Ячейка ${numberStr} (${rowConfig.size})`,
+            items: [],
+            size: rowConfig.size as LockerSize,
+            rowNumber: rowConfig.row,
+            positionInRow: position,
+            isActive: true,
+            officeId,
+          });
+          console.log(`✅ Создана ячейка ${numberStr} (ряд ${rowConfig.row}, позиция ${position})`);
+        } else {
+          console.log(`⏭️  Ячейка ${numberStr} уже существует в офисе ${officeId}`);
+        }
+      } catch (error) {
+        console.error(`❌ Ошибка создания ячейки ${numberStr}:`, error);
       }
-    } catch (error) {
-      console.error(`❌ Ошибка создания ячейки ${config.number}:`, error);
+      lockerNumber++;
     }
   }
 
