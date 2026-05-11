@@ -145,6 +145,11 @@ const RentalsPage: React.FC = () => {
     mutationFn: ({ id, data }: { id: number; data: Partial<CreateRentalDto & { status: string }> }) =>
       rentalsApi.update(id, data),
     onSuccess: () => { invalidateAll(); setIsModalOpen(false); setEditingRental(null); },
+    onError: (error: any) => {
+      const msg = error?.response?.data?.error || error?.message || 'Неизвестная ошибка';
+      toast.error(`Ошибка обновления: ${msg}`);
+      console.error('updateMutation error:', error?.response?.status, error?.response?.data, error?.message);
+    },
   });
 
   const deleteMutation = useMutation({

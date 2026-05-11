@@ -245,6 +245,20 @@ class Database {
       console.error('Ошибка обновления items:', error)
     }
 
+    // Миграция: needs_check для локеров
+    try {
+      await run(`ALTER TABLE lockers ADD COLUMN needs_check INTEGER NOT NULL DEFAULT 0`)
+    } catch (error: any) {
+      if (!error.message?.includes('duplicate column name')) throw error
+    }
+
+    // Миграция: locker_id для аренд
+    try {
+      await run(`ALTER TABLE rentals ADD COLUMN locker_id INTEGER REFERENCES lockers(id)`)
+    } catch (error: any) {
+      if (!error.message?.includes('duplicate column name')) throw error
+    }
+
     // Таблица связи ячеек постомата с оборудованием
     await run(`
       CREATE TABLE IF NOT EXISTS locker_equipment (
