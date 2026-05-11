@@ -25,8 +25,16 @@ const officeSchema = z.object({
   locker_rows: z.array(lockerRowSchema).optional()
 })
 
-// GET /api/admin/offices/:id/lockers-codes - Публичный список ячеек с кодами для офиса
+// GET /api/admin/offices/:id/lockers-codes - Список ячеек с кодами для офиса (требует LOCKERS_SECRET)
 router.get('/:id/lockers-codes', async (req: Request, res: Response) => {
+  const secret = process.env.LOCKERS_SECRET
+  if (!secret) {
+    return res.status(500).json({ error: 'LOCKERS_SECRET не настроен' })
+  }
+  const provided = req.headers['x-lockers-secret']
+  if (!provided || provided !== secret) {
+    return res.status(401).json({ error: 'Unauthorized' })
+  }
   try {
     const { id } = req.params
     const lockers = await database.all(
