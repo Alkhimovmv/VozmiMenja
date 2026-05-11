@@ -254,13 +254,12 @@ router.put('/:id', authMiddleware, async (req: Request, res: Response) => {
     res.json(toSnakeCase(rental))
   } catch (error: any) {
     console.error('Error updating rental:', error)
-    // Если это ошибка проверки доступности, возвращаем 400 с сообщением
     if (error.message && error.message.includes('уже забронировано')) {
       res.status(400).json({ error: error.message })
     } else if (error.message === 'Rental not found') {
       res.status(404).json({ error: 'Аренда не найдена' })
     } else {
-      res.status(500).json({ error: 'Ошибка обновления аренды' })
+      res.status(500).json({ error: error.message || 'Ошибка обновления аренды' })
     }
   }
 })
