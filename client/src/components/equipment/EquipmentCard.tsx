@@ -44,11 +44,11 @@ export default function EquipmentCard({ equipment, priority = false }: Equipment
       {/* ── Mobile: горизонтальная карточка ── */}
       <div className="md:hidden group bg-white rounded-2xl border border-gray-100 overflow-hidden active:scale-[0.99] transition-transform">
         <div className="flex gap-3 p-3">
-          <Link to={`/equipment/${equipment.id}`} className="relative flex-shrink-0 w-24 h-24 rounded-xl overflow-hidden bg-white">
+          <Link to={`/equipment/${equipment.id}`} className="relative flex-shrink-0 w-24 h-24 rounded-xl overflow-hidden bg-white" style={{ backgroundColor: '#fff' }}>
             <img
               src={getImageUrl(equipment.images[0])}
               alt={`Аренда ${equipment.name}`}
-              className="w-full h-full object-contain"
+              className="w-full h-full object-contain bg-white"
               loading={priority ? 'eager' : 'lazy'}
               decoding="async"
             />
@@ -81,7 +81,7 @@ export default function EquipmentCard({ equipment, priority = false }: Equipment
           <img
             src={getImageUrl(equipment.images[0])}
             alt={`Аренда ${equipment.name}`}
-            className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-300"
+            className="w-full h-full object-contain bg-white group-hover:scale-105 transition-transform duration-300"
             loading={priority ? 'eager' : 'lazy'}
             decoding="async"
             fetchPriority={priority ? 'high' : 'auto'}

@@ -9,7 +9,7 @@ export default function FloatingActions() {
 
   return (
     <>
-      <div className="fixed bottom-4 right-4 sm:bottom-8 sm:right-8 z-40 flex flex-col space-y-3 sm:space-y-4">
+      <div className="fixed right-4 z-40 flex flex-col space-y-3 sm:space-y-4 sm:bottom-8 sm:right-8 floating-actions-bottom">
         {/* Callback button */}
         <button
           onClick={() => setIsCallbackModalOpen(true)}

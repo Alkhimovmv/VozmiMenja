@@ -104,8 +104,16 @@ export default function HomePage() {
   }
   const handleSearchChange = (s: string) => updateSearchParams({ search: s, page: '1', category })
 
-  const seoTitle = category ? `Аренда ${category} в Москве` : search ? `Поиск: ${search}` : undefined
-  const seoDescription = 'Аренда профессионального оборудования в Москве: камеры, клининговая техника, аудиооборудование. Низкие цены, быстрая доставка, гарантия качества.'
+  const seoTitle = category
+    ? `Аренда ${category} в Москве — цены, доставка 24/7`
+    : search
+    ? `Аренда ${search} в Москве | ВозьмиМеня`
+    : 'Аренда оборудования в Москве — камеры, аудио, клининг | ВозьмиМеня'
+  const seoDescription = category
+    ? `Прокат ${category} в Москве. Низкие цены, доставка в день заказа, постамат 24/7. Бронируйте онлайн на vozmimenya.ru или звоните: +7 (993) 363-64-64`
+    : search
+    ? `Аренда ${search} в Москве. Доставка в день заказа, постамат 24/7, без залога. Звоните: +7 (993) 363-64-64`
+    : 'Аренда профессионального оборудования в Москве: камеры, аудиотехника JBL, клининг. Доставка в день заказа, постамат 24/7, без залога. От 200 ₽/сутки.'
 
   return (
     <div className="min-h-screen bg-[#F8FAFC]">

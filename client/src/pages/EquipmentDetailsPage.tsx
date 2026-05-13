@@ -75,11 +75,12 @@ export default function EquipmentDetailsPage() {
   const productStructuredData = {
     '@context': 'https://schema.org',
     '@type': 'Product',
-    name: equipment.name,
+    name: `Аренда ${equipment.name}`,
     description: equipment.description,
     image: equipment.images.map((img) => `https://vozmimenya.ru${getImageUrl(img)}`),
     category: equipment.category,
-    brand: { '@type': 'Brand', name: 'ВозьмиМеня' },
+    brand: { '@type': 'Brand', name: equipment.name.split(' ')[0] },
+    itemCondition: 'https://schema.org/UsedCondition',
     offers: {
       '@type': 'Offer',
       url: `https://vozmimenya.ru/equipment/${equipment.id}`,
@@ -87,17 +88,36 @@ export default function EquipmentDetailsPage() {
       price: getMinPrice(),
       priceValidUntil: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
       availability: 'https://schema.org/InStock',
-      seller: { '@type': 'Organization', name: 'ВозьмиМеня' },
+      seller: {
+        '@type': 'LocalBusiness',
+        name: 'ВозьмиМеня',
+        telephone: '+79933636464',
+        address: { '@type': 'PostalAddress', addressLocality: 'Москва', addressCountry: 'RU' },
+        url: 'https://vozmimenya.ru',
+      },
+      areaServed: { '@type': 'City', name: 'Москва' },
+      priceSpecification: {
+        '@type': 'UnitPriceSpecification',
+        price: getMinPrice(),
+        priceCurrency: 'RUB',
+        unitText: 'сутки',
+      },
     },
-    aggregateRating: { '@type': 'AggregateRating', ratingValue: '4.9', reviewCount: '37' },
+    aggregateRating: { '@type': 'AggregateRating', ratingValue: '4.9', reviewCount: '412' },
   }
+
+  const minPrice = getMinPrice()
+  const seoTitle = `Аренда ${equipment.name} в Москве | от ${formatPrice(minPrice)}/сутки | Доставка в день заказа | ВозьмиМеня`
+  const seoDescription = `Аренда ${equipment.name} в Москве от ${formatPrice(minPrice)}/сутки | Доставка в день заказа | Постамат 24/7 | Звоните: +7 (993) 363-64-64`
+  const seoKeywords = `аренда ${equipment.name}, прокат ${equipment.name}, ${equipment.name} аренда Москва, взять в аренду ${equipment.name}, ${equipment.category} аренда Москва, прокат ${equipment.category}`
 
   return (
     <div className="min-h-screen bg-[#F8FAFC]">
       <SEO
-        title={`Аренда ${equipment.name} в Москве`}
-        description={`${equipment.description} - Аренда от ${formatPrice(getMinPrice())}/день. Быстрая доставка по Москве. Звоните: +7 (993) 363-64-64`}
-        keywords={`аренда ${equipment.name}, прокат ${equipment.name}, ${equipment.category} Москва`}
+        title={seoTitle}
+        description={seoDescription}
+        keywords={seoKeywords}
+        image={equipment.images[0] ? `https://vozmimenya.ru${getImageUrl(equipment.images[0])}` : undefined}
         url={`https://vozmimenya.ru/equipment/${equipment.id}`}
         type="product"
         structuredData={productStructuredData}
@@ -127,7 +147,7 @@ export default function EquipmentDetailsPage() {
               <img
                 src={getImageUrl(equipment.images[selectedImage])}
                 alt={equipment.name}
-                className="w-full h-full object-contain"
+                className="w-full h-full object-contain bg-white"
               />
             </div>
             {equipment.images.length > 1 && (
@@ -140,7 +160,7 @@ export default function EquipmentDetailsPage() {
                       selectedImage === index ? 'border-primary' : 'border-line hover:border-muted'
                     }`}
                   >
-                    <img src={getImageUrl(image)} alt={`${equipment.name} ${index + 1}`} className="w-full h-full object-contain" />
+                    <img src={getImageUrl(image)} alt={`${equipment.name} ${index + 1}`} className="w-full h-full object-contain bg-white" />
                   </button>
                 ))}
               </div>

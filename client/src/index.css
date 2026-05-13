@@ -107,6 +107,15 @@
   }
 }
 
+@media (max-width: 767px) {
+  .mobile-safe-bottom {
+    padding-bottom: calc(5rem + env(safe-area-inset-bottom, 0px)) !important;
+  }
+  .floating-actions-bottom {
+    bottom: calc(4.5rem + env(safe-area-inset-bottom, 0px));
+  }
+}
+
 @media print {
   header, footer, nav, .no-print { display: none !important; }
   body { background: white !important; }

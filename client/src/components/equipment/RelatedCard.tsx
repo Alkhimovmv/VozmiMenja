@@ -40,11 +40,11 @@ export default function RelatedCard({ equipment }: RelatedCardProps) {
       className="group bg-white rounded-2xl border border-gray-100 hover:shadow-md transition-all duration-200 overflow-hidden block"
     >
       {/* Image */}
-      <div className="relative bg-gray-50 aspect-[4/3] overflow-hidden">
+      <div className="relative bg-white aspect-[4/3] overflow-hidden">
         <img
           src={getImageUrl(equipment.images[0])}
           alt={equipment.name}
-          className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-300"
+          className="w-full h-full object-contain bg-white group-hover:scale-105 transition-transform duration-300"
           loading="lazy"
           decoding="async"
         />

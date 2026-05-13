@@ -16,6 +16,7 @@ import analyticsRoutes from './routes/analytics'
 import articlesRoutes from './routes/articles'
 import lockersRoutes from './routes/lockers'
 import officesRoutes from './routes/offices'
+import prerenderRoutes from './routes/prerender'
 import { schedulerService } from './services/scheduler'
 
 // server/dist/ -> server/.env (локально), server/dist/ -> ../../.env (production, корень проекта)
@@ -70,6 +71,9 @@ app.use('/api/admin/analytics', analyticsRoutes)
 app.use('/api/admin/lockers', lockersRoutes)
 app.use('/api/admin/offices', officesRoutes)
 app.use('/api/admin', adminRoutes)
+
+// Prerender для поисковых ботов
+app.use('/prerender', prerenderRoutes)
 
 // Health check
 app.get('/health', (req, res) => {
