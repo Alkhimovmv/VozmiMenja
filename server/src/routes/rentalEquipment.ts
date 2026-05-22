@@ -74,13 +74,16 @@ router.post('/', authMiddleware, async (req: Request, res: Response) => {
     const officeId = await resolveOfficeId(req)
     if (officeId === -1) return res.status(403).json({ error: 'Нет доступа к офису' })
 
+    const bodyOfficeId = req.body.office_id ? Number(req.body.office_id) : undefined
+    const finalOfficeId = (bodyOfficeId && !isNaN(bodyOfficeId)) ? bodyOfficeId : officeId
+
     const data: CreateRentalEquipmentData = {
       name: req.body.name,
       quantity: req.body.quantity,
       description: req.body.description,
       basePrice: req.body.base_price || req.body.basePrice,
       userId: req.user!.userId,
-      officeId: req.body.office_id || officeId,
+      officeId: finalOfficeId,
     }
     const equipment = await rentalEquipmentModel.create(data)
     res.status(201).json(toSnakeCase(equipment))
