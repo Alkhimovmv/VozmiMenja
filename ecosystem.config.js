@@ -12,7 +12,8 @@ module.exports = {
       env: {
         NODE_ENV: 'production',
         PORT: 3003,
-        FRONTEND_URL: 'https://vozmimenya.ru'
+        FRONTEND_URL: 'https://vozmimenya.ru',
+        env_file: '.env'
       },
       error_file: './server/logs/err.log',
       out_file: './server/logs/out.log',
