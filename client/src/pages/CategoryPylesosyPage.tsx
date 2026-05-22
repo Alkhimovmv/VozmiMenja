@@ -55,7 +55,7 @@ export default function CategoryPylesosyPage() {
   const advantages = [
     { icon: Clock, title: 'Доставка 2-4 часа', description: 'Быстрая доставка по всей Москве в удобное время' },
     { icon: Shield, title: 'Гарантия качества', description: 'Профессиональное оборудование в отличном состоянии' },
-    { icon: Truck, title: 'Бесплатная доставка', description: 'При аренде от 14 дней доставка по Москве бесплатно' },
+    { icon: Truck, title: 'Быстрая доставка', description: 'Доставка по всей Москве за 2–4 часа' },
     { icon: Star, title: '5000+ клиентов', description: 'Более 8 лет на рынке, рейтинг 5.0 из 5.0' },
   ]
 

@@ -250,7 +250,7 @@ export default function HomePage() {
               {[
                 { icon: Shield, label: 'Гарантия качества', sub: 'Дезинфекция перед каждой выдачей' },
                 { icon: Truck, label: 'Доставка 2–4 часа', sub: 'Курьер привозит и забирает' },
-                { icon: Clock, label: 'Бесплатно от 14 дней', sub: 'Без скрытых наценок' },
+                { icon: Clock, label: 'Без скрытых наценок', sub: 'Прозрачное ценообразование' },
                 { icon: Sparkles, label: 'Без залога', sub: 'Постоянным клиентам' },
               ].map(({ icon: Icon, label, sub }) => (
                 <div key={label} className="flex items-center gap-3">

@@ -59,7 +59,6 @@ export default function DeliveryPage() {
                     'По Москве: от 300₽',
                     'По области: от 700₽',
                     'Доставка в день заказа',
-                    'Бесплатно от 14 дней аренды',
                   ].map((item) => (
                     <div key={item} className="flex items-center gap-2">
                       <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0" />
