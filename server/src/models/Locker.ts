@@ -166,10 +166,16 @@ export class LockerModel {
     }
   }
 
-  async findAll(officeId?: number): Promise<Locker[]> {
-    const rows = officeId
-      ? await all(`SELECT * FROM lockers WHERE office_id = ? ORDER BY CAST(locker_number AS INTEGER) ASC`, [officeId]) as any[]
-      : await all(`SELECT * FROM lockers ORDER BY CAST(locker_number AS INTEGER) ASC`) as any[]
+  async findAll(officeId?: number, officeIds?: number[]): Promise<Locker[]> {
+    let rows: any[]
+    if (officeId) {
+      rows = await all(`SELECT * FROM lockers WHERE office_id = ? ORDER BY CAST(locker_number AS INTEGER) ASC`, [officeId]) as any[]
+    } else if (officeIds !== undefined) {
+      if (officeIds.length === 0) return []
+      rows = await all(`SELECT * FROM lockers WHERE office_id IN (${officeIds.map(() => '?').join(',')}) ORDER BY CAST(locker_number AS INTEGER) ASC`, officeIds) as any[]
+    } else {
+      rows = await all(`SELECT * FROM lockers ORDER BY CAST(locker_number AS INTEGER) ASC`) as any[]
+    }
 
     return Promise.all(rows.map(row => this.mapRow(row)))
   }

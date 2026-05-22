@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 
 const LoginPage: React.FC = () => {
-  const [pinCode, setPinCode] = useState('');
+  const [phone, setPhone] = useState('');
+  const [password, setPassword] = useState('');
   const { login, loginError, loginLoading, isAuthenticated } = useAuth();
 
   useEffect(() => {
@@ -13,8 +14,12 @@ const LoginPage: React.FC = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    login(pinCode);
+    login({ phone, password });
   };
+
+  const errorMessage = loginError
+    ? (loginError as any)?.response?.data?.error || 'Неверный номер телефона или пароль'
+    : null;
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
@@ -24,40 +29,53 @@ const LoginPage: React.FC = () => {
             Вход в систему
           </h2>
           <p className="mt-2 text-center text-sm text-gray-600">
-            Введите пин-код для доступа к системе аренды
+            Введите номер телефона и пароль
           </p>
         </div>
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          <div className="rounded-md shadow-sm -space-y-px">
-            <div>
-              <label htmlFor="pin-code" className="sr-only">
-                Пин-код
-              </label>
-              <input
-                id="pin-code"
-                name="pinCode"
-                type="password"
-                autoComplete="current-password"
-                required
-                className="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-                placeholder="Введите пин-код"
-                value={pinCode}
-                onChange={(e) => setPinCode(e.target.value)}
-                disabled={loginLoading}
-              />
-            </div>
+        <form className="mt-8 space-y-4" onSubmit={handleSubmit}>
+          <div>
+            <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-1">
+              Номер телефона
+            </label>
+            <input
+              id="phone"
+              name="phone"
+              type="tel"
+              autoComplete="tel"
+              required
+              className="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+              placeholder="+7 (999) 000-00-00"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              disabled={loginLoading}
+            />
+          </div>
+          <div>
+            <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
+              Пароль
+            </label>
+            <input
+              id="password"
+              name="password"
+              type="password"
+              autoComplete="current-password"
+              required
+              className="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+              placeholder="Пароль"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              disabled={loginLoading}
+            />
           </div>
 
-          {loginError ? (
-            <div className="text-red-600 text-sm text-center">
-              {loginError instanceof Error ? loginError.message : typeof loginError === 'string' ? loginError : 'Ошибка входа'}
-            </div>
-          ) : null}
+          {errorMessage && (
+            <div className="text-red-600 text-sm text-center">{errorMessage}</div>
+          )}
 
           <div>
             <button
               type="submit"
-              disabled={loginLoading || !pinCode}
+              disabled={loginLoading || !phone || !password}
               className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loginLoading ? 'Вход...' : 'Войти'}

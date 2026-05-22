@@ -12,14 +12,16 @@ import { equipmentApi } from '../../api/admin/equipment';
 import { type Equipment, type CreateEquipmentDto } from '../../types/index';
 import EquipmentModal from '../../components/admin/EquipmentModal';
 import ConfirmDialog from '../../components/admin/ConfirmDialog';
+import { useOffice } from '../../hooks/useOffice';
 
 const EquipmentPage: React.FC = () => {
+  const { currentOfficeId } = useOffice();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingEquipment, setEditingEquipment] = useState<Equipment | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<{ isOpen: boolean; equipmentId: string | null }>({ isOpen: false, equipmentId: null });
   const queryClient = useQueryClient();
 
-  const { data: equipment = [], isLoading } = useAuthenticatedQuery<Equipment[]>(['equipment'], equipmentApi.getAll);
+  const { data: equipment = [], isLoading } = useAuthenticatedQuery<Equipment[]>(['equipment', currentOfficeId], () => equipmentApi.getAll(currentOfficeId));
 
   const createMutation = useMutation({
     mutationFn: equipmentApi.create,

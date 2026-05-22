@@ -41,8 +41,8 @@ const LockersPage: React.FC = () => {
   );
 
   const { data: allEquipment = [] } = useAuthenticatedQuery<Equipment[]>(
-    ['equipment-rental'],
-    equipmentApi.getForRental
+    ['equipment-rental', currentOfficeId],
+    () => equipmentApi.getForRental(currentOfficeId)
   );
 
   // Конвертация Set<"id:instance"> в массив для API

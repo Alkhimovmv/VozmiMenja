@@ -77,11 +77,15 @@ async function initializeApiClient(): Promise<AxiosInstance> {
   }
   const client = createApiClient(currentApiUrl);
 
-  // Request interceptor для добавления токена
+  // Request interceptor для добавления токена и заголовка просмотра от имени
   client.interceptors.request.use((config) => {
     const token = localStorage.getItem('authToken');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
+    }
+    const viewAsUserId = localStorage.getItem('viewAsUserId');
+    if (viewAsUserId) {
+      config.headers['X-View-As-User'] = viewAsUserId;
     }
     return config;
   });

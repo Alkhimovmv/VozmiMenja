@@ -84,10 +84,20 @@ export interface CreateExpenseDto {
   category?: string;
 }
 
+export type CustomerTag = 'regular' | 'problem' | null;
+
 export interface Customer {
   customer_name: string;
   customer_phone: string;
   rental_count: number;
+  tag: CustomerTag;
+  note: string | null;
+}
+
+export interface CustomerNote {
+  customer_phone: string;
+  tag: CustomerTag;
+  note: string | null;
 }
 
 export interface FinancialSummary {

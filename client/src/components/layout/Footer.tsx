@@ -98,7 +98,7 @@ export default function Footer() {
           </div>
         </div>
 
-        <div className="border-t border-gray-800 mt-6 pt-5 flex flex-col sm:flex-row justify-between items-center gap-3">
+        <div className="border-t border-gray-800 mt-6 pt-5 flex flex-col sm:flex-row justify-between items-center gap-3 pb-20 md:pb-0">
           <p className="text-gray-600 text-xs">© 2024 ИП Алхимова С.В. Все права защищены.</p>
           <div className="flex flex-wrap gap-4 justify-center">
             <Link to="/offer" className="text-gray-600 hover:text-gray-400 text-xs transition-colors">Договор оферты</Link>

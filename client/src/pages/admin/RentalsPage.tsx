@@ -21,6 +21,8 @@ const Spinner = () => (
 
 type DateFilter = 'week' | 'month' | 'all' | 'ends_today' | 'ends_tomorrow' | 'specific_date';
 
+const PAGE_SIZE = 20;
+
 const RentalsPage: React.FC = () => {
   const { currentOfficeId } = useOffice();
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -28,6 +30,7 @@ const RentalsPage: React.FC = () => {
   const [dateFilter, setDateFilter] = useState<DateFilter>('all');
   const [specificDate, setSpecificDate] = useState<string>('');
   const [equipmentFilter, setEquipmentFilter] = useState<string>('all');
+  const [currentPage, setCurrentPage] = useState(1);
   const [deleteConfirm, setDeleteConfirm] = useState<{ isOpen: boolean; rentalId: number | null }>({
     isOpen: false,
     rentalId: null,
@@ -39,7 +42,7 @@ const RentalsPage: React.FC = () => {
     () => rentalsApi.getAll(currentOfficeId)
   );
 
-  const { data: equipment = [] } = useAuthenticatedQuery<Equipment[]>(['equipment-rental'], equipmentApi.getForRental);
+  const { data: equipment = [] } = useAuthenticatedQuery<Equipment[]>(['equipment-rental', currentOfficeId], () => equipmentApi.getForRental(currentOfficeId));
 
   // Фильтрация и сортировка аренд
   const filteredRentals = useMemo(() => {
@@ -129,6 +132,12 @@ const RentalsPage: React.FC = () => {
 
     return filtered;
   }, [rentals, dateFilter, specificDate, equipmentFilter]);
+
+  // Сбрасываем страницу при изменении фильтров
+  React.useEffect(() => { setCurrentPage(1); }, [dateFilter, specificDate, equipmentFilter, currentOfficeId]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredRentals.length / PAGE_SIZE));
+  const pagedRentals = filteredRentals.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
   const invalidateAll = () => {
     queryClient.invalidateQueries({ queryKey: ['rentals'], exact: false });
@@ -249,6 +258,9 @@ const RentalsPage: React.FC = () => {
             <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Список аренд</h1>
             <div className="text-sm text-gray-600">
               Найдено: {filteredRentals.length} из {rentals.length}
+              {filteredRentals.length > PAGE_SIZE && (
+                <span className="ml-1 text-gray-400">· стр. {currentPage} из {totalPages}</span>
+              )}
             </div>
           </div>
           <button
@@ -318,7 +330,7 @@ const RentalsPage: React.FC = () => {
 
       <div className="bg-white shadow overflow-hidden sm:rounded-md">
         <ul className="divide-y divide-gray-200">
-          {filteredRentals.map((rental) => (
+          {pagedRentals.map((rental) => (
             <li key={rental.id} className="px-4 sm:px-6 py-4">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-3 sm:space-y-0">
                 <div className="flex-1 min-w-0">
@@ -453,6 +465,81 @@ const RentalsPage: React.FC = () => {
             <div className="text-gray-400 text-6xl mb-4">🔍</div>
             <h3 className="text-lg font-medium text-gray-900 mb-2">Нет аренд за выбранный период</h3>
             <p className="text-gray-500">Попробуйте изменить период фильтрации</p>
+          </div>
+        )}
+
+        {/* Пагинация */}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between px-4 sm:px-6 py-3 border-t border-gray-200 bg-gray-50">
+            <div className="text-sm text-gray-500">
+              {(currentPage - 1) * PAGE_SIZE + 1}–{Math.min(currentPage * PAGE_SIZE, filteredRentals.length)} из {filteredRentals.length}
+            </div>
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => setCurrentPage(1)}
+                disabled={currentPage === 1}
+                className="p-1.5 rounded text-gray-400 hover:text-gray-600 hover:bg-gray-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                title="Первая страница"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 19l-7-7 7-7M19 19l-7-7 7-7" />
+                </svg>
+              </button>
+              <button
+                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+                className="p-1.5 rounded text-gray-400 hover:text-gray-600 hover:bg-gray-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                title="Предыдущая"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                </svg>
+              </button>
+              {Array.from({ length: totalPages }, (_, i) => i + 1)
+                .filter(p => p === 1 || p === totalPages || Math.abs(p - currentPage) <= 1)
+                .reduce<(number | '...')[]>((acc, p, i, arr) => {
+                  if (i > 0 && p - (arr[i - 1] as number) > 1) acc.push('...');
+                  acc.push(p);
+                  return acc;
+                }, [])
+                .map((p, i) =>
+                  p === '...' ? (
+                    <span key={`ellipsis-${i}`} className="px-1 text-gray-400 text-sm">…</span>
+                  ) : (
+                    <button
+                      key={p}
+                      onClick={() => setCurrentPage(p as number)}
+                      className={`min-w-[32px] h-8 px-2 rounded text-sm font-medium transition-colors ${
+                        currentPage === p
+                          ? 'bg-indigo-600 text-white'
+                          : 'text-gray-600 hover:bg-gray-200'
+                      }`}
+                    >
+                      {p}
+                    </button>
+                  )
+                )}
+              <button
+                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                disabled={currentPage === totalPages}
+                className="p-1.5 rounded text-gray-400 hover:text-gray-600 hover:bg-gray-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                title="Следующая"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </button>
+              <button
+                onClick={() => setCurrentPage(totalPages)}
+                disabled={currentPage === totalPages}
+                className="p-1.5 rounded text-gray-400 hover:text-gray-600 hover:bg-gray-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                title="Последняя страница"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 5l7 7-7 7M5 5l7 7-7 7" />
+                </svg>
+              </button>
+            </div>
           </div>
         )}
       </div>

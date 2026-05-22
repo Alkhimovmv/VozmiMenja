@@ -13,6 +13,17 @@ function parseLockerRows(raw: string | null): any[] {
   }
 }
 
+function formatOffice(o: any) {
+  return {
+    id: o.id,
+    name: o.name,
+    address: o.address || '',
+    locker_rows: parseLockerRows(o.locker_rows),
+    created_at: o.created_at,
+    updated_at: o.updated_at,
+  }
+}
+
 const lockerRowSchema = z.object({
   row: z.number().int().positive(),
   count: z.number().int().min(1).max(20),
@@ -25,16 +36,12 @@ const officeSchema = z.object({
   locker_rows: z.array(lockerRowSchema).optional()
 })
 
-// GET /api/admin/offices/:id/lockers-codes - Список ячеек с кодами для офиса (требует LOCKERS_SECRET)
+// GET /api/admin/offices/:id/lockers-codes - без авторизации, по секрету
 router.get('/:id/lockers-codes', async (req: Request, res: Response) => {
   const secret = process.env.LOCKERS_SECRET
-  if (!secret) {
-    return res.status(500).json({ error: 'LOCKERS_SECRET не настроен' })
-  }
+  if (!secret) return res.status(500).json({ error: 'LOCKERS_SECRET не настроен' })
   const provided = req.headers['x-lockers-secret']
-  if (!provided || provided !== secret) {
-    return res.status(401).json({ error: 'Unauthorized' })
-  }
+  if (!provided || provided !== secret) return res.status(401).json({ error: 'Unauthorized' })
   try {
     const { id } = req.params
     const lockers = await database.all(
@@ -42,36 +49,32 @@ router.get('/:id/lockers-codes', async (req: Request, res: Response) => {
       [id]
     )
     const result: Record<string, string> = {}
-    for (const locker of lockers) {
-      result[locker.locker_number] = locker.access_code
-    }
+    for (const locker of lockers) result[locker.locker_number] = locker.access_code
     res.json(result)
   } catch (error) {
-    console.error('Error getting lockers codes:', error)
     res.status(500).json({ error: 'Ошибка получения кодов ячеек' })
   }
 })
 
-// GET /api/admin/offices - Получить все офисы
+// GET /api/admin/offices
 router.get('/', authMiddleware, async (req: Request, res: Response) => {
   try {
-    const offices = await database.all('SELECT * FROM offices ORDER BY id ASC')
-    const result = offices.map((o: any) => ({
-      id: o.id,
-      name: o.name,
-      address: o.address || '',
-      locker_rows: parseLockerRows(o.locker_rows),
-      created_at: o.created_at,
-      updated_at: o.updated_at,
-    }))
-    res.json(result)
+    let offices: any[]
+    if (req.user!.role === 'superadmin') {
+      offices = await database.all('SELECT * FROM offices ORDER BY id ASC')
+    } else {
+      offices = await database.all(
+        'SELECT * FROM offices WHERE user_id = ? ORDER BY id ASC',
+        [req.user!.userId]
+      )
+    }
+    res.json(offices.map(formatOffice))
   } catch (error) {
-    console.error('Error getting offices:', error)
     res.status(500).json({ error: 'Ошибка получения офисов' })
   }
 })
 
-// POST /api/admin/offices - Создать офис
+// POST /api/admin/offices
 router.post('/', authMiddleware, async (req: Request, res: Response) => {
   try {
     const parsed = officeSchema.safeParse(req.body)
@@ -85,24 +88,19 @@ router.post('/', authMiddleware, async (req: Request, res: Response) => {
       { row: 2, count: 2, size: 'large' },
       { row: 1, count: 2, size: 'large' },
     ])
+    const userId = req.user!.userId
     const result = await database.run(
-      'INSERT INTO offices (name, address, locker_rows) VALUES (?, ?, ?)',
-      [name, address || '', lockerRowsJson]
+      'INSERT INTO offices (name, address, locker_rows, user_id) VALUES (?, ?, ?, ?)',
+      [name, address || '', lockerRowsJson, userId]
     )
     const office = await database.get('SELECT * FROM offices WHERE id = ?', [result.lastID])
-    res.status(201).json({
-      id: office.id,
-      name: office.name,
-      address: office.address || '',
-      locker_rows: parseLockerRows(office.locker_rows),
-    })
+    res.status(201).json(formatOffice(office))
   } catch (error) {
-    console.error('Error creating office:', error)
     res.status(500).json({ error: 'Ошибка создания офиса' })
   }
 })
 
-// PUT /api/admin/offices/:id - Обновить офис
+// PUT /api/admin/offices/:id
 router.put('/:id', authMiddleware, async (req: Request, res: Response) => {
   try {
     const { id } = req.params
@@ -110,10 +108,15 @@ router.put('/:id', authMiddleware, async (req: Request, res: Response) => {
     if (!parsed.success) {
       return res.status(400).json({ error: parsed.error.errors.map(e => e.message).join(', ') })
     }
-    const { name, address, locker_rows } = parsed.data
     const existing = await database.get('SELECT * FROM offices WHERE id = ?', [id])
     if (!existing) return res.status(404).json({ error: 'Офис не найден' })
 
+    // Обычный админ может менять только свои офисы
+    if (req.user!.role !== 'superadmin' && existing.user_id !== req.user!.userId) {
+      return res.status(403).json({ error: 'Нет доступа к этому офису' })
+    }
+
+    const { name, address, locker_rows } = parsed.data
     const newName = name ?? existing.name
     const newAddress = address ?? existing.address ?? ''
     const newLockerRows = locker_rows !== undefined ? JSON.stringify(locker_rows) : existing.locker_rows
@@ -123,33 +126,35 @@ router.put('/:id', authMiddleware, async (req: Request, res: Response) => {
       [newName, newAddress, newLockerRows, id]
     )
     const office = await database.get('SELECT * FROM offices WHERE id = ?', [id])
-    res.json({
-      id: office.id,
-      name: office.name,
-      address: office.address || '',
-      locker_rows: parseLockerRows(office.locker_rows),
-    })
+    res.json(formatOffice(office))
   } catch (error) {
-    console.error('Error updating office:', error)
     res.status(500).json({ error: 'Ошибка обновления офиса' })
   }
 })
 
-// DELETE /api/admin/offices/:id - Удалить офис (нельзя удалить если только 1)
+// DELETE /api/admin/offices/:id
 router.delete('/:id', authMiddleware, async (req: Request, res: Response) => {
   try {
     const { id } = req.params
-    const count = await database.get('SELECT COUNT(*) as cnt FROM offices')
+    const existing = await database.get('SELECT * FROM offices WHERE id = ?', [id])
+    if (!existing) return res.status(404).json({ error: 'Офис не найден' })
+
+    if (req.user!.role !== 'superadmin' && existing.user_id !== req.user!.userId) {
+      return res.status(403).json({ error: 'Нет доступа к этому офису' })
+    }
+
+    // Нельзя удалить если это единственный офис пользователя
+    const count = req.user!.role === 'superadmin'
+      ? await database.get('SELECT COUNT(*) as cnt FROM offices')
+      : await database.get('SELECT COUNT(*) as cnt FROM offices WHERE user_id = ?', [req.user!.userId])
+
     if (count.cnt <= 1) {
       return res.status(400).json({ error: 'Нельзя удалить единственный офис' })
     }
-    const existing = await database.get('SELECT * FROM offices WHERE id = ?', [id])
-    if (!existing) return res.status(404).json({ error: 'Офис не найден' })
 
     await database.run('DELETE FROM offices WHERE id = ?', [id])
     res.json({ success: true })
   } catch (error) {
-    console.error('Error deleting office:', error)
     res.status(500).json({ error: 'Ошибка удаления офиса' })
   }
 })

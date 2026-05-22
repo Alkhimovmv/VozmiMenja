@@ -2,8 +2,9 @@ import apiClient from './client';
 import { type Equipment, type CreateEquipmentDto } from '../types/index';
 
 export const equipmentApi = {
-  getAll: async (): Promise<Equipment[]> => {
-    const response = await apiClient.get('/equipment');
+  getAll: async (officeId?: number): Promise<Equipment[]> => {
+    const params = officeId ? `?officeId=${officeId}` : '';
+    const response = await apiClient.get(`/equipment${params}`);
     return response.data.data || response.data;
   },
 
@@ -26,9 +27,9 @@ export const equipmentApi = {
     await apiClient.delete(`/equipment/${id}`);
   },
 
-  // Получить оборудование с виртуальными экземплярами для аренды
-  getForRental: async (): Promise<Equipment[]> => {
-    const response = await apiClient.get('/equipment/for-rental');
+  getForRental: async (officeId?: number): Promise<Equipment[]> => {
+    const params = officeId ? `?officeId=${officeId}` : '';
+    const response = await apiClient.get(`/equipment/for-rental${params}`);
     return response.data;
   },
 };

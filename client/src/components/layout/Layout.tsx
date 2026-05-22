@@ -14,9 +14,7 @@ export default function Layout({ children }: LayoutProps) {
       <main className="flex-1 pt-16 md:pt-20 pb-16 md:pb-0 mobile-safe-bottom">
         {children}
       </main>
-      <div className="hidden md:block">
-        <Footer />
-      </div>
+      <Footer />
       <MobileNav />
     </div>
   )

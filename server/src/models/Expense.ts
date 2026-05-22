@@ -27,8 +27,9 @@ export class ExpenseModel {
     startDate?: string
     endDate?: string
     officeId?: number
+    officeIds?: number[]
   } = {}): Promise<Expense[]> {
-    const { category, startDate, endDate, officeId } = options
+    const { category, startDate, endDate, officeId, officeIds } = options
 
     const conditions: string[] = []
     const params: any[] = []
@@ -51,6 +52,10 @@ export class ExpenseModel {
     if (officeId) {
       conditions.push('office_id = ?')
       params.push(officeId)
+    } else if (officeIds !== undefined) {
+      if (officeIds.length === 0) return []
+      conditions.push(`office_id IN (${officeIds.map(() => '?').join(',')})`)
+      params.push(...officeIds)
     }
 
     const whereClause = conditions.length > 0 ? ' WHERE ' + conditions.join(' AND ') : ''
@@ -135,14 +140,17 @@ export class ExpenseModel {
     await run('DELETE FROM expenses WHERE id = ?', [id])
   }
 
-  async getTotalByCategory(): Promise<Record<string, number>> {
+  async getTotalByCategory(officeIds?: number[]): Promise<Record<string, number>> {
+    const filter = officeIds !== undefined
+      ? officeIds.length === 0 ? 'AND 1=0' : `AND office_id IN (${officeIds.map(() => '?').join(',')})`
+      : ''
     const rows = await all(`
       SELECT category, SUM(amount) as total
       FROM expenses
-      WHERE category IS NOT NULL
+      WHERE category IS NOT NULL ${filter}
       GROUP BY category
       ORDER BY total DESC
-    `) as Array<{ category: string; total: number }>
+    `, officeIds ?? []) as Array<{ category: string; total: number }>
 
     const result: Record<string, number> = {}
     rows.forEach(row => {
@@ -152,20 +160,24 @@ export class ExpenseModel {
     return result
   }
 
-  async getMonthlyTotal(): Promise<Array<{
+  async getMonthlyTotal(officeIds?: number[]): Promise<Array<{
     month: string
     year: number
     total: number
   }>> {
+    const filter = officeIds !== undefined
+      ? officeIds.length === 0 ? 'WHERE 1=0' : `WHERE office_id IN (${officeIds.map(() => '?').join(',')})`
+      : ''
     const rows = await all(`
       SELECT
         strftime('%m', date) as month,
         strftime('%Y', date) as year,
         SUM(amount) as total
       FROM expenses
+      ${filter}
       GROUP BY month, year
       ORDER BY year DESC, month DESC
-    `) as any[]
+    `, officeIds ?? []) as any[]
 
     return rows.map(row => ({
       month: row.month,
@@ -174,13 +186,18 @@ export class ExpenseModel {
     }))
   }
 
-  async getMonthlyExpensesDetails(year: number, month: number, officeId?: number): Promise<{
+  async getMonthlyExpensesDetails(year: number, month: number, officeIds?: number[]): Promise<{
     operational_expenses: number
     by_category: Record<string, number>
   }> {
+    if (officeIds !== undefined && officeIds.length === 0) {
+      return { operational_expenses: 0, by_category: {} }
+    }
     const monthStr = month.toString().padStart(2, '0')
-    const officeFilter = officeId ? 'AND office_id = ?' : ''
-    const officeParams = officeId ? [officeId] : []
+    const officeFilter = officeIds !== undefined
+      ? `AND office_id IN (${officeIds.map(() => '?').join(',')})`
+      : ''
+    const officeParams = officeIds ?? []
 
     const totalRow = await get(`
       SELECT COALESCE(SUM(amount), 0) as total

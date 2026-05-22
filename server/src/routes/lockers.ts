@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express'
 import { z } from 'zod'
 import { lockerModel, CreateLockerData } from '../models/Locker'
 import { authMiddleware } from '../middleware/auth'
+import { getUserOfficeIds } from '../middleware/userFilter'
 import { initializeLockers } from '../scripts/initializeLockers'
 
 const router = Router()
@@ -47,7 +48,16 @@ function toSnakeCase(locker: any) {
 router.get('/', authMiddleware, async (req: Request, res: Response) => {
   try {
     const officeId = req.query.officeId ? parseInt(req.query.officeId as string) : undefined
-    const lockers = await lockerModel.findAll(officeId)
+    const userOfficeIds = await getUserOfficeIds(req)
+
+    let resolvedOfficeId = officeId
+    if (userOfficeIds !== null) {
+      if (resolvedOfficeId !== undefined && !userOfficeIds.includes(resolvedOfficeId)) {
+        return res.json([])
+      }
+    }
+
+    const lockers = await lockerModel.findAll(resolvedOfficeId, userOfficeIds ?? undefined)
     res.json(lockers.map(toSnakeCase))
   } catch (error) {
     console.error('Error getting lockers:', error)
@@ -102,13 +112,20 @@ router.post('/', authMiddleware, async (req: Request, res: Response) => {
     if (!parsed.success) {
       return res.status(400).json({ error: parsed.error.errors.map(e => e.message).join(', ') })
     }
+
+    const userOfficeIds = await getUserOfficeIds(req)
+    const officeId = parsed.data.office_id
+    if (userOfficeIds !== null && !userOfficeIds.includes(officeId)) {
+      return res.status(403).json({ error: 'Нет доступа к этому офису' })
+    }
+
     const data: CreateLockerData = {
       lockerNumber: parsed.data.locker_number,
       accessCode: parsed.data.access_code,
       description: parsed.data.description,
       items: parsed.data.items,
       isActive: parsed.data.is_active,
-      officeId: parsed.data.office_id
+      officeId
     }
 
     const locker = await lockerModel.create(data)
@@ -126,6 +143,15 @@ router.post('/', authMiddleware, async (req: Request, res: Response) => {
 // PUT /api/admin/lockers/:id - Обновить ячейку
 router.put('/:id', authMiddleware, async (req: Request, res: Response) => {
   try {
+    const lockerId = parseInt(req.params.id)
+    const existing = await lockerModel.findById(lockerId)
+    if (!existing) return res.status(404).json({ error: 'Ячейка не найдена' })
+
+    const userOfficeIds = await getUserOfficeIds(req)
+    if (userOfficeIds !== null && !userOfficeIds.includes(existing.officeId)) {
+      return res.status(403).json({ error: 'Нет доступа' })
+    }
+
     const data: Partial<CreateLockerData> = {}
 
     if (req.body.locker_number !== undefined || req.body.lockerNumber !== undefined) {
@@ -148,7 +174,7 @@ router.put('/:id', authMiddleware, async (req: Request, res: Response) => {
       data.isActive = req.body.is_active !== undefined ? req.body.is_active : req.body.isActive
     }
 
-    const locker = await lockerModel.update(parseInt(req.params.id), data)
+    const locker = await lockerModel.update(lockerId, data)
     res.json(toSnakeCase(locker))
   } catch (error: any) {
     console.error('Error updating locker:', error)
@@ -219,7 +245,16 @@ router.post('/:id/needs-check', authMiddleware, async (req: Request, res: Respon
 // DELETE /api/admin/lockers/:id - Удалить ячейку
 router.delete('/:id', authMiddleware, async (req: Request, res: Response) => {
   try {
-    await lockerModel.delete(parseInt(req.params.id))
+    const lockerId = parseInt(req.params.id)
+    const existing = await lockerModel.findById(lockerId)
+    if (!existing) return res.status(404).json({ error: 'Ячейка не найдена' })
+
+    const userOfficeIds = await getUserOfficeIds(req)
+    if (userOfficeIds !== null && !userOfficeIds.includes(existing.officeId)) {
+      return res.status(403).json({ error: 'Нет доступа' })
+    }
+
+    await lockerModel.delete(lockerId)
     res.status(204).send()
   } catch (error) {
     console.error('Error deleting locker:', error)

@@ -45,6 +45,9 @@ const LockersPage = lazy(() => import('./pages/admin/LockersPage'))
 
 // Настройка офисов
 const OfficesPage = lazy(() => import('./pages/admin/OfficesPage'))
+
+// Управление пользователями (суперадмин)
+const UsersPage = lazy(() => import('./pages/admin/UsersPage'))
 const NotFoundPage = lazy(() => import('./pages/NotFoundPage'))
 const RentalAgreementPage = lazy(() => import('./pages/RentalAgreementPage'))
 
@@ -115,6 +118,7 @@ function App() {
           <Route path="/admin/finances" element={<AdminLayout><RentAdminFinancesPage /></AdminLayout>} />
           <Route path="/admin/lockers" element={<AdminLayout><LockersPage /></AdminLayout>} />
           <Route path="/admin/offices" element={<AdminLayout><OfficesPage /></AdminLayout>} />
+          <Route path="/admin/users" element={<AdminLayout><UsersPage /></AdminLayout>} />
           <Route path="/admin/articles" element={<UnifiedAdminLayout><AdminArticlesPage /></UnifiedAdminLayout>} />
 
           {/* Public routes with layout */}

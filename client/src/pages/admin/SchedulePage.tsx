@@ -35,7 +35,7 @@ const SchedulePage: React.FC = () => {
   const weekStart = startOfWeek(selectedDate, { locale: ru });
   const weekEnd = endOfWeek(selectedDate, { locale: ru });
 
-  const { data: equipment = [] } = useAuthenticatedQuery<Equipment[]>(['equipment', 'rental'], equipmentApi.getForRental);
+  const { data: equipment = [] } = useAuthenticatedQuery<Equipment[]>(['equipment-rental', currentOfficeId], () => equipmentApi.getForRental(currentOfficeId));
 
   const { data: rentals = [] } = useAuthenticatedQuery<Rental[]>(
     ['rentals', 'gantt', currentOfficeId],

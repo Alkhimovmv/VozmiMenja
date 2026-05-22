@@ -299,6 +299,58 @@ class Database {
       console.error('Ошибка миграции lockers unique constraint:', error)
     }
 
+    // Таблица администраторов
+    await run(`
+      CREATE TABLE IF NOT EXISTS admin_users (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        phone TEXT NOT NULL UNIQUE,
+        password_hash TEXT NOT NULL,
+        role TEXT NOT NULL DEFAULT 'admin' CHECK (role IN ('superadmin', 'admin')),
+        name TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      )
+    `)
+
+    // Миграция: user_id в offices
+    try {
+      await run(`ALTER TABLE offices ADD COLUMN user_id INTEGER REFERENCES admin_users(id)`)
+    } catch (error: any) {
+      if (!error.message?.includes('duplicate column name')) throw error
+    }
+
+    // Миграция: user_id в rental_equipment
+    try {
+      await run(`ALTER TABLE rental_equipment ADD COLUMN user_id INTEGER REFERENCES admin_users(id)`)
+    } catch (error: any) {
+      if (!error.message?.includes('duplicate column name')) throw error
+    }
+
+    // Миграция: office_id в rental_equipment
+    try {
+      await run(`ALTER TABLE rental_equipment ADD COLUMN office_id INTEGER REFERENCES offices(id)`)
+    } catch (error: any) {
+      if (!error.message?.includes('duplicate column name')) throw error
+    }
+
+    // Таблица заметок о клиентах (по номеру телефона)
+    await run(`
+      CREATE TABLE IF NOT EXISTS customer_notes (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        customer_phone TEXT NOT NULL,
+        tag TEXT CHECK (tag IN ('vip', 'regular', 'problem', NULL)),
+        note TEXT,
+        office_id INTEGER NOT NULL DEFAULT 1,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(customer_phone, office_id)
+      )
+    `)
+
+    await run(`
+      CREATE INDEX IF NOT EXISTS idx_customer_notes_phone ON customer_notes(customer_phone);
+    `)
+
     // Таблица связи ячеек постомата с оборудованием
     await run(`
       CREATE TABLE IF NOT EXISTS locker_equipment (

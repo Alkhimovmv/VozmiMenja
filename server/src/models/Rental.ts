@@ -59,8 +59,9 @@ export class RentalModel {
     status?: RentalStatus
     equipmentId?: number
     officeId?: number
+    officeIds?: number[]
   } = {}): Promise<RentalWithEquipment[]> {
-    const { status, equipmentId, officeId } = options
+    const { status, equipmentId, officeId, officeIds } = options
 
     const conditions: string[] = []
     const params: any[] = []
@@ -78,6 +79,10 @@ export class RentalModel {
     if (officeId) {
       conditions.push('r.office_id = ?')
       params.push(officeId)
+    } else if (officeIds !== undefined) {
+      if (officeIds.length === 0) return []
+      conditions.push(`r.office_id IN (${officeIds.map(() => '?').join(',')})`)
+      params.push(...officeIds)
     }
 
     const whereClause = conditions.length > 0 ? ' WHERE ' + conditions.join(' AND ') : ''
@@ -491,20 +496,26 @@ export class RentalModel {
     await run('DELETE FROM rentals WHERE id = ?', [id])
   }
 
-  async getCustomers(): Promise<Array<{
+  async getCustomers(officeIds?: number[]): Promise<Array<{
     customerName: string
     customerPhone: string
     rentalCount: number
   }>> {
+    const officeFilter = officeIds !== undefined
+      ? officeIds.length === 0 ? 'WHERE 1=0' : `WHERE office_id IN (${officeIds.map(() => '?').join(',')})`
+      : ''
+    const officeParams = officeIds ?? []
+
     const rows = await all(`
       SELECT
         customer_name,
         customer_phone,
         COUNT(*) as rental_count
       FROM rentals
+      ${officeFilter}
       GROUP BY customer_name, customer_phone
       ORDER BY rental_count DESC
-    `) as any[]
+    `, officeParams) as any[]
 
     return rows.map(row => ({
       customerName: row.customer_name,
@@ -513,7 +524,7 @@ export class RentalModel {
     }))
   }
 
-  async getMonthlyRevenue(officeId?: number): Promise<Array<{
+  async getMonthlyRevenue(officeIds?: number[]): Promise<Array<{
     month: number
     year: number
     month_name: string
@@ -521,8 +532,10 @@ export class RentalModel {
     net_profit: number
     rental_count: number
   }>> {
-    const officeFilter = officeId ? 'AND r.office_id = ?' : ''
-    const officeParams = officeId ? [officeId] : []
+    const officeFilter = officeIds !== undefined
+      ? officeIds.length === 0 ? 'AND 1=0' : `AND r.office_id IN (${officeIds.map(() => '?').join(',')})`
+      : ''
+    const officeParams = officeIds ?? []
 
     const rows = await all(`
       SELECT
@@ -543,7 +556,9 @@ export class RentalModel {
       'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'
     ]
 
-    const expenseOfficeFilter = officeId ? 'AND office_id = ?' : ''
+    const expenseOfficeFilter = officeIds !== undefined
+      ? officeIds.length === 0 ? 'AND 1=0' : `AND office_id IN (${officeIds.map(() => '?').join(',')})`
+      : ''
     const expenseRows = await all(`
       SELECT
         strftime('%m', date) as month,
@@ -581,15 +596,20 @@ export class RentalModel {
     })
   }
 
-  async getMonthlyRevenueDetails(year: number, month: number, officeId?: number): Promise<{
+  async getMonthlyRevenueDetails(year: number, month: number, officeIds?: number[]): Promise<{
     rental_revenue: number
     delivery_revenue: number
     delivery_costs: number
     total_rentals: number
   }> {
+    if (officeIds !== undefined && officeIds.length === 0) {
+      return { rental_revenue: 0, delivery_revenue: 0, delivery_costs: 0, total_rentals: 0 }
+    }
     const monthStr = month.toString().padStart(2, '0')
-    const officeFilter = officeId ? 'AND office_id = ?' : ''
-    const officeParams = officeId ? [officeId] : []
+    const officeFilter = officeIds !== undefined
+      ? `AND office_id IN (${officeIds.map(() => '?').join(',')})`
+      : ''
+    const officeParams = officeIds ?? []
 
     const row = await get(`
       SELECT
@@ -612,7 +632,11 @@ export class RentalModel {
     }
   }
 
-  async getCustomerRentals(phone: string): Promise<RentalWithEquipment[]> {
+  async getCustomerRentals(phone: string, officeIds?: number[]): Promise<RentalWithEquipment[]> {
+    if (officeIds !== undefined && officeIds.length === 0) return []
+    const officeFilter = officeIds !== undefined
+      ? `AND r.office_id IN (${officeIds.map(() => '?').join(',')})`
+      : ''
     const rows = await all(`
       SELECT
         r.*,
@@ -620,8 +644,9 @@ export class RentalModel {
       FROM rentals r
       LEFT JOIN rental_equipment re ON r.equipment_id = re.id
       WHERE r.customer_phone = ?
+      ${officeFilter}
       ORDER BY r.start_date DESC
-    `, [phone]) as any[]
+    `, [phone, ...(officeIds ?? [])]) as any[]
 
     return rows.map(row => ({
       ...this.mapRow(row),

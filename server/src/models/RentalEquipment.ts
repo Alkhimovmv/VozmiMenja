@@ -6,6 +6,7 @@ export interface RentalEquipment {
   quantity: number
   description?: string
   basePrice: number
+  officeId?: number
   createdAt: string
   updatedAt: string
 }
@@ -15,42 +16,39 @@ export interface CreateRentalEquipmentData {
   quantity: number
   description?: string
   basePrice: number
+  userId?: number
+  officeId?: number
 }
 
 export class RentalEquipmentModel {
   private db = database.instance
 
-  async findAll(): Promise<RentalEquipment[]> {
-    const rows = await all(`
-      SELECT * FROM rental_equipment
-      ORDER BY created_at DESC
-    `) as any[]
+  async findAll(officeId?: number): Promise<RentalEquipment[]> {
+    const rows = officeId !== undefined
+      ? await all(`SELECT * FROM rental_equipment WHERE office_id = ? ORDER BY created_at DESC`, [officeId]) as any[]
+      : await all(`SELECT * FROM rental_equipment ORDER BY created_at DESC`) as any[]
 
     return rows.map(this.mapRow)
   }
 
   async findById(id: number): Promise<RentalEquipment | null> {
     const row = await get('SELECT * FROM rental_equipment WHERE id = ?', [id]) as any
-
     return row ? this.mapRow(row) : null
   }
 
   async create(data: CreateRentalEquipmentData): Promise<RentalEquipment> {
     const result = await new Promise<number>((resolve, reject) => {
       this.db.run(`
-        INSERT INTO rental_equipment (name, quantity, description, base_price)
-        VALUES (?, ?, ?, ?)
-      `, [data.name, data.quantity, data.description || null, data.basePrice], function(err) {
+        INSERT INTO rental_equipment (name, quantity, description, base_price, user_id, office_id)
+        VALUES (?, ?, ?, ?, ?, ?)
+      `, [data.name, data.quantity, data.description || null, data.basePrice, data.userId || null, data.officeId || null], function(err) {
         if (err) reject(err)
         else resolve(this.lastID)
       })
     })
 
     const equipment = await this.findById(result)
-    if (!equipment) {
-      throw new Error('Failed to create rental equipment')
-    }
-
+    if (!equipment) throw new Error('Failed to create rental equipment')
     return equipment
   }
 
@@ -58,41 +56,20 @@ export class RentalEquipmentModel {
     const updates: string[] = []
     const values: any[] = []
 
-    if (data.name !== undefined) {
-      updates.push('name = ?')
-      values.push(data.name)
-    }
-    if (data.quantity !== undefined) {
-      updates.push('quantity = ?')
-      values.push(data.quantity)
-    }
-    if (data.description !== undefined) {
-      updates.push('description = ?')
-      values.push(data.description)
-    }
-    if (data.basePrice !== undefined) {
-      updates.push('base_price = ?')
-      values.push(data.basePrice)
-    }
+    if (data.name !== undefined) { updates.push('name = ?'); values.push(data.name) }
+    if (data.quantity !== undefined) { updates.push('quantity = ?'); values.push(data.quantity) }
+    if (data.description !== undefined) { updates.push('description = ?'); values.push(data.description) }
+    if (data.basePrice !== undefined) { updates.push('base_price = ?'); values.push(data.basePrice) }
 
-    if (updates.length === 0) {
-      throw new Error('No fields to update')
-    }
+    if (updates.length === 0) throw new Error('No fields to update')
 
     updates.push('updated_at = CURRENT_TIMESTAMP')
     values.push(id)
 
-    await run(`
-      UPDATE rental_equipment
-      SET ${updates.join(', ')}
-      WHERE id = ?
-    `, values)
+    await run(`UPDATE rental_equipment SET ${updates.join(', ')} WHERE id = ?`, values)
 
     const equipment = await this.findById(id)
-    if (!equipment) {
-      throw new Error('Failed to update rental equipment')
-    }
-
+    if (!equipment) throw new Error('Failed to update rental equipment')
     return equipment
   }
 
@@ -107,6 +84,7 @@ export class RentalEquipmentModel {
       quantity: row.quantity,
       description: row.description || undefined,
       basePrice: row.base_price,
+      officeId: row.office_id || undefined,
       createdAt: row.created_at,
       updatedAt: row.updated_at
     }

@@ -1,14 +1,26 @@
 import { Router, Request, Response } from 'express'
 import { rentalModel } from '../models/Rental'
 import { expenseModel } from '../models/Expense'
+import { authMiddleware } from '../middleware/auth'
+import { getUserOfficeIds } from '../middleware/userFilter'
 
 const router = Router()
 
+function resolveOfficeIds(userOfficeIds: number[] | null, queryOfficeId?: string): number[] | undefined {
+  const qId = queryOfficeId ? parseInt(queryOfficeId) : undefined
+  if (userOfficeIds === null) {
+    return qId ? [qId] : undefined
+  }
+  if (qId && userOfficeIds.includes(qId)) return [qId]
+  return userOfficeIds.length > 0 ? userOfficeIds : undefined
+}
+
 // GET /api/admin/analytics/monthly-revenue - Получить месячную выручку
-router.get('/monthly-revenue', async (req: Request, res: Response) => {
+router.get('/monthly-revenue', authMiddleware, async (req: Request, res: Response) => {
   try {
-    const officeId = req.query.officeId ? parseInt(req.query.officeId as string) : undefined
-    const revenue = await rentalModel.getMonthlyRevenue(officeId)
+    const userOfficeIds = await getUserOfficeIds(req)
+    const officeIds = resolveOfficeIds(userOfficeIds, req.query.officeId as string | undefined)
+    const revenue = await rentalModel.getMonthlyRevenue(officeIds)
     res.json(revenue)
   } catch (error) {
     console.error('Error getting monthly revenue:', error)
@@ -17,9 +29,9 @@ router.get('/monthly-revenue', async (req: Request, res: Response) => {
 })
 
 // GET /api/admin/analytics/financial-summary - Получить финансовую сводку
-router.get('/financial-summary', async (req: Request, res: Response) => {
+router.get('/financial-summary', authMiddleware, async (req: Request, res: Response) => {
   try {
-    const { year, month, officeId } = req.query
+    const { year, month } = req.query
 
     if (!year || !month) {
       return res.status(400).json({ error: 'Year and month are required' })
@@ -27,10 +39,11 @@ router.get('/financial-summary', async (req: Request, res: Response) => {
 
     const yearNum = parseInt(year as string)
     const monthNum = parseInt(month as string)
-    const officeIdNum = officeId ? parseInt(officeId as string) : undefined
+    const userOfficeIds = await getUserOfficeIds(req)
+    const officeIds = resolveOfficeIds(userOfficeIds, req.query.officeId as string | undefined)
 
-    const revenueDetails = await rentalModel.getMonthlyRevenueDetails(yearNum, monthNum, officeIdNum)
-    const expensesDetails = await expenseModel.getMonthlyExpensesDetails(yearNum, monthNum, officeIdNum)
+    const revenueDetails = await rentalModel.getMonthlyRevenueDetails(yearNum, monthNum, officeIds)
+    const expensesDetails = await expenseModel.getMonthlyExpensesDetails(yearNum, monthNum, officeIds)
 
     const summary = {
       total_revenue: revenueDetails.rental_revenue + revenueDetails.delivery_revenue,

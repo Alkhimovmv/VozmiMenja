@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express'
 import { z } from 'zod'
 import { rentalModel, CreateRentalData, RentalStatus } from '../models/Rental'
 import { authMiddleware } from '../middleware/auth'
+import { getUserOfficeIds } from '../middleware/userFilter'
 import { rentalToSnakeCase as toSnakeCase } from '../utils/transformers'
 import { lockerModel } from '../models/Locker'
 import { get, all } from '../models/database'
@@ -48,17 +49,26 @@ const updateRentalSchema = z.object({
 })
 
 // GET /api/rentals - Получить все аренды
-router.get('/', async (req: Request, res: Response) => {
+router.get('/', authMiddleware, async (req: Request, res: Response) => {
   try {
     const { status, equipmentId, officeId } = req.query
+    const userOfficeIds = await getUserOfficeIds(req)
+
+    // Если officeId передан — проверяем что он входит в разрешённые
+    let resolvedOfficeId = officeId ? parseInt(officeId as string) : undefined
+    if (userOfficeIds !== null) {
+      if (resolvedOfficeId !== undefined && !userOfficeIds.includes(resolvedOfficeId)) {
+        return res.json([])
+      }
+    }
 
     const rentals = await rentalModel.findAll({
       status: status as RentalStatus | undefined,
       equipmentId: equipmentId ? parseInt(equipmentId as string) : undefined,
-      officeId: officeId ? parseInt(officeId as string) : undefined
+      officeId: resolvedOfficeId,
+      officeIds: userOfficeIds ?? undefined,
     })
 
-    // Автоматический расчет статуса
     const rentalsWithStatus = rentals.map(rental => ({
       ...rental,
       status: calculateStatus(rental)
@@ -72,10 +82,11 @@ router.get('/', async (req: Request, res: Response) => {
 })
 
 // GET /api/rentals/gantt - Получить данные для диаграммы Ганта
-router.get('/gantt', async (req: Request, res: Response) => {
+router.get('/gantt', authMiddleware, async (req: Request, res: Response) => {
   try {
     const officeId = req.query.officeId ? parseInt(req.query.officeId as string) : undefined
-    const rentals = await rentalModel.findAll({ officeId })
+    const userOfficeIds = await getUserOfficeIds(req)
+    const rentals = await rentalModel.findAll({ officeId, officeIds: userOfficeIds ?? undefined })
 
     // Для диаграммы Ганта разворачиваем каждую аренду в отдельные записи
     // для каждого экземпляра оборудования из equipment_list
@@ -112,9 +123,10 @@ router.get('/gantt', async (req: Request, res: Response) => {
 })
 
 // GET /api/rentals/customers - Получить список клиентов
-router.get('/customers', async (req: Request, res: Response) => {
+router.get('/customers', authMiddleware, async (req: Request, res: Response) => {
   try {
-    const customers = await rentalModel.getCustomers()
+    const userOfficeIds = await getUserOfficeIds(req)
+    const customers = await rentalModel.getCustomers(userOfficeIds ?? undefined)
     res.json(customers)
   } catch (error) {
     console.error('Error getting customers:', error)
@@ -123,9 +135,10 @@ router.get('/customers', async (req: Request, res: Response) => {
 })
 
 // GET /api/rentals/revenue - Получить данные о доходах по месяцам
-router.get('/revenue', async (req: Request, res: Response) => {
+router.get('/revenue', authMiddleware, async (req: Request, res: Response) => {
   try {
-    const revenue = await rentalModel.getMonthlyRevenue()
+    const userOfficeIds = await getUserOfficeIds(req)
+    const revenue = await rentalModel.getMonthlyRevenue(userOfficeIds ?? undefined)
     res.json(revenue)
   } catch (error) {
     console.error('Error getting revenue:', error)
@@ -134,7 +147,7 @@ router.get('/revenue', async (req: Request, res: Response) => {
 })
 
 // GET /api/rentals/:id - Получить аренду по ID
-router.get('/:id', async (req: Request, res: Response) => {
+router.get('/:id', authMiddleware, async (req: Request, res: Response) => {
   try {
     const rental = await rentalModel.findById(parseInt(req.params.id))
 

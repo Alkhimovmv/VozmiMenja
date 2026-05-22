@@ -1,10 +1,224 @@
 import React, { useState, useMemo } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuthenticatedQuery } from '../../hooks/useAuthenticatedQuery';
 import { customersApi } from '../../api/admin/customers';
-import type { Customer } from '../../types/index';
+import { formatDate } from '../../utils/dateUtils';
+import type { Customer, CustomerTag, Rental } from '../../types/admin';
+
+const TAG_CONFIG: Record<NonNullable<CustomerTag>, { label: string; color: string; icon: string }> = {
+  regular: { label: 'Постоянный', color: 'bg-blue-100 text-blue-800 border-blue-200', icon: '👤' },
+  problem: { label: 'Проблемный', color: 'bg-red-100 text-red-800 border-red-200',    icon: '⚠️' },
+};
+
+function TagBadge({ tag }: { tag: CustomerTag }) {
+  if (!tag) return null;
+  const cfg = TAG_CONFIG[tag];
+  return (
+    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium border ${cfg.color}`}>
+      {cfg.icon} {cfg.label}
+    </span>
+  );
+}
+
+function AutoTag({ count }: { count: number }) {
+  if (count >= 3) return <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 border border-yellow-200">👤 Постоянный</span>;
+  return null;
+}
+
+function rentalCountLabel(n: number) {
+  if (n === 1) return '1 аренда';
+  if (n >= 2 && n <= 4) return `${n} аренды`;
+  return `${n} аренд`;
+}
+
+// Карточка отдельного клиента
+const CustomerCard: React.FC<{ customer: Customer }> = ({ customer }) => {
+  const [expanded, setExpanded] = useState(false);
+  const [editingNote, setEditingNote] = useState(false);
+  const [noteText, setNoteText] = useState(customer.note || '');
+  const [selectedTag, setSelectedTag] = useState<CustomerTag>(customer.tag);
+  const queryClient = useQueryClient();
+
+  const { data: rentals = [], isLoading: rentalsLoading } = useQuery<Rental[]>({
+    queryKey: ['customer-rentals', customer.customer_phone],
+    queryFn: () => customersApi.getCustomerRentals(customer.customer_phone),
+    enabled: expanded,
+    staleTime: 60_000,
+  });
+
+  const saveMutation = useMutation({
+    mutationFn: () => customersApi.saveNote(customer.customer_phone, selectedTag, noteText || null),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['customers'] });
+      setEditingNote(false);
+    },
+  });
+
+  const handleExpand = () => setExpanded(v => !v);
+
+  const handleEditStart = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setNoteText(customer.note || '');
+    setSelectedTag(customer.tag);
+    setEditingNote(true);
+    setExpanded(true);
+  };
+
+  const handleSave = (e: React.FormEvent) => {
+    e.preventDefault();
+    saveMutation.mutate();
+  };
+
+  const handleCancel = () => {
+    setNoteText(customer.note || '');
+    setSelectedTag(customer.tag);
+    setEditingNote(false);
+  };
+
+  const hasNote = customer.tag || customer.note;
+
+  return (
+    <div className="border border-gray-200 rounded-lg overflow-hidden bg-white hover:shadow-sm transition-shadow">
+      {/* Заголовок карточки */}
+      <div
+        className="flex items-center gap-3 px-4 py-3 cursor-pointer select-none"
+        onClick={handleExpand}
+      >
+        <div className="flex-1 min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <h3 className="font-medium text-gray-900 truncate">{customer.customer_name}</h3>
+            {customer.tag ? (
+              <TagBadge tag={customer.tag} />
+            ) : (
+              <AutoTag count={customer.rental_count} />
+            )}
+          </div>
+          <div className="mt-0.5 flex items-center gap-3 text-sm text-gray-500">
+            <span>📞 {customer.customer_phone}</span>
+            <span>📋 {rentalCountLabel(customer.rental_count)}</span>
+          </div>
+          {customer.note && (
+            <p className="mt-1 text-xs text-gray-400 truncate max-w-md">💬 {customer.note}</p>
+          )}
+        </div>
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <button
+            onClick={handleEditStart}
+            className="text-xs text-indigo-600 hover:text-indigo-800 font-medium px-2 py-1 rounded hover:bg-indigo-50 transition-colors"
+          >
+            {hasNote ? 'Изменить' : '+ Заметка'}
+          </button>
+          <svg
+            className={`w-4 h-4 text-gray-400 transition-transform ${expanded ? 'rotate-180' : ''}`}
+            fill="none" stroke="currentColor" viewBox="0 0 24 24"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          </svg>
+        </div>
+      </div>
+
+      {/* Раскрытая панель */}
+      {expanded && (
+        <div className="border-t border-gray-100 px-4 py-3 bg-gray-50 space-y-4">
+
+          {/* Редактор заметки */}
+          {editingNote ? (
+            <form onSubmit={handleSave} className="bg-white border border-indigo-100 rounded-lg p-3 space-y-3">
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1.5">Метка</label>
+                <div className="flex flex-wrap gap-2">
+                  {(Object.entries(TAG_CONFIG) as [NonNullable<CustomerTag>, typeof TAG_CONFIG[keyof typeof TAG_CONFIG]][]).map(([key, cfg]) => (
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={() => setSelectedTag(selectedTag === key ? null : key)}
+                      className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${
+                        selectedTag === key
+                          ? cfg.color + ' ring-2 ring-offset-1 ring-indigo-400'
+                          : 'bg-gray-100 text-gray-600 border-gray-200 hover:bg-gray-200'
+                      }`}
+                    >
+                      {cfg.icon} {cfg.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Заметка</label>
+                <textarea
+                  value={noteText}
+                  onChange={e => setNoteText(e.target.value)}
+                  rows={3}
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md resize-none focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  placeholder="Любые заметки о клиенте..."
+                />
+              </div>
+              <div className="flex gap-2">
+                <button
+                  type="submit"
+                  disabled={saveMutation.isPending}
+                  className="px-3 py-1.5 bg-indigo-600 text-white text-xs font-medium rounded-md hover:bg-indigo-700 disabled:opacity-50"
+                >
+                  Сохранить
+                </button>
+                <button type="button" onClick={handleCancel} className="px-3 py-1.5 bg-gray-100 text-gray-700 text-xs font-medium rounded-md hover:bg-gray-200">
+                  Отмена
+                </button>
+              </div>
+            </form>
+          ) : hasNote ? (
+            <div className="bg-white border border-gray-200 rounded-lg p-3 space-y-1.5">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-medium text-gray-500">Заметка</span>
+                <button onClick={handleEditStart} className="text-xs text-indigo-500 hover:text-indigo-700">редактировать</button>
+              </div>
+              {customer.tag && <div><TagBadge tag={customer.tag} /></div>}
+              {customer.note && <p className="text-sm text-gray-700 whitespace-pre-wrap">{customer.note}</p>}
+            </div>
+          ) : null}
+
+          {/* История аренд */}
+          <div>
+            <h4 className="text-xs font-medium text-gray-500 mb-2">История аренд</h4>
+            {rentalsLoading ? (
+              <div className="text-xs text-gray-400 py-2">Загрузка...</div>
+            ) : rentals.length === 0 ? (
+              <div className="text-xs text-gray-400 py-2">Нет аренд</div>
+            ) : (
+              <div className="space-y-1.5 max-h-64 overflow-y-auto">
+                {rentals.map(rental => (
+                  <div key={rental.id} className="flex items-center gap-3 bg-white border border-gray-100 rounded-md px-3 py-2 text-xs">
+                    <span className={`flex-shrink-0 w-2 h-2 rounded-full ${
+                      rental.status === 'active' ? 'bg-green-500' :
+                      rental.status === 'overdue' ? 'bg-red-500' :
+                      rental.status === 'pending' ? 'bg-yellow-400' : 'bg-gray-300'
+                    }`} />
+                    <span className="flex-1 text-gray-700 truncate">
+                      {rental.equipment_list?.map(e => e.name).join(', ') || rental.equipment_name || '—'}
+                    </span>
+                    <span className="text-gray-400 flex-shrink-0">
+                      {formatDate(rental.start_date)} — {formatDate(rental.end_date)}
+                    </span>
+                    {rental.rental_price != null && (
+                      <span className="text-gray-600 font-medium flex-shrink-0">{rental.rental_price} ₽</span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// Фильтр по тегу
+type TagFilter = CustomerTag | 'auto_regular' | 'all';
 
 const CustomersPage: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
+  const [tagFilter, setTagFilter] = useState<TagFilter>('all');
 
   const { data: customers = [], isLoading } = useAuthenticatedQuery<Customer[]>(
     ['customers'],
@@ -12,102 +226,111 @@ const CustomersPage: React.FC = () => {
   );
 
   const filteredCustomers = useMemo(() => {
-    if (!searchQuery.trim()) return customers;
+    let list = [...customers];
 
-    const query = searchQuery.toLowerCase().trim();
-    return customers.filter(customer =>
-      customer.customer_name.toLowerCase().includes(query) ||
-      customer.customer_phone.toLowerCase().includes(query)
-    );
-  }, [customers, searchQuery]);
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      list = list.filter(c =>
+        c.customer_name.toLowerCase().includes(q) ||
+        c.customer_phone.toLowerCase().includes(q)
+      );
+    }
+
+    if (tagFilter !== 'all') {
+      list = list.filter(c => {
+        if (tagFilter === 'regular') return c.tag === 'regular';
+        if (tagFilter === 'problem') return c.tag === 'problem';
+        if (tagFilter === 'auto_regular') return !c.tag && c.rental_count >= 3;
+        return true;
+      });
+    }
+
+    return list;
+  }, [customers, searchQuery, tagFilter]);
+
+  const counts = useMemo(() => ({
+    regular: customers.filter(c => c.tag === 'regular').length,
+    problem: customers.filter(c => c.tag === 'problem').length,
+  }), [customers]);
 
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600" />
       </div>
     );
   }
 
   return (
-    <div className="space-y-4 sm:space-y-6 overflow-y-auto flex-1 px-4 sm:px-6 py-4 sm:py-8">
-      <div className="flex flex-col space-y-4">
-        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Список арендаторов</h1>
-        <div className="flex flex-col sm:flex-row sm:items-center space-y-3 sm:space-y-0 sm:space-x-4">
-          <div className="relative flex-1">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <svg className="h-5 w-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clipRule="evenodd" />
-              </svg>
-            </div>
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 text-sm min-h-[44px] touch-manipulation"
-              placeholder="Поиск по имени или телефону..."
-            />
+    <div className="space-y-4 overflow-y-auto flex-1 px-4 sm:px-6 py-4 sm:py-6">
+      <div className="flex flex-col space-y-3">
+        <h1 className="text-2xl font-bold text-gray-900">Арендаторы</h1>
+
+        {/* Поиск */}
+        <div className="relative">
+          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <svg className="h-4 w-4 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clipRule="evenodd" />
+            </svg>
           </div>
-          <div className="text-sm text-gray-600 whitespace-nowrap">
-            {searchQuery ? `Найдено: ${filteredCustomers.length}` : `Всего: ${customers.length}`}
-          </div>
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            className="block w-full pl-9 pr-3 py-2.5 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500"
+            placeholder="Поиск по имени или телефону..."
+          />
+        </div>
+
+        {/* Фильтр по тегам */}
+        <div className="flex flex-wrap gap-2">
+          {([
+            ['all',          'Все',           customers.length, 'bg-gray-100 text-gray-700 border-gray-200'],
+            ['regular',      '👤 Постоянные', counts.regular,   'bg-blue-100 text-blue-800 border-blue-200'],
+            ['problem',      '⚠️ Проблемные', counts.problem,   'bg-red-100 text-red-800 border-red-200'],
+          ] as [TagFilter, string, number, string][]).map(([key, label, count, cls]) => (
+            <button
+              key={key}
+              onClick={() => setTagFilter(key)}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${
+                tagFilter === key
+                  ? cls + ' ring-2 ring-offset-1 ring-indigo-400'
+                  : 'bg-white text-gray-500 border-gray-200 hover:border-gray-300'
+              }`}
+            >
+              {label}
+              <span className="font-semibold">{count}</span>
+            </button>
+          ))}
+          <span className="self-center text-xs text-gray-400 ml-auto">
+            {searchQuery || tagFilter !== 'all'
+              ? `Найдено: ${filteredCustomers.length} из ${customers.length}`
+              : `Всего: ${customers.length}`}
+          </span>
         </div>
       </div>
 
-      <div className="bg-white shadow overflow-hidden sm:rounded-lg">
-        <div className="px-4 py-5 sm:p-6">
-          <div className="grid grid-cols-1 gap-4">
-            {filteredCustomers.map((customer, index) => (
-              <div
-                key={`${customer.customer_phone}-${index}`}
-                className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex-1">
-                    <h3 className="text-lg font-medium text-gray-900">
-                      {customer.customer_name}
-                    </h3>
-                    <div className="mt-1 flex items-center space-x-4 text-sm text-gray-500">
-                      <span className="flex items-center">
-                        📞 {customer.customer_phone}
-                      </span>
-                      <span className="flex items-center">
-                        📋 {customer.rental_count} {customer.rental_count === 1 ? 'аренда' : customer.rental_count < 5 ? 'аренды' : 'аренд'}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    {customer.rental_count >= 3 && (
-                      <div className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
-                        customer.rental_count >= 5
-                          ? 'bg-green-100 text-green-800'
-                          : 'bg-yellow-100 text-yellow-800'
-                      }`}>
-                        {customer.rental_count >= 5 ? '⭐ VIP клиент' : '👤 Постоянный'}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-            ))}
+      {/* Список */}
+      <div className="space-y-2">
+        {filteredCustomers.map(customer => (
+          <CustomerCard key={customer.customer_phone} customer={customer} />
+        ))}
+
+        {filteredCustomers.length === 0 && customers.length === 0 && (
+          <div className="text-center py-16">
+            <div className="text-gray-300 text-5xl mb-3">👥</div>
+            <h3 className="text-base font-medium text-gray-700 mb-1">Нет арендаторов</h3>
+            <p className="text-sm text-gray-400">Арендаторы появятся после создания первых аренд</p>
           </div>
+        )}
 
-          {filteredCustomers.length === 0 && customers.length === 0 && (
-            <div className="text-center py-12">
-              <div className="text-gray-400 text-6xl mb-4">👥</div>
-              <h3 className="text-lg font-medium text-gray-900 mb-2">Нет арендаторов</h3>
-              <p className="text-gray-500">Арендаторы появятся после создания первых аренд</p>
-            </div>
-          )}
-
-          {filteredCustomers.length === 0 && customers.length > 0 && (
-            <div className="text-center py-12">
-              <div className="text-gray-400 text-6xl mb-4">🔍</div>
-              <h3 className="text-lg font-medium text-gray-900 mb-2">Ничего не найдено</h3>
-              <p className="text-gray-500">Попробуйте изменить критерии поиска</p>
-            </div>
-          )}
-        </div>
+        {filteredCustomers.length === 0 && customers.length > 0 && (
+          <div className="text-center py-16">
+            <div className="text-gray-300 text-5xl mb-3">🔍</div>
+            <h3 className="text-base font-medium text-gray-700 mb-1">Ничего не найдено</h3>
+            <p className="text-sm text-gray-400">Попробуйте изменить параметры поиска</p>
+          </div>
+        )}
       </div>
     </div>
   );
