@@ -23,6 +23,7 @@ const EquipmentModal: React.FC<EquipmentModalProps> = ({
     description: '',
     base_price: null,
   });
+  const [quantityInput, setQuantityInput] = useState('1');
 
   const [validationErrors, setValidationErrors] = useState<{
     name?: string | null;
@@ -37,6 +38,7 @@ const EquipmentModal: React.FC<EquipmentModalProps> = ({
           description: equipment.description || '',
           base_price: equipment.base_price,
         });
+        setQuantityInput(String(equipment.quantity));
       } else {
         setFormData({
           name: '',
@@ -44,6 +46,7 @@ const EquipmentModal: React.FC<EquipmentModalProps> = ({
           description: '',
           base_price: null,
         });
+        setQuantityInput('1');
       }
       // Очищаем ошибки валидации при открытии
       setValidationErrors({});
@@ -123,8 +126,18 @@ const EquipmentModal: React.FC<EquipmentModalProps> = ({
               </label>
               <input
                 type="number"
-                value={formData.quantity}
-                onChange={(e) => setFormData({ ...formData, quantity: Number(e.target.value) })}
+                value={quantityInput}
+                onChange={(e) => {
+                  setQuantityInput(e.target.value);
+                  const n = parseInt(e.target.value);
+                  if (!isNaN(n) && n >= 1) setFormData({ ...formData, quantity: n });
+                }}
+                onBlur={() => {
+                  const n = parseInt(quantityInput);
+                  const valid = !isNaN(n) && n >= 1 ? n : 1;
+                  setFormData({ ...formData, quantity: valid });
+                  setQuantityInput(String(valid));
+                }}
                 className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
                 required
                 min="1"

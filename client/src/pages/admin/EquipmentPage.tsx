@@ -53,7 +53,7 @@ const EquipmentPage: React.FC = () => {
   });
 
   const handleCreateEquipment = (data: CreateEquipmentDto) => {
-    createMutation.mutate(data);
+    createMutation.mutate({ ...data, office_id: currentOfficeId } as any);
   };
 
   const handleUpdateEquipment = (data: Partial<CreateEquipmentDto>) => {
