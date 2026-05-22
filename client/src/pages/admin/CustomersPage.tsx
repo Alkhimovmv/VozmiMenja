@@ -81,35 +81,38 @@ const CustomerCard: React.FC<{ customer: Customer }> = ({ customer }) => {
     <div className="border border-gray-200 rounded-lg overflow-hidden bg-white hover:shadow-sm transition-shadow">
       {/* Заголовок карточки */}
       <div
-        className="flex items-center gap-3 px-4 py-3 cursor-pointer select-none"
+        className="flex items-start gap-3 px-3 py-3 sm:px-4 cursor-pointer select-none"
         onClick={handleExpand}
       >
         <div className="flex-1 min-w-0">
-          <div className="flex flex-wrap items-center gap-2">
-            <h3 className="font-medium text-gray-900 truncate">{customer.customer_name}</h3>
+          {/* Имя + тег */}
+          <div className="flex flex-wrap items-center gap-1.5">
+            <h3 className="text-sm font-medium text-gray-900">{customer.customer_name}</h3>
             {customer.tag ? (
               <TagBadge tag={customer.tag} />
             ) : (
               <AutoTag count={customer.rental_count} />
             )}
           </div>
-          <div className="mt-0.5 flex items-center gap-3 text-sm text-gray-500">
+          {/* Телефон и кол-во аренд — на мобиле в столбик */}
+          <div className="mt-1 flex flex-col sm:flex-row sm:items-center sm:gap-3 gap-0.5 text-xs text-gray-500">
             <span>📞 {customer.customer_phone}</span>
             <span>📋 {rentalCountLabel(customer.rental_count)}</span>
           </div>
           {customer.note && (
-            <p className="mt-1 text-xs text-gray-400 truncate max-w-md">💬 {customer.note}</p>
+            <p className="mt-1 text-xs text-gray-400 line-clamp-1">💬 {customer.note}</p>
           )}
         </div>
-        <div className="flex items-center gap-2 flex-shrink-0">
+        {/* Кнопка заметки + стрелка */}
+        <div className="flex items-center gap-1 flex-shrink-0 pt-0.5">
           <button
             onClick={handleEditStart}
-            className="text-xs text-indigo-600 hover:text-indigo-800 font-medium px-2 py-1 rounded hover:bg-indigo-50 transition-colors"
+            className="text-xs text-indigo-600 hover:text-indigo-800 font-medium px-2 py-1.5 rounded hover:bg-indigo-50 transition-colors min-h-[36px] touch-manipulation"
           >
             {hasNote ? 'Изменить' : '+ Заметка'}
           </button>
           <svg
-            className={`w-4 h-4 text-gray-400 transition-transform ${expanded ? 'rotate-180' : ''}`}
+            className={`w-4 h-4 text-gray-400 transition-transform flex-shrink-0 ${expanded ? 'rotate-180' : ''}`}
             fill="none" stroke="currentColor" viewBox="0 0 24 24"
           >
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
@@ -119,7 +122,7 @@ const CustomerCard: React.FC<{ customer: Customer }> = ({ customer }) => {
 
       {/* Раскрытая панель */}
       {expanded && (
-        <div className="border-t border-gray-100 px-4 py-3 bg-gray-50 space-y-4">
+        <div className="border-t border-gray-100 px-3 sm:px-4 py-3 bg-gray-50 space-y-3">
 
           {/* Редактор заметки */}
           {editingNote ? (
@@ -132,7 +135,7 @@ const CustomerCard: React.FC<{ customer: Customer }> = ({ customer }) => {
                       key={key}
                       type="button"
                       onClick={() => setSelectedTag(selectedTag === key ? null : key)}
-                      className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${
+                      className={`flex items-center gap-1 px-3 py-2 rounded-full text-xs font-medium border transition-all touch-manipulation ${
                         selectedTag === key
                           ? cfg.color + ' ring-2 ring-offset-1 ring-indigo-400'
                           : 'bg-gray-100 text-gray-600 border-gray-200 hover:bg-gray-200'
@@ -157,11 +160,15 @@ const CustomerCard: React.FC<{ customer: Customer }> = ({ customer }) => {
                 <button
                   type="submit"
                   disabled={saveMutation.isPending}
-                  className="px-3 py-1.5 bg-indigo-600 text-white text-xs font-medium rounded-md hover:bg-indigo-700 disabled:opacity-50"
+                  className="flex-1 sm:flex-none px-4 py-2.5 bg-indigo-600 text-white text-sm font-medium rounded-md hover:bg-indigo-700 disabled:opacity-50 touch-manipulation"
                 >
                   Сохранить
                 </button>
-                <button type="button" onClick={handleCancel} className="px-3 py-1.5 bg-gray-100 text-gray-700 text-xs font-medium rounded-md hover:bg-gray-200">
+                <button
+                  type="button"
+                  onClick={handleCancel}
+                  className="flex-1 sm:flex-none px-4 py-2.5 bg-gray-100 text-gray-700 text-sm font-medium rounded-md hover:bg-gray-200 touch-manipulation"
+                >
                   Отмена
                 </button>
               </div>
@@ -170,7 +177,7 @@ const CustomerCard: React.FC<{ customer: Customer }> = ({ customer }) => {
             <div className="bg-white border border-gray-200 rounded-lg p-3 space-y-1.5">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-medium text-gray-500">Заметка</span>
-                <button onClick={handleEditStart} className="text-xs text-indigo-500 hover:text-indigo-700">редактировать</button>
+                <button onClick={handleEditStart} className="text-xs text-indigo-500 hover:text-indigo-700 py-1 touch-manipulation">редактировать</button>
               </div>
               {customer.tag && <div><TagBadge tag={customer.tag} /></div>}
               {customer.note && <p className="text-sm text-gray-700 whitespace-pre-wrap">{customer.note}</p>}
@@ -187,21 +194,23 @@ const CustomerCard: React.FC<{ customer: Customer }> = ({ customer }) => {
             ) : (
               <div className="space-y-1.5 max-h-64 overflow-y-auto">
                 {rentals.map(rental => (
-                  <div key={rental.id} className="flex items-center gap-3 bg-white border border-gray-100 rounded-md px-3 py-2 text-xs">
-                    <span className={`flex-shrink-0 w-2 h-2 rounded-full ${
-                      rental.status === 'active' ? 'bg-green-500' :
-                      rental.status === 'overdue' ? 'bg-red-500' :
-                      rental.status === 'pending' ? 'bg-yellow-400' : 'bg-gray-300'
-                    }`} />
-                    <span className="flex-1 text-gray-700 truncate">
-                      {rental.equipment_list?.map(e => e.name).join(', ') || rental.equipment_name || '—'}
-                    </span>
-                    <span className="text-gray-400 flex-shrink-0">
+                  <div key={rental.id} className="bg-white border border-gray-100 rounded-md px-3 py-2 text-xs">
+                    <div className="flex items-center gap-2">
+                      <span className={`flex-shrink-0 w-2 h-2 rounded-full ${
+                        rental.status === 'active' ? 'bg-green-500' :
+                        rental.status === 'overdue' ? 'bg-red-500' :
+                        rental.status === 'pending' ? 'bg-yellow-400' : 'bg-gray-300'
+                      }`} />
+                      <span className="flex-1 text-gray-700 min-w-0">
+                        {rental.equipment_list?.map(e => e.name).join(', ') || rental.equipment_name || '—'}
+                      </span>
+                      {rental.rental_price != null && (
+                        <span className="text-gray-600 font-medium flex-shrink-0">{rental.rental_price} ₽</span>
+                      )}
+                    </div>
+                    <div className="mt-1 pl-4 text-gray-400">
                       {formatDate(rental.start_date)} — {formatDate(rental.end_date)}
-                    </span>
-                    {rental.rental_price != null && (
-                      <span className="text-gray-600 font-medium flex-shrink-0">{rental.rental_price} ₽</span>
-                    )}
+                    </div>
                   </div>
                 ))}
               </div>
@@ -214,7 +223,7 @@ const CustomerCard: React.FC<{ customer: Customer }> = ({ customer }) => {
 };
 
 // Фильтр по тегу
-type TagFilter = CustomerTag | 'auto_regular' | 'all';
+type TagFilter = CustomerTag | 'all';
 
 const CustomersPage: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -238,9 +247,8 @@ const CustomersPage: React.FC = () => {
 
     if (tagFilter !== 'all') {
       list = list.filter(c => {
-        if (tagFilter === 'regular') return c.tag === 'regular';
+        if (tagFilter === 'regular') return c.tag === 'regular' || (!c.tag && c.rental_count >= 3);
         if (tagFilter === 'problem') return c.tag === 'problem';
-        if (tagFilter === 'auto_regular') return !c.tag && c.rental_count >= 3;
         return true;
       });
     }
@@ -249,7 +257,7 @@ const CustomersPage: React.FC = () => {
   }, [customers, searchQuery, tagFilter]);
 
   const counts = useMemo(() => ({
-    regular: customers.filter(c => c.tag === 'regular').length,
+    regular: customers.filter(c => c.tag === 'regular' || (!c.tag && c.rental_count >= 3)).length,
     problem: customers.filter(c => c.tag === 'problem').length,
   }), [customers]);
 
