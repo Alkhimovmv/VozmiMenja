@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuthenticatedQuery } from '../../hooks/useAuthenticatedQuery';
 import { customersApi } from '../../api/admin/customers';
@@ -230,6 +230,7 @@ const CustomersPage: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [tagFilter, setTagFilter] = useState<TagFilter>('all');
   const { currentOfficeId } = useOffice();
+  const scrollRef = useRef<HTMLDivElement>(null);
 
   const { data: customers = [], isLoading } = useAuthenticatedQuery<Customer[]>(
     ['customers'],
@@ -258,6 +259,7 @@ const CustomersPage: React.FC = () => {
     return list;
   }, [customers, searchQuery, tagFilter]);
 
+
   const counts = useMemo(() => ({
     regular: customers.filter(c => c.tag === 'regular' || (!c.tag && c.rental_count >= 3)).length,
     problem: customers.filter(c => c.tag === 'problem').length,
@@ -272,7 +274,7 @@ const CustomersPage: React.FC = () => {
   }
 
   return (
-    <div className="space-y-4 overflow-y-auto flex-1 px-4 sm:px-6 py-4 sm:py-6">
+    <div ref={scrollRef} className="space-y-4 overflow-y-auto flex-1 px-4 sm:px-6 py-4 sm:py-6">
       <div className="flex flex-col space-y-3">
         <h1 className="text-2xl font-bold text-gray-900">Арендаторы</h1>
 
@@ -286,7 +288,7 @@ const CustomersPage: React.FC = () => {
           <input
             type="text"
             value={searchQuery}
-            onChange={e => setSearchQuery(e.target.value)}
+            onChange={e => { setSearchQuery(e.target.value); scrollRef.current?.scrollTo(0, 0); }}
             className="block w-full pl-9 pr-3 py-2.5 border border-gray-300 rounded-md text-sm bg-white focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500"
             placeholder="Поиск по имени или телефону..."
           />
@@ -301,7 +303,8 @@ const CustomersPage: React.FC = () => {
           ] as [TagFilter, string, number, string][]).map(([key, label, count, cls]) => (
             <button
               key={key}
-              onClick={() => setTagFilter(key)}
+              type="button"
+              onClick={() => { setTagFilter(tagFilter === key ? 'all' : key); scrollRef.current?.scrollTo(0, 0); }}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${
                 tagFilter === key
                   ? cls + ' ring-2 ring-offset-1 ring-indigo-400'
