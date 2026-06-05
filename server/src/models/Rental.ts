@@ -487,15 +487,33 @@ export class RentalModel {
     await run('DELETE FROM rentals WHERE id = ?', [id])
   }
 
-  async getCustomers(officeIds?: number[]): Promise<Array<{
+  async getCustomers(officeIds?: number[], search?: string): Promise<Array<{
     customerName: string
     customerPhone: string
     rentalCount: number
   }>> {
-    const officeFilter = officeIds !== undefined
-      ? officeIds.length === 0 ? 'WHERE 1=0' : `WHERE office_id IN (${officeIds.map(() => '?').join(',')})`
-      : ''
-    const officeParams = officeIds ?? []
+    const conditions: string[] = []
+    const params: any[] = []
+
+    if (officeIds !== undefined) {
+      if (officeIds.length === 0) return []
+      conditions.push(`office_id IN (${officeIds.map(() => '?').join(',')})`)
+      params.push(...officeIds)
+    }
+
+    if (search && search.trim()) {
+      const s = `%${search.trim()}%`
+      const digits = search.replace(/\D/g, '')
+      if (digits) {
+        conditions.push(`(LOWER(customer_name) LIKE LOWER(?) OR REPLACE(REPLACE(REPLACE(customer_phone, '+', ''), '-', ''), ' ', '') LIKE ?)`)
+        params.push(s, `%${digits}%`)
+      } else {
+        conditions.push(`LOWER(customer_name) LIKE LOWER(?)`)
+        params.push(s)
+      }
+    }
+
+    const where = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : ''
 
     const rows = await all(`
       SELECT
@@ -503,10 +521,10 @@ export class RentalModel {
         customer_phone,
         COUNT(*) as rental_count
       FROM rentals
-      ${officeFilter}
+      ${where}
       GROUP BY customer_name, customer_phone
       ORDER BY rental_count DESC
-    `, officeParams) as any[]
+    `, params) as any[]
 
     return rows.map(row => ({
       customerName: row.customer_name,

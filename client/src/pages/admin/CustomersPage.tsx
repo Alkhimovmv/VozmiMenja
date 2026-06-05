@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuthenticatedQuery } from '../../hooks/useAuthenticatedQuery';
 import { customersApi } from '../../api/admin/customers';
@@ -228,50 +228,46 @@ type TagFilter = CustomerTag | 'all';
 
 const CustomersPage: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [tagFilter, setTagFilter] = useState<TagFilter>('all');
   const { currentOfficeId } = useOffice();
   const scrollRef = useRef<HTMLDivElement>(null);
 
+  // Debounce поиска 300ms
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(searchQuery), 300);
+    return () => clearTimeout(t);
+  }, [searchQuery]);
+
+  const params = useMemo(() => ({
+    ...(debouncedSearch.trim() ? { search: debouncedSearch.trim() } : {}),
+    ...(tagFilter !== 'all' ? { tag: tagFilter as string } : {}),
+  }), [debouncedSearch, tagFilter]);
+
+  const hasFilter = !!debouncedSearch.trim() || tagFilter !== 'all';
+
+  // Запрос с фильтрами
   const { data: customers = [], isLoading } = useAuthenticatedQuery<Customer[]>(
-    ['customers'],
-    customersApi.getAll
+    ['customers', debouncedSearch, tagFilter],
+    () => customersApi.getAll(params)
   );
 
-  const filteredCustomers = useMemo(() => {
-    let list = [...customers];
-
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
-      list = list.filter(c =>
-        (c.customer_name || '').toLowerCase().includes(q) ||
-        (c.customer_phone || '').toLowerCase().includes(q)
-      );
-    }
-
-    if (tagFilter !== 'all') {
-      list = list.filter(c => {
-        if (tagFilter === 'regular') return c.tag === 'regular' || (!c.tag && c.rental_count >= 3);
-        if (tagFilter === 'problem') return c.tag === 'problem';
-        return true;
-      });
-    }
-
-    return list;
-  }, [customers, searchQuery, tagFilter]);
-
+  // Счётчики для кнопок — всегда без фильтра
+  const { data: allCustomers = [] } = useAuthenticatedQuery<Customer[]>(
+    ['customers', '', 'all'],
+    () => customersApi.getAll()
+  );
 
   const counts = useMemo(() => ({
-    regular: customers.filter(c => c.tag === 'regular' || (!c.tag && c.rental_count >= 3)).length,
-    problem: customers.filter(c => c.tag === 'problem').length,
-  }), [customers]);
+    all: allCustomers.length,
+    regular: allCustomers.filter(c => c.tag === 'regular' || (!c.tag && c.rental_count >= 3)).length,
+    problem: allCustomers.filter(c => c.tag === 'problem').length,
+  }), [allCustomers]);
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600" />
-      </div>
-    );
-  }
+  const handleFilterClick = (key: TagFilter) => {
+    setTagFilter(prev => prev === key ? 'all' : key);
+    scrollRef.current?.scrollTo(0, 0);
+  };
 
   return (
     <div ref={scrollRef} className="space-y-4 overflow-y-auto flex-1 px-4 sm:px-6 py-4 sm:py-6">
@@ -297,14 +293,14 @@ const CustomersPage: React.FC = () => {
         {/* Фильтр по тегам */}
         <div className="flex flex-wrap gap-2">
           {([
-            ['all',          'Все',           customers.length, 'bg-gray-100 text-gray-700 border-gray-200'],
-            ['regular',      '👤 Постоянные', counts.regular,   'bg-blue-100 text-blue-800 border-blue-200'],
-            ['problem',      '⚠️ Проблемные', counts.problem,   'bg-red-100 text-red-800 border-red-200'],
+            ['all',     'Все',           counts.all,     'bg-gray-100 text-gray-700 border-gray-200'],
+            ['regular', '👤 Постоянные', counts.regular, 'bg-blue-100 text-blue-800 border-blue-200'],
+            ['problem', '⚠️ Проблемные', counts.problem, 'bg-red-100 text-red-800 border-red-200'],
           ] as [TagFilter, string, number, string][]).map(([key, label, count, cls]) => (
             <button
               key={key}
               type="button"
-              onClick={() => { setTagFilter(tagFilter === key ? 'all' : key); scrollRef.current?.scrollTo(0, 0); }}
+              onClick={() => handleFilterClick(key)}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${
                 tagFilter === key
                   ? cls + ' ring-2 ring-offset-1 ring-indigo-400'
@@ -316,33 +312,33 @@ const CustomersPage: React.FC = () => {
             </button>
           ))}
           <span className="self-center text-xs text-gray-400 ml-auto">
-            {searchQuery || tagFilter !== 'all'
-              ? `Найдено: ${filteredCustomers.length} из ${customers.length}`
-              : `Всего: ${customers.length}`}
+            {hasFilter ? `Найдено: ${customers.length} из ${counts.all}` : `Всего: ${counts.all}`}
           </span>
         </div>
       </div>
 
       {/* Список */}
       <div className="space-y-2">
-        {filteredCustomers.map(customer => (
-          <CustomerCard key={customer.customer_phone} customer={customer} />
-        ))}
-
-        {filteredCustomers.length === 0 && customers.length === 0 && (
+        {isLoading ? (
+          <div className="flex items-center justify-center py-16">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" />
+          </div>
+        ) : customers.length === 0 && !hasFilter ? (
           <div className="text-center py-16">
             <div className="text-gray-300 text-5xl mb-3">👥</div>
             <h3 className="text-base font-medium text-gray-700 mb-1">Нет арендаторов</h3>
             <p className="text-sm text-gray-400">Арендаторы появятся после создания первых аренд</p>
           </div>
-        )}
-
-        {filteredCustomers.length === 0 && customers.length > 0 && (
+        ) : customers.length === 0 ? (
           <div className="text-center py-16">
             <div className="text-gray-300 text-5xl mb-3">🔍</div>
             <h3 className="text-base font-medium text-gray-700 mb-1">Ничего не найдено</h3>
             <p className="text-sm text-gray-400">Попробуйте изменить параметры поиска</p>
           </div>
+        ) : (
+          customers.map(customer => (
+            <CustomerCard key={customer.customer_phone} customer={customer} />
+          ))
         )}
       </div>
     </div>

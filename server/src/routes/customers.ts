@@ -15,16 +15,18 @@ function customerToSnakeCase(customer: any) {
   }
 }
 
-// GET /api/admin/customers - Получить всех клиентов
+// GET /api/admin/customers - Получить клиентов с фильтрацией
 router.get('/', authMiddleware, async (req: Request, res: Response) => {
   try {
     const userOfficeIds = await getUserOfficeIds(req)
-    const customers = await rentalModel.getCustomers(userOfficeIds ?? undefined)
+    const search = req.query.search as string | undefined
+    const tag = req.query.tag as string | undefined  // 'regular' | 'problem' | undefined
+
+    const customers = await rentalModel.getCustomers(userOfficeIds ?? undefined, search)
 
     const phones = customers.map(c => c.customerPhone)
     let notes: any[] = []
     if (phones.length > 0) {
-      // Заметки грузим без фильтра по офису — клиент виден из всех офисов
       const officeFilter = userOfficeIds !== null
         ? `AND office_id IN (${userOfficeIds.map(() => '?').join(',')})`
         : ''
@@ -36,11 +38,20 @@ router.get('/', authMiddleware, async (req: Request, res: Response) => {
     }
     const notesMap = new Map(notes.map(n => [n.customer_phone, n]))
 
-    res.json(customers.map(c => ({
+    let result = customers.map(c => ({
       ...customerToSnakeCase(c),
       tag: notesMap.get(c.customerPhone)?.tag || null,
       note: notesMap.get(c.customerPhone)?.note || null,
-    })))
+    }))
+
+    // Фильтр по тегу
+    if (tag === 'regular') {
+      result = result.filter(c => c.tag === 'regular' || (!c.tag && c.rental_count >= 3))
+    } else if (tag === 'problem') {
+      result = result.filter(c => c.tag === 'problem')
+    }
+
+    res.json(result)
   } catch (error) {
     console.error('Error getting customers:', error)
     res.status(500).json({ error: 'Ошибка получения клиентов' })

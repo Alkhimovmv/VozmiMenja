@@ -2,8 +2,8 @@ import apiClient from './client';
 import { type Customer, type CustomerNote, type CustomerTag, type Rental } from '../../types/admin';
 
 export const customersApi = {
-  getAll: async (): Promise<Customer[]> => {
-    const response = await apiClient.get('/customers');
+  getAll: async (params?: { search?: string; tag?: string }): Promise<Customer[]> => {
+    const response = await apiClient.get('/customers', { params });
     return response.data;
   },
 
