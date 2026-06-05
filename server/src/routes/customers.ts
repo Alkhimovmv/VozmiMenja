@@ -46,7 +46,7 @@ router.get('/', authMiddleware, async (req: Request, res: Response) => {
 
     // Фильтр по тегу
     if (tag === 'regular') {
-      result = result.filter(c => c.tag === 'regular' || (!c.tag && c.rental_count >= 3))
+      result = result.filter(c => c.tag === 'regular' || (!c.tag && Number(c.rental_count) >= 3))
     } else if (tag === 'problem') {
       result = result.filter(c => c.tag === 'problem')
     }

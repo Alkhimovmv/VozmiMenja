@@ -223,8 +223,7 @@ const CustomerCard: React.FC<{ customer: Customer }> = ({ customer }) => {
   );
 };
 
-// Фильтр по тегу
-type TagFilter = CustomerTag | 'all';
+type TagFilter = 'all' | 'regular' | 'problem';
 
 const CustomersPage: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -249,13 +248,15 @@ const CustomersPage: React.FC = () => {
   // Запрос с фильтрами
   const { data: customers = [], isLoading } = useAuthenticatedQuery<Customer[]>(
     ['customers', debouncedSearch, tagFilter],
-    () => customersApi.getAll(params)
+    () => customersApi.getAll(params),
+    { placeholderData: undefined }
   );
 
   // Счётчики для кнопок — всегда без фильтра
   const { data: allCustomers = [] } = useAuthenticatedQuery<Customer[]>(
-    ['customers', '', 'all'],
-    () => customersApi.getAll()
+    ['customers-all'],
+    () => customersApi.getAll(),
+    { staleTime: 30_000 }
   );
 
   const counts = useMemo(() => ({
