@@ -4,6 +4,7 @@ import { useAuthenticatedQuery } from '../../hooks/useAuthenticatedQuery';
 import { customersApi } from '../../api/admin/customers';
 import { formatDate } from '../../utils/dateUtils';
 import type { Customer, CustomerTag, Rental } from '../../types/admin';
+import { useOffice } from '../../hooks/useOffice';
 
 const TAG_CONFIG: Record<NonNullable<CustomerTag>, { label: string; color: string; icon: string }> = {
   regular: { label: 'Постоянный', color: 'bg-blue-100 text-blue-800 border-blue-200', icon: '👤' },
@@ -228,6 +229,7 @@ type TagFilter = CustomerTag | 'all';
 const CustomersPage: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [tagFilter, setTagFilter] = useState<TagFilter>('all');
+  const { currentOfficeId } = useOffice();
 
   const { data: customers = [], isLoading } = useAuthenticatedQuery<Customer[]>(
     ['customers'],
@@ -240,8 +242,8 @@ const CustomersPage: React.FC = () => {
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
       list = list.filter(c =>
-        c.customer_name.toLowerCase().includes(q) ||
-        c.customer_phone.toLowerCase().includes(q)
+        (c.customer_name || '').toLowerCase().includes(q) ||
+        (c.customer_phone || '').toLowerCase().includes(q)
       );
     }
 

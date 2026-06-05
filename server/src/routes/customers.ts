@@ -21,10 +21,10 @@ router.get('/', authMiddleware, async (req: Request, res: Response) => {
     const userOfficeIds = await getUserOfficeIds(req)
     const customers = await rentalModel.getCustomers(userOfficeIds ?? undefined)
 
-    // Подгружаем заметки для всех клиентов одним запросом
     const phones = customers.map(c => c.customerPhone)
     let notes: any[] = []
     if (phones.length > 0) {
+      // Заметки грузим без фильтра по офису — клиент виден из всех офисов
       const officeFilter = userOfficeIds !== null
         ? `AND office_id IN (${userOfficeIds.map(() => '?').join(',')})`
         : ''
