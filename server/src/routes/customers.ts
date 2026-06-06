@@ -20,7 +20,8 @@ router.get('/', authMiddleware, async (req: Request, res: Response) => {
   try {
     const userOfficeIds = await getUserOfficeIds(req)
     const search = req.query.search as string | undefined
-    const tag = req.query.tag as string | undefined  // 'regular' | 'problem' | undefined
+    const tag = req.query.tag as string | undefined
+    console.log('[customers] query:', req.query, 'search:', search, 'tag:', tag)
 
     const customers = await rentalModel.getCustomers(userOfficeIds ?? undefined, search)
 
@@ -51,6 +52,7 @@ router.get('/', authMiddleware, async (req: Request, res: Response) => {
       result = result.filter(c => c.tag === 'problem')
     }
 
+    console.log('[customers] returning:', result.length, 'of', customers.length)
     res.json(result)
   } catch (error) {
     console.error('Error getting customers:', error)
