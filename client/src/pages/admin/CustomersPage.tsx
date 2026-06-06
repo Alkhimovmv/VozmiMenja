@@ -240,13 +240,15 @@ const CustomersPage: React.FC = () => {
 
   const hasFilter = !!debouncedSearch.trim() || tagFilter !== 'all';
 
-  // Запрос с фильтрами
+  // Запрос с фильтрами — staleTime:0 чтобы не брать из кэша при повторном выборе фильтра
   const { data: customers = [], isLoading } = useAuthenticatedQuery<Customer[]>({
     queryKey: ['customers', debouncedSearch, tagFilter],
     queryFn: () => customersApi.getAll({
       ...(debouncedSearch.trim() ? { search: debouncedSearch.trim() } : {}),
       ...(tagFilter !== 'all' ? { tag: tagFilter } : {}),
     }),
+    staleTime: 0,
+    gcTime: 0,
   });
 
   // Счётчики для кнопок — всегда без фильтра

@@ -502,14 +502,20 @@ export class RentalModel {
     }
 
     if (search && search.trim()) {
-      const s = `%${search.trim()}%`
-      const digits = search.replace(/\D/g, '')
+      const s = search.trim()
+      const digits = s.replace(/\D/g, '')
+      // SQLite LIKE не работает с кириллицей case-insensitive,
+      // поэтому передаём оба варианта регистра
+      const variants = Array.from(new Set([s, s.toLowerCase(), s.toUpperCase(),
+        s.charAt(0).toUpperCase() + s.slice(1).toLowerCase()
+      ])).map(v => `%${v}%`)
+      const nameConds = variants.map(() => 'customer_name LIKE ?').join(' OR ')
       if (digits) {
-        conditions.push(`(LOWER(customer_name) LIKE LOWER(?) OR REPLACE(REPLACE(REPLACE(customer_phone, '+', ''), '-', ''), ' ', '') LIKE ?)`)
-        params.push(s, `%${digits}%`)
+        conditions.push(`((${nameConds}) OR REPLACE(REPLACE(REPLACE(customer_phone, '+', ''), '-', ''), ' ', '') LIKE ?)`)
+        params.push(...variants, `%${digits}%`)
       } else {
-        conditions.push(`LOWER(customer_name) LIKE LOWER(?)`)
-        params.push(s)
+        conditions.push(`(${nameConds})`)
+        params.push(...variants)
       }
     }
 
