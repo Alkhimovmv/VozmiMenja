@@ -238,26 +238,23 @@ const CustomersPage: React.FC = () => {
     return () => clearTimeout(t);
   }, [searchQuery]);
 
-  const params = useMemo(() => ({
-    ...(debouncedSearch.trim() ? { search: debouncedSearch.trim() } : {}),
-    ...(tagFilter !== 'all' ? { tag: tagFilter as string } : {}),
-  }), [debouncedSearch, tagFilter]);
-
   const hasFilter = !!debouncedSearch.trim() || tagFilter !== 'all';
 
   // Запрос с фильтрами
-  const { data: customers = [], isLoading } = useAuthenticatedQuery<Customer[]>(
-    ['customers', debouncedSearch, tagFilter],
-    () => customersApi.getAll(params),
-    { placeholderData: undefined }
-  );
+  const { data: customers = [], isLoading } = useAuthenticatedQuery<Customer[]>({
+    queryKey: ['customers', debouncedSearch, tagFilter],
+    queryFn: () => customersApi.getAll({
+      ...(debouncedSearch.trim() ? { search: debouncedSearch.trim() } : {}),
+      ...(tagFilter !== 'all' ? { tag: tagFilter } : {}),
+    }),
+  });
 
   // Счётчики для кнопок — всегда без фильтра
-  const { data: allCustomers = [] } = useAuthenticatedQuery<Customer[]>(
-    ['customers-all'],
-    () => customersApi.getAll(),
-    { staleTime: 30_000 }
-  );
+  const { data: allCustomers = [] } = useAuthenticatedQuery<Customer[]>({
+    queryKey: ['customers-all'],
+    queryFn: () => customersApi.getAll(),
+    staleTime: 30_000,
+  });
 
   const counts = useMemo(() => ({
     all: allCustomers.length,
