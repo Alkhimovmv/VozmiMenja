@@ -16,6 +16,7 @@ import analyticsRoutes from './routes/analytics'
 import articlesRoutes from './routes/articles'
 import lockersRoutes from './routes/lockers'
 import officesRoutes from './routes/offices'
+import postomatRoutes from './routes/postomat'
 import prerenderRoutes from './routes/prerender'
 import { schedulerService } from './services/scheduler'
 
@@ -71,6 +72,7 @@ app.use('/api/admin/analytics', analyticsRoutes)
 app.use('/api/admin/lockers', lockersRoutes)
 app.use('/api/admin/offices', officesRoutes)
 app.use('/api/admin', adminRoutes)
+app.use('/api/postomat', postomatRoutes)
 
 // Prerender для поисковых ботов
 app.use('/prerender', prerenderRoutes)

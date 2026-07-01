@@ -11,7 +11,8 @@ const Spinner = () => (
 import { useAuthenticatedQuery } from '../../hooks/useAuthenticatedQuery';
 import { lockersApi } from '../../api/admin/lockers';
 import { equipmentApi } from '../../api/admin/equipment';
-import { type Locker, type CreateLockerDto, type RentalEquipment } from '../../types/admin';
+import { officesApi, type Office } from '../../api/admin/offices';
+import { type Locker, type CreateLockerDto, type RentalEquipment, type LockerCommand } from '../../types/admin';
 import LockerCabinet from '../../components/admin/LockerCabinet';
 import ConfirmDialog from '../../components/admin/ConfirmDialog';
 import apiClient from '../../api/admin/client';
@@ -19,6 +20,20 @@ import { useOffice } from '../../hooks/useOffice';
 
 // Ключ выбранного экземпляра: "equipmentId:instanceNumber"
 type InstanceKey = string;
+
+const COMMAND_STATUS_LABELS: Record<LockerCommand['status'], string> = {
+  pending: 'Ожидает',
+  processing: 'Отправлено на постомат',
+  done: 'Открыто',
+  failed: 'Ошибка',
+};
+
+const COMMAND_STATUS_STYLES: Record<LockerCommand['status'], string> = {
+  pending: 'bg-yellow-100 text-yellow-800',
+  processing: 'bg-blue-100 text-blue-800',
+  done: 'bg-green-100 text-green-800',
+  failed: 'bg-red-100 text-red-800',
+};
 
 const LockersPage: React.FC = () => {
   const { currentOfficeId, currentOffice } = useOffice();
@@ -33,6 +48,7 @@ const LockersPage: React.FC = () => {
   });
   const [selectedInstances, setSelectedInstances] = useState<Set<InstanceKey>>(new Set());
   const [newItem, setNewItem] = useState('');
+  const [openConfirmLocker, setOpenConfirmLocker] = useState<Locker | null>(null);
   const queryClient = useQueryClient();
 
   const { data: lockers = [] } = useAuthenticatedQuery<Locker[]>(
@@ -44,6 +60,28 @@ const LockersPage: React.FC = () => {
     ['equipment-rental', currentOfficeId],
     () => equipmentApi.getForRental(currentOfficeId)
   );
+
+  const { data: officeStates = [] } = useAuthenticatedQuery<Office[]>({
+    queryKey: ['offices', 'postomat-status'],
+    queryFn: officesApi.getAll,
+    refetchInterval: 5000,
+    staleTime: 0,
+  });
+
+  const { data: lockerCommands = [] } = useAuthenticatedQuery<LockerCommand[]>({
+    queryKey: ['locker-commands', currentOfficeId],
+    queryFn: () => officesApi.getLockerCommands(currentOfficeId),
+    refetchInterval: 3000,
+    staleTime: 0,
+  });
+
+  const currentOfficeState = officeStates.find((office) => office.id === currentOfficeId);
+  const latestCommandByLocker = lockerCommands.reduce((map, command) => {
+    if (!map.has(command.locker_id)) {
+      map.set(command.locker_id, command);
+    }
+    return map;
+  }, new Map<number, LockerCommand>());
 
   // Конвертация Set<"id:instance"> в массив для API
   const instancesToApiItems = (instances: Set<InstanceKey>) =>
@@ -87,6 +125,18 @@ const LockersPage: React.FC = () => {
     },
     onError: (error: any) => {
       toast.error(error?.response?.data?.error || 'Не удалось удалить ячейку');
+    },
+  });
+
+  const openLockerMutation = useMutation({
+    mutationFn: ({ officeId, lockerId }: { officeId: number; lockerId: number }) =>
+      officesApi.createLockerCommand(officeId, { lockerId }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['locker-commands'], exact: false });
+      toast.success('Команда открытия поставлена в очередь');
+    },
+    onError: (error: any) => {
+      toast.error(error?.response?.data?.error || 'Не удалось отправить команду открытия');
     },
   });
 
@@ -198,11 +248,29 @@ const LockersPage: React.FC = () => {
 
   const handleDelete = (id: number) => setDeleteConfirm({ isOpen: true, lockerId: id });
   const handleInitialize = () => setInitConfirm(true);
+  const handleRemoteOpen = (lockerId: number) => {
+    openLockerMutation.mutate({ officeId: currentOfficeId, lockerId });
+  };
 
   return (
     <div className="space-y-6 overflow-y-auto flex-1 px-4 sm:px-6 py-4 sm:py-8">
       <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold text-gray-900">Ячейки постомата</h1>
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Ячейки постомата</h1>
+          <div className="mt-2 flex flex-wrap items-center gap-2 text-sm">
+            <span className={`inline-flex items-center rounded-full px-2.5 py-1 font-medium ${
+              currentOfficeState?.postomat_status?.online ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'
+            }`}>
+              {currentOfficeState?.postomat_status?.online ? 'Постомат онлайн' : 'Постомат офлайн'}
+            </span>
+            {currentOfficeState?.postomat_status?.hostname && (
+              <span className="text-gray-500">Хост: {currentOfficeState.postomat_status.hostname}</span>
+            )}
+            {currentOfficeState?.postomat_status?.version && (
+              <span className="text-gray-500">Версия: {currentOfficeState.postomat_status.version}</span>
+            )}
+          </div>
+        </div>
         <div className="flex gap-2">
           {lockers.length < totalLockersCount && (
             <button
@@ -256,6 +324,9 @@ const LockersPage: React.FC = () => {
           <tbody className="bg-white divide-y divide-gray-200">
             {lockers.map((locker) => {
               const isOccupied = locker.total_equipment > 0 && locker.free_equipment === 0;
+              const latestCommand = latestCommandByLocker.get(locker.id);
+              const lockerNumber = Number(locker.locker_number);
+              const canRemoteOpen = Number.isFinite(lockerNumber) && lockerNumber >= 1 && lockerNumber <= 16;
               return (
                 <tr key={locker.id} className={locker.needs_check ? 'bg-amber-50' : ''}>
                   <td className="px-2 sm:px-6 py-2 sm:py-4 whitespace-nowrap text-xs sm:text-sm font-medium text-gray-900">
@@ -302,20 +373,38 @@ const LockersPage: React.FC = () => {
                     )}
                   </td>
                   <td className="px-2 sm:px-6 py-2 sm:py-4 whitespace-nowrap">
-                    <span
-                      className={`px-1.5 sm:px-2 inline-flex text-[10px] sm:text-xs leading-5 font-semibold rounded-full ${
-                        !locker.is_active
-                          ? 'bg-gray-100 text-gray-800'
-                          : isOccupied
-                          ? 'bg-red-100 text-red-800'
-                          : 'bg-green-100 text-green-800'
-                      }`}
-                    >
-                      {!locker.is_active ? 'Неакт.' : isOccupied ? 'Занята' : 'Свободна'}
-                    </span>
+                    <div className="space-y-1">
+                      <span
+                        className={`px-1.5 sm:px-2 inline-flex text-[10px] sm:text-xs leading-5 font-semibold rounded-full ${
+                          !locker.is_active
+                            ? 'bg-gray-100 text-gray-800'
+                            : isOccupied
+                            ? 'bg-red-100 text-red-800'
+                            : 'bg-green-100 text-green-800'
+                        }`}
+                      >
+                        {!locker.is_active ? 'Неакт.' : isOccupied ? 'Занята' : 'Свободна'}
+                      </span>
+                      {latestCommand && (
+                        <div>
+                          <span className={`inline-flex rounded-full px-2 py-0.5 text-[10px] sm:text-xs font-semibold ${COMMAND_STATUS_STYLES[latestCommand.status]}`}>
+                            {COMMAND_STATUS_LABELS[latestCommand.status]}
+                          </span>
+                        </div>
+                      )}
+                    </div>
                   </td>
                   <td className="px-2 sm:px-6 py-2 sm:py-4 whitespace-nowrap text-right text-xs sm:text-sm font-medium">
                     <div className="flex flex-col sm:flex-row sm:space-x-2 space-y-1 sm:space-y-0 items-end">
+                      <button
+                        onClick={() => setOpenConfirmLocker(locker)}
+                        disabled={openLockerMutation.isPending || !canRemoteOpen}
+                        className="text-indigo-600 hover:text-indigo-900 text-xs sm:text-sm disabled:opacity-60 inline-flex items-center gap-1"
+                        title={canRemoteOpen ? 'Поставить команду на открытие' : 'Удалённое открытие доступно только для ячеек 1–16'}
+                      >
+                        {openLockerMutation.isPending ? <Spinner /> : null}
+                        Открыть ячейку
+                      </button>
                       {locker.needs_check && (
                         <button
                           onClick={() => markCheckedMutation.mutate(locker.id)}
@@ -350,6 +439,39 @@ const LockersPage: React.FC = () => {
         {lockers.length === 0 && (
           <div className="text-center py-8 text-gray-500">
             Нет ячеек в постомате
+          </div>
+        )}
+      </div>
+
+      <div className="bg-white shadow rounded-lg p-4 sm:p-5">
+        <h2 className="text-lg font-semibold text-gray-900 mb-3">История удалённых открытий</h2>
+        {lockerCommands.length === 0 ? (
+          <div className="text-sm text-gray-400">Команд пока нет</div>
+        ) : (
+          <div className="space-y-2 max-h-80 overflow-y-auto">
+            {lockerCommands.map((command) => {
+              const locker = lockers.find((item) => item.id === command.locker_id);
+              return (
+                <div key={command.id} className="rounded-lg border border-gray-200 px-3 py-2 text-sm">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="font-medium text-gray-900">
+                      Ячейка {locker?.locker_number || `ID ${command.locker_id}`}
+                    </span>
+                    <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-semibold ${COMMAND_STATUS_STYLES[command.status]}`}>
+                      {COMMAND_STATUS_LABELS[command.status]}
+                    </span>
+                  </div>
+                  <div className="mt-1 text-xs text-gray-500">
+                    Создана: {new Date(command.created_at).toLocaleString('ru-RU')}
+                    {command.taken_at && ` • Взята: ${new Date(command.taken_at).toLocaleString('ru-RU')}`}
+                    {command.finished_at && ` • Завершена: ${new Date(command.finished_at).toLocaleString('ru-RU')}`}
+                  </div>
+                  {command.error && (
+                    <div className="mt-1 text-xs text-red-600">Ошибка: {command.error}</div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         )}
       </div>
@@ -564,6 +686,24 @@ const LockersPage: React.FC = () => {
         type="warning"
         onConfirm={() => { initializeMutation.mutate(); setInitConfirm(false); }}
         onCancel={() => setInitConfirm(false)}
+      />
+
+      <ConfirmDialog
+        isOpen={!!openConfirmLocker}
+        title="Открытие ячейки"
+        message={openConfirmLocker
+          ? `Отправить команду на удалённое открытие ячейки ${openConfirmLocker.locker_number}?`
+          : 'Отправить команду на удалённое открытие ячейки?'}
+        confirmText="Открыть"
+        cancelText="Отмена"
+        type="warning"
+        onConfirm={() => {
+          if (openConfirmLocker) {
+            handleRemoteOpen(openConfirmLocker.id);
+          }
+          setOpenConfirmLocker(null);
+        }}
+        onCancel={() => setOpenConfirmLocker(null)}
       />
     </div>
   );

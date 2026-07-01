@@ -2,6 +2,8 @@ import { Router, Request, Response } from 'express'
 import { z } from 'zod'
 import { database } from '../models/database'
 import { authMiddleware } from '../middleware/auth'
+import { getUserOfficeIds } from '../middleware/userFilter'
+import { lockerCommandsService } from '../services/lockerCommands'
 
 const router = Router()
 
@@ -13,12 +15,13 @@ function parseLockerRows(raw: string | null): any[] {
   }
 }
 
-function formatOffice(o: any) {
+async function formatOffice(o: any) {
   return {
     id: o.id,
     name: o.name,
     address: o.address || '',
     locker_rows: parseLockerRows(o.locker_rows),
+    postomat_status: await lockerCommandsService.getPostomatStatus(o.id),
     created_at: o.created_at,
     updated_at: o.updated_at,
   }
@@ -34,6 +37,10 @@ const officeSchema = z.object({
   name: z.string().min(1, 'Название офиса обязательно').max(100),
   address: z.string().max(300).optional().default(''),
   locker_rows: z.array(lockerRowSchema).optional()
+})
+
+const createLockerCommandSchema = z.object({
+  lockerId: z.number().int().positive(),
 })
 
 // GET /api/admin/offices/:id/lockers-codes - без авторизации, по секрету
@@ -68,7 +75,7 @@ router.get('/', authMiddleware, async (req: Request, res: Response) => {
         [req.user!.userId]
       )
     }
-    res.json(offices.map(formatOffice))
+    res.json(await Promise.all(offices.map(formatOffice)))
   } catch (error) {
     res.status(500).json({ error: 'Ошибка получения офисов' })
   }
@@ -94,7 +101,7 @@ router.post('/', authMiddleware, async (req: Request, res: Response) => {
       [name, address || '', lockerRowsJson, userId]
     )
     const office = await database.get('SELECT * FROM offices WHERE id = ?', [result.lastID])
-    res.status(201).json(formatOffice(office))
+    res.status(201).json(await formatOffice(office))
   } catch (error) {
     res.status(500).json({ error: 'Ошибка создания офиса' })
   }
@@ -126,9 +133,83 @@ router.put('/:id', authMiddleware, async (req: Request, res: Response) => {
       [newName, newAddress, newLockerRows, id]
     )
     const office = await database.get('SELECT * FROM offices WHERE id = ?', [id])
-    res.json(formatOffice(office))
+    res.json(await formatOffice(office))
   } catch (error) {
     res.status(500).json({ error: 'Ошибка обновления офиса' })
+  }
+})
+
+// GET /api/admin/offices/:officeId/locker-commands
+router.get('/:officeId/locker-commands', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const officeId = Number(req.params.officeId)
+    if (!Number.isInteger(officeId) || officeId <= 0) {
+      return res.status(400).json({ error: 'Некорректный officeId' })
+    }
+
+    const userOfficeIds = await getUserOfficeIds(req)
+    if (userOfficeIds !== null && !userOfficeIds.includes(officeId)) {
+      return res.status(403).json({ error: 'Нет доступа к этому офису' })
+    }
+
+    const commands = await lockerCommandsService.getCommandsHistory(officeId)
+    res.json(commands.map((command) => ({
+      id: command.id,
+      office_id: command.officeId,
+      locker_id: command.lockerId,
+      status: command.status,
+      created_at: command.createdAt,
+      taken_at: command.takenAt,
+      finished_at: command.finishedAt,
+      error: command.error,
+    })))
+  } catch (error) {
+    console.error('Error getting locker commands:', error)
+    res.status(500).json({ error: 'Ошибка получения истории команд' })
+  }
+})
+
+// POST /api/admin/offices/:officeId/locker-commands
+router.post('/:officeId/locker-commands', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const officeId = Number(req.params.officeId)
+    if (!Number.isInteger(officeId) || officeId <= 0) {
+      return res.status(400).json({ error: 'Некорректный officeId' })
+    }
+
+    const parsed = createLockerCommandSchema.safeParse(req.body)
+    if (!parsed.success) {
+      return res.status(400).json({ error: parsed.error.errors.map((e) => e.message).join(', ') })
+    }
+
+    const userOfficeIds = await getUserOfficeIds(req)
+    if (userOfficeIds !== null && !userOfficeIds.includes(officeId)) {
+      return res.status(403).json({ error: 'Нет доступа к этому офису' })
+    }
+
+    const command = await lockerCommandsService.createCommand(officeId, parsed.data.lockerId)
+    res.status(201).json({
+      id: command.id,
+      office_id: command.officeId,
+      locker_id: command.lockerId,
+      status: command.status,
+      created_at: command.createdAt,
+      taken_at: command.takenAt,
+      finished_at: command.finishedAt,
+      error: command.error,
+    })
+  } catch (error: any) {
+    if (error.message === 'LOCKER_NOT_FOUND') {
+      return res.status(404).json({ error: 'Ячейка не найдена' })
+    }
+    if (error.message === 'LOCKER_OFFICE_MISMATCH') {
+      return res.status(400).json({ error: 'Ячейка не принадлежит выбранному офису' })
+    }
+    if (error.message === 'LOCKER_OUT_OF_RANGE') {
+      return res.status(400).json({ error: 'Разрешено открывать только ячейки с номерами от 1 до 16' })
+    }
+    console.error('Error creating locker command:', error)
+    res.status(500).json({ error: 'Ошибка создания команды открытия' })
   }
 })
 

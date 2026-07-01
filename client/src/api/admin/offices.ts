@@ -1,4 +1,5 @@
 import apiClient from './client';
+import type { LockerCommand, PostomatStatus } from '../../types/admin';
 
 export interface LockerRow {
   row: number;
@@ -11,6 +12,7 @@ export interface Office {
   name: string;
   address: string;
   locker_rows: LockerRow[];
+  postomat_status?: PostomatStatus | null;
   created_at: string;
   updated_at: string;
 }
@@ -19,6 +21,10 @@ export interface CreateOfficeDto {
   name: string;
   address?: string;
   locker_rows?: LockerRow[];
+}
+
+export interface CreateLockerCommandDto {
+  lockerId: number;
 }
 
 export const officesApi = {
@@ -34,6 +40,16 @@ export const officesApi = {
 
   update: async (id: number, data: Partial<CreateOfficeDto>): Promise<Office> => {
     const response = await apiClient.put(`/offices/${id}`, data);
+    return response.data;
+  },
+
+  createLockerCommand: async (officeId: number, data: CreateLockerCommandDto): Promise<LockerCommand> => {
+    const response = await apiClient.post(`/offices/${officeId}/locker-commands`, data);
+    return response.data;
+  },
+
+  getLockerCommands: async (officeId: number): Promise<LockerCommand[]> => {
+    const response = await apiClient.get(`/offices/${officeId}/locker-commands`);
     return response.data;
   },
 

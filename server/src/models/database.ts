@@ -175,6 +175,34 @@ class Database {
       )
     `)
 
+    await run(`
+      CREATE TABLE IF NOT EXISTS locker_commands (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        office_id INTEGER NOT NULL,
+        locker_id INTEGER NOT NULL,
+        status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'processing', 'done', 'failed')),
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        taken_at DATETIME,
+        finished_at DATETIME,
+        error TEXT,
+        FOREIGN KEY (office_id) REFERENCES offices (id) ON DELETE CASCADE,
+        FOREIGN KEY (locker_id) REFERENCES lockers (id) ON DELETE CASCADE
+      )
+    `)
+
+    await run(`
+      CREATE TABLE IF NOT EXISTS postomat_devices (
+        office_id INTEGER PRIMARY KEY,
+        last_seen DATETIME,
+        online INTEGER NOT NULL DEFAULT 0,
+        version TEXT,
+        uptime INTEGER,
+        hostname TEXT,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (office_id) REFERENCES offices (id) ON DELETE CASCADE
+      )
+    `)
+
     // Создаём офис по умолчанию если нет ни одного
     const officeCount = await this.get('SELECT COUNT(*) as cnt FROM offices')
     if (officeCount.cnt === 0) {
@@ -446,6 +474,16 @@ class Database {
 
     await run(`
       CREATE INDEX IF NOT EXISTS idx_lockers_office_id ON lockers(office_id);
+    `)
+
+    await run(`
+      CREATE INDEX IF NOT EXISTS idx_locker_commands_office_status_created
+      ON locker_commands(office_id, status, created_at);
+    `)
+
+    await run(`
+      CREATE INDEX IF NOT EXISTS idx_locker_commands_status_taken_at
+      ON locker_commands(status, taken_at);
     `)
 
     await run(`

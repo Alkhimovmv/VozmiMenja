@@ -4,6 +4,28 @@ export interface RentalEquipmentInstance {
   comment: string | null;
 }
 
+export type LockerCommandStatus = 'pending' | 'processing' | 'done' | 'failed';
+
+export interface LockerCommand {
+  id: number;
+  office_id: number;
+  locker_id: number;
+  status: LockerCommandStatus;
+  created_at: string;
+  taken_at: string | null;
+  finished_at: string | null;
+  error: string | null;
+}
+
+export interface PostomatStatus {
+  office_id: number;
+  online: boolean;
+  last_seen: string | null;
+  version: string | null;
+  uptime: number | null;
+  hostname: string | null;
+}
+
 // DEPRECATED: старая модель для rental_equipment (использовалась до перехода на общую таблицу equipment)
 export interface RentalEquipment {
   id: number;
