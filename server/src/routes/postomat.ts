@@ -50,9 +50,24 @@ router.get('/offices/:officeId/commands/next', async (req: Request, res: Respons
     const command = await lockerCommandsService.takeNextCommand(officeId)
     if (!command) return res.json(null)
 
+    const locker = await database.get(
+      'SELECT locker_number FROM lockers WHERE id = ? AND office_id = ?',
+      [command.lockerId, officeId]
+    )
+    if (!locker) {
+      await lockerCommandsService.completeCommand(command.id, false, 'Locker not found during dispatch')
+      return res.status(500).json({ error: 'Ячейка команды не найдена' })
+    }
+
+    const physicalLockerNumber = Number(locker.locker_number)
+    if (!Number.isInteger(physicalLockerNumber) || physicalLockerNumber <= 0) {
+      await lockerCommandsService.completeCommand(command.id, false, 'Invalid locker_number during dispatch')
+      return res.status(500).json({ error: 'Некорректный номер ячейки' })
+    }
+
     return res.json({
       id: command.id,
-      lockerId: command.lockerId,
+      lockerId: physicalLockerNumber,
     })
   } catch (error) {
     console.error('Error taking next postomat command:', error)
