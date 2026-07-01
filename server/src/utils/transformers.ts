@@ -37,6 +37,12 @@ export function equipmentToSnakeCase(equipment: any) {
     quantity: equipment.quantity,
     description: equipment.description,
     base_price: equipment.basePrice,
+    office_id: equipment.officeId,
+    instances: equipment.instances?.map((instance: any) => ({
+      instance_number: instance.instanceNumber,
+      serial_number: instance.serialNumber || null,
+      comment: instance.comment || null,
+    })) || [],
     created_at: equipment.createdAt,
     updated_at: equipment.updatedAt
   }
@@ -53,6 +59,11 @@ export function equipmentToRentalFormat(equipment: any) {
     images: [],
     description: equipment.description || '',
     specifications: {},
+    instances: equipment.instances?.map((instance: any) => ({
+      instance_number: instance.instanceNumber,
+      serial_number: instance.serialNumber || null,
+      comment: instance.comment || null,
+    })) || [],
     created_at: equipment.createdAt,
     updated_at: equipment.updatedAt
   }

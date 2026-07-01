@@ -4,11 +4,17 @@ import { useAuthenticatedQuery } from '../../hooks/useAuthenticatedQuery';
 import { customersApi } from '../../api/admin/customers';
 import { formatDate } from '../../utils/dateUtils';
 import type { Customer, CustomerTag, Rental } from '../../types/admin';
-import { useOffice } from '../../hooks/useOffice';
 
 const TAG_CONFIG: Record<NonNullable<CustomerTag>, { label: string; color: string; icon: string }> = {
   regular: { label: 'Постоянный', color: 'bg-blue-100 text-blue-800 border-blue-200', icon: '👤' },
   problem: { label: 'Проблемный', color: 'bg-red-100 text-red-800 border-red-200',    icon: '⚠️' },
+};
+
+const RENTAL_STATUS_CONFIG: Record<Rental['status'], { label: string; color: string }> = {
+  pending: { label: 'Ожидает', color: 'bg-yellow-100 text-yellow-800' },
+  active: { label: 'Активна', color: 'bg-green-100 text-green-800' },
+  completed: { label: 'Завершена', color: 'bg-gray-100 text-gray-700' },
+  overdue: { label: 'Просрочена', color: 'bg-red-100 text-red-800' },
 };
 
 function TagBadge({ tag }: { tag: CustomerTag }) {
@@ -32,10 +38,112 @@ function rentalCountLabel(n: number) {
   return `${n} аренд`;
 }
 
+function RentalDetailsModal({ rental, onClose }: { rental: Rental | null; onClose: () => void }) {
+  useEffect(() => {
+    if (!rental) return;
+
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') onClose();
+    };
+
+    document.addEventListener('keydown', handleEscape);
+    return () => document.removeEventListener('keydown', handleEscape);
+  }, [rental, onClose]);
+
+  if (!rental) return null;
+
+  const status = RENTAL_STATUS_CONFIG[rental.status];
+  const equipmentLabel = rental.equipment_list?.length
+    ? rental.equipment_list.map((item) => `${item.name} #${item.instance_number}`).join(', ')
+    : rental.equipment_name || '—';
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+      onClick={onClose}
+    >
+      <div
+        className="w-full max-w-xl rounded-xl bg-white shadow-xl"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div className="flex items-start justify-between border-b border-gray-100 px-5 py-4">
+          <div>
+            <h3 className="text-lg font-semibold text-gray-900">Информация об аренде</h3>
+            <p className="mt-1 text-sm text-gray-500">#{rental.id}</p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-md px-2 py-1 text-sm text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+          >
+            ×
+          </button>
+        </div>
+
+        <div className="space-y-4 px-5 py-4 text-sm">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${status.color}`}>
+              {status.label}
+            </span>
+            <span className="text-gray-500">Источник: {rental.source}</span>
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="rounded-lg bg-gray-50 p-3">
+              <div className="text-xs font-medium text-gray-500">Клиент</div>
+              <div className="mt-1 font-medium text-gray-900">{rental.customer_name}</div>
+              <div className="mt-1 text-gray-600">{rental.customer_phone}</div>
+            </div>
+            <div className="rounded-lg bg-gray-50 p-3">
+              <div className="text-xs font-medium text-gray-500">Оборудование</div>
+              <div className="mt-1 text-gray-900">{equipmentLabel}</div>
+            </div>
+            <div className="rounded-lg bg-gray-50 p-3">
+              <div className="text-xs font-medium text-gray-500">Период аренды</div>
+              <div className="mt-1 text-gray-900">{formatDate(rental.start_date)}</div>
+              <div className="text-gray-900">{formatDate(rental.end_date)}</div>
+            </div>
+            <div className="rounded-lg bg-gray-50 p-3">
+              <div className="text-xs font-medium text-gray-500">Финансы</div>
+              <div className="mt-1 text-gray-900">Аренда: {rental.rental_price ?? '—'} ₽</div>
+              <div className="text-gray-900">Доставка: {rental.delivery_price ?? '—'} ₽</div>
+              <div className="text-gray-900">Расходы на доставку: {rental.delivery_costs ?? '—'} ₽</div>
+              <div className="font-medium text-gray-900">Итого: {rental.total_price ?? '—'} ₽</div>
+            </div>
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="rounded-lg border border-gray-200 p-3">
+              <div className="text-xs font-medium text-gray-500">Доставка</div>
+              <div className="mt-1 text-gray-900">{rental.needs_delivery ? 'Нужна' : 'Не нужна'}</div>
+              {rental.delivery_address && (
+                <div className="mt-1 text-gray-600">{rental.delivery_address}</div>
+              )}
+            </div>
+            <div className="rounded-lg border border-gray-200 p-3">
+              <div className="text-xs font-medium text-gray-500">Создана</div>
+              <div className="mt-1 text-gray-900">{formatDate(rental.created_at)}</div>
+              <div className="mt-1 text-xs text-gray-500">Обновлена: {formatDate(rental.updated_at)}</div>
+            </div>
+          </div>
+
+          {rental.comment && (
+            <div className="rounded-lg border border-gray-200 p-3">
+              <div className="text-xs font-medium text-gray-500">Комментарий</div>
+              <div className="mt-1 whitespace-pre-wrap text-gray-900">{rental.comment}</div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // Карточка отдельного клиента
 const CustomerCard: React.FC<{ customer: Customer }> = ({ customer }) => {
   const [expanded, setExpanded] = useState(false);
   const [editingNote, setEditingNote] = useState(false);
+  const [selectedRental, setSelectedRental] = useState<Rental | null>(null);
   const [noteText, setNoteText] = useState(customer.note || '');
   const [selectedTag, setSelectedTag] = useState<CustomerTag>(customer.tag);
   const queryClient = useQueryClient();
@@ -195,7 +303,12 @@ const CustomerCard: React.FC<{ customer: Customer }> = ({ customer }) => {
             ) : (
               <div className="space-y-1.5 max-h-64 overflow-y-auto">
                 {rentals.map(rental => (
-                  <div key={rental.id} className="bg-white border border-gray-100 rounded-md px-3 py-2 text-xs">
+                  <button
+                    key={rental.id}
+                    type="button"
+                    onClick={() => setSelectedRental(rental)}
+                    className="block w-full rounded-md border border-gray-100 bg-white px-3 py-2 text-left text-xs transition-colors hover:border-indigo-200 hover:bg-indigo-50"
+                  >
                     <div className="flex items-center gap-2">
                       <span className={`flex-shrink-0 w-2 h-2 rounded-full ${
                         rental.status === 'active' ? 'bg-green-500' :
@@ -212,13 +325,15 @@ const CustomerCard: React.FC<{ customer: Customer }> = ({ customer }) => {
                     <div className="mt-1 pl-4 text-gray-400">
                       {formatDate(rental.start_date)} — {formatDate(rental.end_date)}
                     </div>
-                  </div>
+                  </button>
                 ))}
               </div>
             )}
           </div>
         </div>
       )}
+
+      <RentalDetailsModal rental={selectedRental} onClose={() => setSelectedRental(null)} />
     </div>
   );
 };
@@ -229,7 +344,6 @@ const CustomersPage: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [tagFilter, setTagFilter] = useState<TagFilter>('all');
-  const { currentOfficeId } = useOffice();
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // Debounce поиска 300ms

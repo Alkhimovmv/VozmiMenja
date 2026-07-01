@@ -18,7 +18,7 @@ export default function UnifiedAdminLayout({ children }: UnifiedAdminLayoutProps
   useEffect(() => {
     const token = localStorage.getItem('adminToken')
     if (!token) {
-      navigate('/admin/login')
+      navigate('/admin/rent/login')
     }
   }, [navigate])
 
@@ -36,7 +36,7 @@ export default function UnifiedAdminLayout({ children }: UnifiedAdminLayoutProps
 
   const handleLogout = () => {
     localStorage.removeItem('adminToken')
-    navigate('/admin/login')
+    navigate('/admin/rent/login')
   }
 
   return (

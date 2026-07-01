@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { type Equipment, type CreateEquipmentDto } from '../types/index';
+import { type RentalEquipment, type CreateRentalEquipmentDto, type RentalEquipmentInstance } from '../../types/admin';
 
 interface EquipmentModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (data: CreateEquipmentDto) => void;
-  equipment?: Equipment | null;
+  onSubmit: (data: CreateRentalEquipmentDto) => void;
+  equipment?: RentalEquipment | null;
   isLoading?: boolean;
 }
 
@@ -17,11 +17,24 @@ const EquipmentModal: React.FC<EquipmentModalProps> = ({
   equipment,
   isLoading = false,
 }) => {
-  const [formData, setFormData] = useState<CreateEquipmentDto>({
+  const buildInstances = (quantity: number, currentInstances?: RentalEquipmentInstance[]): RentalEquipmentInstance[] => {
+    return Array.from({ length: quantity }, (_, index) => {
+      const instanceNumber = index + 1;
+      const existing = currentInstances?.find((instance) => instance.instance_number === instanceNumber);
+      return {
+        instance_number: instanceNumber,
+        serial_number: existing?.serial_number || null,
+        comment: existing?.comment || null,
+      };
+    });
+  };
+
+  const [formData, setFormData] = useState<CreateRentalEquipmentDto>({
     name: '',
     quantity: 1,
     description: '',
     base_price: null,
+    instances: buildInstances(1),
   });
   const [quantityInput, setQuantityInput] = useState('1');
 
@@ -37,6 +50,7 @@ const EquipmentModal: React.FC<EquipmentModalProps> = ({
           quantity: equipment.quantity,
           description: equipment.description || '',
           base_price: equipment.base_price,
+          instances: buildInstances(equipment.quantity, equipment.instances),
         });
         setQuantityInput(String(equipment.quantity));
       } else {
@@ -45,6 +59,7 @@ const EquipmentModal: React.FC<EquipmentModalProps> = ({
           quantity: 1,
           description: '',
           base_price: null,
+          instances: buildInstances(1),
         });
         setQuantityInput('1');
       }
@@ -130,18 +145,83 @@ const EquipmentModal: React.FC<EquipmentModalProps> = ({
                 onChange={(e) => {
                   setQuantityInput(e.target.value);
                   const n = parseInt(e.target.value);
-                  if (!isNaN(n) && n >= 1) setFormData({ ...formData, quantity: n });
+                  if (!isNaN(n) && n >= 1) {
+                    setFormData((prev) => ({
+                      ...prev,
+                      quantity: n,
+                      instances: buildInstances(n, prev.instances),
+                    }));
+                  }
                 }}
                 onBlur={() => {
                   const n = parseInt(quantityInput);
                   const valid = !isNaN(n) && n >= 1 ? n : 1;
-                  setFormData({ ...formData, quantity: valid });
+                  setFormData((prev) => ({
+                    ...prev,
+                    quantity: valid,
+                    instances: buildInstances(valid, prev.instances),
+                  }));
                   setQuantityInput(String(valid));
                 }}
                 className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
                 required
                 min="1"
               />
+            </div>
+
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Серийные номера и комментарии
+              </label>
+              <div className="space-y-3 max-h-72 overflow-y-auto rounded-md border border-gray-200 p-3">
+                {(formData.instances || []).map((instance, index) => (
+                  <div key={instance.instance_number} className="rounded-md border border-gray-200 p-3">
+                    <div className="mb-2 text-sm font-medium text-gray-900">
+                      Экземпляр #{instance.instance_number}
+                    </div>
+                    <div className="mb-2">
+                      <label className="block text-xs font-medium text-gray-600 mb-1">
+                        Серийный номер
+                      </label>
+                      <input
+                        type="text"
+                        value={instance.serial_number || ''}
+                        onChange={(e) => {
+                          const serialNumber = e.target.value;
+                          setFormData((prev) => ({
+                            ...prev,
+                            instances: (prev.instances || []).map((item, itemIndex) =>
+                              itemIndex === index ? { ...item, serial_number: serialNumber || null } : item
+                            ),
+                          }));
+                        }}
+                        className="block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                        placeholder="Например: SN-001245"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">
+                        Комментарий
+                      </label>
+                      <textarea
+                        value={instance.comment || ''}
+                        onChange={(e) => {
+                          const comment = e.target.value;
+                          setFormData((prev) => ({
+                            ...prev,
+                            instances: (prev.instances || []).map((item, itemIndex) =>
+                              itemIndex === index ? { ...item, comment: comment || null } : item
+                            ),
+                          }));
+                        }}
+                        className="block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                        rows={2}
+                        placeholder="Например: потертости на корпусе, комплект без крепления"
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
 
             <div className="mb-4">

@@ -1,4 +1,4 @@
-import { Routes, Route, useLocation } from 'react-router-dom'
+import { Routes, Route, useLocation, Navigate } from 'react-router-dom'
 import { useEffect, lazy, Suspense } from 'react'
 import { Toaster } from 'react-hot-toast'
 import Layout from './components/layout/Layout'
@@ -17,9 +17,7 @@ const TermsOfServicePage = lazy(() => import('./pages/TermsOfServicePage'))
 const OfferPage = lazy(() => import('./pages/OfferPage'))
 const RequisitesPage = lazy(() => import('./pages/RequisitesPage'))
 const FAQPage = lazy(() => import('./pages/FAQPage'))
-const AdminLoginPage = lazy(() => import('./pages/AdminLoginPage'))
 const AdminDashboardPage = lazy(() => import('./pages/AdminDashboardPage'))
-
 // RentAdmin pages
 const RentAdminLoginPage = lazy(() => import('./pages/admin/LoginPage'))
 const RentAdminSchedulePage = lazy(() => import('./pages/admin/SchedulePage'))
@@ -106,7 +104,7 @@ function App() {
       <Suspense fallback={<PageLoader />}>
         <Routes>
           {/* Admin routes without layout */}
-          <Route path="/admin/login" element={<AdminLoginPage />} />
+          <Route path="/admin/login" element={<Navigate to="/admin/rent/login" replace />} />
           <Route path="/admin/dashboard" element={<AdminDashboardPage />} />
 
           {/* RentAdmin routes */}

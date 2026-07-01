@@ -1,10 +1,32 @@
 import { Router, Request, Response } from 'express'
-import { rentalEquipmentModel, CreateRentalEquipmentData } from '../models/RentalEquipment'
+import { rentalEquipmentModel, CreateRentalEquipmentData, RentalEquipmentInstance } from '../models/RentalEquipment'
 import { authMiddleware } from '../middleware/auth'
 import { getUserOfficeIds } from '../middleware/userFilter'
 import { equipmentToSnakeCase as toSnakeCase, equipmentToRentalFormat as toRentalFormat } from '../utils/transformers'
 
 const router = Router()
+
+function normalizeInstances(input: any, quantity: number): RentalEquipmentInstance[] {
+  if (!Array.isArray(input)) {
+    return Array.from({ length: quantity }, (_, index) => ({
+      instanceNumber: index + 1,
+    }))
+  }
+
+  return Array.from({ length: quantity }, (_, index) => {
+    const instanceNumber = index + 1
+    const matching = input.find((instance: any) => Number(instance?.instance_number ?? instance?.instanceNumber) === instanceNumber)
+    return {
+      instanceNumber,
+      serialNumber: typeof matching?.serial_number === 'string'
+        ? matching.serial_number
+        : typeof matching?.serialNumber === 'string'
+          ? matching.serialNumber
+          : undefined,
+      comment: typeof matching?.comment === 'string' ? matching.comment : undefined,
+    }
+  })
+}
 
 // Получить office_id из query или использовать первый доступный офис пользователя
 async function resolveOfficeId(req: Request): Promise<number | undefined> {
@@ -71,19 +93,34 @@ router.get('/:id', authMiddleware, async (req: Request, res: Response) => {
 // POST /api/admin/equipment
 router.post('/', authMiddleware, async (req: Request, res: Response) => {
   try {
+    const userOfficeIds = await getUserOfficeIds(req)
     const officeId = await resolveOfficeId(req)
     if (officeId === -1) return res.status(403).json({ error: 'Нет доступа к офису' })
 
     const bodyOfficeId = req.body.office_id ? Number(req.body.office_id) : undefined
     const finalOfficeId = (bodyOfficeId && !isNaN(bodyOfficeId)) ? bodyOfficeId : officeId
 
+    if (userOfficeIds !== null && (!finalOfficeId || !userOfficeIds.includes(finalOfficeId))) {
+      return res.status(403).json({ error: 'Нет доступа к выбранному офису' })
+    }
+
+    const rawBasePrice = req.body.base_price ?? req.body.basePrice
+    const normalizedBasePrice = rawBasePrice === '' || rawBasePrice === null || rawBasePrice === undefined
+      ? 0
+      : Number(rawBasePrice)
+
+    if (Number.isNaN(normalizedBasePrice)) {
+      return res.status(400).json({ error: 'Некорректная цена оборудования' })
+    }
+
     const data: CreateRentalEquipmentData = {
       name: req.body.name,
       quantity: req.body.quantity,
       description: req.body.description,
-      basePrice: req.body.base_price || req.body.basePrice,
+      basePrice: normalizedBasePrice,
       userId: req.user!.userId,
       officeId: finalOfficeId,
+      instances: normalizeInstances(req.body.instances, Number(req.body.quantity) || 1),
     }
     const equipment = await rentalEquipmentModel.create(data)
     res.status(201).json(toSnakeCase(equipment))
@@ -106,8 +143,21 @@ router.put('/:id', authMiddleware, async (req: Request, res: Response) => {
     if (req.body.name !== undefined) data.name = req.body.name
     if (req.body.quantity !== undefined) data.quantity = req.body.quantity
     if (req.body.description !== undefined) data.description = req.body.description
+    const nextQuantity = req.body.quantity !== undefined ? Number(req.body.quantity) : equipment.quantity
     if (req.body.base_price !== undefined || req.body.basePrice !== undefined) {
-      data.basePrice = req.body.base_price || req.body.basePrice
+      const rawBasePrice = req.body.base_price ?? req.body.basePrice
+      const normalizedBasePrice = rawBasePrice === '' || rawBasePrice === null || rawBasePrice === undefined
+        ? 0
+        : Number(rawBasePrice)
+
+      if (Number.isNaN(normalizedBasePrice)) {
+        return res.status(400).json({ error: 'Некорректная цена оборудования' })
+      }
+
+      data.basePrice = normalizedBasePrice
+    }
+    if (req.body.instances !== undefined || req.body.quantity !== undefined) {
+      data.instances = normalizeInstances(req.body.instances, nextQuantity)
     }
 
     const updated = await rentalEquipmentModel.update(parseInt(req.params.id), data)

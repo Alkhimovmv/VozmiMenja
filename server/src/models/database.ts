@@ -69,6 +69,20 @@ class Database {
       )
     `)
 
+    await run(`
+      CREATE TABLE IF NOT EXISTS rental_equipment_instances (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        equipment_id INTEGER NOT NULL,
+        instance_number INTEGER NOT NULL,
+        serial_number TEXT,
+        comment TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(equipment_id, instance_number),
+        FOREIGN KEY (equipment_id) REFERENCES rental_equipment (id) ON DELETE CASCADE
+      )
+    `)
+
     // Таблица для аренды оборудования (RentAdmin)
     await run(`
       CREATE TABLE IF NOT EXISTS rentals (
@@ -333,6 +347,30 @@ class Database {
       if (!error.message?.includes('duplicate column name')) throw error
     }
 
+    // Синхронизация экземпляров оборудования по quantity
+    try {
+      const rentalEquipmentRows = await this.all(`
+        SELECT id, quantity
+        FROM rental_equipment
+      `)
+
+      for (const row of rentalEquipmentRows as Array<{ id: number; quantity: number }>) {
+        for (let instanceNumber = 1; instanceNumber <= (row.quantity || 0); instanceNumber++) {
+          await this.run(`
+            INSERT OR IGNORE INTO rental_equipment_instances (equipment_id, instance_number)
+            VALUES (?, ?)
+          `, [row.id, instanceNumber])
+        }
+
+        await this.run(`
+          DELETE FROM rental_equipment_instances
+          WHERE equipment_id = ? AND instance_number > ?
+        `, [row.id, row.quantity || 0])
+      }
+    } catch (error: any) {
+      console.error('Ошибка синхронизации rental_equipment_instances:', error)
+    }
+
     // Таблица заметок о клиентах (по номеру телефона)
     await run(`
       CREATE TABLE IF NOT EXISTS customer_notes (
@@ -370,6 +408,10 @@ class Database {
 
     await run(`
       CREATE INDEX IF NOT EXISTS idx_locker_equipment_equipment_id ON locker_equipment(equipment_id);
+    `)
+
+    await run(`
+      CREATE INDEX IF NOT EXISTS idx_rental_equipment_instances_equipment_id ON rental_equipment_instances(equipment_id);
     `)
 
     // Индексы для VozmiMenja

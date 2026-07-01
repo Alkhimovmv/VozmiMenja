@@ -33,7 +33,7 @@ export default function AdminSidebar({ onLogout }: AdminSidebarProps) {
       onLogout()
     } else {
       localStorage.removeItem('adminToken')
-      navigate('/admin/login')
+      navigate('/admin/rent/login')
     }
   }
 

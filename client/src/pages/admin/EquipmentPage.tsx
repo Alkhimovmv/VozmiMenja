@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import toast from 'react-hot-toast';
 
 const Spinner = () => (
   <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
@@ -9,7 +10,7 @@ const Spinner = () => (
 );
 import { useAuthenticatedQuery } from '../../hooks/useAuthenticatedQuery';
 import { equipmentApi } from '../../api/admin/equipment';
-import { type Equipment, type CreateEquipmentDto } from '../../types/index';
+import { type RentalEquipment, type CreateRentalEquipmentDto } from '../../types/admin';
 import EquipmentModal from '../../components/admin/EquipmentModal';
 import ConfirmDialog from '../../components/admin/ConfirmDialog';
 import { useOffice } from '../../hooks/useOffice';
@@ -17,48 +18,60 @@ import { useOffice } from '../../hooks/useOffice';
 const EquipmentPage: React.FC = () => {
   const { currentOfficeId } = useOffice();
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingEquipment, setEditingEquipment] = useState<Equipment | null>(null);
+  const [editingEquipment, setEditingEquipment] = useState<RentalEquipment | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<{ isOpen: boolean; equipmentId: string | null }>({ isOpen: false, equipmentId: null });
   const queryClient = useQueryClient();
 
-  const { data: equipment = [], isLoading } = useAuthenticatedQuery<Equipment[]>(['equipment', currentOfficeId], () => equipmentApi.getAll(currentOfficeId));
+  const { data: equipment = [], isLoading } = useAuthenticatedQuery<RentalEquipment[]>(['equipment', currentOfficeId], () => equipmentApi.getAll(currentOfficeId));
 
   const createMutation = useMutation({
     mutationFn: equipmentApi.create,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['equipment'] });
-      queryClient.invalidateQueries({ queryKey: ['equipment', 'rental'] });
+      queryClient.invalidateQueries({ queryKey: ['equipment'], exact: false });
+      queryClient.invalidateQueries({ queryKey: ['equipment-rental'], exact: false });
       setIsModalOpen(false);
       setEditingEquipment(null);
+      toast.success('Оборудование сохранено');
+    },
+    onError: (error: any) => {
+      toast.error(error?.response?.data?.error || 'Не удалось сохранить оборудование');
     },
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: Partial<CreateEquipmentDto> }) =>
+    mutationFn: ({ id, data }: { id: string; data: Partial<CreateRentalEquipmentDto> }) =>
       equipmentApi.update(id, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['equipment'] });
-      queryClient.invalidateQueries({ queryKey: ['equipment', 'rental'] });
+      queryClient.invalidateQueries({ queryKey: ['equipment'], exact: false });
+      queryClient.invalidateQueries({ queryKey: ['equipment-rental'], exact: false });
       setIsModalOpen(false);
       setEditingEquipment(null);
+      toast.success('Оборудование обновлено');
+    },
+    onError: (error: any) => {
+      toast.error(error?.response?.data?.error || 'Не удалось обновить оборудование');
     },
   });
 
   const deleteMutation = useMutation({
     mutationFn: equipmentApi.delete,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['equipment'] });
-      queryClient.invalidateQueries({ queryKey: ['equipment', 'rental'] });
+      queryClient.invalidateQueries({ queryKey: ['equipment'], exact: false });
+      queryClient.invalidateQueries({ queryKey: ['equipment-rental'], exact: false });
+      toast.success('Оборудование удалено');
+    },
+    onError: (error: any) => {
+      toast.error(error?.response?.data?.error || 'Не удалось удалить оборудование');
     },
   });
 
-  const handleCreateEquipment = (data: CreateEquipmentDto) => {
-    createMutation.mutate({ ...data, office_id: currentOfficeId } as any);
+  const handleCreateEquipment = (data: CreateRentalEquipmentDto) => {
+    createMutation.mutate({ ...data, office_id: currentOfficeId });
   };
 
-  const handleUpdateEquipment = (data: Partial<CreateEquipmentDto>) => {
+  const handleUpdateEquipment = (data: Partial<CreateRentalEquipmentDto>) => {
     if (editingEquipment) {
-      updateMutation.mutate({ id: editingEquipment.id, data });
+      updateMutation.mutate({ id: String(editingEquipment.id), data: { ...data, office_id: currentOfficeId } });
     }
   };
 
@@ -66,7 +79,7 @@ const EquipmentPage: React.FC = () => {
     setDeleteConfirm({ isOpen: true, equipmentId: id });
   };
 
-  const handleEditEquipment = (equipment: Equipment) => {
+  const handleEditEquipment = (equipment: RentalEquipment) => {
     setEditingEquipment(equipment);
     setIsModalOpen(true);
   };
@@ -146,6 +159,18 @@ const EquipmentPage: React.FC = () => {
                     <span>💰 Цена: {item.base_price !== null ? `${item.base_price}₽` : 'Не указана'}</span>
                     <span>📊 Общая стоимость: {item.base_price !== null ? `${(item.base_price * item.quantity).toLocaleString()}₽` : 'Не указана'}</span>
                   </div>
+
+                  {item.instances && item.instances.length > 0 && (
+                    <div className="mt-3 space-y-2">
+                      {item.instances.map((instance) => (
+                        <div key={instance.instance_number} className="rounded-md bg-gray-50 px-3 py-2 text-xs text-gray-600">
+                          <div className="font-medium text-gray-800">Экземпляр #{instance.instance_number}</div>
+                          <div>Серийный номер: {instance.serial_number || 'Не указан'}</div>
+                          {instance.comment && <div>Комментарий: {instance.comment}</div>}
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center space-y-3 sm:space-y-0 sm:space-x-3">
@@ -158,7 +183,7 @@ const EquipmentPage: React.FC = () => {
                     Изменить
                   </button>
                   <button
-                    onClick={() => handleDeleteEquipment(item.id)}
+                    onClick={() => handleDeleteEquipment(String(item.id))}
                     disabled={deleteMutation.isPending}
                     className="bg-red-600 hover:bg-red-700 disabled:opacity-60 text-white px-4 py-3 rounded text-sm font-medium min-h-[44px] touch-manipulation inline-flex items-center justify-center gap-2"
                   >

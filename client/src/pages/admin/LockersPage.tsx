@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import toast from 'react-hot-toast';
 
 const Spinner = () => (
   <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
@@ -10,8 +11,7 @@ const Spinner = () => (
 import { useAuthenticatedQuery } from '../../hooks/useAuthenticatedQuery';
 import { lockersApi } from '../../api/admin/lockers';
 import { equipmentApi } from '../../api/admin/equipment';
-import { type Locker, type CreateLockerDto } from '../../types/admin';
-import type { Equipment } from '../../types/index';
+import { type Locker, type CreateLockerDto, type RentalEquipment } from '../../types/admin';
 import LockerCabinet from '../../components/admin/LockerCabinet';
 import ConfirmDialog from '../../components/admin/ConfirmDialog';
 import apiClient from '../../api/admin/client';
@@ -40,7 +40,7 @@ const LockersPage: React.FC = () => {
     () => lockersApi.getAll(currentOfficeId)
   );
 
-  const { data: allEquipment = [] } = useAuthenticatedQuery<Equipment[]>(
+  const { data: allEquipment = [] } = useAuthenticatedQuery<RentalEquipment[]>(
     ['equipment-rental', currentOfficeId],
     () => equipmentApi.getForRental(currentOfficeId)
   );
@@ -58,6 +58,10 @@ const LockersPage: React.FC = () => {
       await lockersApi.setEquipment(locker.id, { items: instancesToApiItems(selectedInstances) });
       queryClient.invalidateQueries({ queryKey: ['lockers'] });
       closeModal();
+      toast.success('Ячейка сохранена');
+    },
+    onError: (error: any) => {
+      toast.error(error?.response?.data?.error || 'Не удалось сохранить ячейку');
     },
   });
 
@@ -68,6 +72,10 @@ const LockersPage: React.FC = () => {
       await lockersApi.setEquipment(locker.id, { items: instancesToApiItems(selectedInstances) });
       queryClient.invalidateQueries({ queryKey: ['lockers'] });
       closeModal();
+      toast.success('Ячейка обновлена');
+    },
+    onError: (error: any) => {
+      toast.error(error?.response?.data?.error || 'Не удалось обновить ячейку');
     },
   });
 
@@ -75,6 +83,10 @@ const LockersPage: React.FC = () => {
     mutationFn: lockersApi.delete,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['lockers'] });
+      toast.success('Ячейка удалена');
+    },
+    onError: (error: any) => {
+      toast.error(error?.response?.data?.error || 'Не удалось удалить ячейку');
     },
   });
 
@@ -92,6 +104,10 @@ const LockersPage: React.FC = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['lockers'] });
+      toast.success('Ячейки инициализированы');
+    },
+    onError: (error: any) => {
+      toast.error(error?.response?.data?.error || 'Не удалось инициализировать ячейки');
     },
   });
 
@@ -99,6 +115,10 @@ const LockersPage: React.FC = () => {
     mutationFn: (id: number) => lockersApi.markChecked(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['lockers'] });
+      toast.success('Ячейка отмечена как проверенная');
+    },
+    onError: (error: any) => {
+      toast.error(error?.response?.data?.error || 'Не удалось обновить ячейку');
     },
   });
 

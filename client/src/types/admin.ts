@@ -1,3 +1,9 @@
+export interface RentalEquipmentInstance {
+  instance_number: number;
+  serial_number: string | null;
+  comment: string | null;
+}
+
 // DEPRECATED: старая модель для rental_equipment (использовалась до перехода на общую таблицу equipment)
 export interface RentalEquipment {
   id: number;
@@ -5,6 +11,8 @@ export interface RentalEquipment {
   quantity: number;
   description?: string;
   base_price: number | null;
+  office_id?: number;
+  instances?: RentalEquipmentInstance[];
   created_at: string;
   updated_at: string;
 }
@@ -15,6 +23,8 @@ export interface CreateRentalEquipmentDto {
   quantity: number;
   description?: string;
   base_price: number | null;
+  office_id?: number;
+  instances?: RentalEquipmentInstance[];
 }
 
 export type RentalSource = 'авито' | 'сайт' | 'рекомендация' | 'карты';

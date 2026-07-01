@@ -236,14 +236,20 @@ export class LockerModel {
   }
 
   async update(id: number, data: Partial<CreateLockerData>): Promise<Locker> {
+    const currentLocker = await this.findById(id)
+    if (!currentLocker) {
+      throw new Error('Locker not found')
+    }
+
     const updates: string[] = []
     const values: any[] = []
 
     // Проверяем уникальность номера ячейки при обновлении
     if (data.lockerNumber !== undefined) {
-      const existing = await this.findByLockerNumber(data.lockerNumber)
+      const officeId = data.officeId ?? currentLocker.officeId
+      const existing = await this.findByLockerNumber(data.lockerNumber, officeId)
       if (existing && existing.id !== id) {
-        throw new Error(`Ячейка с номером "${data.lockerNumber}" уже существует`)
+        throw new Error(`Ячейка с номером "${data.lockerNumber}" уже существует в этом офисе`)
       }
       updates.push('locker_number = ?')
       values.push(data.lockerNumber)
@@ -297,12 +303,7 @@ export class LockerModel {
       WHERE id = ?
     `, values)
 
-    const locker = await this.findById(id)
-    if (!locker) {
-      throw new Error('Locker not found')
-    }
-
-    return locker
+    return (await this.findById(id))!
   }
 
   // Установить оборудование в ячейке (заменяет весь список)

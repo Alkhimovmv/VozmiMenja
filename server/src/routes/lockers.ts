@@ -199,6 +199,11 @@ router.put('/:id/equipment', authMiddleware, async (req: Request, res: Response)
       return
     }
 
+    const userOfficeIds = await getUserOfficeIds(req)
+    if (userOfficeIds !== null && !userOfficeIds.includes(locker.officeId)) {
+      return res.status(403).json({ error: 'Нет доступа' })
+    }
+
     const items: Array<{ equipmentId: number; instanceNumber: number }> = (req.body.items || []).map((item: any) => ({
       equipmentId: item.equipment_id,
       instanceNumber: item.instance_number || 1,
@@ -218,6 +223,12 @@ router.put('/:id/equipment', authMiddleware, async (req: Request, res: Response)
 router.post('/:id/mark-checked', authMiddleware, async (req: Request, res: Response) => {
   try {
     const lockerId = parseInt(req.params.id)
+    const existing = await lockerModel.findById(lockerId)
+    if (!existing) return res.status(404).json({ error: 'Ячейка не найдена' })
+    const userOfficeIds = await getUserOfficeIds(req)
+    if (userOfficeIds !== null && !userOfficeIds.includes(existing.officeId)) {
+      return res.status(403).json({ error: 'Нет доступа' })
+    }
     await lockerModel.markChecked(lockerId)
     const locker = await lockerModel.findById(lockerId)
     if (!locker) return res.status(404).json({ error: 'Ячейка не найдена' })
@@ -232,6 +243,12 @@ router.post('/:id/mark-checked', authMiddleware, async (req: Request, res: Respo
 router.post('/:id/needs-check', authMiddleware, async (req: Request, res: Response) => {
   try {
     const lockerId = parseInt(req.params.id)
+    const existing = await lockerModel.findById(lockerId)
+    if (!existing) return res.status(404).json({ error: 'Ячейка не найдена' })
+    const userOfficeIds = await getUserOfficeIds(req)
+    if (userOfficeIds !== null && !userOfficeIds.includes(existing.officeId)) {
+      return res.status(403).json({ error: 'Нет доступа' })
+    }
     await lockerModel.markNeedsCheck(lockerId)
     const locker = await lockerModel.findById(lockerId)
     if (!locker) return res.status(404).json({ error: 'Ячейка не найдена' })
