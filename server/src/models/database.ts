@@ -301,6 +301,21 @@ class Database {
       if (!error.message?.includes('duplicate column name')) throw error
     }
 
+    try {
+      await run(`
+        UPDATE rentals
+        SET customer_phone = '8' || SUBSTR(
+          REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(customer_phone, '+', ''), '-', ''), ' ', ''), '(', ''), ')', ''),
+          2,
+          10
+        )
+        WHERE LENGTH(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(customer_phone, '+', ''), '-', ''), ' ', ''), '(', ''), ')', '')) = 11
+          AND SUBSTR(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(customer_phone, '+', ''), '-', ''), ' ', ''), '(', ''), ')', ''), 1, 1) = '7'
+      `)
+    } catch (error: any) {
+      console.error('Ошибка нормализации телефонов аренд:', error)
+    }
+
     // Миграция: замена UNIQUE(locker_number) на UNIQUE(locker_number, office_id)
     // чтобы разные офисы могли иметь ячейки с одинаковыми номерами
     try {

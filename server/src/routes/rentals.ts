@@ -45,6 +45,7 @@ const updateRentalSchema = z.object({
   delivery_costs: z.number().min(0).optional().nullable(),
   source: z.string().optional(),
   comment: z.string().max(1000).optional().nullable(),
+  office_id: z.number().int().positive().optional(),
   status: z.enum(['pending', 'active', 'completed', 'overdue']).optional()
 })
 
@@ -234,6 +235,7 @@ router.put('/:id', authMiddleware, async (req: Request, res: Response) => {
     if (body.delivery_costs !== undefined) data.deliveryCosts = body.delivery_costs ?? undefined
     if (body.source !== undefined) data.source = body.source as any
     if (body.comment !== undefined) data.comment = body.comment ?? undefined
+    if (body.office_id !== undefined) data.officeId = body.office_id
     if (body.status !== undefined) data.status = body.status
     if ((body as any).locker_id !== undefined) (data as any).lockerId = (body as any).locker_id
 

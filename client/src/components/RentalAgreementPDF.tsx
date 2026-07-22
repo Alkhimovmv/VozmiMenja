@@ -140,9 +140,12 @@ export default function RentalAgreementPDF() {
             <Text style={s.p}>ИП Алхимова Софья Вадимовна</Text>
             <Text style={s.p}>ОГРНИП: 326670000005031</Text>
             <Text style={s.p}>ИНН: 672403445744</Text>
+            <Text style={s.p}>Рег. орган: Межрайонная ИФНС России по Смоленской области</Text>
+            <Text style={s.p}>Адрес: 216400, Смоленская обл., г. Десногорск, мкр. 4, д. 18, сек. 2, кв. 81</Text>
             <Text style={s.p}>Р/с: 40802810600009319726</Text>
             <Text style={s.p}>Банк: АО «ТБанк»</Text>
             <Text style={s.p}>БИК: 044525974</Text>
+            <Text style={s.p}>К/с: 30101810145250000974</Text>
             <Text style={s.p}>Тел.: +7 (993) 363-64-64</Text>
             <Text style={s.p}>Email: alkhimovmv@yandex.ru</Text>
           </View>

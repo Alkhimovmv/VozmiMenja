@@ -67,6 +67,7 @@ export interface Rental {
   delivery_costs: number | null;
   source: RentalSource;
   comment?: string;
+  office_id?: number;
   status: RentalStatus;
   locker_id?: number | null;
   total_price: number;
@@ -97,6 +98,7 @@ export interface CreateRentalDto {
   delivery_costs?: number | null;
   source: RentalSource;
   comment?: string;
+  office_id?: number;
 }
 
 export interface Expense {

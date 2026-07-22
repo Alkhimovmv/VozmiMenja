@@ -28,6 +28,21 @@ export default defineConfig({
         // Разделение кода на чанки для лучшей загрузки
         manualChunks: (id) => {
           if (id.includes('node_modules')) {
+            if (id.includes('@react-pdf') || id.includes('pdfkit') || id.includes('fontkit')) {
+              return 'pdf-vendor'
+            }
+            if (id.includes('react-markdown') || id.includes('remark') || id.includes('micromark') || id.includes('unified')) {
+              return 'markdown-vendor'
+            }
+            if (id.includes('@tanstack/react-query')) {
+              return 'query-vendor'
+            }
+            if (id.includes('axios')) {
+              return 'api-vendor'
+            }
+            if (id.includes('date-fns') || id.includes('react-datepicker')) {
+              return 'date-vendor'
+            }
             if (id.includes('react') || id.includes('react-dom') || id.includes('react-router')) {
               return 'react-vendor'
             }

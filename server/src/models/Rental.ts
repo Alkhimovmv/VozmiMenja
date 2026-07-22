@@ -52,6 +52,20 @@ export interface CreateRentalData {
   officeId?: number
 }
 
+export function normalizeRentalPhone(phone: string): string {
+  const digits = phone.replace(/\D/g, '')
+
+  if (digits.length === 10) {
+    return `8${digits}`
+  }
+
+  if (digits.length === 11 && digits.startsWith('7')) {
+    return `8${digits.slice(1)}`
+  }
+
+  return digits
+}
+
 export class RentalModel {
   private db = database.instance
 
@@ -265,6 +279,8 @@ export class RentalModel {
     }
 
 
+    const normalizedCustomerPhone = normalizeRentalPhone(data.customerPhone)
+
     const rentalId = await new Promise<number>((resolve, reject) => {
       this.db.run(`
         INSERT INTO rentals (
@@ -277,7 +293,7 @@ export class RentalModel {
         data.startDate,
         data.endDate,
         data.customerName,
-        data.customerPhone,
+        normalizedCustomerPhone,
         data.needsDelivery ? 1 : 0,
         data.deliveryAddress || null,
         data.rentalPrice || null,
@@ -331,12 +347,34 @@ export class RentalModel {
     const startDate = data.startDate || currentRental.startDate
     const endDate = data.endDate || currentRental.endDate
 
-    // Проверяем доступность оборудования перед обновлением
+    // Проверяем доступность оборудования перед обновлением.
+    // При изменении дат/офиса UI может не прислать equipmentInstances заново,
+    // поэтому берём текущие экземпляры аренды из базы.
     const errors: string[] = []
 
-    if (data.equipmentInstances && data.equipmentInstances.length > 0) {
-      const rentalOfficeId = data.officeId || currentRental.officeId
-      for (const instance of data.equipmentInstances) {
+    const shouldCheckAvailability =
+      data.equipmentInstances !== undefined ||
+      data.equipmentId !== undefined ||
+      data.startDate !== undefined ||
+      data.endDate !== undefined ||
+      data.officeId !== undefined ||
+      (data.status !== undefined && data.status !== 'completed')
+
+    if (shouldCheckAvailability) {
+      const rentalOfficeId = data.officeId ?? currentRental.officeId
+      const instancesToCheck = data.equipmentInstances !== undefined && data.equipmentInstances.length > 0
+        ? data.equipmentInstances
+        : currentRental.equipmentList && currentRental.equipmentList.length > 0
+          ? currentRental.equipmentList.map(item => ({
+              equipmentId: data.equipmentId ?? item.id,
+              instanceNumber: item.instanceNumber || 1
+            }))
+          : [{
+              equipmentId: data.equipmentId ?? currentRental.equipmentId,
+              instanceNumber: 1
+            }]
+
+      for (const instance of instancesToCheck) {
         const isAvailable = await this.checkEquipmentAvailability(
           instance.equipmentId,
           instance.instanceNumber,
@@ -399,7 +437,7 @@ export class RentalModel {
     }
     if (data.customerPhone !== undefined) {
       updates.push('customer_phone = ?')
-      values.push(data.customerPhone)
+      values.push(normalizeRentalPhone(data.customerPhone))
     }
     if (data.needsDelivery !== undefined) {
       updates.push('needs_delivery = ?')
@@ -432,6 +470,10 @@ export class RentalModel {
     if (data.status !== undefined) {
       updates.push('status = ?')
       values.push(data.status)
+    }
+    if (data.officeId !== undefined) {
+      updates.push('office_id = ?')
+      values.push(data.officeId)
     }
     if ((data as any).lockerId !== undefined) {
       updates.push('locker_id = ?')
@@ -661,7 +703,7 @@ export class RentalModel {
       WHERE r.customer_phone = ?
       ${officeFilter}
       ORDER BY r.start_date DESC
-    `, [phone, ...(officeIds ?? [])]) as any[]
+    `, [normalizeRentalPhone(phone), ...(officeIds ?? [])]) as any[]
 
     return rows.map(row => ({
       ...this.mapRow(row),

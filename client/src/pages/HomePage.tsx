@@ -169,7 +169,7 @@ export default function HomePage() {
                     Доставка 24/7
                   </span>
                   <span className="inline-flex items-center gap-1 text-xs font-semibold text-amber-700 bg-amber-100/80 border border-amber-200/60 rounded-full px-3 py-1">
-                    ★ 4.8 на Яндексе
+                    ★ 4.9 на Яндексе
                   </span>
                 </div>
                 <h1 className="text-4xl md:text-5xl font-extrabold text-gray-900 leading-tight mb-4">

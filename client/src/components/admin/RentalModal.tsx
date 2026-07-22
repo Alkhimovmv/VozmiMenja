@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { type Rental, type CreateRentalDto, type Equipment, type EquipmentInstance } from '../../types/index';
 import { rentalsApi, type Customer } from '../../api/admin/rentals';
+import type { Office } from '../../api/admin/offices';
 
 interface RentalModalProps {
   isOpen: boolean;
@@ -11,6 +12,8 @@ interface RentalModalProps {
   equipment: Equipment[];
   isLoading?: boolean;
   errorMessage?: string | null;
+  offices?: Office[];
+  defaultOfficeId?: number;
 }
 
 // Обнуляет минуты: "2024-04-20T14:35" -> "2024-04-20T14:00"
@@ -27,6 +30,8 @@ const RentalModal: React.FC<RentalModalProps> = ({
   equipment,
   isLoading = false,
   errorMessage = null,
+  offices = [],
+  defaultOfficeId = 1,
 }) => {
   const [formData, setFormData] = useState<CreateRentalDto>({
     equipment_id: 0,
@@ -42,9 +47,12 @@ const RentalModal: React.FC<RentalModalProps> = ({
     delivery_costs: null,
     source: 'авито',
     comment: '',
+    office_id: defaultOfficeId,
   });
 
   const [selectedInstances, setSelectedInstances] = useState<Set<string>>(new Set());
+  const [isOfficeModalOpen, setIsOfficeModalOpen] = useState(false);
+  const [selectedOfficeId, setSelectedOfficeId] = useState(defaultOfficeId);
 
   const [validationErrors, setValidationErrors] = useState<{
     phone?: string | null;
@@ -115,7 +123,9 @@ const RentalModal: React.FC<RentalModalProps> = ({
           delivery_costs: rental.delivery_costs,
           source: rental.source,
           comment: rental.comment || '',
+          office_id: rental.office_id,
         });
+        setSelectedOfficeId(rental.office_id || defaultOfficeId);
 
         if (isNewOpen) setInitialRentalId(rental.id);
 
@@ -144,7 +154,9 @@ const RentalModal: React.FC<RentalModalProps> = ({
           delivery_costs: null,
           source: 'авито',
           comment: '',
+          office_id: defaultOfficeId,
         });
+        setSelectedOfficeId(defaultOfficeId);
         setSelectedInstances(new Set());
       }
       if (isNewOpen || !rental) {
@@ -240,7 +252,12 @@ const RentalModal: React.FC<RentalModalProps> = ({
   };
 
   const handlePhoneChange = (value: string) => {
-    const cleanValue = value.replace(/\D/g, '').slice(0, 11);
+    const digits = value.replace(/\D/g, '').slice(0, 11);
+    const cleanValue = digits.length === 11 && digits.startsWith('7')
+      ? `8${digits.slice(1)}`
+      : digits.length === 10
+        ? `8${digits}`
+        : digits;
     updateFormData({ customer_phone: cleanValue });
     filterCustomers(formData.customer_name, cleanValue);
     const phoneError = validatePhone(cleanValue);
@@ -282,15 +299,36 @@ const RentalModal: React.FC<RentalModalProps> = ({
     onSubmit(formData);
   };
 
+  const handleOfficeChangeSubmit = () => {
+    if (!rental) return;
+    onSubmit({ office_id: selectedOfficeId });
+    setIsOfficeModalOpen(false);
+  };
+
   if (!isOpen) return null;
 
   const modalContent = (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center z-50 sm:items-start sm:p-4 sm:pt-8 sm:pb-8 overflow-y-auto" style={{zIndex: 1000}}>
       <div className="bg-white shadow-xl w-full h-full sm:w-full sm:max-w-2xl sm:h-auto sm:max-h-[calc(100vh-4rem)] sm:rounded-lg modal-container overflow-y-auto flex flex-col" style={{position: 'relative', zIndex: 1001, paddingTop: 'env(safe-area-inset-top)', paddingBottom: 'env(safe-area-inset-bottom)'}}>
         <div className="flex-1 flex flex-col p-4 sm:p-6">
-          <h3 className="text-lg font-medium text-gray-900 mb-4">
-            {rental ? 'Редактировать аренду' : 'Добавить новую аренду'}
-          </h3>
+          <div className="flex items-center justify-between gap-3 mb-4">
+            <h3 className="text-lg font-medium text-gray-900">
+              {rental ? 'Редактировать аренду' : 'Добавить новую аренду'}
+            </h3>
+            {rental && offices.length > 0 && (
+              <button
+                type="button"
+                onClick={() => setIsOfficeModalOpen(true)}
+                className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-gray-300 text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                title="Сменить офис"
+                aria-label="Сменить офис"
+              >
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 21h18M5 21V7l8-4v18M19 21V11l-6-3M9 9h1M9 13h1M9 17h1M14 13h1M14 17h1" />
+                </svg>
+              </button>
+            )}
+          </div>
 
           <form onSubmit={handleSubmit} className="flex-1 flex flex-col">
             <div className="flex-1 space-y-0">
@@ -606,6 +644,41 @@ const RentalModal: React.FC<RentalModalProps> = ({
           </form>
         </div>
       </div>
+
+      {isOfficeModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center p-4" style={{ zIndex: 1010 }}>
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-sm p-5">
+            <h4 className="text-base font-semibold text-gray-900 mb-4">Сменить офис аренды</h4>
+            <select
+              value={selectedOfficeId}
+              onChange={(e) => setSelectedOfficeId(Number(e.target.value))}
+              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+            >
+              {offices.map((office) => (
+                <option key={office.id} value={office.id}>
+                  {office.name}
+                </option>
+              ))}
+            </select>
+            <div className="mt-5 flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setIsOfficeModalOpen(false)}
+                className="px-4 py-2 rounded-md bg-gray-100 text-gray-700 hover:bg-gray-200"
+              >
+                Отмена
+              </button>
+              <button
+                type="button"
+                onClick={handleOfficeChangeSubmit}
+                className="px-4 py-2 rounded-md bg-indigo-600 text-white hover:bg-indigo-700"
+              >
+                Сменить
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 

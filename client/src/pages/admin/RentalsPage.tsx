@@ -3,6 +3,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuthenticatedQuery } from '../../hooks/useAuthenticatedQuery';
 import { rentalsApi } from '../../api/admin/rentals';
 import { equipmentApi } from '../../api/admin/equipment';
+import { officesApi } from '../../api/admin/offices';
 import type { Rental, CreateRentalDto, Equipment } from '../../types/index';
 import { formatDate, getStatusText, getStatusColor } from '../../utils/dateUtils';
 import RentalModal from '../../components/admin/RentalModal';
@@ -43,6 +44,7 @@ const RentalsPage: React.FC = () => {
   );
 
   const { data: equipment = [] } = useAuthenticatedQuery<Equipment[]>(['equipment-rental', currentOfficeId], () => equipmentApi.getForRental(currentOfficeId));
+  const { data: offices = [] } = useAuthenticatedQuery(['offices'], officesApi.getAll);
 
   // Фильтрация и сортировка аренд
   const filteredRentals = useMemo(() => {
@@ -156,7 +158,11 @@ const RentalsPage: React.FC = () => {
     onSuccess: () => { invalidateAll(); setIsModalOpen(false); setEditingRental(null); },
     onError: (error: any) => {
       const msg = error?.response?.data?.error || error?.message || 'Неизвестная ошибка';
-      toast.error(`Ошибка обновления: ${msg}`);
+      const isBookingConflict = msg.includes('уже забронировано');
+      toast.error(
+        isBookingConflict ? `Нельзя сохранить аренду: ${msg}` : `Ошибка обновления: ${msg}`,
+        { duration: isBookingConflict ? 8000 : 4000 }
+      );
       console.error('updateMutation error:', error?.response?.status, error?.response?.data, error?.message);
     },
   });
@@ -556,6 +562,8 @@ const RentalsPage: React.FC = () => {
         }
         rental={editingRental}
         equipment={equipment}
+        offices={offices}
+        defaultOfficeId={currentOfficeId}
         isLoading={createMutation.isPending || updateMutation.isPending}
         errorMessage={
           (createMutation.error as any)?.response?.data?.error ||
