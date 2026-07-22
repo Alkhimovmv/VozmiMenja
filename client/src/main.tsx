@@ -27,16 +27,14 @@ createRoot(document.getElementById('root')!).render(
   </StrictMode>,
 )
 
-// Регистрация Service Worker для кэширования
 if ('serviceWorker' in navigator && import.meta.env.PROD) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker
-      .register('/sw.js')
-      .then((registration) => {
-        if (import.meta.env.DEV) console.log('SW registered:', registration)
-      })
-      .catch((error) => {
-        if (import.meta.env.DEV) console.log('SW registration failed:', error)
-      })
+  window.addEventListener('load', async () => {
+    const registrations = await navigator.serviceWorker.getRegistrations()
+    await Promise.all(registrations.map((registration) => registration.unregister()))
+
+    if ('caches' in window) {
+      const cacheNames = await caches.keys()
+      await Promise.all(cacheNames.map((cacheName) => caches.delete(cacheName)))
+    }
   })
 }

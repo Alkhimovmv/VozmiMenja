@@ -28,9 +28,6 @@ export default defineConfig({
         // Разделение кода на чанки для лучшей загрузки
         manualChunks: (id) => {
           if (id.includes('node_modules')) {
-            if (id.includes('@react-pdf') || id.includes('pdfkit') || id.includes('fontkit')) {
-              return 'pdf-vendor'
-            }
             if (id.includes('react-markdown') || id.includes('remark') || id.includes('micromark') || id.includes('unified')) {
               return 'markdown-vendor'
             }
