@@ -70,7 +70,6 @@ export class RentalEquipmentModel {
     if (data.quantity !== undefined) { updates.push('quantity = ?'); values.push(data.quantity) }
     if (data.description !== undefined) { updates.push('description = ?'); values.push(data.description) }
     if (data.basePrice !== undefined) { updates.push('base_price = ?'); values.push(data.basePrice) }
-
     const nextQuantity = data.quantity ?? (await this.findById(id))?.quantity
     if (!nextQuantity) throw new Error('Equipment not found')
 
@@ -94,6 +93,124 @@ export class RentalEquipmentModel {
 
   async delete(id: number): Promise<void> {
     await run('DELETE FROM rental_equipment WHERE id = ?', [id])
+  }
+
+  async moveInstanceToOffice(equipmentId: number, instanceNumber: number, targetOfficeId: number): Promise<RentalEquipment> {
+    const source = await this.findById(equipmentId)
+    if (!source) throw new Error('Equipment not found')
+    if (source.officeId === targetOfficeId) throw new Error('Экземпляр уже находится в выбранном офисе')
+    if (instanceNumber < 1 || instanceNumber > source.quantity) throw new Error('Некорректный номер экземпляра')
+
+    const activeRental = await get(`
+      SELECT r.id
+      FROM rental_equipment_items rei
+      JOIN rentals r ON r.id = rei.rental_id
+      WHERE rei.equipment_id = ?
+        AND rei.instance_number = ?
+        AND r.status IN ('pending', 'active', 'overdue')
+      LIMIT 1
+    `, [equipmentId, instanceNumber]) as any
+
+    if (activeRental) {
+      throw new Error('Нельзя перенести экземпляр: он есть в активной или ожидающей аренде')
+    }
+
+    const movingInstance = source.instances.find((instance) => instance.instanceNumber === instanceNumber) || { instanceNumber }
+    const targetRow = await get(`
+      SELECT *
+      FROM rental_equipment
+      WHERE office_id = ? AND name = ?
+      ORDER BY id ASC
+      LIMIT 1
+    `, [targetOfficeId, source.name]) as any
+
+    await run('BEGIN TRANSACTION')
+    try {
+      const targetEquipmentId = targetRow
+        ? targetRow.id
+        : await new Promise<number>((resolve, reject) => {
+            this.db.run(`
+              INSERT INTO rental_equipment (name, quantity, description, base_price, office_id)
+              VALUES (?, 0, ?, ?, ?)
+            `, [source.name, source.description || null, source.basePrice || 0, targetOfficeId], function(err) {
+              if (err) reject(err)
+              else resolve(this.lastID)
+            })
+          })
+
+      const targetQuantity = targetRow ? Number(targetRow.quantity || 0) : 0
+      const targetInstanceNumber = targetQuantity + 1
+
+      await run(`
+        UPDATE rental_equipment
+        SET quantity = ?, updated_at = CURRENT_TIMESTAMP
+        WHERE id = ?
+      `, [targetInstanceNumber, targetEquipmentId])
+
+      await run(`
+        INSERT INTO rental_equipment_instances (equipment_id, instance_number, serial_number, comment)
+        VALUES (?, ?, ?, ?)
+      `, [
+        targetEquipmentId,
+        targetInstanceNumber,
+        movingInstance.serialNumber || null,
+        movingInstance.comment || null,
+      ])
+
+      await run(
+        'DELETE FROM locker_equipment WHERE equipment_id = ? AND instance_number = ?',
+        [equipmentId, instanceNumber]
+      )
+
+      const lastInstanceNumber = source.quantity
+      if (instanceNumber !== lastInstanceNumber) {
+        const lastInstance = source.instances.find((instance) => instance.instanceNumber === lastInstanceNumber)
+
+        await run(`
+          UPDATE rental_equipment_instances
+          SET serial_number = ?, comment = ?, updated_at = CURRENT_TIMESTAMP
+          WHERE equipment_id = ? AND instance_number = ?
+        `, [
+          lastInstance?.serialNumber || null,
+          lastInstance?.comment || null,
+          equipmentId,
+          instanceNumber,
+        ])
+
+        await run(`
+          UPDATE rental_equipment_items
+          SET instance_number = ?
+          WHERE equipment_id = ? AND instance_number = ?
+        `, [instanceNumber, equipmentId, lastInstanceNumber])
+
+        await run(`
+          UPDATE locker_equipment
+          SET instance_number = ?
+          WHERE equipment_id = ? AND instance_number = ?
+        `, [instanceNumber, equipmentId, lastInstanceNumber])
+      }
+
+      await run(
+        'DELETE FROM rental_equipment_instances WHERE equipment_id = ? AND instance_number = ?',
+        [equipmentId, lastInstanceNumber]
+      )
+
+      await run(`
+        UPDATE rental_equipment
+        SET quantity = ?, updated_at = CURRENT_TIMESTAMP
+        WHERE id = ?
+      `, [source.quantity - 1, equipmentId])
+
+      await run('COMMIT')
+      console.log(`[equipment] instance moved: equipment=${equipmentId}, instance=${instanceNumber}, targetEquipment=${targetEquipmentId}, targetOffice=${targetOfficeId}`)
+
+      const targetEquipment = await this.findById(targetEquipmentId)
+      if (!targetEquipment) throw new Error('Failed to move equipment instance')
+      return targetEquipment
+    } catch (error) {
+      await run('ROLLBACK')
+      throw error
+    }
   }
 
   private async getInstances(equipmentId: number, quantity: number): Promise<RentalEquipmentInstance[]> {

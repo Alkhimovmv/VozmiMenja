@@ -1,13 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
+import type { Office } from '../../api/admin/offices';
 import { type RentalEquipment, type CreateRentalEquipmentDto, type RentalEquipmentInstance } from '../../types/admin';
+
+export interface EquipmentInstanceOfficeChange {
+  instanceNumber: number;
+  officeId: number;
+}
 
 interface EquipmentModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (data: CreateRentalEquipmentDto) => void;
+  onSubmit: (data: CreateRentalEquipmentDto, officeChanges?: EquipmentInstanceOfficeChange[]) => void;
   equipment?: RentalEquipment | null;
   isLoading?: boolean;
+  defaultOfficeId?: number;
+  offices?: Office[];
 }
 
 const EquipmentModal: React.FC<EquipmentModalProps> = ({
@@ -16,6 +24,8 @@ const EquipmentModal: React.FC<EquipmentModalProps> = ({
   onSubmit,
   equipment,
   isLoading = false,
+  defaultOfficeId = 1,
+  offices = [],
 }) => {
   const buildInstances = (quantity: number, currentInstances?: RentalEquipmentInstance[]): RentalEquipmentInstance[] => {
     return Array.from({ length: quantity }, (_, index) => {
@@ -34,9 +44,11 @@ const EquipmentModal: React.FC<EquipmentModalProps> = ({
     quantity: 1,
     description: '',
     base_price: null,
+    office_id: defaultOfficeId,
     instances: buildInstances(1),
   });
   const [quantityInput, setQuantityInput] = useState('1');
+  const [instanceOfficeIds, setInstanceOfficeIds] = useState<Record<number, number>>({});
 
   const [validationErrors, setValidationErrors] = useState<{
     name?: string | null;
@@ -50,23 +62,34 @@ const EquipmentModal: React.FC<EquipmentModalProps> = ({
           quantity: equipment.quantity,
           description: equipment.description || '',
           base_price: equipment.base_price,
+          office_id: equipment.office_id || defaultOfficeId,
           instances: buildInstances(equipment.quantity, equipment.instances),
         });
         setQuantityInput(String(equipment.quantity));
+        setInstanceOfficeIds(
+          Object.fromEntries(
+            buildInstances(equipment.quantity, equipment.instances).map((instance) => [
+              instance.instance_number,
+              equipment.office_id || defaultOfficeId,
+            ])
+          )
+        );
       } else {
         setFormData({
           name: '',
           quantity: 1,
           description: '',
           base_price: null,
+          office_id: defaultOfficeId,
           instances: buildInstances(1),
         });
         setQuantityInput('1');
+        setInstanceOfficeIds({ 1: defaultOfficeId });
       }
       // Очищаем ошибки валидации при открытии
       setValidationErrors({});
     }
-  }, [equipment, isOpen]);
+  }, [equipment, isOpen, defaultOfficeId]);
 
   const isFormValid = () => {
     // Проверяем обязательное поле - название
@@ -93,7 +116,18 @@ const EquipmentModal: React.FC<EquipmentModalProps> = ({
       return;
     }
 
-    onSubmit(formData);
+    const sourceOfficeId = equipment?.office_id || defaultOfficeId;
+    const officeChanges = equipment
+      ? (formData.instances || [])
+          .map((instance) => ({
+            instanceNumber: instance.instance_number,
+            officeId: instanceOfficeIds[instance.instance_number] || sourceOfficeId,
+          }))
+          .filter((change) => change.officeId !== sourceOfficeId)
+          .sort((a, b) => b.instanceNumber - a.instanceNumber)
+      : [];
+
+    onSubmit(formData, officeChanges);
   };
 
   if (!isOpen) return null;
@@ -151,6 +185,13 @@ const EquipmentModal: React.FC<EquipmentModalProps> = ({
                       quantity: n,
                       instances: buildInstances(n, prev.instances),
                     }));
+                    setInstanceOfficeIds((prev) => {
+                      const next: Record<number, number> = {};
+                      for (let instanceNumber = 1; instanceNumber <= n; instanceNumber++) {
+                        next[instanceNumber] = prev[instanceNumber] || equipment?.office_id || defaultOfficeId;
+                      }
+                      return next;
+                    });
                   }
                 }}
                 onBlur={() => {
@@ -162,6 +203,13 @@ const EquipmentModal: React.FC<EquipmentModalProps> = ({
                     instances: buildInstances(valid, prev.instances),
                   }));
                   setQuantityInput(String(valid));
+                  setInstanceOfficeIds((prev) => {
+                    const next: Record<number, number> = {};
+                    for (let instanceNumber = 1; instanceNumber <= valid; instanceNumber++) {
+                      next[instanceNumber] = prev[instanceNumber] || equipment?.office_id || defaultOfficeId;
+                    }
+                    return next;
+                  });
                 }}
                 className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
                 required
@@ -179,6 +227,30 @@ const EquipmentModal: React.FC<EquipmentModalProps> = ({
                     <div className="mb-2 text-sm font-medium text-gray-900">
                       Экземпляр #{instance.instance_number}
                     </div>
+                    {equipment && offices.length > 0 && (
+                      <div className="mb-2">
+                        <label className="block text-xs font-medium text-gray-600 mb-1">
+                          Офис экземпляра
+                        </label>
+                        <select
+                          value={instanceOfficeIds[instance.instance_number] || equipment.office_id || defaultOfficeId}
+                          onChange={(e) => {
+                            const officeId = Number(e.target.value);
+                            setInstanceOfficeIds((prev) => ({
+                              ...prev,
+                              [instance.instance_number]: officeId,
+                            }));
+                          }}
+                          className="block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                        >
+                          {offices.map((office) => (
+                            <option key={office.id} value={office.id}>
+                              {office.name}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
                     <div className="mb-2">
                       <label className="block text-xs font-medium text-gray-600 mb-1">
                         Серийный номер

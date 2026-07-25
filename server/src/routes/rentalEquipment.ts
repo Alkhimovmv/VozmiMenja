@@ -90,6 +90,42 @@ router.get('/:id', authMiddleware, async (req: Request, res: Response) => {
   }
 })
 
+// POST /api/admin/equipment/:id/instances/:instanceNumber/move
+router.post('/:id/instances/:instanceNumber/move', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const equipmentId = Number(req.params.id)
+    const instanceNumber = Number(req.params.instanceNumber)
+    const targetOfficeId = Number(req.body.office_id ?? req.body.officeId)
+
+    if (!Number.isInteger(equipmentId) || equipmentId <= 0 || !Number.isInteger(instanceNumber) || instanceNumber <= 0) {
+      return res.status(400).json({ error: 'Некорректный экземпляр оборудования' })
+    }
+
+    if (!Number.isInteger(targetOfficeId) || targetOfficeId <= 0) {
+      return res.status(400).json({ error: 'Некорректный офис' })
+    }
+
+    const equipment = await rentalEquipmentModel.findById(equipmentId)
+    if (!equipment) return res.status(404).json({ error: 'Оборудование не найдено' })
+
+    if (!await canAccessEquipment(req, equipment.officeId)) {
+      return res.status(403).json({ error: 'Нет доступа' })
+    }
+
+    const userOfficeIds = await getUserOfficeIds(req)
+    if (userOfficeIds !== null && !userOfficeIds.includes(targetOfficeId)) {
+      return res.status(403).json({ error: 'Нет доступа к выбранному офису' })
+    }
+
+    const moved = await rentalEquipmentModel.moveInstanceToOffice(equipmentId, instanceNumber, targetOfficeId)
+    res.json(toSnakeCase(moved))
+  } catch (error: any) {
+    const message = error?.message || 'Ошибка переноса экземпляра оборудования'
+    const status = message.includes('активной') || message.includes('ожидающей') || message.includes('уже находится') ? 400 : 500
+    res.status(status).json({ error: message })
+  }
+})
+
 // POST /api/admin/equipment
 router.post('/', authMiddleware, async (req: Request, res: Response) => {
   try {

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { type Rental, type CreateRentalDto, type Equipment, type EquipmentInstance } from '../../types/index';
 import { rentalsApi, type Customer } from '../../api/admin/rentals';
+import { equipmentApi } from '../../api/admin/equipment';
 import type { Office } from '../../api/admin/offices';
 
 interface RentalModalProps {
@@ -53,6 +54,10 @@ const RentalModal: React.FC<RentalModalProps> = ({
   const [selectedInstances, setSelectedInstances] = useState<Set<string>>(new Set());
   const [isOfficeModalOpen, setIsOfficeModalOpen] = useState(false);
   const [selectedOfficeId, setSelectedOfficeId] = useState(defaultOfficeId);
+  const [officeEquipment, setOfficeEquipment] = useState<Equipment[]>([]);
+  const [officeSelectedInstances, setOfficeSelectedInstances] = useState<Set<string>>(new Set());
+  const [isOfficeEquipmentLoading, setIsOfficeEquipmentLoading] = useState(false);
+  const [officeEquipmentError, setOfficeEquipmentError] = useState<string | null>(null);
 
   const [validationErrors, setValidationErrors] = useState<{
     phone?: string | null;
@@ -84,6 +89,34 @@ const RentalModal: React.FC<RentalModalProps> = ({
       rentalsApi.getCustomers().then(setCustomers).catch(console.error);
     }
   }, [isOpen]);
+
+  useEffect(() => {
+    if (!isOfficeModalOpen || !selectedOfficeId) return;
+
+    let cancelled = false;
+    setIsOfficeEquipmentLoading(true);
+    setOfficeEquipmentError(null);
+
+    equipmentApi.getForRental(selectedOfficeId)
+      .then((items) => {
+        if (cancelled) return;
+        setOfficeEquipment(items);
+        setOfficeSelectedInstances(new Set());
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setOfficeEquipment([]);
+        setOfficeSelectedInstances(new Set());
+        setOfficeEquipmentError('Не удалось загрузить оборудование нового офиса');
+      })
+      .finally(() => {
+        if (!cancelled) setIsOfficeEquipmentLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isOfficeModalOpen, selectedOfficeId]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -301,8 +334,33 @@ const RentalModal: React.FC<RentalModalProps> = ({
 
   const handleOfficeChangeSubmit = () => {
     if (!rental) return;
-    onSubmit({ office_id: selectedOfficeId });
+    const equipmentInstances = Array.from(officeSelectedInstances).map((instance) => {
+      const [equipmentId, instanceNumber] = instance.split(':').map(Number);
+      return { equipment_id: equipmentId, instance_number: instanceNumber };
+    });
+
+    if (equipmentInstances.length === 0) {
+      setOfficeEquipmentError('Выберите оборудование в новом офисе');
+      return;
+    }
+
+    onSubmit({
+      office_id: selectedOfficeId,
+      equipment_id: equipmentInstances[0].equipment_id,
+      equipment_ids: equipmentInstances.map((item) => item.equipment_id),
+      equipment_instances: equipmentInstances,
+    });
     setIsOfficeModalOpen(false);
+  };
+
+  const toggleOfficeEquipmentInstance = (instanceId: string, checked: boolean) => {
+    setOfficeSelectedInstances(prev => {
+      const next = new Set(prev);
+      if (checked) next.add(instanceId);
+      else next.delete(instanceId);
+      return next;
+    });
+    setOfficeEquipmentError(null);
   };
 
   if (!isOpen) return null;
@@ -647,7 +705,7 @@ const RentalModal: React.FC<RentalModalProps> = ({
 
       {isOfficeModalOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center p-4" style={{ zIndex: 1010 }}>
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-sm p-5">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-lg p-5">
             <h4 className="text-base font-semibold text-gray-900 mb-4">Сменить офис аренды</h4>
             <select
               value={selectedOfficeId}
@@ -660,6 +718,43 @@ const RentalModal: React.FC<RentalModalProps> = ({
                 </option>
               ))}
             </select>
+            <div className="mt-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Оборудование в новом офисе
+              </label>
+              <div className="border border-gray-300 rounded-md p-3 max-h-64 overflow-y-auto">
+                {isOfficeEquipmentLoading && (
+                  <div className="text-sm text-gray-500 py-2">Загрузка оборудования...</div>
+                )}
+                {!isOfficeEquipmentLoading && officeEquipment.length === 0 && (
+                  <div className="text-sm text-gray-500 py-2">В этом офисе нет оборудования для аренды</div>
+                )}
+                {!isOfficeEquipmentLoading && officeEquipment.flatMap((item) =>
+                  Array.from({ length: item.quantity }, (_, index) => {
+                    const instanceNumber = index + 1;
+                    const instanceId = `${item.id}:${instanceNumber}`;
+                    const checked = officeSelectedInstances.has(instanceId);
+
+                    return (
+                      <label key={instanceId} className="flex items-center gap-3 rounded p-2 hover:bg-gray-50 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={(e) => toggleOfficeEquipmentInstance(instanceId, e.target.checked)}
+                          className="w-5 h-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                        />
+                        <span className="text-sm text-gray-900">
+                          {item.name} {item.quantity > 1 ? `#${instanceNumber}` : ''}
+                        </span>
+                      </label>
+                    );
+                  })
+                )}
+              </div>
+              {officeEquipmentError && (
+                <div className="text-red-600 text-sm mt-2">{officeEquipmentError}</div>
+              )}
+            </div>
             <div className="mt-5 flex justify-end gap-3">
               <button
                 type="button"
@@ -671,7 +766,8 @@ const RentalModal: React.FC<RentalModalProps> = ({
               <button
                 type="button"
                 onClick={handleOfficeChangeSubmit}
-                className="px-4 py-2 rounded-md bg-indigo-600 text-white hover:bg-indigo-700"
+                disabled={isOfficeEquipmentLoading}
+                className="px-4 py-2 rounded-md bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50"
               >
                 Сменить
               </button>

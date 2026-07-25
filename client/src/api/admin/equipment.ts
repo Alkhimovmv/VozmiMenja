@@ -23,6 +23,11 @@ export const equipmentApi = {
     return response.data.data || response.data;
   },
 
+  moveInstance: async (id: string, instanceNumber: number, officeId: number): Promise<RentalEquipment> => {
+    const response = await apiClient.post(`/equipment/${id}/instances/${instanceNumber}/move`, { office_id: officeId });
+    return response.data.data || response.data;
+  },
+
   delete: async (id: string): Promise<void> => {
     await apiClient.delete(`/equipment/${id}`);
   },

@@ -10,8 +10,9 @@ const Spinner = () => (
 );
 import { useAuthenticatedQuery } from '../../hooks/useAuthenticatedQuery';
 import { equipmentApi } from '../../api/admin/equipment';
+import { officesApi, type Office } from '../../api/admin/offices';
 import { type RentalEquipment, type CreateRentalEquipmentDto } from '../../types/admin';
-import EquipmentModal from '../../components/admin/EquipmentModal';
+import EquipmentModal, { type EquipmentInstanceOfficeChange } from '../../components/admin/EquipmentModal';
 import ConfirmDialog from '../../components/admin/ConfirmDialog';
 import { useOffice } from '../../hooks/useOffice';
 
@@ -23,6 +24,7 @@ const EquipmentPage: React.FC = () => {
   const queryClient = useQueryClient();
 
   const { data: equipment = [], isLoading } = useAuthenticatedQuery<RentalEquipment[]>(['equipment', currentOfficeId], () => equipmentApi.getAll(currentOfficeId));
+  const { data: offices = [] } = useAuthenticatedQuery<Office[]>(['offices'], officesApi.getAll);
 
   const createMutation = useMutation({
     mutationFn: equipmentApi.create,
@@ -39,14 +41,30 @@ const EquipmentPage: React.FC = () => {
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: Partial<CreateRentalEquipmentDto> }) =>
-      equipmentApi.update(id, data),
-    onSuccess: () => {
+    mutationFn: async ({
+      id,
+      data,
+      officeChanges = [],
+    }: {
+      id: string;
+      data: Partial<CreateRentalEquipmentDto>;
+      officeChanges?: EquipmentInstanceOfficeChange[];
+    }) => {
+      const updated = await equipmentApi.update(id, data);
+
+      for (const change of officeChanges) {
+        await equipmentApi.moveInstance(id, change.instanceNumber, change.officeId);
+      }
+
+      return { updated, movedCount: officeChanges.length };
+    },
+    onSuccess: ({ movedCount }) => {
       queryClient.invalidateQueries({ queryKey: ['equipment'], exact: false });
       queryClient.invalidateQueries({ queryKey: ['equipment-rental'], exact: false });
+      queryClient.invalidateQueries({ queryKey: ['lockers'], exact: false });
       setIsModalOpen(false);
       setEditingEquipment(null);
-      toast.success('Оборудование обновлено');
+      toast.success(movedCount > 0 ? 'Оборудование обновлено, экземпляры перенесены' : 'Оборудование обновлено');
     },
     onError: (error: any) => {
       toast.error(error?.response?.data?.error || 'Не удалось обновить оборудование');
@@ -69,9 +87,10 @@ const EquipmentPage: React.FC = () => {
     createMutation.mutate({ ...data, office_id: currentOfficeId });
   };
 
-  const handleUpdateEquipment = (data: Partial<CreateRentalEquipmentDto>) => {
+  const handleUpdateEquipment = (data: Partial<CreateRentalEquipmentDto>, officeChanges: EquipmentInstanceOfficeChange[] = []) => {
     if (editingEquipment) {
-      updateMutation.mutate({ id: String(editingEquipment.id), data: { ...data, office_id: currentOfficeId } });
+      const { office_id: _officeId, ...updateData } = data;
+      updateMutation.mutate({ id: String(editingEquipment.id), data: updateData, officeChanges });
     }
   };
 
@@ -214,6 +233,8 @@ const EquipmentPage: React.FC = () => {
         onSubmit={editingEquipment ? handleUpdateEquipment : handleCreateEquipment}
         equipment={editingEquipment}
         isLoading={createMutation.isPending || updateMutation.isPending}
+        defaultOfficeId={currentOfficeId}
+        offices={offices}
       />
 
       <ConfirmDialog
