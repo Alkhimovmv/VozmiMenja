@@ -23,6 +23,20 @@ function stripMinutes(dt: string): string {
   return dt.slice(0, 13) + ':00';
 }
 
+function normalizeCustomerPhoneInput(value: string): string {
+  const digits = value.replace(/\D/g, '');
+
+  if (digits.startsWith('7')) {
+    return `8${digits.slice(1, 11)}`;
+  }
+
+  if (digits.startsWith('8')) {
+    return digits.slice(0, 11);
+  }
+
+  return digits.length === 10 ? `8${digits}` : digits.slice(0, 11);
+}
+
 const RentalModal: React.FC<RentalModalProps> = ({
   isOpen,
   onClose,
@@ -285,12 +299,7 @@ const RentalModal: React.FC<RentalModalProps> = ({
   };
 
   const handlePhoneChange = (value: string) => {
-    const digits = value.replace(/\D/g, '').slice(0, 11);
-    const cleanValue = digits.length === 11 && digits.startsWith('7')
-      ? `8${digits.slice(1)}`
-      : digits.length === 10
-        ? `8${digits}`
-        : digits;
+    const cleanValue = normalizeCustomerPhoneInput(value);
     updateFormData({ customer_phone: cleanValue });
     filterCustomers(formData.customer_name, cleanValue);
     const phoneError = validatePhone(cleanValue);

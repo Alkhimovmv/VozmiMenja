@@ -55,15 +55,15 @@ export interface CreateRentalData {
 export function normalizeRentalPhone(phone: string): string {
   const digits = phone.replace(/\D/g, '')
 
-  if (digits.length === 10) {
-    return `8${digits}`
+  if (digits.startsWith('7')) {
+    return `8${digits.slice(1, 11)}`
   }
 
-  if (digits.length === 11 && digits.startsWith('7')) {
-    return `8${digits.slice(1)}`
+  if (digits.startsWith('8')) {
+    return digits.slice(0, 11)
   }
 
-  return digits
+  return digits.length === 10 ? `8${digits}` : digits.slice(0, 11)
 }
 
 export class RentalModel {
