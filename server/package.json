@@ -14,7 +14,9 @@
     "reset-db": "tsx src/scripts/reset-db.ts",
     "migrate": "tsx src/scripts/migrate-pricing.ts",
     "migrate:images": "node src/scripts/migrate-image-urls.js",
-    "migrate:auth": "tsx src/scripts/migrate-auth.ts"
+    "migrate:auth": "tsx src/scripts/migrate-auth.ts",
+    "repair:rental-office-links": "tsx src/scripts/repair-rental-office-equipment-links.ts",
+    "repair:rental-office-links:dry": "tsx src/scripts/repair-rental-office-equipment-links.ts --dry-run"
   },
   "dependencies": {
     "@types/multer": "^2.0.0",

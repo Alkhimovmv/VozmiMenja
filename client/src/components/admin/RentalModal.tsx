@@ -155,10 +155,17 @@ const RentalModal: React.FC<RentalModalProps> = ({
         const equipmentIds = rental.equipment_list
           ? rental.equipment_list.map((eq: { id: number; name: string; instance_number: number }) => eq.id)
           : [rental.equipment_id];
+        const equipmentInstances = rental.equipment_list
+          ? rental.equipment_list.map((eq: { id: number; name: string; instance_number: number }) => ({
+              equipment_id: eq.id,
+              instance_number: eq.instance_number || 1,
+            }))
+          : undefined;
 
         setFormData({
           equipment_id: rental.equipment_id,
           equipment_ids: equipmentIds,
+          equipment_instances: equipmentInstances,
           start_date: stripMinutes(rental.start_date.slice(0, 16)),
           end_date: stripMinutes(rental.end_date.slice(0, 16)),
           customer_name: rental.customer_name,
@@ -240,34 +247,10 @@ const RentalModal: React.FC<RentalModalProps> = ({
     });
   };
 
-  const syncEquipmentInstances = () => {
-    const equipmentMap = new Map<number, number[]>();
-    selectedInstances.forEach(inst => {
-      const [idStr, instanceStr] = inst.split(':');
-      const id = Number(idStr);
-      const instanceNum = Number(instanceStr);
-      if (!equipmentMap.has(id)) equipmentMap.set(id, []);
-      equipmentMap.get(id)!.push(instanceNum);
-    });
-    const equipmentIdsArray: number[] = [];
-    const equipmentInstancesArray: EquipmentInstance[] = [];
-    equipmentMap.forEach((instances, id) => {
-      instances.sort((a, b) => a - b);
-      instances.forEach(instanceNum => {
-        equipmentIdsArray.push(id);
-        equipmentInstancesArray.push({ equipment_id: id, instance_number: instanceNum });
-      });
-    });
-    return { equipmentIdsArray, equipmentInstancesArray };
-  };
-
   const updateFormData = (updates: Partial<CreateRentalDto>) => {
-    const { equipmentIdsArray, equipmentInstancesArray } = syncEquipmentInstances();
     setFormData(prev => ({
       ...prev,
       ...updates,
-      equipment_ids: equipmentIdsArray,
-      equipment_instances: equipmentInstancesArray
     }));
   };
 

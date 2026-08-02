@@ -192,7 +192,7 @@ export class RentalModel {
         AND rei.instance_number = ?
         AND r.status != 'cancelled'
         AND r.status != 'completed'
-        AND (? <= r.end_date AND ? >= r.start_date)
+        AND (? < r.end_date AND ? > r.start_date)
         ${officeFilter}
         ${excludeRentalId ? 'AND r.id != ?' : ''}
     `
@@ -366,7 +366,7 @@ export class RentalModel {
         ? data.equipmentInstances
         : currentRental.equipmentList && currentRental.equipmentList.length > 0
           ? currentRental.equipmentList.map(item => ({
-              equipmentId: data.equipmentId ?? item.id,
+              equipmentId: item.id,
               instanceNumber: item.instanceNumber || 1
             }))
           : [{
