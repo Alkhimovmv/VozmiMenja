@@ -5,7 +5,6 @@ import { useAuthenticatedQuery } from '../../hooks/useAuthenticatedQuery';
 import { equipmentApi } from '../../api/admin/equipment';
 import { rentalsApi } from '../../api/admin/rentals';
 import type { RentalAvailabilityResult, RentalEquipment } from '../../types/admin';
-import CustomDateTimeInput from '../../components/admin/CustomDateTimeInput';
 
 const toDateTimeLocal = (date: Date) => {
   const year = date.getFullYear();
@@ -25,6 +24,32 @@ const formatDateTime = (value: string) => {
     minute: '2-digit',
   });
 };
+
+const DateTimeField = ({
+  label,
+  value,
+  onChange,
+  required = false,
+  min,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  required?: boolean;
+  min?: string;
+}) => (
+  <div>
+    <label className="mb-2 block text-sm font-medium text-gray-700">{label}</label>
+    <input
+      type="datetime-local"
+      value={value}
+      min={min}
+      onChange={(e) => onChange(e.target.value)}
+      required={required}
+      className="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm text-gray-900 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
+    />
+  </div>
+);
 
 const buildDefaultStart = () => {
   const date = new Date();
@@ -138,18 +163,19 @@ const SchedulePage: React.FC = () => {
                 </select>
               </div>
 
-              <CustomDateTimeInput
+              <DateTimeField
                 label="Начало аренды"
                 value={startDate}
                 onChange={setStartDate}
                 required
               />
 
-              <CustomDateTimeInput
+              <DateTimeField
                 label="Конец аренды"
                 value={endDate}
                 onChange={setEndDate}
                 required
+                min={startDate}
               />
 
               {selectedEquipment && (
