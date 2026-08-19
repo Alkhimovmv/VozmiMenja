@@ -49,6 +49,13 @@ const updateRentalSchema = z.object({
   status: z.enum(['pending', 'active', 'completed', 'overdue']).optional()
 })
 
+const availabilityQuerySchema = z.object({
+  equipment_id: z.coerce.number().int().positive(),
+  start_date: z.string().min(1, 'start_date обязателен'),
+  end_date: z.string().min(1, 'end_date обязателен'),
+  office_id: z.coerce.number().int().positive().optional()
+})
+
 // GET /api/rentals - Получить все аренды
 router.get('/', authMiddleware, async (req: Request, res: Response) => {
   try {
@@ -120,6 +127,86 @@ router.get('/gantt', authMiddleware, async (req: Request, res: Response) => {
   } catch (error) {
     console.error('Error getting gantt data:', error)
     res.status(500).json({ error: 'Ошибка получения данных для диаграммы Ганта' })
+  }
+})
+
+// GET /api/rentals/availability - Проверить доступность слота по оборудованию
+router.get('/availability', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const parsed = availabilityQuerySchema.safeParse(req.query)
+
+    if (!parsed.success) {
+      return res.status(400).json({ error: parsed.error.errors.map(e => e.message).join(', ') })
+    }
+
+    const { equipment_id, start_date, end_date, office_id } = parsed.data
+    const userOfficeIds = await getUserOfficeIds(req)
+
+    if (userOfficeIds !== null && office_id !== undefined && !userOfficeIds.includes(office_id)) {
+      return res.status(403).json({ error: 'Нет доступа к выбранному офису' })
+    }
+
+    const availableInstances = await rentalModel.findAvailableInstances(
+      equipment_id,
+      start_date,
+      end_date,
+      undefined,
+      office_id
+    )
+
+    const rentals = await rentalModel.findAll({
+      officeId: office_id,
+      officeIds: userOfficeIds ?? undefined,
+    })
+
+    const conflictingRentals = rentals
+      .flatMap((rental) => {
+        const status = calculateStatus(rental)
+        const matchingItems = rental.equipmentList?.filter(item => item.id === equipment_id) ?? []
+
+        if (matchingItems.length > 0) {
+          return matchingItems.map(item => ({
+            ...rental,
+            equipmentId: item.id,
+            equipmentName: item.name,
+            instanceNumber: item.instanceNumber,
+            status
+          }))
+        }
+
+        if (rental.equipmentId === equipment_id) {
+          return [{
+            ...rental,
+            equipmentId: rental.equipmentId,
+            equipmentName: rental.equipmentName,
+            instanceNumber: 1,
+            status
+          }]
+        }
+
+        return []
+      })
+      .filter((rental) => {
+        if (rental.status === 'completed') return false
+        return start_date < rental.endDate && end_date > rental.startDate
+      })
+
+    const equipmentRow = await get(
+      'SELECT id, name, quantity FROM rental_equipment WHERE id = ?',
+      [equipment_id]
+    ) as { id: number; name: string; quantity: number } | undefined
+
+    res.json({
+      equipment_id,
+      equipment_name: equipmentRow?.name ?? null,
+      total_instances: equipmentRow?.quantity ?? 0,
+      available: availableInstances.length > 0,
+      available_instances: availableInstances,
+      conflicting_rentals: conflictingRentals.map(toSnakeCase)
+    })
+  } catch (error) {
+    console.error('Error checking rental availability:', error)
+    res.status(500).json({ error: 'Ошибка проверки доступности слота' })
   }
 })
 

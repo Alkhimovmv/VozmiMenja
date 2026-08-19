@@ -128,6 +128,15 @@ export interface Customer {
   note: string | null;
 }
 
+export interface RentalAvailabilityResult {
+  equipment_id: number;
+  equipment_name: string | null;
+  total_instances: number;
+  available: boolean;
+  available_instances: number[];
+  conflicting_rentals: Rental[];
+}
+
 export interface CustomerNote {
   customer_phone: string;
   tag: CustomerTag;

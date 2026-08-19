@@ -97,7 +97,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
 
   const menuItems = [
     { path: '/admin/rentals', label: 'Список аренд', icon: '📋' },
-    { path: '/admin/schedule', label: 'График аренд', icon: '📊' },
+    { path: '/admin/schedule', label: 'Проверка слота', icon: '🕒' },
     { path: '/admin/customers', label: 'Арендаторы', icon: '👥' },
     { path: '/admin/finances', label: 'Финансы', icon: '💰' },
     { path: '/admin/lockers', label: 'Ячейки постомата', icon: '🔐' },

@@ -1,5 +1,5 @@
 import apiClient from './client';
-import { type CreateRentalDto, type Rental } from '../types/index';
+import { type CreateRentalDto, type Rental, type RentalAvailabilityResult } from '../types/index';
 
 export interface Customer {
   customerName: string;
@@ -26,6 +26,17 @@ export const rentalsApi = {
     if (officeId) params.append('officeId', String(officeId));
 
     const response = await apiClient.get(`/rentals/gantt?${params.toString()}`);
+    return response.data;
+  },
+
+  checkAvailability: async (equipmentId: number, startDate: string, endDate: string, officeId?: number): Promise<RentalAvailabilityResult> => {
+    const params = new URLSearchParams();
+    params.append('equipment_id', String(equipmentId));
+    params.append('start_date', startDate);
+    params.append('end_date', endDate);
+    if (officeId) params.append('office_id', String(officeId));
+
+    const response = await apiClient.get(`/rentals/availability?${params.toString()}`);
     return response.data;
   },
 
