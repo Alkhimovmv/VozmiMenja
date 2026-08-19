@@ -3,16 +3,17 @@ import { Link } from 'react-router-dom'
 import { X } from 'lucide-react'
 
 export default function CookieBanner() {
-  const [visible, setVisible] = useState(false)
+  const [visible, setVisible] = useState(true)
 
   useEffect(() => {
-    if (!localStorage.getItem('cookie_consent')) {
-      setVisible(true)
+    if (localStorage.getItem('cookie_consent')) {
+      setVisible(false)
     }
   }, [])
 
   const accept = () => {
     localStorage.setItem('cookie_consent', 'accepted')
+    window.dispatchEvent(new Event('cookie-consent-accepted'))
     setVisible(false)
   }
 
@@ -22,8 +23,12 @@ export default function CookieBanner() {
     <div className="fixed bottom-16 sm:bottom-4 left-0 right-0 z-40 flex justify-center px-4 pointer-events-none">
       <div className="bg-gray-900 text-white rounded-2xl shadow-xl p-4 max-w-xl w-full flex items-start gap-4 pointer-events-auto">
         <div className="flex-1 text-xs text-gray-300 leading-relaxed">
-          Мы используем файлы cookie для корректной работы сайта. Продолжая использование, вы соглашаетесь с{' '}
-          <Link to="/privacy" className="text-blue-400 hover:underline">Политикой конфиденциальности</Link>.
+          Мы используем cookie-файлы и метрические системы, включая Яндекс.Метрику, для корректной работы сайта,
+          анализа трафика и обработки пользовательских действий, которые могут относиться к персональным данным.
+          Продолжая использование сайта, вы подтверждаете согласие с{' '}
+          <Link to="/privacy" className="text-blue-400 hover:underline">Политикой обработки персональных данных</Link>{' '}
+          и{' '}
+          <Link to="/cookies" className="text-blue-400 hover:underline">Политикой использования cookie</Link>.
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
           <button

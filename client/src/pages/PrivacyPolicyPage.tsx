@@ -3,8 +3,8 @@ export default function PrivacyPolicyPage() {
     <div className="min-h-screen bg-[#F8FAFC]">
       <section className="bg-gradient-to-br from-[#2563EB] via-[#4F46E5] to-[#7C3AED] text-white py-16">
         <div className="container mx-auto px-4 text-center">
-          <h1 className="text-4xl md:text-5xl font-extrabold mb-4 text-white">Политика конфиденциальности</h1>
-          <p className="text-blue-100 text-lg max-w-xl mx-auto">Мы заботимся о защите ваших персональных данных</p>
+          <h1 className="text-4xl md:text-5xl font-extrabold mb-4 text-white">Политика обработки персональных данных</h1>
+          <p className="text-blue-100 text-lg max-w-2xl mx-auto">Документ определяет порядок обработки персональных данных, использования cookie-файлов и работы метрических систем на сайте</p>
         </div>
       </section>
 
@@ -13,7 +13,7 @@ export default function PrivacyPolicyPage() {
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8 space-y-8 text-sm text-gray-600 leading-relaxed">
 
             <div className="bg-blue-50 rounded-xl p-4 text-blue-800 text-sm">
-              Настоящая Политика конфиденциальности регулирует порядок обработки и использования персональных данных пользователей сервиса ВозьмиМеня (ИП Алхимова С.В.). Используя наш сервис, вы соглашаетесь с условиями данной политики.
+              Настоящая Политика обработки персональных данных регулирует порядок обработки и использования персональных данных пользователей сервиса ВозьмиМеня (ИП Алхимова С.В.). Используя наш сервис, вы соглашаетесь с условиями данной политики.
             </div>
 
             <div>
@@ -65,7 +65,8 @@ export default function PrivacyPolicyPage() {
 
             <div>
               <h2 className="text-xl font-bold text-gray-900 mb-3">6. Файлы cookie</h2>
-              <p>Наш сайт использует файлы cookie для улучшения пользовательского опыта и анализа трафика. Вы можете управлять настройками cookie в вашем браузере.</p>
+              <p className="mb-2">Наш сайт использует файлы cookie для улучшения пользовательского опыта, анализа трафика и повышения качества сервиса. Вы можете управлять настройками cookie в вашем браузере.</p>
+              <p>Также на сайте используются метрические системы, включая Яндекс.Метрику, которые могут обрабатывать технические данные о действиях пользователя, устройстве, IP-адресе, cookie и параметрах сессии в объёме, необходимом для аналитики и работы сайта.</p>
             </div>
 
             <div>
@@ -83,7 +84,7 @@ export default function PrivacyPolicyPage() {
             </div>
 
             <div className="bg-gray-50 rounded-xl p-4">
-              <p className="text-xs text-gray-400">Последнее обновление: 9 мая 2026 года</p>
+              <p className="text-xs text-gray-400">Последнее обновление: 19 августа 2026 года</p>
             </div>
           </div>
         </div>

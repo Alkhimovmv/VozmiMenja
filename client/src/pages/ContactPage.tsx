@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import CustomSelect from '../components/ui/CustomSelect'
 import { apiClient } from '../lib/api'
 import avitoIcon from '../assets/avito.png'
@@ -7,8 +8,16 @@ import maxIcon from '../assets/max.png'
 export default function ContactPage() {
   const [subject, setSubject] = useState('')
   const [formData, setFormData] = useState({ name: '', phone: '', email: '', message: '' })
+  const [consent, setConsent] = useState(false)
+  const [showMap, setShowMap] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitStatus, setSubmitStatus] = useState<'idle' | 'success' | 'error'>('idle')
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && localStorage.getItem('cookie_consent') === 'accepted') {
+      setShowMap(true)
+    }
+  }, [])
 
   const subjectOptions = [
     { value: '', label: 'Выберите тему' },
@@ -229,9 +238,25 @@ export default function ContactPage() {
                   />
                 </div>
 
+                <label className="flex items-start gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={consent}
+                    onChange={(e) => setConsent(e.target.checked)}
+                    required
+                    className="mt-0.5 h-4 w-4 rounded border-gray-300 text-[#2563EB] focus:ring-[#2563EB]/30"
+                  />
+                  <span className="text-xs text-gray-500 leading-relaxed">
+                    Я даю согласие на обработку персональных данных в соответствии с{' '}
+                    <Link to="/privacy" target="_blank" className="text-[#2563EB] hover:underline">
+                      Политикой обработки персональных данных
+                    </Link>.
+                  </span>
+                </label>
+
                 <button
                   type="submit"
-                  disabled={isSubmitting || !subject}
+                  disabled={isSubmitting || !subject || !consent}
                   className="btn-primary w-full disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isSubmitting ? (
@@ -263,13 +288,29 @@ export default function ContactPage() {
               <p className="text-gray-500 text-sm">Приезжайте к нам в офис или оформите доставку по Москве и МО</p>
             </div>
             <div className="rounded-2xl overflow-hidden shadow-sm border border-gray-100 h-[400px]">
-              <iframe
-                src="https://yandex.ru/map-widget/v1/?ll=37.664186%2C55.739894&z=11&l=map&pt=37.759233%2C55.694097%2Cpm2rdm%7E%D0%92%D0%BE%D0%BB%D0%B6%D1%81%D0%BA%D0%B0%D1%8F~37.569138%2C55.785691%2Cpm2rdm%7E%D0%94%D0%B8%D0%BD%D0%B0%D0%BC%D0%BE"
-                width="100%" height="100%"
-                style={{ border: 0 }}
-                allowFullScreen loading="lazy"
-                title="Яндекс карта — офисы ВозьмиМеня"
-              />
+              {showMap ? (
+                <iframe
+                  src="https://yandex.ru/map-widget/v1/?ll=37.664186%2C55.739894&z=11&l=map&pt=37.759233%2C55.694097%2Cpm2rdm%7E%D0%92%D0%BE%D0%BB%D0%B6%D1%81%D0%BA%D0%B0%D1%8F~37.569138%2C55.785691%2Cpm2rdm%7E%D0%94%D0%B8%D0%BD%D0%B0%D0%BC%D0%BE"
+                  width="100%" height="100%"
+                  style={{ border: 0 }}
+                  allowFullScreen loading="lazy"
+                  title="Яндекс карта — офисы ВозьмиМеня"
+                />
+              ) : (
+                <div className="flex h-full items-center justify-center bg-gray-50 p-6 text-center">
+                  <div>
+                    <p className="text-sm font-medium text-gray-900">Карта загружается только после согласия на cookie</p>
+                    <p className="mt-2 text-xs text-gray-500">До подтверждения карта не подключается, чтобы не передавать технические данные внешнему сервису.</p>
+                    <button
+                      type="button"
+                      onClick={() => setShowMap(true)}
+                      className="mt-4 rounded-xl bg-[#2563EB] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#1D4ED8]"
+                    >
+                      Загрузить карту
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>

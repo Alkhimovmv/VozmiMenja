@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import toast from 'react-hot-toast'
 import type { Equipment } from '../../types'
 import { useCreateBooking } from '../../hooks/useEquipment'
-import { X, Calendar, User, Phone, Mail, MessageSquare, ChevronRight } from 'lucide-react'
+import { X, Calendar, User, Phone, MessageSquare, ChevronRight } from 'lucide-react'
 import { getImageUrl } from '../../lib/utils'
 
 interface BookingFormProps {
@@ -27,7 +27,6 @@ export default function BookingForm({ equipment, onClose }: BookingFormProps) {
   const [formData, setFormData] = useState({
     customerName: '',
     customerPhone: '',
-    customerEmail: '',
     startDate: '',
     endDate: '',
     comment: '',
@@ -277,20 +276,6 @@ export default function BookingForm({ equipment, onClose }: BookingFormProps) {
                   </div>
                 </div>
                 <div>
-                  <label className="block text-xs text-gray-500 mb-1.5">Email <span className="text-gray-400">(необязательно)</span></label>
-                  <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                    <input
-                      type="email"
-                      name="customerEmail"
-                      value={formData.customerEmail}
-                      onChange={handleInputChange}
-                      placeholder="mail@example.com"
-                      className="w-full pl-9 pr-3 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#2563EB]/30 focus:border-[#2563EB] transition-colors"
-                    />
-                  </div>
-                </div>
-                <div>
                   <label className="block text-xs text-gray-500 mb-1.5">Комментарий <span className="text-gray-400">(необязательно)</span></label>
                   <div className="relative">
                     <MessageSquare className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
@@ -318,7 +303,7 @@ export default function BookingForm({ equipment, onClose }: BookingFormProps) {
               />
               <span className="text-xs text-gray-400 leading-relaxed">
                 Я согласен(а) на обработку персональных данных в соответствии с{' '}
-                <a href="/privacy" target="_blank" className="text-[#2563EB] hover:underline">Политикой конфиденциальности</a>{' '}
+                <a href="/privacy" target="_blank" className="text-[#2563EB] hover:underline">Политикой обработки персональных данных</a>{' '}
                 согласно ФЗ-152. Данные используются только для оформления аренды и удаляются после её окончания.
               </span>
             </label>

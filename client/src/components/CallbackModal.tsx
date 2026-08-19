@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { X, Phone } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { apiClient } from '../lib/api'
@@ -13,6 +14,7 @@ export default function CallbackModal({ isOpen, onClose }: CallbackModalProps) {
     name: '',
     phone: '',
   })
+  const [consent, setConsent] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -96,6 +98,22 @@ export default function CallbackModal({ isOpen, onClose }: CallbackModalProps) {
             </div>
           </div>
 
+          <label className="mt-4 flex items-start gap-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={consent}
+              onChange={(e) => setConsent(e.target.checked)}
+              required
+              className="mt-0.5 h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+            />
+            <span className="text-xs text-gray-500 leading-relaxed">
+              Я даю согласие на обработку персональных данных в соответствии с{' '}
+              <Link to="/privacy" target="_blank" className="text-primary-600 hover:underline">
+                Политикой обработки персональных данных
+              </Link>.
+            </span>
+          </label>
+
           <div className="mt-6 flex space-x-3">
             <button
               type="button"
@@ -106,7 +124,7 @@ export default function CallbackModal({ isOpen, onClose }: CallbackModalProps) {
             </button>
             <button
               type="submit"
-              disabled={isSubmitting}
+              disabled={isSubmitting || !consent}
               className="flex-1 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isSubmitting ? 'Отправка...' : 'Заказать звонок'}

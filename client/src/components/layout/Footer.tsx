@@ -103,7 +103,8 @@ export default function Footer() {
           <div className="flex flex-wrap gap-4 justify-center">
             <Link to="/offer" className="text-gray-600 hover:text-gray-400 text-xs transition-colors">Договор оферты</Link>
             <Link to="/rental-agreement" className="text-gray-600 hover:text-gray-400 text-xs transition-colors">Договор аренды</Link>
-            <Link to="/privacy" className="text-gray-600 hover:text-gray-400 text-xs transition-colors">Политика конфиденциальности</Link>
+            <Link to="/privacy" className="text-gray-600 hover:text-gray-400 text-xs transition-colors">Политика обработки персональных данных</Link>
+            <Link to="/cookies" className="text-gray-600 hover:text-gray-400 text-xs transition-colors">Политика использования cookie</Link>
             <Link to="/terms" className="text-gray-600 hover:text-gray-400 text-xs transition-colors">Условия использования</Link>
             <Link to="/requisites" className="text-gray-600 hover:text-gray-400 text-xs transition-colors">Реквизиты</Link>
           </div>

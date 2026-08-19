@@ -13,6 +13,7 @@ const AboutPage = lazy(() => import('./pages/AboutPage'))
 const ContactPage = lazy(() => import('./pages/ContactPage'))
 const DeliveryPage = lazy(() => import('./pages/DeliveryPage'))
 const PrivacyPolicyPage = lazy(() => import('./pages/PrivacyPolicyPage'))
+const CookiePolicyPage = lazy(() => import('./pages/CookiePolicyPage'))
 const TermsOfServicePage = lazy(() => import('./pages/TermsOfServicePage'))
 const OfferPage = lazy(() => import('./pages/OfferPage'))
 const RequisitesPage = lazy(() => import('./pages/RequisitesPage'))
@@ -139,6 +140,7 @@ function App() {
                 <Route path="/contact" element={<ContactPage />} />
                 <Route path="/delivery" element={<DeliveryPage />} />
                 <Route path="/privacy" element={<PrivacyPolicyPage />} />
+                <Route path="/cookies" element={<CookiePolicyPage />} />
                 <Route path="/terms" element={<TermsOfServicePage />} />
                 <Route path="/offer" element={<OfferPage />} />
                 <Route path="/requisites" element={<RequisitesPage />} />

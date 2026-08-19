@@ -70,11 +70,6 @@
     <!-- Preconnect to improve performance -->
     <link rel="preconnect" href="https://api.vozmimenya.ru" />
     <link rel="dns-prefetch" href="https://api.vozmimenya.ru" />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link rel="dns-prefetch" href="https://fonts.googleapis.com" />
-    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Inter+Tight:wght@400;500;600;700&display=swap" rel="stylesheet" />
-
     <!-- Preload critical resources -->
     <link rel="preload" as="script" href="/src/main.tsx" />
     <link rel="preload" as="image" href="/favicon-32x32.png" />
@@ -186,50 +181,42 @@
     <!-- End Single Page Apps for GitHub Pages -->
   </head>
   <body>
-    <!-- Yandex.Metrika noscript -->
-    <noscript><div><img src="https://mc.yandex.ru/watch/105133379" style="position:absolute; left:-9999px;" alt="" /></div></noscript>
-
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
 
     <!-- Analytics: Загружаются после основного контента для оптимизации LCP -->
     <script type="text/javascript">
-      // Отложенная загрузка Яндекс.Метрики после загрузки страницы
-      window.addEventListener('load', function() {
-        setTimeout(function() {
-          (function(m,e,t,r,i,k,a){
-            m[i]=m[i]||function(){(m[i].a=m[i].a||[]).push(arguments)};
-            m[i].l=1*new Date();
-            for (var j = 0; j < document.scripts.length; j++) {if (document.scripts[j].src === r) { return; }}
-            k=e.createElement(t),a=e.getElementsByTagName(t)[0],k.async=1,k.src=r,a.parentNode.insertBefore(k,a)
-          })(window, document,'script','https://mc.yandex.ru/metrika/tag.js?id=105133379', 'ym');
+      window.__vmMetrikaLoaded = false;
+      window.__vmLoadMetrika = function() {
+        if (window.__vmMetrikaLoaded) return;
+        window.__vmMetrikaLoaded = true;
 
-          ym(105133379, 'init', {
-            clickmap:true,
-            trackLinks:true,
-            accurateTrackBounce:true,
-            webvisor:true,
-            ecommerce:"dataLayer"
-          });
-        }, 1000); // Задержка 1 секунда после загрузки страницы
+        (function(m,e,t,r,i,k,a){
+          m[i]=m[i]||function(){(m[i].a=m[i].a||[]).push(arguments)};
+          m[i].l=1*new Date();
+          for (var j = 0; j < document.scripts.length; j++) {if (document.scripts[j].src === r) { return; }}
+          k=e.createElement(t),a=e.getElementsByTagName(t)[0],k.async=1,k.src=r,a.parentNode.insertBefore(k,a)
+        })(window, document,'script','https://mc.yandex.ru/metrika/tag.js?id=105133379', 'ym');
+
+        window.ym(105133379, 'init', {
+          clickmap:true,
+          trackLinks:true,
+          accurateTrackBounce:true,
+          webvisor:true,
+          ecommerce:"dataLayer"
+        });
+      };
+
+      window.addEventListener('load', function() {
+        if (localStorage.getItem('cookie_consent') === 'accepted') {
+          setTimeout(window.__vmLoadMetrika, 1000);
+        }
+      });
+
+      window.addEventListener('cookie-consent-accepted', function() {
+        setTimeout(window.__vmLoadMetrika, 0);
       });
     </script>
 
-    <!-- Google Analytics: Отложенная загрузка -->
-    <script type="text/javascript">
-      window.addEventListener('load', function() {
-        setTimeout(function() {
-          var script = document.createElement('script');
-          script.async = true;
-          script.src = 'https://www.googletagmanager.com/gtag/js?id=G-LVRK7FC86Y';
-          document.head.appendChild(script);
-
-          window.dataLayer = window.dataLayer || [];
-          function gtag(){dataLayer.push(arguments);}
-          gtag('js', new Date());
-          gtag('config', 'G-LVRK7FC86Y');
-        }, 1500); // Задержка 1.5 секунды после загрузки
-      });
-    </script>
   </body>
 </html>

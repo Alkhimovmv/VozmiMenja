@@ -337,17 +337,16 @@ router.put('/:id', authMiddleware, async (req: Request, res: Response) => {
       `, [rentalId]) as Array<{ equipment_id: number; instance_number: number }>
 
       if (items.length > 0) {
-        // Ищем ячейку где лежит любой из этих экземпляров
+        // Ищем все ячейки, где лежат экземпляры из этой аренды
         const placeholders = items.map(() => '(le.equipment_id = ? AND le.instance_number = ?)').join(' OR ')
         const params = items.flatMap(i => [i.equipment_id, i.instance_number])
-        const lockerRow = await get(`
+        const lockerRows = await all(`
           SELECT DISTINCT l.id FROM lockers l
           JOIN locker_equipment le ON le.locker_id = l.id
           WHERE ${placeholders}
-          LIMIT 1
-        `, params) as any
+        `, params) as Array<{ id: number }>
 
-        if (lockerRow) {
+        for (const lockerRow of lockerRows) {
           await lockerModel.markNeedsCheck(lockerRow.id)
         }
       }

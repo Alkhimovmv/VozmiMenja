@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import avitoIcon from '../assets/avito.png'
 
 const AVITO_URL = 'https://www.avito.ru/brands/bec2558749c417a5576049cbce277ace/all?page_from=from_item_card&iid=7408898363&sellerId=f68e169e975bcc285ceb9bab886e60f3'
@@ -13,6 +14,14 @@ function StarIcon() {
 const CARD_HEIGHT = 580
 
 export default function Testimonials() {
+  const [showYandexWidget, setShowYandexWidget] = useState(false)
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && localStorage.getItem('cookie_consent') === 'accepted') {
+      setShowYandexWidget(true)
+    }
+  }, [])
+
   return (
     <section className="py-16 bg-[#F8FAFC]">
       <div className="container mx-auto px-4">
@@ -38,14 +47,30 @@ export default function Testimonials() {
               </svg>
               <span className="font-semibold text-gray-800 text-sm">Яндекс Карты</span>
             </div>
-            <iframe
-              src="https://yandex.ru/maps-reviews-widget/206350428739?comments"
-              width="100%"
-              style={{ border: 'none', display: 'block', flex: 1 }}
-              allowFullScreen
-              loading="lazy"
-              title="Отзывы на Яндекс Картах"
-            />
+            {showYandexWidget ? (
+              <iframe
+                src="https://yandex.ru/maps-reviews-widget/206350428739?comments"
+                width="100%"
+                style={{ border: 'none', display: 'block', flex: 1 }}
+                allowFullScreen
+                loading="lazy"
+                title="Отзывы на Яндекс Картах"
+              />
+            ) : (
+              <div className="flex flex-1 items-center justify-center bg-gray-50 p-6 text-center">
+                <div>
+                  <p className="text-sm font-medium text-gray-900">Отзывы Яндекс.Карт загружаются только после согласия на cookie</p>
+                  <p className="mt-2 text-xs text-gray-500">Это помогает не передавать технические данные во внешние сервисы до подтверждения пользователя.</p>
+                  <button
+                    type="button"
+                    onClick={() => setShowYandexWidget(true)}
+                    className="mt-4 rounded-xl bg-[#FC3F1D] px-4 py-2 text-sm font-semibold text-white transition hover:opacity-90"
+                  >
+                    Загрузить отзывы
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Avito block */}
