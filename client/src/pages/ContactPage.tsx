@@ -53,7 +53,7 @@ export default function ContactPage() {
   return (
     <div className="min-h-screen bg-[#F8FAFC]">
       {/* Hero */}
-      <section className="bg-gradient-to-br from-[#2563EB] via-[#4F46E5] to-[#7C3AED] text-white py-16 md:py-20">
+      <section className="bg-gradient-to-br from-[#1D4ED8] to-[#0F172A] text-white py-16 md:py-20">
         <div className="container mx-auto px-4 text-center">
           <span className="inline-flex items-center gap-1.5 text-xs font-semibold bg-white/15 border border-white/20 rounded-full px-3 py-1 mb-4">
             <span className="w-2 h-2 rounded-full bg-green-400 inline-block"></span>
@@ -108,7 +108,7 @@ export default function ContactPage() {
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
                       </svg>
                     ),
-                    bg: 'bg-[#7C3AED]',
+                    bg: 'bg-[#2563EB]',
                     title: 'Телефон',
                     content: <a href="tel:+79933636464" className="text-gray-700 hover:text-[#2563EB] transition-colors font-medium">+7 (993) 363-64-64</a>,
                   },

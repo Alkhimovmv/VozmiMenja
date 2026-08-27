@@ -18,7 +18,7 @@ export default function RequisitesPage() {
 
   return (
     <div className="min-h-screen bg-[#F8FAFC]">
-      <section className="bg-gradient-to-br from-[#2563EB] via-[#4F46E5] to-[#7C3AED] text-white py-16">
+      <section className="bg-gradient-to-br from-[#1D4ED8] to-[#0F172A] text-white py-16">
         <div className="container mx-auto px-4 text-center">
           <h1 className="text-4xl md:text-5xl font-extrabold mb-4 text-white">Реквизиты</h1>
           <p className="text-blue-100 text-lg max-w-xl mx-auto">ИП Алхимова Софья Вадимовна</p>

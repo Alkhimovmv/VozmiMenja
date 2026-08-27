@@ -1,8 +1,10 @@
+import { Camera, Wind, Mic2 } from 'lucide-react'
+
 export default function AboutPage() {
   return (
     <div className="min-h-screen bg-[#F8FAFC]">
       {/* Hero */}
-      <section className="bg-gradient-to-br from-[#2563EB] via-[#4F46E5] to-[#7C3AED] text-white py-16 md:py-20">
+      <section className="bg-gradient-to-br from-[#1D4ED8] to-[#0F172A] text-white py-16 md:py-20">
         <div className="container mx-auto px-4 text-center">
           <span className="inline-block text-xs font-semibold uppercase tracking-widest text-blue-200 mb-3">Профессиональная аренда</span>
           <h1 className="text-4xl md:text-5xl font-extrabold mb-4 text-white">О компании ВозьмиМеня</h1>
@@ -37,8 +39,8 @@ export default function AboutPage() {
               <ul className="space-y-4">
                 {[
                   { title: 'Широкий выбор', desc: 'Профессиональное оборудование для любых задач', color: 'bg-[#2563EB]' },
-                  { title: 'Выгодные цены', desc: 'Конкурентные тарифы и гибкие условия аренды', color: 'bg-[#7C3AED]' },
-                  { title: 'Поддержка 24/7', desc: 'Техническая поддержка и консультации экспертов', color: 'bg-[#F97316]' },
+                  { title: 'Выгодные цены', desc: 'Конкурентные тарифы и гибкие условия аренды', color: 'bg-[#1D4ED8]' },
+                  { title: 'Поддержка 24/7', desc: 'Техническая поддержка и консультации экспертов', color: 'bg-[#0F172A]' },
                   { title: 'Быстрая доставка', desc: 'Оперативная обработка заявок и доставка по Москве', color: 'bg-[#22C55E]' },
                 ].map((item) => (
                   <li key={item.title} className="flex items-start gap-3">
@@ -66,13 +68,13 @@ export default function AboutPage() {
             </div>
             <div className="grid md:grid-cols-3 gap-5">
               {[
-                { emoji: '📷', title: 'Камеры и фото', desc: 'Профессиональные камеры, объективы, экшн-камеры для создания качественного контента', bg: 'bg-blue-50', iconBg: 'bg-blue-500' },
-                { emoji: '🧹', title: 'Клининговое оборудование', desc: 'Пылесосы, пароочистители, моющие аппараты для профессиональной уборки', bg: 'bg-violet-50', iconBg: 'bg-violet-500' },
-                { emoji: '🎤', title: 'Аудиооборудование', desc: 'Микрофоны, звуковое оборудование для записи и трансляций', bg: 'bg-pink-50', iconBg: 'bg-pink-500' },
+                { Icon: Camera, title: 'Камеры и фото', desc: 'Профессиональные камеры, объективы, экшн-камеры для создания качественного контента', bg: 'bg-blue-50', iconBg: 'bg-blue-500' },
+                { Icon: Wind, title: 'Клининговое оборудование', desc: 'Пылесосы, пароочистители, моющие аппараты для профессиональной уборки', bg: 'bg-slate-50', iconBg: 'bg-slate-700' },
+                { Icon: Mic2, title: 'Аудиооборудование', desc: 'Микрофоны, звуковое оборудование для записи и трансляций', bg: 'bg-sky-50', iconBg: 'bg-sky-600' },
               ].map((cat) => (
                 <div key={cat.title} className={`${cat.bg} rounded-2xl p-8 text-center`}>
-                  <div className={`w-16 h-16 ${cat.iconBg} rounded-2xl flex items-center justify-center text-3xl mx-auto mb-4`}>
-                    {cat.emoji}
+                  <div className={`w-16 h-16 ${cat.iconBg} rounded-2xl flex items-center justify-center mx-auto mb-4`}>
+                    <cat.Icon className="w-7 h-7 text-white" />
                   </div>
                   <h3 className="text-lg font-bold text-gray-900 mb-2">{cat.title}</h3>
                   <p className="text-gray-600 text-sm leading-relaxed">{cat.desc}</p>
@@ -82,7 +84,7 @@ export default function AboutPage() {
           </div>
 
           {/* Stats */}
-          <div className="rounded-3xl bg-gradient-to-br from-[#2563EB] via-[#4F46E5] to-[#7C3AED] p-12 text-white text-center">
+          <div className="rounded-3xl bg-gradient-to-br from-[#1D4ED8] to-[#0F172A] p-12 text-white text-center">
             <h2 className="text-2xl md:text-3xl font-bold mb-2 text-white">Наши достижения</h2>
             <p className="text-blue-200 text-sm mb-10">Цифры, которые говорят о нашем опыте и надёжности</p>
             <div className="grid md:grid-cols-3 gap-6">

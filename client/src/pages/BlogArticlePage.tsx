@@ -285,7 +285,7 @@ export default function BlogArticlePage() {
           )}
 
           {/* CTA */}
-          <div className="mt-14 bg-gradient-to-br from-[#2563EB] via-[#4F46E5] to-[#7C3AED] rounded-2xl p-8 text-center text-white">
+          <div className="mt-14 bg-gradient-to-br from-[#1D4ED8] to-[#0F172A] rounded-2xl p-8 text-center text-white">
             <h3 className="text-2xl font-bold mb-3">Нужна помощь с выбором оборудования?</h3>
             <p className="text-blue-100 mb-6 max-w-xl mx-auto text-sm">
               Наши специалисты помогут подобрать идеальное оборудование для вашего проекта

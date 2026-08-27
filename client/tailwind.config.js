@@ -7,9 +7,9 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        sans:    ['system-ui', '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'sans-serif'],
-        heading: ['system-ui', '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'sans-serif'],
-        body:    ['system-ui', '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'sans-serif'],
+        sans:    ['"Inter Tight"', 'system-ui', 'sans-serif'],
+        heading: ['Manrope', 'system-ui', 'sans-serif'],
+        body:    ['"Inter Tight"', 'system-ui', 'sans-serif'],
       },
       fontSize: {
         // Manrope heading scale
@@ -31,7 +31,7 @@ export default {
           600: '#2563EB',
           700: '#1D4ED8',
         },
-        accent:  '#7C3AED',
+        accent:  '#1D4ED8',
         soft:    '#DBEAFE',
         muted:   '#64748B',
         line:    '#E2E8F0',

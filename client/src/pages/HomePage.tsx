@@ -7,14 +7,14 @@ import EquipmentGrid from '../components/equipment/EquipmentGrid'
 import HowItWorks from '../components/HowItWorks'
 import Testimonials from '../components/Testimonials'
 import SEO from '../components/SEO'
-import { ChevronLeft, ChevronRight, Phone, Shield, Truck, Clock, Sparkles, Search, X } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Phone, Shield, Truck, Clock, Sparkles, Search, X, MapPin, Mail } from 'lucide-react'
 import { trackEvent } from '../lib/analytics'
 
 // Конфиг стилей по ключу категории из БД (без переименований — label берём с бэка)
 const CAT_CONFIG: Record<string, { gradient: string; iconBg: string; blobColor: string }> = {
-  'Пылесосы, уборка и клининг': { gradient: 'from-blue-100 to-indigo-200',   iconBg: 'bg-blue-500',   blobColor: 'rgba(147,197,253,0.7)' },
-  'Камеры':                      { gradient: 'from-pink-100 to-rose-200',     iconBg: 'bg-pink-500',   blobColor: 'rgba(249,168,212,0.7)' },
-  'Аудиооборудование':           { gradient: 'from-violet-100 to-purple-200', iconBg: 'bg-violet-500', blobColor: 'rgba(196,181,253,0.7)' },
+  'Пылесосы, уборка и клининг': { gradient: 'from-blue-100 to-blue-200',     iconBg: 'bg-blue-500',   blobColor: 'rgba(147,197,253,0.7)' },
+  'Камеры':                      { gradient: 'from-slate-100 to-slate-200',   iconBg: 'bg-slate-700',  blobColor: 'rgba(148,163,184,0.5)' },
+  'Аудиооборудование':           { gradient: 'from-sky-100 to-blue-200',      iconBg: 'bg-sky-600',    blobColor: 'rgba(125,211,252,0.6)' },
 }
 
 // Иконки SVG для категорий
@@ -167,22 +167,23 @@ export default function HomePage() {
       {/* ── Mobile Hero ── */}
       <section className="md:hidden pt-4 pb-3">
         <div className="container mx-auto px-4">
-        <div className="relative rounded-2xl overflow-hidden p-5 min-h-[180px] flex flex-col justify-between"
-          style={{ background: 'linear-gradient(135deg, #f0f4ff 0%, #e8eeff 40%, #ede9fe 100%)' }}>
+        <div className="relative rounded-2xl overflow-hidden p-5 min-h-[180px] flex flex-col justify-between bg-[#0F172A]">
+          <div className="absolute inset-0 pointer-events-none opacity-[0.07]"
+            style={{ backgroundImage: 'repeating-linear-gradient(135deg, #fff 0px, #fff 1px, transparent 1px, transparent 14px)' }} />
           <div className="absolute top-0 right-0 w-48 h-48 rounded-full pointer-events-none"
-            style={{ background: 'radial-gradient(circle, rgba(167,139,250,0.4) 0%, transparent 70%)', transform: 'translate(30%,-30%)' }} />
+            style={{ background: 'radial-gradient(circle, rgba(37,99,235,0.45) 0%, transparent 70%)', transform: 'translate(30%,-30%)' }} />
           <div className="relative z-10">
-            <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-gray-600 bg-white/80 border border-white/60 rounded-full px-2.5 py-1 mb-3">
-              <span className="w-1.5 h-1.5 rounded-full bg-green-500 inline-block" />
+            <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-slate-200 bg-white/10 border border-white/15 rounded-full px-2.5 py-1 mb-3">
+              <span className="w-1.5 h-1.5 rounded-full bg-green-400 inline-block" />
               Доставка 24/7
             </span>
-            <h1 className="text-2xl font-extrabold text-gray-900 leading-snug mb-1">
-              Техника <span className="text-[#4F46E5]">напрокат</span> в Москве
+            <h1 className="text-2xl font-extrabold text-white leading-snug mb-1">
+              Техника <span className="text-[#60A5FA]">напрокат</span> в Москве
             </h1>
-            <p className="text-gray-500 text-xs mb-4">Пылесосы, камеры, колонки. От 400 ₽/день, без залога.</p>
+            <p className="text-slate-400 text-xs mb-4">Пылесосы, камеры, колонки. От 400 ₽/день, без залога.</p>
             <button
               onClick={() => document.getElementById('catalog')?.scrollIntoView({ behavior: 'smooth' })}
-              className="inline-flex items-center gap-2 bg-gray-900 text-white text-sm font-bold px-5 py-2.5 rounded-xl"
+              className="inline-flex items-center gap-2 bg-[#2563EB] text-white text-sm font-bold px-5 py-2.5 rounded-xl"
             >
               Открыть каталог <ChevronRight className="w-4 h-4" />
             </button>
@@ -197,12 +198,11 @@ export default function HomePage() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-stretch">
 
             {/* Left: headline card */}
-            <div className="relative rounded-3xl p-8 md:p-10 flex flex-col justify-between overflow-hidden min-h-[420px]"
-              style={{ background: 'linear-gradient(135deg, #f0f4ff 0%, #e8eeff 40%, #ede9fe 100%)' }}>
+            <div className="relative rounded-3xl p-8 md:p-10 flex flex-col justify-between overflow-hidden min-h-[420px] bg-[#EEF2F9]">
+              <div className="absolute inset-0 pointer-events-none opacity-[0.35]"
+                style={{ backgroundImage: 'repeating-linear-gradient(135deg, rgba(37,99,235,0.06) 0px, rgba(37,99,235,0.06) 1px, transparent 1px, transparent 16px)' }} />
               <div className="absolute top-0 right-0 w-72 h-72 rounded-full pointer-events-none"
-                style={{ background: 'radial-gradient(circle, rgba(167,139,250,0.35) 0%, transparent 70%)', transform: 'translate(30%, -30%)' }} />
-              <div className="absolute bottom-10 right-10 w-48 h-48 rounded-full pointer-events-none"
-                style={{ background: 'radial-gradient(circle, rgba(99,102,241,0.2) 0%, transparent 70%)' }} />
+                style={{ background: 'radial-gradient(circle, rgba(37,99,235,0.16) 0%, transparent 70%)', transform: 'translate(30%, -30%)' }} />
               <div className="relative z-10">
                 <div className="flex items-center gap-3 mb-6">
                   <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-gray-600 bg-white/70 border border-white/60 rounded-full px-3 py-1 backdrop-blur-sm">
@@ -215,7 +215,7 @@ export default function HomePage() {
                 </div>
                 <h1 className="text-4xl md:text-5xl font-extrabold text-gray-900 leading-tight mb-4">
                   Возьмите<br />
-                  <span className="text-[#4F46E5]">технику на день</span><br />
+                  <span className="text-[#2563EB]">технику на день</span><br />
                   а не на годы
                 </h1>
                 <p className="text-gray-500 text-base mb-8 max-w-md">
@@ -225,8 +225,7 @@ export default function HomePage() {
                 <div className="flex flex-col sm:flex-row gap-3">
                   <a href="#catalog"
                     onClick={(e) => { e.preventDefault(); document.getElementById('catalog')?.scrollIntoView({ behavior: 'smooth' }) }}
-                    className="btn-pill-primary shadow-lg hover:shadow-indigo-200 hover:scale-[1.02]"
-                    style={{ background: 'linear-gradient(135deg, #6366f1, #7c3aed)' }}>
+                    className="btn-pill-primary shadow-lg hover:shadow-blue-200 hover:scale-[1.02] bg-[#2563EB]">
                     Открыть каталог
                     <span className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center text-sm">›</span>
                   </a>
@@ -272,7 +271,9 @@ export default function HomePage() {
                     </p>
                   </div>
                   <div className="flex items-end justify-between mt-6">
-                    <div className="text-5xl select-none">🚚</div>
+                    <div className="w-14 h-14 rounded-2xl bg-white/10 border border-white/10 flex items-center justify-center">
+                      <Truck className="w-7 h-7 text-[#60A5FA]" />
+                    </div>
                     <button
                       onClick={() => document.getElementById('catalog')?.scrollIntoView({ behavior: 'smooth' })}
                       className="btn-primary"
@@ -580,12 +581,12 @@ export default function HomePage() {
       {/* ── CTA Banner ── */}
       <section className="py-8">
         <div className="container mx-auto px-4">
-          <div className="rounded-3xl bg-gradient-to-br from-[#2563EB] via-[#4F46E5] to-[#7C3AED] p-10 md:p-14 text-white grid md:grid-cols-2 gap-8 items-center">
+          <div className="rounded-3xl bg-gradient-to-br from-[#1D4ED8] to-[#0F172A] p-10 md:p-14 text-white grid md:grid-cols-2 gap-8 items-center">
             <div>
               <p className="text-xs font-semibold text-blue-200 uppercase tracking-widest mb-2">Звоним с 9:00 до 22:00, пишем 24/7</p>
               <h2 className="text-3xl md:text-4xl font-extrabold mb-3 leading-tight text-white">
                 Подскажем<br />оборудование<br />
-                <span className="text-yellow-300">за 5 минут</span>
+                <span className="text-[#60A5FA]">за 5 минут</span>
               </h2>
               <p className="text-blue-100 text-sm mb-6">
                 Расскажите задачу — подберём технику, рассчитаем стоимость и привезём в удобное время.
@@ -606,13 +607,15 @@ export default function HomePage() {
             </div>
             <div className="hidden md:grid grid-cols-1 gap-3">
               {[
-                { icon: '📍', label: 'ОФИС 1 — М. ВОЛЖСКАЯ', value: 'Волжский бульвар, 51с15' },
-                { icon: '📍', label: 'ОФИС 2 — М. ДИНАМО', value: 'ул. Расковой, 1' },
-                { icon: '⏰', label: 'ЧАСЫ РАБОТЫ', value: 'Круглосуточно, 24/7' },
-                { icon: '✉️', label: 'EMAIL', value: 'alkhimovmv@yandex.ru' },
+                { icon: MapPin, label: 'ОФИС 1 — М. ВОЛЖСКАЯ', value: 'Волжский бульвар, 51с15' },
+                { icon: MapPin, label: 'ОФИС 2 — М. ДИНАМО', value: 'ул. Расковой, 1' },
+                { icon: Clock, label: 'ЧАСЫ РАБОТЫ', value: 'Круглосуточно, 24/7' },
+                { icon: Mail, label: 'EMAIL', value: 'alkhimovmv@yandex.ru' },
               ].map((item) => (
                 <div key={item.label} className="bg-white/10 backdrop-blur-sm rounded-2xl px-5 py-4 flex items-center gap-4 border border-white/10">
-                  <span className="text-2xl">{item.icon}</span>
+                  <div className="w-9 h-9 rounded-xl bg-white/10 flex items-center justify-center flex-shrink-0">
+                    <item.icon className="w-4 h-4 text-[#60A5FA]" />
+                  </div>
                   <div>
                     <div className="text-xs text-blue-200 font-semibold tracking-widest">{item.label}</div>
                     <div className="text-white font-bold text-sm">{item.value}</div>

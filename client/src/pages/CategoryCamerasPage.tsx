@@ -100,7 +100,7 @@ export default function CategoryCamerasPage() {
       />
 
       {/* Hero */}
-      <section className="bg-gradient-to-br from-[#2563EB] via-[#4F46E5] to-[#7C3AED] text-white py-16 md:py-20">
+      <section className="bg-gradient-to-br from-[#1D4ED8] to-[#0F172A] text-white py-16 md:py-20">
         <div className="container mx-auto px-4">
           <div className="text-sm mb-4 text-blue-200">
             <Link to="/" className="hover:text-white">Главная</Link>
@@ -210,7 +210,7 @@ export default function CategoryCamerasPage() {
       {/* CTA */}
       <section className="py-14">
         <div className="container mx-auto px-4">
-          <div className="bg-gradient-to-br from-[#2563EB] via-[#4F46E5] to-[#7C3AED] rounded-2xl p-10 text-center text-white">
+          <div className="bg-gradient-to-br from-[#1D4ED8] to-[#0F172A] rounded-2xl p-10 text-center text-white">
             <h2 className="text-2xl font-extrabold mb-3">Готовы снимать крутые видео?</h2>
             <p className="text-blue-100 mb-6 max-w-xl mx-auto text-sm">Арендуйте камеру сегодня и получите полный комплект креплений!</p>
             <div className="flex flex-col sm:flex-row gap-3 justify-center">

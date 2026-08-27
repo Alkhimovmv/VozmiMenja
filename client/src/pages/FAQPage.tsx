@@ -44,7 +44,7 @@ export default function FAQPage() {
       />
 
       {/* Hero */}
-      <section className="bg-gradient-to-br from-[#2563EB] via-[#4F46E5] to-[#7C3AED] text-white py-16 md:py-20">
+      <section className="bg-gradient-to-br from-[#1D4ED8] to-[#0F172A] text-white py-16 md:py-20">
         <div className="container mx-auto px-4 text-center">
           <span className="inline-block text-xs font-semibold uppercase tracking-widest text-blue-200 mb-3">Поддержка</span>
           <h1 className="text-4xl md:text-5xl font-extrabold mb-4 text-white">Часто задаваемые вопросы</h1>
