@@ -198,7 +198,7 @@ export default function BookingForm({ equipment, onClose }: BookingFormProps) {
         </div>
 
         {/* Скроллящееся тело */}
-        <div className="flex-1 overflow-y-auto overscroll-contain p-6 space-y-5 booking-modal-scroll">
+        <div className="flex-1 overflow-y-auto overflow-x-hidden overscroll-contain p-6 space-y-5 booking-modal-scroll">
           {/* Equipment card */}
           <div className="flex items-center gap-4 p-4 bg-[#F8FAFC] rounded-2xl border border-gray-100">
             <div className="w-16 h-16 rounded-xl overflow-hidden bg-white border border-gray-100 flex-shrink-0">
@@ -228,7 +228,7 @@ export default function BookingForm({ equipment, onClose }: BookingFormProps) {
                     min={today}
                     required
                     placeholder="дд.мм.гггг"
-                    className="block w-full min-w-0 max-w-full px-2.5 sm:px-3 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#2563EB]/30 focus:border-[#2563EB] transition-colors [&:not(:valid)]:text-gray-400"
+                    className="block w-full min-w-0 max-w-full pl-3 pr-1.5 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#2563EB]/30 focus:border-[#2563EB] transition-colors [&:not(:valid)]:text-gray-400"
                   />
                 </div>
                 <div className="min-w-0">
@@ -241,7 +241,7 @@ export default function BookingForm({ equipment, onClose }: BookingFormProps) {
                     min={formData.startDate || today}
                     required
                     placeholder="дд.мм.гггг"
-                    className="block w-full min-w-0 max-w-full px-2.5 sm:px-3 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#2563EB]/30 focus:border-[#2563EB] transition-colors [&:not(:valid)]:text-gray-400"
+                    className="block w-full min-w-0 max-w-full pl-3 pr-1.5 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#2563EB]/30 focus:border-[#2563EB] transition-colors [&:not(:valid)]:text-gray-400"
                   />
                 </div>
               </div>

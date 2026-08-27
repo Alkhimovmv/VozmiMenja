@@ -7,7 +7,7 @@ import maxIcon from '../assets/max.png'
 const DEFAULT_SUBJECT = 'other'
 
 export default function ContactPage() {
-  const [formData, setFormData] = useState({ name: '', phone: '', email: '', message: '' })
+  const [formData, setFormData] = useState({ name: '', phone: '', message: '' })
   const [consent, setConsent] = useState(false)
   const [showMap, setShowMap] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -31,7 +31,7 @@ export default function ContactPage() {
     try {
       await apiClient.sendContactMessage({ ...formData, subject: DEFAULT_SUBJECT })
       setSubmitStatus('success')
-      setFormData({ name: '', phone: '', email: '', message: '' })
+      setFormData({ name: '', phone: '', message: '' })
       setTimeout(() => setSubmitStatus('idle'), 5000)
     } catch {
       setSubmitStatus('error')
@@ -192,7 +192,6 @@ export default function ContactPage() {
                 {[
                   { id: 'name', label: 'Имя *', type: 'text', placeholder: 'Ваше имя', required: true },
                   { id: 'phone', label: 'Телефон *', type: 'tel', placeholder: '+7 (___) ___-__-__', required: true },
-                  { id: 'email', label: 'Email', type: 'email', placeholder: 'your@email.com', required: false },
                 ].map((field) => (
                   <div key={field.id}>
                     <label htmlFor={field.id} className="block text-sm font-semibold text-gray-700 mb-1.5">

@@ -141,15 +141,37 @@
   border-radius: 999px;
 }
 
-/* ── Нативные инпуты даты/времени: не даём calendar-picker раздувать ширину ── */
+/* ── Нативные инпуты даты/времени: не даём им вылезать из контейнера на мобильных ── */
 input[type="date"],
 input[type="datetime-local"] {
   min-width: 0;
+  width: 100%;
+  max-width: 100%;
   box-sizing: border-box;
+  /* Safari масштабирует страницу при фокусе на инпуте с font-size < 16px */
+  font-size: max(16px, 1em);
 }
 
 input[type="date"]::-webkit-calendar-picker-indicator,
 input[type="datetime-local"]::-webkit-calendar-picker-indicator {
-  margin-left: 4px;
+  margin-left: 2px;
   padding: 0;
+}
+
+input[type="date"]::-webkit-datetime-edit,
+input[type="datetime-local"]::-webkit-datetime-edit {
+  overflow: hidden;
+}
+
+input[type="date"]::-webkit-datetime-edit-fields-wrapper,
+input[type="datetime-local"]::-webkit-datetime-edit-fields-wrapper {
+  overflow: hidden;
+}
+
+@media (max-width: 640px) {
+  input[type="date"],
+  input[type="datetime-local"] {
+    padding-left: 8px;
+    padding-right: 6px;
+  }
 }

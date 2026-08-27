@@ -462,7 +462,7 @@ const RentalModal: React.FC<RentalModalProps> = ({
                     value={formData.start_date}
                     onChange={e => handleDateChange('start_date', e.target.value)}
                     step="3600"
-                    className={`w-full min-w-0 border rounded-md px-2.5 py-2 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 ${
+                    className={`w-full min-w-0 border rounded-md pl-2.5 pr-1 py-2 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 ${
                       validationErrors.start_date || validationErrors.dates ? 'border-red-500' : 'border-gray-300'
                     }`}
                     required
@@ -480,7 +480,7 @@ const RentalModal: React.FC<RentalModalProps> = ({
                     value={formData.end_date}
                     onChange={e => handleDateChange('end_date', e.target.value)}
                     step="3600"
-                    className={`w-full min-w-0 border rounded-md px-2.5 py-2 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 ${
+                    className={`w-full min-w-0 border rounded-md pl-2.5 pr-1 py-2 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 ${
                       validationErrors.end_date || validationErrors.dates ? 'border-red-500' : 'border-gray-300'
                     }`}
                     required
