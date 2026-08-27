@@ -15,6 +15,7 @@
     "seed:blog-growth": "tsx src/scripts/seed-blog-growth-articles.ts",
     "seed:blog-growth:prod": "node dist/scripts/seed-blog-growth-articles.js",
     "smoke:public": "tsx src/scripts/smoke-public-urls.ts",
+    "smoke:public:prod": "node dist/scripts/smoke-public-urls.js",
     "seed": "tsx src/scripts/seed.ts",
     "reset-db": "tsx src/scripts/reset-db.ts",
     "migrate": "tsx src/scripts/migrate-pricing.ts",

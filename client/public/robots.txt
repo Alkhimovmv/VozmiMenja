@@ -21,9 +21,13 @@ Crawl-delay: 1
 # Яндекс
 User-agent: Yandex
 Allow: /
+Disallow: /admin/
+Disallow: /api/
 Crawl-delay: 1
 
 # Google
 User-agent: Googlebot
 Allow: /
+Disallow: /admin/
+Disallow: /api/
 Crawl-delay: 1

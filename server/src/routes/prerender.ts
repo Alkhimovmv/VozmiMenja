@@ -32,6 +32,74 @@ function formatPrice(price: number): string {
   return new Intl.NumberFormat('ru-RU').format(Math.round(price))
 }
 
+function safeJsonLd(data: object | object[]): string {
+  return JSON.stringify(data).replace(/</g, '\\u003c')
+}
+
+function getEquipmentFaq(category: string, name: string) {
+  if (category.includes('Пылесос') || category.includes('клининг')) {
+    return [
+      {
+        question: `Подойдет ли ${name} для уборки после ремонта?`,
+        answer: 'Да, если задача связана со строительной пылью, влажной уборкой или чисткой мебели. Если сомневаетесь, напишите нам: подберем модель под площадь и тип загрязнения.',
+      },
+      {
+        question: 'Что входит в комплект?',
+        answer: 'Перед выдачей комплект проверяется. Обычно в аренду входят основные насадки, шланг и инструкция по использованию.',
+      },
+      {
+        question: 'Можно ли взять на один день?',
+        answer: 'Да, можно оформить аренду на один календарный день и выбрать одинаковые даты начала и окончания.',
+      },
+    ]
+  }
+
+  if (category.includes('Камер')) {
+    return [
+      {
+        question: `Для чего лучше всего подходит ${name}?`,
+        answer: 'Камера подходит для съемки видео, поездок, мероприятий и контента для соцсетей. Конкретный формат зависит от модели и условий съемки.',
+      },
+      {
+        question: 'Нужны ли аксессуары?',
+        answer: 'Для поездки или съемки на целый день обычно полезны карта памяти, крепления, запасные аккумуляторы и внешний микрофон.',
+      },
+      {
+        question: 'Можно ли получить консультацию перед арендой?',
+        answer: 'Да, расскажите задачу, локацию и формат ролика, а мы подскажем камеру и комплект.',
+      },
+    ]
+  }
+
+  if (category.includes('Аудио')) {
+    return [
+      {
+        question: `Хватит ли ${name} для моего мероприятия?`,
+        answer: 'Зависит от помещения, количества гостей и задачи: фон, речь или танцы. Опишите формат, и мы поможем выбрать комплект.',
+      },
+      {
+        question: 'Можно ли подключить телефон или ноутбук?',
+        answer: 'Для большинства аудиосценариев подключение возможно, но лучше заранее уточнить устройство и нужный формат подключения.',
+      },
+      {
+        question: 'Что проверить перед мероприятием?',
+        answer: 'Проверьте питание, место установки, подключение источника звука и нужен ли микрофон для речи.',
+      },
+    ]
+  }
+
+  return [
+    {
+      question: `Можно ли взять ${name} на один день?`,
+      answer: 'Да, можно оформить краткосрочную аренду и вернуть оборудование после выполнения задачи.',
+    },
+    {
+      question: 'Поможете выбрать комплект?',
+      answer: 'Да, расскажите задачу и срок аренды, а мы предложим подходящий вариант.',
+    },
+  ]
+}
+
 function buildHtml(opts: {
   title: string
   description: string
@@ -39,7 +107,7 @@ function buildHtml(opts: {
   image: string
   url: string
   price: number
-  structuredData: object
+  structuredData: object | object[]
 }): string {
   const siteTitle = `${esc(opts.title)} | ВозьмиМеня`
   return `<!DOCTYPE html>
@@ -58,9 +126,14 @@ function buildHtml(opts: {
   <meta property="og:url" content="${esc(opts.url)}">
   <meta property="og:site_name" content="ВозьмиМеня">
   <meta property="og:locale" content="ru_RU">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="${siteTitle}">
+  <meta name="twitter:description" content="${esc(opts.description)}">
+  <meta name="twitter:image" content="${esc(opts.image)}">
+  <meta name="twitter:url" content="${esc(opts.url)}">
   <meta property="product:price:amount" content="${opts.price}">
   <meta property="product:price:currency" content="RUB">
-  <script type="application/ld+json">${JSON.stringify(opts.structuredData)}</script>
+  <script type="application/ld+json">${safeJsonLd(opts.structuredData)}</script>
 </head>
 <body>
   <h1>${esc(opts.title)}</h1>
@@ -127,6 +200,19 @@ router.get('/equipment/:id', async (req: Request, res: Response) => {
       aggregateRating: { '@type': 'AggregateRating', ratingValue: '4.9', reviewCount: '412' },
     }
 
+    const faqStructuredData = {
+      '@context': 'https://schema.org',
+      '@type': 'FAQPage',
+      mainEntity: getEquipmentFaq(eq.category, name).map((item) => ({
+        '@type': 'Question',
+        name: item.question,
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: item.answer,
+        },
+      })),
+    }
+
     res.setHeader('Content-Type', 'text/html; charset=utf-8')
     res.setHeader('Cache-Control', 'public, max-age=3600')
     res.send(buildHtml({
@@ -136,7 +222,7 @@ router.get('/equipment/:id', async (req: Request, res: Response) => {
       image: imageUrl,
       url,
       price: minPrice,
-      structuredData,
+      structuredData: [structuredData, faqStructuredData],
     }))
   } catch (error) {
     console.error('Prerender error:', error)

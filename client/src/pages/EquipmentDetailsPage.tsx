@@ -85,6 +85,38 @@ function getEquipmentGuidance(category: string, name: string) {
   }
 }
 
+function getCategoryLandingHref(category: string) {
+  if (category.includes('Пылесос') || category.includes('клининг')) {
+    return '/arenda-pylesosov-moskva'
+  }
+
+  if (category.includes('Камер')) {
+    return '/arenda-gopro-moskva'
+  }
+
+  if (category.includes('Аудио')) {
+    return '/arenda-audiooborudovaniya-moskva'
+  }
+
+  return '/'
+}
+
+function getCategoryGuideHref(category: string) {
+  if (category.includes('Пылесос') || category.includes('клининг')) {
+    return '/blog/kak-pochistit-divan-i-kover-moyushchim-pylesosom'
+  }
+
+  if (category.includes('Камер')) {
+    return '/blog/kakuyu-kameru-vzyat-v-puteshestvie-gopro-dji-insta360'
+  }
+
+  if (category.includes('Аудио')) {
+    return '/blog/kolonka-dlya-vecherinki-kakuyu-jbl-partybox-vzyat-v-arendu'
+  }
+
+  return '/blog'
+}
+
 export default function EquipmentDetailsPage() {
   const { id } = useParams<{ id: string }>()
   const { data, isLoading, error } = useEquipmentById(id!)
@@ -185,6 +217,20 @@ export default function EquipmentDetailsPage() {
 
   const minPrice = getMinPrice()
   const guidance = getEquipmentGuidance(equipment.category, equipment.name)
+  const categoryLandingHref = getCategoryLandingHref(equipment.category)
+  const categoryGuideHref = getCategoryGuideHref(equipment.category)
+  const faqStructuredData = {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: guidance.faq.map((item) => ({
+      '@type': 'Question',
+      name: item.question,
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: item.answer,
+      },
+    })),
+  }
   const seoTitle = `Аренда ${equipment.name} в Москве | от ${formatPrice(minPrice)}/сутки | Доставка в день заказа | ВозьмиМеня`
   const seoDescription = `Аренда ${equipment.name} в Москве от ${formatPrice(minPrice)}/сутки | Доставка в день заказа | Постамат 24/7 | Звоните: +7 (993) 363-64-64`
   const seoKeywords = `аренда ${equipment.name}, прокат ${equipment.name}, ${equipment.name} аренда Москва, взять в аренду ${equipment.name}, ${equipment.category} аренда Москва, прокат ${equipment.category}`
@@ -198,7 +244,7 @@ export default function EquipmentDetailsPage() {
         image={equipment.images[0] ? `https://vozmimenya.ru${getImageUrl(equipment.images[0])}` : undefined}
         url={`https://vozmimenya.ru/equipment/${equipment.id}`}
         type="product"
-        structuredData={productStructuredData}
+        structuredData={[productStructuredData, faqStructuredData]}
       />
 
       {/* Breadcrumb */}
@@ -207,7 +253,7 @@ export default function EquipmentDetailsPage() {
           <div className="flex items-center gap-1.5 text-sm text-muted">
             <Link to="/" className="hover:text-ink transition-colors">Главная</Link>
             <ChevronRight className="w-3.5 h-3.5" />
-            <Link to={`/?category=${encodeURIComponent(equipment.category)}`} className="hover:text-ink transition-colors">
+            <Link to={categoryLandingHref} className="hover:text-ink transition-colors">
               {equipment.category}
             </Link>
             <ChevronRight className="w-3.5 h-3.5" />
@@ -373,6 +419,25 @@ export default function EquipmentDetailsPage() {
                   <p className="text-sm text-muted leading-relaxed">{item.answer}</p>
                 </div>
               ))}
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-6 bg-white rounded-2xl border border-line p-6">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div>
+              <h2 className="text-xl font-bold text-ink mb-2">Не уверены, подойдет ли эта модель?</h2>
+              <p className="text-sm text-muted leading-relaxed max-w-2xl">
+                Посмотрите подборку по категории или откройте короткий гид: так проще выбрать оборудование под задачу и срок аренды.
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Link to={categoryLandingHref} className="px-4 py-2 bg-[#2563EB] text-white rounded-xl text-sm font-semibold hover:bg-[#1D4ED8] transition-colors">
+                Все варианты
+              </Link>
+              <Link to={categoryGuideHref} className="px-4 py-2 bg-[#F8FAFC] text-gray-700 rounded-xl text-sm font-semibold border border-line hover:text-[#2563EB] transition-colors">
+                Как выбрать
+              </Link>
             </div>
           </div>
         </div>

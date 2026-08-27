@@ -77,6 +77,33 @@ export default function CategoryPylesosyPage() {
     },
   ]
 
+  const taskGuides = [
+    {
+      title: 'Почистить диван или ковер',
+      description: 'Для глубокой влажной чистки мебели и ковров лучше смотреть моющие пылесосы Puzzi.',
+      equipmentHref: '/equipment/51022efa-99b7-4c93-a5ad-0f19851f6c1a',
+      equipmentLabel: 'Karcher Puzzi 8/1',
+      guideHref: '/blog/kak-pochistit-divan-i-kover-moyushchim-pylesosom',
+      guideLabel: 'Гайд по чистке дивана',
+    },
+    {
+      title: 'Убрать после ремонта',
+      description: 'Для строительной пыли, мусора и влажной уборки нужен пылесос с запасом мощности и баком.',
+      equipmentHref: '/equipment/0519e3d0-e02f-4f8e-b77d-0c80fe58a9cc',
+      equipmentLabel: 'Karcher WD5',
+      guideHref: '/blog/kak-vybrat-pylesos-dlya-uborki-posle-remonta',
+      guideLabel: 'Как выбрать пылесос',
+    },
+    {
+      title: 'Сделать уборку как клининг',
+      description: 'Если задач несколько, удобно сравнить сухую, влажную уборку и химчистку в одном материале.',
+      equipmentHref: '/equipment/f2260efd-d0e7-4622-91b0-c90a2cbc64ad',
+      equipmentLabel: 'Karcher Puzzi 10/1',
+      guideHref: '/blog/professionalny-pylesy-dlya-klininga',
+      guideLabel: 'Что использует клининг',
+    },
+  ]
+
   return (
     <div className="min-h-screen bg-[#F8FAFC]">
       <SEO
@@ -126,6 +153,38 @@ export default function CategoryPylesosyPage() {
         <div className="container mx-auto px-4">
           <h2 className="text-2xl font-extrabold text-gray-900 mb-8">Оборудование для уборки в аренду</h2>
           <EquipmentGrid equipment={data?.data || []} loading={isLoading} error={error?.message || null} />
+        </div>
+      </section>
+
+      <section className="py-12 bg-white">
+        <div className="container mx-auto px-4">
+          <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-3 mb-8">
+            <div>
+              <h2 className="text-2xl font-extrabold text-gray-900 mb-2">Подобрать пылесос под задачу</h2>
+              <p className="text-gray-500 text-sm max-w-2xl">
+                Если не хочется разбираться в моделях, начните со сценария: мебель, ремонт или профессиональная уборка.
+              </p>
+            </div>
+            <Link to="/blog" className="text-[#2563EB] text-sm font-semibold hover:underline">
+              Все статьи
+            </Link>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+            {taskGuides.map((guide) => (
+              <div key={guide.title} className="rounded-2xl border border-gray-100 bg-[#F8FAFC] p-5">
+                <h3 className="font-bold text-gray-900 mb-2">{guide.title}</h3>
+                <p className="text-sm text-gray-500 leading-relaxed mb-4">{guide.description}</p>
+                <div className="flex flex-wrap gap-2">
+                  <Link to={guide.equipmentHref} className="px-3 py-2 bg-[#2563EB] text-white rounded-xl text-sm font-semibold hover:bg-[#1D4ED8] transition-colors">
+                    {guide.equipmentLabel}
+                  </Link>
+                  <Link to={guide.guideHref} className="px-3 py-2 bg-white text-gray-700 rounded-xl text-sm font-semibold border border-gray-100 hover:text-[#2563EB] transition-colors">
+                    {guide.guideLabel}
+                  </Link>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 

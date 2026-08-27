@@ -61,6 +61,27 @@ function getRentalCta(category: string) {
   return rentalCtas.default
 }
 
+function extractFaqFromMarkdown(content: string) {
+  const faqStart = content.search(/^##\s+Частые вопросы\s*$/m)
+  if (faqStart === -1) return []
+
+  const faqContent = content.slice(faqStart)
+  const nextSection = faqContent.slice(1).search(/^##\s+/m)
+  const section = nextSection === -1 ? faqContent : faqContent.slice(0, nextSection + 1)
+  const matches = [...section.matchAll(/^###\s+(.+?)\s*\n+([\s\S]*?)(?=\n###\s+|\n##\s+|$)/gm)]
+
+  return matches
+    .map((match) => ({
+      question: match[1].trim(),
+      answer: match[2]
+        .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+        .replace(/[*_`>#-]/g, '')
+        .replace(/\s+/g, ' ')
+        .trim(),
+    }))
+    .filter((item) => item.question && item.answer)
+}
+
 export default function BlogArticlePage() {
   const { slug } = useParams<{ slug: string }>()
   const navigate = useNavigate()
@@ -128,6 +149,21 @@ export default function BlogArticlePage() {
     publisher: { '@type': 'Organization', name: 'ВозьмиМеня', logo: { '@type': 'ImageObject', url: 'https://vozmimenya.ru/logo.png' } },
     mainEntityOfPage: { '@type': 'WebPage', '@id': `https://vozmimenya.ru/blog/${article.slug}` },
   }
+  const faqItems = extractFaqFromMarkdown(article.content)
+  const faqStructuredData = faqItems.length > 0
+    ? {
+        '@context': 'https://schema.org',
+        '@type': 'FAQPage',
+        mainEntity: faqItems.map((item) => ({
+          '@type': 'Question',
+          name: item.question,
+          acceptedAnswer: {
+            '@type': 'Answer',
+            text: item.answer,
+          },
+        })),
+      }
+    : null
   const rentalCta = getRentalCta(article.category)
 
   return (
@@ -139,7 +175,7 @@ export default function BlogArticlePage() {
         image={article.image_url || undefined}
         url={`https://vozmimenya.ru/blog/${article.slug}`}
         type="article"
-        structuredData={structuredData}
+        structuredData={faqStructuredData ? [structuredData, faqStructuredData] : structuredData}
       />
 
       <article className="min-h-screen bg-[#F8FAFC]">

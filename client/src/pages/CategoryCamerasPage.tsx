@@ -26,6 +26,17 @@ export default function CategoryCamerasPage() {
     url: 'https://vozmimenya.ru/arenda-gopro-moskva',
   }
 
+  const faqStructuredData = {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: [
+      { '@type': 'Question', name: 'Какую камеру лучше взять для путешествия?', acceptedAnswer: { '@type': 'Answer', text: 'Для активного отдыха и креплений подойдет GoPro, для влогов и прогулок - DJI Osmo Pocket 3, для необычных 360-градусных ракурсов - Insta360.' } },
+      { '@type': 'Question', name: 'Что входит в комплект при аренде камеры?', acceptedAnswer: { '@type': 'Answer', text: 'Комплект зависит от модели, но обычно можно подобрать камеру, крепления, зарядку, аккумуляторы и карту памяти под конкретную съемку.' } },
+      { '@type': 'Question', name: 'Можно ли взять камеру на один день?', acceptedAnswer: { '@type': 'Answer', text: 'Да, камеру можно арендовать на один календарный день, выходные, поездку или более долгий срок.' } },
+      { '@type': 'Question', name: 'Поможете выбрать камеру под задачу?', acceptedAnswer: { '@type': 'Answer', text: 'Да, расскажите формат съемки, локацию и длительность, а мы подскажем подходящую камеру и комплект аксессуаров.' } },
+    ],
+  }
+
   const advantages = [
     { icon: Camera, title: 'Последние модели', description: 'GoPro Hero 13, DJI Osmo Pocket 3, Insta 360 X5 и другие новинки' },
     { icon: Video, title: '4K/5.3K видео', description: 'Профессиональное качество съемки' },
@@ -51,6 +62,33 @@ export default function CategoryCamerasPage() {
     },
   ]
 
+  const taskGuides = [
+    {
+      title: 'Снять активный отдых',
+      description: 'Для спорта, воды, креплений и динамики лучше подойдет GoPro с широким углом и стабилизацией.',
+      equipmentHref: '/equipment/64e19704-b0dc-4879-9b90-6adc4eddd923',
+      equipmentLabel: 'GoPro 13',
+      guideHref: '/blog/gopro-dlya-nachinayushchih-polnoe-rukovodstvo',
+      guideLabel: 'Гайд по GoPro',
+    },
+    {
+      title: 'Снять путешествие или влог',
+      description: 'Для прогулок, разговорных видео и Reels удобно взять компактную камеру со стабилизацией.',
+      equipmentHref: '/equipment/5e1bd056-e6e8-4e92-ae17-519a56f564ad',
+      equipmentLabel: 'DJI Osmo Pocket 3',
+      guideHref: '/blog/kakuyu-kameru-vzyat-v-puteshestvie-gopro-dji-insta360',
+      guideLabel: 'Камера в путешествие',
+    },
+    {
+      title: 'Получить необычные ракурсы',
+      description: 'Для 360-видео, съемки одному и эффектных проходок подойдет Insta360.',
+      equipmentHref: '/equipment/98794938-b0c8-4a7d-b182-b6645ba8039b',
+      equipmentLabel: 'Insta360 X5',
+      guideHref: '/blog/top-3-kamery-dlya-svadeb-2025',
+      guideLabel: 'Камеры для мероприятий',
+    },
+  ]
+
   return (
     <div className="min-h-screen bg-[#F8FAFC]">
       <SEO
@@ -58,7 +96,7 @@ export default function CategoryCamerasPage() {
         description="✅ Аренда GoPro Hero 11/12 и других экшн-камер в Москве. Полный комплект креплений. Доставка 24/7. ☎️ +7 (993) 363-64-64"
         keywords="аренда gopro москва, прокат экшн камер, аренда gopro hero 12, прокат видеокамер, фототехника напрокат москва"
         url="https://vozmimenya.ru/arenda-gopro-moskva"
-        structuredData={categoryStructuredData}
+        structuredData={[categoryStructuredData, faqStructuredData]}
       />
 
       {/* Hero */}
@@ -90,6 +128,38 @@ export default function CategoryCamerasPage() {
         <div className="container mx-auto px-4">
           <h2 className="text-2xl font-extrabold text-gray-900 mb-8">Камеры в аренду</h2>
           <EquipmentGrid equipment={data?.data || []} loading={isLoading} error={error?.message || null} />
+        </div>
+      </section>
+
+      <section className="py-12 bg-white">
+        <div className="container mx-auto px-4">
+          <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-3 mb-8">
+            <div>
+              <h2 className="text-2xl font-extrabold text-gray-900 mb-2">Подобрать камеру под съемку</h2>
+              <p className="text-gray-500 text-sm max-w-2xl">
+                Выберите сценарий, а не модель: так проще понять, какая камера даст нужную картинку.
+              </p>
+            </div>
+            <Link to="/blog" className="text-[#2563EB] text-sm font-semibold hover:underline">
+              Все статьи
+            </Link>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+            {taskGuides.map((guide) => (
+              <div key={guide.title} className="rounded-2xl border border-gray-100 bg-[#F8FAFC] p-5">
+                <h3 className="font-bold text-gray-900 mb-2">{guide.title}</h3>
+                <p className="text-sm text-gray-500 leading-relaxed mb-4">{guide.description}</p>
+                <div className="flex flex-wrap gap-2">
+                  <Link to={guide.equipmentHref} className="px-3 py-2 bg-[#2563EB] text-white rounded-xl text-sm font-semibold hover:bg-[#1D4ED8] transition-colors">
+                    {guide.equipmentLabel}
+                  </Link>
+                  <Link to={guide.guideHref} className="px-3 py-2 bg-white text-gray-700 rounded-xl text-sm font-semibold border border-gray-100 hover:text-[#2563EB] transition-colors">
+                    {guide.guideLabel}
+                  </Link>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 
@@ -151,6 +221,20 @@ export default function CategoryCamerasPage() {
                 Связаться с нами
               </Link>
             </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="py-14 bg-white">
+        <div className="container mx-auto px-4">
+          <h2 className="text-2xl font-extrabold text-gray-900 mb-10 text-center">Частые вопросы</h2>
+          <div className="max-w-3xl mx-auto space-y-4">
+            {faqStructuredData.mainEntity.map((faq) => (
+              <div key={faq.name} className="bg-[#F8FAFC] rounded-2xl border border-gray-100 p-6">
+                <h3 className="font-bold text-gray-900 mb-2">{faq.name}</h3>
+                <p className="text-gray-500 text-sm leading-relaxed">{faq.acceptedAnswer.text}</p>
+              </div>
+            ))}
           </div>
         </div>
       </section>
