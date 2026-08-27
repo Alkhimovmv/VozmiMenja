@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { useEquipment, useEquipmentStats, useCategoryCounts } from '../hooks/useEquipment'
 import { articlesApi } from '../api/articles'
 import type { Article } from '../types'
@@ -48,6 +48,37 @@ const FALLBACK_ICON = (
     <path strokeLinecap="round" strokeLinejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
   </svg>
 )
+
+const QUICK_SCENARIOS = [
+  {
+    eyebrow: 'Уборка',
+    title: 'Почистить диван или ковер',
+    text: 'Моющие Puzzi для мебели, ковров и салона авто.',
+    href: '/blog/puzzi-8-1-ili-puzzi-10-1-kakoj-moyushchij-pylesos-vzyat',
+    accent: 'from-cyan-100 via-blue-100 to-slate-100',
+  },
+  {
+    eyebrow: 'Ремонт',
+    title: 'Убрать строительную пыль',
+    text: 'Пылесосы для пыли, мусора и уборки после работ.',
+    href: '/arenda-pylesosov-moskva',
+    accent: 'from-amber-100 via-orange-100 to-stone-100',
+  },
+  {
+    eyebrow: 'Съемка',
+    title: 'Снять поездку или влог',
+    text: 'GoPro, DJI Osmo Pocket и Insta360 под формат видео.',
+    href: '/arenda-gopro-moskva',
+    accent: 'from-rose-100 via-pink-100 to-sky-100',
+  },
+  {
+    eyebrow: 'Звук',
+    title: 'Озвучить праздник',
+    text: 'Колонки JBL и микрофоны для речи, музыки и видео.',
+    href: '/arenda-audiooborudovaniya-moskva',
+    accent: 'from-lime-100 via-emerald-100 to-teal-100',
+  },
+]
 
 
 export default function HomePage() {
@@ -276,6 +307,45 @@ export default function HomePage() {
                     <div className="text-slate-400 text-xs">{sub}</div>
                   </div>
                 </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="py-5 md:py-8">
+        <div className="container mx-auto px-4">
+          <div className="rounded-[28px] bg-white border border-gray-100 p-4 md:p-6 shadow-sm">
+            <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-3 mb-5">
+              <div>
+                <p className="text-xs font-bold text-[#2563EB] uppercase tracking-widest mb-2">Быстрый выбор</p>
+                <h2 className="text-2xl md:text-3xl font-extrabold text-gray-900 leading-tight">
+                  Начните не с техники, а с задачи
+                </h2>
+              </div>
+              <p className="text-sm text-gray-500 max-w-md">
+                Четыре частых сценария ведут сразу к подходящим категориям, товарам и гайдам.
+              </p>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+              {QUICK_SCENARIOS.map((item) => (
+                <Link
+                  key={item.title}
+                  to={item.href}
+                  className={`group relative overflow-hidden rounded-2xl bg-gradient-to-br ${item.accent} p-5 min-h-[170px] flex flex-col justify-between border border-white hover:-translate-y-0.5 hover:shadow-lg transition-all`}
+                >
+                  <div className="absolute -right-8 -top-8 w-24 h-24 rounded-full bg-white/40 blur-xl" />
+                  <div className="relative">
+                    <span className="inline-flex rounded-full bg-white/75 px-3 py-1 text-[11px] font-bold uppercase tracking-widest text-gray-600">
+                      {item.eyebrow}
+                    </span>
+                    <h3 className="mt-4 text-lg font-extrabold text-gray-900 leading-snug">{item.title}</h3>
+                    <p className="mt-2 text-sm text-gray-600 leading-relaxed">{item.text}</p>
+                  </div>
+                  <span className="relative mt-5 inline-flex items-center gap-1 text-sm font-bold text-gray-900 group-hover:gap-2 transition-all">
+                    Подобрать <ChevronRight className="w-4 h-4" />
+                  </span>
+                </Link>
               ))}
             </div>
           </div>

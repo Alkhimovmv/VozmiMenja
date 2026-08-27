@@ -75,9 +75,9 @@ export default function Footer() {
             <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Категории</h3>
             <div className="space-y-2">
               {[
-                { to: '/?category=Камеры', label: 'Камеры' },
-                { to: '/?category=Пылесосы,%20уборка%20и%20клининг', label: 'Пылесосы и клининг' },
-                { to: '/?category=Аудиооборудование', label: 'Аудиооборудование' },
+                { to: '/arenda-gopro-moskva', label: 'Камеры' },
+                { to: '/arenda-pylesosov-moskva', label: 'Пылесосы и клининг' },
+                { to: '/arenda-audiooborudovaniya-moskva', label: 'Аудиооборудование' },
               ].map((link) => (
                 <Link key={link.label} to={link.to}
                   className="block text-sm text-gray-400 hover:text-white transition-colors">
