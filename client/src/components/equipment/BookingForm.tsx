@@ -217,8 +217,8 @@ export default function BookingForm({ equipment, onClose }: BookingFormProps) {
               <p className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
                 <Calendar className="w-4 h-4 text-[#2563EB]" /> Период аренды
               </p>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <div className="min-w-0">
                   <label className="block text-xs text-gray-500 mb-1.5">Дата начала *</label>
                   <input
                     type="date"
@@ -228,10 +228,10 @@ export default function BookingForm({ equipment, onClose }: BookingFormProps) {
                     min={today}
                     required
                     placeholder="дд.мм.гггг"
-                    className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#2563EB]/30 focus:border-[#2563EB] transition-colors [&:not(:valid)]:text-gray-400"
+                    className="block w-full min-w-0 max-w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#2563EB]/30 focus:border-[#2563EB] transition-colors [&:not(:valid)]:text-gray-400"
                   />
                 </div>
-                <div>
+                <div className="min-w-0">
                   <label className="block text-xs text-gray-500 mb-1.5">Дата окончания *</label>
                   <input
                     type="date"
@@ -241,7 +241,7 @@ export default function BookingForm({ equipment, onClose }: BookingFormProps) {
                     min={formData.startDate || today}
                     required
                     placeholder="дд.мм.гггг"
-                    className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#2563EB]/30 focus:border-[#2563EB] transition-colors [&:not(:valid)]:text-gray-400"
+                    className="block w-full min-w-0 max-w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#2563EB]/30 focus:border-[#2563EB] transition-colors [&:not(:valid)]:text-gray-400"
                   />
                 </div>
               </div>
