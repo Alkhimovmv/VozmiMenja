@@ -16,7 +16,7 @@
 - [x] Growth Task: обновить `sitemap.xml`, добавив блог и актуальные публичные страницы
 - [x] Growth Task: продумать генерацию sitemap из данных оборудования и опубликованных статей
 - [x] Growth Task: добавить 3 SEO-статьи через безопасную миграцию `seed:blog-growth`
-- [ ] Growth Task: после публикации обновить sitemap на Cloud.ru через `npm run sitemap --workspace=server`
+- [x] Growth Task: встроить блог-миграцию и обновление sitemap в `deploy-local.sh update`
 - [x] Growth Task: завести `seo-agent/` с очередью семантики, content checklist и отчетами
 - [x] Growth Task: вывести свежие статьи на главную для внутренней перелинковки и переходов в блог
 - [x] Growth Task: добавить HTML-карту сайта `/sitemap`
