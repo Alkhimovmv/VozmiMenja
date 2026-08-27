@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom'
 import type { Equipment } from '../../types'
 import { getImageUrl } from '../../lib/utils'
 import { trackEvent } from '../../lib/analytics'
-import { getPeriodPrice } from '../../utils/pricing'
 import BookingForm from './BookingForm'
 
 interface EquipmentCardProps {
@@ -14,7 +13,6 @@ interface EquipmentCardProps {
 export default function EquipmentCard({ equipment, priority = false }: EquipmentCardProps) {
   const [showBookingForm, setShowBookingForm] = useState(false)
   const dayPrice = equipment.pricing?.day1 || equipment.pricePerDay
-  const weekPrice = getPeriodPrice(equipment.pricing, 7, equipment.pricePerDay)
 
   const formatPrice = (price: number) =>
     new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', minimumFractionDigits: 0 }).format(price)
@@ -42,9 +40,8 @@ export default function EquipmentCard({ equipment, priority = false }: Equipment
               <h3 className="line-clamp-1 text-sm font-semibold text-gray-950">{equipment.name}</h3>
               <p className="mt-1 line-clamp-1 text-xs text-gray-500">{equipment.description}</p>
             </Link>
-            <div className="mt-2 flex gap-4 text-xs text-gray-500">
-              <span><strong className="text-sm text-gray-950">{formatPrice(dayPrice)}</strong> / сутки</span>
-              <span><strong className="text-sm text-gray-950">{formatPrice(weekPrice)}</strong> / 7 суток</span>
+            <div className="mt-2 text-xs text-gray-500">
+              от <strong className="text-sm text-gray-950">{formatPrice(dayPrice)}</strong> / сутки
             </div>
             <div className="mt-auto flex items-center gap-3 pt-2">
               <button
@@ -81,15 +78,9 @@ export default function EquipmentCard({ equipment, priority = false }: Equipment
             <p className="mt-1 line-clamp-2 min-h-8 text-xs leading-4 text-gray-500">{equipment.description}</p>
           </Link>
 
-          <dl className="mt-4 grid grid-cols-2 border-y border-gray-100 py-3">
-            <div>
-              <dt className="text-[11px] text-gray-500">1 сутки</dt>
-              <dd className="mt-0.5 text-base font-semibold text-gray-950">{formatPrice(dayPrice)}</dd>
-            </div>
-            <div className="border-l border-gray-100 pl-4">
-              <dt className="text-[11px] text-gray-500">7 суток</dt>
-              <dd className="mt-0.5 text-base font-semibold text-gray-950">{formatPrice(weekPrice)}</dd>
-            </div>
+          <dl className="mt-4 border-y border-gray-100 py-3">
+            <dt className="text-[11px] text-gray-500">от, за сутки</dt>
+            <dd className="mt-0.5 text-base font-semibold text-gray-950">{formatPrice(dayPrice)}</dd>
           </dl>
 
           <div className="mt-4 flex items-center justify-between gap-3">

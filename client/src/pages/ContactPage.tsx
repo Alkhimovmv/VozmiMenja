@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import CustomSelect from '../components/ui/CustomSelect'
 import { apiClient } from '../lib/api'
 import avitoIcon from '../assets/avito.png'
 import maxIcon from '../assets/max.png'
 
+const DEFAULT_SUBJECT = 'other'
+
 export default function ContactPage() {
-  const [subject, setSubject] = useState('')
   const [formData, setFormData] = useState({ name: '', phone: '', email: '', message: '' })
   const [consent, setConsent] = useState(false)
   const [showMap, setShowMap] = useState(false)
@@ -19,14 +19,6 @@ export default function ContactPage() {
     }
   }, [])
 
-  const subjectOptions = [
-    { value: '', label: 'Выберите тему' },
-    { value: 'rental', label: 'Аренда оборудования' },
-    { value: 'support', label: 'Техническая поддержка' },
-    { value: 'partnership', label: 'Сотрудничество' },
-    { value: 'other', label: 'Другое' },
-  ]
-
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target
     setFormData((prev) => ({ ...prev, [name]: value }))
@@ -37,10 +29,9 @@ export default function ContactPage() {
     setIsSubmitting(true)
     setSubmitStatus('idle')
     try {
-      await apiClient.sendContactMessage({ ...formData, subject })
+      await apiClient.sendContactMessage({ ...formData, subject: DEFAULT_SUBJECT })
       setSubmitStatus('success')
       setFormData({ name: '', phone: '', email: '', message: '' })
-      setSubject('')
       setTimeout(() => setSubmitStatus('idle'), 5000)
     } catch {
       setSubmitStatus('error')
@@ -221,14 +212,6 @@ export default function ContactPage() {
                 ))}
 
                 <div>
-                  <label htmlFor="subject" className="block text-sm font-semibold text-gray-700 mb-1.5">Тема *</label>
-                  <CustomSelect
-                    id="subject" name="subject" value={subject}
-                    onChange={setSubject} options={subjectOptions} placeholder="Выберите тему"
-                  />
-                </div>
-
-                <div>
                   <label htmlFor="message" className="block text-sm font-semibold text-gray-700 mb-1.5">Сообщение *</label>
                   <textarea
                     id="message" name="message" rows={4} required
@@ -256,7 +239,7 @@ export default function ContactPage() {
 
                 <button
                   type="submit"
-                  disabled={isSubmitting || !subject || !consent}
+                  disabled={isSubmitting || !consent}
                   className="btn-primary w-full disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isSubmitting ? (

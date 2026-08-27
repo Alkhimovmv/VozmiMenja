@@ -94,7 +94,7 @@ export default function Testimonials() {
                   {[...Array(5)].map((_, i) => <StarIcon key={i} />)}
                   <span className="text-white font-bold ml-1">5.0</span>
                 </div>
-                <div className="text-white text-4xl font-extrabold mb-1">400+</div>
+                <div className="text-white text-4xl font-extrabold mb-1">500+</div>
                 <div className="text-white/80 text-sm mb-5">отзывов от реальных клиентов</div>
                 <div className="inline-flex items-center gap-2 bg-white/20 hover:bg-white/30 transition-colors text-white font-semibold text-sm px-4 py-2.5 rounded-xl">
                   Смотреть все отзывы

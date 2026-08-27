@@ -140,3 +140,16 @@
   background: #e2e8f0;
   border-radius: 999px;
 }
+
+/* ── Нативные инпуты даты/времени: не даём calendar-picker раздувать ширину ── */
+input[type="date"],
+input[type="datetime-local"] {
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator,
+input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+  margin-left: 4px;
+  padding: 0;
+}

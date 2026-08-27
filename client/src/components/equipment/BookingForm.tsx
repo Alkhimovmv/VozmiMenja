@@ -228,7 +228,7 @@ export default function BookingForm({ equipment, onClose }: BookingFormProps) {
                     min={today}
                     required
                     placeholder="дд.мм.гггг"
-                    className="block w-full min-w-0 max-w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#2563EB]/30 focus:border-[#2563EB] transition-colors [&:not(:valid)]:text-gray-400"
+                    className="block w-full min-w-0 max-w-full px-2.5 sm:px-3 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#2563EB]/30 focus:border-[#2563EB] transition-colors [&:not(:valid)]:text-gray-400"
                   />
                 </div>
                 <div className="min-w-0">
@@ -241,7 +241,7 @@ export default function BookingForm({ equipment, onClose }: BookingFormProps) {
                     min={formData.startDate || today}
                     required
                     placeholder="дд.мм.гггг"
-                    className="block w-full min-w-0 max-w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#2563EB]/30 focus:border-[#2563EB] transition-colors [&:not(:valid)]:text-gray-400"
+                    className="block w-full min-w-0 max-w-full px-2.5 sm:px-3 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#2563EB]/30 focus:border-[#2563EB] transition-colors [&:not(:valid)]:text-gray-400"
                   />
                 </div>
               </div>

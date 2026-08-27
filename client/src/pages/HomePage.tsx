@@ -7,7 +7,7 @@ import EquipmentGrid from '../components/equipment/EquipmentGrid'
 import HowItWorks from '../components/HowItWorks'
 import Testimonials from '../components/Testimonials'
 import SEO from '../components/SEO'
-import { ChevronLeft, ChevronRight, Phone, Shield, Truck, Clock, Sparkles, Search, X, MapPin, Mail } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Phone, Shield, Truck, Clock, Sparkles, Search, X, MapPin, Mail, SprayCan } from 'lucide-react'
 import { trackEvent } from '../lib/analytics'
 
 // Конфиг стилей по ключу категории из БД (без переименований — label берём с бэка)
@@ -19,11 +19,7 @@ const CAT_CONFIG: Record<string, { gradient: string; iconBg: string; blobColor: 
 
 // Иконки SVG для категорий
 const CAT_ICONS: Record<string, JSX.Element> = {
-  'Пылесосы, уборка и клининг': (
-    <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M9.75 3.104v5.714a2.25 2.25 0 01-.659 1.591L5 14.5M9.75 3.104c-.251.023-.501.05-.75.082m.75-.082a24.301 24.301 0 014.5 0m0 0v5.714a2.25 2.25 0 001.659 1.591L19.5 14.5m-14.5 0l.75 2.25m13-2.25l-.75 2.25M5 14.5h14M5 14.5l-.75 2.25M19.5 14.5l.75 2.25M6 19.5h12" />
-    </svg>
-  ),
+  'Пылесосы, уборка и клининг': <SprayCan className="w-5 h-5 text-white" strokeWidth={2} />,
   'Камеры': (
     <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z" />

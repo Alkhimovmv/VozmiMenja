@@ -1,4 +1,4 @@
-import { Camera, Wind, Mic2 } from 'lucide-react'
+import { Camera, SprayCan, Mic2 } from 'lucide-react'
 
 export default function AboutPage() {
   return (
@@ -69,7 +69,7 @@ export default function AboutPage() {
             <div className="grid md:grid-cols-3 gap-5">
               {[
                 { Icon: Camera, title: 'Камеры и фото', desc: 'Профессиональные камеры, объективы, экшн-камеры для создания качественного контента', bg: 'bg-blue-50', iconBg: 'bg-blue-500' },
-                { Icon: Wind, title: 'Клининговое оборудование', desc: 'Пылесосы, пароочистители, моющие аппараты для профессиональной уборки', bg: 'bg-slate-50', iconBg: 'bg-slate-700' },
+                { Icon: SprayCan, title: 'Клининговое оборудование', desc: 'Пылесосы, пароочистители, моющие аппараты для профессиональной уборки', bg: 'bg-slate-50', iconBg: 'bg-slate-700' },
                 { Icon: Mic2, title: 'Аудиооборудование', desc: 'Микрофоны, звуковое оборудование для записи и трансляций', bg: 'bg-sky-50', iconBg: 'bg-sky-600' },
               ].map((cat) => (
                 <div key={cat.title} className={`${cat.bg} rounded-2xl p-8 text-center`}>
