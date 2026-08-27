@@ -38,7 +38,7 @@ const DateTimeField = ({
   required?: boolean;
   min?: string;
 }) => (
-  <div>
+  <div className="min-w-0">
     <label className="mb-2 block text-sm font-medium text-gray-700">{label}</label>
     <input
       type="datetime-local"
@@ -46,7 +46,7 @@ const DateTimeField = ({
       min={min}
       onChange={(e) => onChange(e.target.value)}
       required={required}
-      className="w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm text-gray-900 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
+      className="block w-full min-w-0 max-w-full rounded-xl border border-gray-300 bg-white px-3 py-3 text-sm text-gray-900 outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 sm:px-4"
     />
   </div>
 );
@@ -140,7 +140,7 @@ const SchedulePage: React.FC = () => {
     <div className="h-full overflow-y-auto bg-gray-50">
       <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
         <div className="grid gap-6 lg:grid-cols-[420px_minmax(0,1fr)]">
-          <section className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-gray-100">
+          <section className="min-w-0 rounded-3xl bg-white p-4 shadow-sm ring-1 ring-gray-100 sm:p-6">
             <h2 className="text-lg font-semibold text-gray-900">Параметры проверки</h2>
             <p className="mt-1 text-sm text-gray-500">
               Офис: {currentOffice?.name || `#${currentOfficeId}`}. Проверка использует те же правила доступности, что и создание аренды.
@@ -205,7 +205,7 @@ const SchedulePage: React.FC = () => {
             </div>
           </section>
 
-          <section className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-gray-100">
+          <section className="min-w-0 rounded-3xl bg-white p-4 shadow-sm ring-1 ring-gray-100 sm:p-6">
             {!submittedFilters && (
               <div className="flex h-full min-h-[420px] items-center justify-center rounded-3xl border border-dashed border-gray-200 bg-gray-50 p-8 text-center">
                 <div>

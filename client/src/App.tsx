@@ -106,6 +106,7 @@ function App() {
       <Suspense fallback={<PageLoader />}>
         <Routes>
           {/* Admin routes without layout */}
+          <Route path="/admin" element={<Navigate to="/admin/rentals" replace />} />
           <Route path="/admin/login" element={<Navigate to="/admin/rent/login" replace />} />
           <Route path="/admin/dashboard" element={<AdminDashboardPage />} />
 

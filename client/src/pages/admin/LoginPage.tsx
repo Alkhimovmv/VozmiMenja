@@ -8,7 +8,7 @@ const LoginPage: React.FC = () => {
 
   useEffect(() => {
     if (isAuthenticated) {
-      window.location.href = '/admin/schedule';
+      window.location.href = '/admin/rentals';
     }
   }, [isAuthenticated]);
 
