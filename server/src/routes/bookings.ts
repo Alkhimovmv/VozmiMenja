@@ -9,6 +9,16 @@ import { vkNotifyService } from '../services/vkNotify'
 
 const router = Router()
 
+const parseDateInput = (value: string) => {
+  const [year, month, day] = value.split('-').map(Number)
+  return new Date(year, month - 1, day)
+}
+
+const calculateRentalDays = (startDate: Date, endDate: Date) => {
+  const diffDays = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24))
+  return Math.max(diffDays, 1)
+}
+
 const createBookingSchema = z.object({
   equipmentId: z.string().uuid(),
   customerName: z.string().min(2, 'Имя должно содержать минимум 2 символа'),
@@ -75,8 +85,8 @@ router.post('/', async (req: Request, res: Response) => {
     }
 
     // Проверяем корректность дат
-    const startDate = new Date(validatedData.startDate)
-    const endDate = new Date(validatedData.endDate)
+    const startDate = parseDateInput(validatedData.startDate)
+    const endDate = parseDateInput(validatedData.endDate)
     const today = new Date()
     today.setHours(0, 0, 0, 0)
 
@@ -87,16 +97,15 @@ router.post('/', async (req: Request, res: Response) => {
       })
     }
 
-    if (endDate <= startDate) {
+    if (endDate < startDate) {
       return res.status(400).json({
         success: false,
-        message: 'Дата окончания должна быть позже даты начала'
+        message: 'Дата окончания не может быть раньше даты начала'
       })
     }
 
     // Рассчитываем стоимость
-    const diffTime = Math.abs(endDate.getTime() - startDate.getTime())
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+    const diffDays = calculateRentalDays(startDate, endDate)
 
     // Определяем цену за день на основе тарифов
     let pricePerDay = equipment.pricePerDay

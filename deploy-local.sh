@@ -226,6 +226,7 @@ build_projects() {
         # Установка dev зависимостей для сборки
         sudo -u $SUDO_USER npm install
         sudo -u $SUDO_USER NODE_OPTIONS="--max-old-space-size=512" npm run build
+        sudo -u $SUDO_USER npm run sitemap
 
         # Удаление dev зависимостей после сборки
         sudo -u $SUDO_USER npm prune --production

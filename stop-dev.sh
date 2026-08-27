@@ -39,15 +39,13 @@ stop_process() {
 
 # Остановка всех процессов
 stop_process "logs/vozmimenya-api.pid" "VozmiMenja API"
-stop_process "logs/rentadmin-api.pid" "RentAdmin API"
 stop_process "logs/vozmimenya-frontend.pid" "VozmiMenja Frontend"
-stop_process "logs/rentadmin-frontend.pid" "RentAdmin Frontend"
 
 # Дополнительная очистка процессов на портах
 echo ""
 echo -e "${BLUE}Проверка портов...${NC}"
 
-for port in 3001 3003 5173 3000; do
+for port in 3002 5173; do
     PID=$(lsof -ti:$port 2>/dev/null)
     if [ ! -z "$PID" ]; then
         echo -e "${YELLOW}⚠️  Найден процесс на порту $port (PID: $PID), остановка...${NC}"

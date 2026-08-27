@@ -1,99 +1,256 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
-        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 
-  <!-- Главная страница -->
   <url>
     <loc>https://vozmimenya.ru/</loc>
-    <lastmod>2025-10-07</lastmod>
+    <lastmod>2026-08-19</lastmod>
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
   </url>
 
-  <!-- Посадочные страницы категорий (высокий приоритет для SEO) -->
   <url>
     <loc>https://vozmimenya.ru/arenda-pylesosov-moskva</loc>
-    <lastmod>2025-10-07</lastmod>
+    <lastmod>2026-08-19</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
   </url>
 
   <url>
     <loc>https://vozmimenya.ru/arenda-gopro-moskva</loc>
-    <lastmod>2025-10-07</lastmod>
+    <lastmod>2026-08-19</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
   </url>
 
   <url>
     <loc>https://vozmimenya.ru/arenda-audiooborudovaniya-moskva</loc>
-    <lastmod>2025-10-07</lastmod>
+    <lastmod>2026-08-19</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
   </url>
 
-  <!-- О нас -->
   <url>
-    <loc>https://vozmimenya.ru/about</loc>
-    <lastmod>2025-10-06</lastmod>
+    <loc>https://vozmimenya.ru/blog</loc>
+    <lastmod>2026-08-19</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
 
-  <!-- Контакты -->
+  <url>
+    <loc>https://vozmimenya.ru/sitemap</loc>
+    <lastmod>2026-08-19</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+
+  <url>
+    <loc>https://vozmimenya.ru/about</loc>
+    <lastmod>2026-08-19</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
   <url>
     <loc>https://vozmimenya.ru/contact</loc>
-    <lastmod>2025-10-06</lastmod>
+    <lastmod>2026-08-19</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
 
-  <!-- Доставка -->
   <url>
     <loc>https://vozmimenya.ru/delivery</loc>
-    <lastmod>2025-10-06</lastmod>
+    <lastmod>2026-08-19</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
 
-  <!-- FAQ -->
   <url>
     <loc>https://vozmimenya.ru/faq</loc>
-    <lastmod>2025-10-06</lastmod>
+    <lastmod>2026-08-19</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
 
-  <!-- Политика конфиденциальности -->
   <url>
     <loc>https://vozmimenya.ru/privacy</loc>
-    <lastmod>2026-05-09</lastmod>
+    <lastmod>2026-08-19</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.3</priority>
   </url>
 
-  <!-- Условия использования -->
+  <url>
+    <loc>https://vozmimenya.ru/cookies</loc>
+    <lastmod>2026-08-19</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
+  </url>
+
   <url>
     <loc>https://vozmimenya.ru/terms</loc>
-    <lastmod>2026-05-09</lastmod>
+    <lastmod>2026-08-19</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.3</priority>
   </url>
 
-  <!-- Договор оферты -->
   <url>
     <loc>https://vozmimenya.ru/offer</loc>
-    <lastmod>2026-05-09</lastmod>
+    <lastmod>2026-08-19</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.3</priority>
   </url>
 
-  <!-- Реквизиты -->
   <url>
-    <loc>https://vozmimenya.ru/requisites</loc>
-    <lastmod>2026-05-09</lastmod>
+    <loc>https://vozmimenya.ru/rental-agreement</loc>
+    <lastmod>2026-08-19</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.3</priority>
+  </url>
+
+  <url>
+    <loc>https://vozmimenya.ru/requisites</loc>
+    <lastmod>2026-08-19</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
+  </url>
+
+  <url>
+    <loc>https://vozmimenya.ru/equipment/fd15952980910f1f05be88fa6853e1fd</loc>
+    <lastmod>2025-12-25</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <url>
+    <loc>https://vozmimenya.ru/equipment/e609e0bec87c0653a070088843f2df8c</loc>
+    <lastmod>2025-12-24</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <url>
+    <loc>https://vozmimenya.ru/equipment/98794938-b0c8-4a7d-b182-b6645ba8039b</loc>
+    <lastmod>2025-10-10</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <url>
+    <loc>https://vozmimenya.ru/equipment/5e1bd056-e6e8-4e92-ae17-519a56f564ad</loc>
+    <lastmod>2025-10-04</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <url>
+    <loc>https://vozmimenya.ru/equipment/51022efa-99b7-4c93-a5ad-0f19851f6c1a</loc>
+    <lastmod>2025-10-04</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <url>
+    <loc>https://vozmimenya.ru/equipment/1232f00f-dc96-46df-b1e4-2d724ede3ef8</loc>
+    <lastmod>2025-10-04</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <url>
+    <loc>https://vozmimenya.ru/equipment/9636a844-4bcc-46fa-aa54-d0609ed8a6d9</loc>
+    <lastmod>2025-10-04</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <url>
+    <loc>https://vozmimenya.ru/equipment/d4cc7709-1ee5-4dcb-81a2-c0dadb538dc5</loc>
+    <lastmod>2025-10-04</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <url>
+    <loc>https://vozmimenya.ru/equipment/64e19704-b0dc-4879-9b90-6adc4eddd923</loc>
+    <lastmod>2025-10-04</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <url>
+    <loc>https://vozmimenya.ru/equipment/0519e3d0-e02f-4f8e-b77d-0c80fe58a9cc</loc>
+    <lastmod>2025-10-04</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <url>
+    <loc>https://vozmimenya.ru/equipment/f2260efd-d0e7-4622-91b0-c90a2cbc64ad</loc>
+    <lastmod>2025-10-04</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <url>
+    <loc>https://vozmimenya.ru/blog/kak-pochistit-divan-i-kover-moyushchim-pylesosom</loc>
+    <lastmod>2026-08-19</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <url>
+    <loc>https://vozmimenya.ru/blog/kakuyu-kameru-vzyat-v-puteshestvie-gopro-dji-insta360</loc>
+    <lastmod>2026-08-19</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <url>
+    <loc>https://vozmimenya.ru/blog/kolonka-dlya-vecherinki-kakuyu-jbl-partybox-vzyat-v-arendu</loc>
+    <lastmod>2026-08-19</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <url>
+    <loc>https://vozmimenya.ru/blog/5-oshibok-pri-arende-oborudovaniya</loc>
+    <lastmod>2025-11-24</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <url>
+    <loc>https://vozmimenya.ru/blog/kachestvennyj-zvuk-dlya-video-dji-mic-2</loc>
+    <lastmod>2025-11-24</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <url>
+    <loc>https://vozmimenya.ru/blog/professionalny-pylesy-dlya-klininga</loc>
+    <lastmod>2025-11-24</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <url>
+    <loc>https://vozmimenya.ru/blog/top-3-kamery-dlya-svadeb-2025</loc>
+    <lastmod>2025-11-24</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <url>
+    <loc>https://vozmimenya.ru/blog/gopro-dlya-nachinayushchih-polnoe-rukovodstvo</loc>
+    <lastmod>2025-11-24</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <url>
+    <loc>https://vozmimenya.ru/blog/kak-vybrat-pylesos-dlya-uborki-posle-remonta</loc>
+    <lastmod>2025-11-24</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
   </url>
 
 </urlset>

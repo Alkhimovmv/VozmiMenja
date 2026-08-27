@@ -4,6 +4,7 @@ import type { Equipment } from '../../types'
 import { useCreateBooking } from '../../hooks/useEquipment'
 import { X, Calendar, User, Phone, MessageSquare, ChevronRight } from 'lucide-react'
 import { getImageUrl } from '../../lib/utils'
+import { trackEvent } from '../../lib/analytics'
 
 interface BookingFormProps {
   equipment: Equipment
@@ -38,12 +39,43 @@ export default function BookingForm({ equipment, onClose }: BookingFormProps) {
 
   const createBookingMutation = useCreateBooking()
 
+  const parseDateInput = (value: string) => {
+    const [year, month, day] = value.split('-').map(Number)
+    return new Date(year, month - 1, day)
+  }
+
+  const getDateInputValue = (date: Date) => {
+    const year = date.getFullYear()
+    const month = String(date.getMonth() + 1).padStart(2, '0')
+    const day = String(date.getDate()).padStart(2, '0')
+    return `${year}-${month}-${day}`
+  }
+
+  const calculateRentalDays = (start: string, end: string) => {
+    const startDate = parseDateInput(start)
+    const endDate = parseDateInput(end)
+
+    if (endDate < startDate) return 0
+
+    const diffDays = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24))
+    return Math.max(diffDays, 1)
+  }
+
   const calculatePrice = (start: string, end: string) => {
-    if (!start || !end) return
-    const startDate = new Date(start)
-    const endDate = new Date(end)
-    if (endDate <= startDate) return
-    const diffDays = Math.ceil(Math.abs(endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24))
+    if (!start || !end) {
+      setTotalDays(0)
+      setTotalPrice(0)
+      setDiscountedPricePerDay(0)
+      return
+    }
+
+    const diffDays = calculateRentalDays(start, end)
+    if (diffDays === 0) {
+      setTotalDays(0)
+      setTotalPrice(0)
+      setDiscountedPricePerDay(0)
+      return
+    }
 
     let pricePerDay = equipment.pricePerDay
     if (equipment.pricing) {
@@ -94,12 +126,17 @@ export default function BookingForm({ equipment, onClose }: BookingFormProps) {
       toast.error('Пожалуйста, выберите даты аренды')
       return
     }
+    if (calculateRentalDays(formData.startDate, formData.endDate) === 0) {
+      toast.error('Дата окончания не может быть раньше даты начала')
+      return
+    }
     try {
       await createBookingMutation.mutateAsync({ equipmentId: equipment.id, ...formData })
+      trackEvent('booking_submit', { equipment_id: equipment.id, equipment_name: equipment.name, total_price: totalPrice, total_days: totalDays })
       toast.success('Бронирование успешно создано! Мы свяжемся с вами для подтверждения.')
       onClose()
     } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Произошла ошибка при создании бронирования')
+      toast.error(error.message || 'Произошла ошибка при создании бронирования')
     }
   }
 
@@ -120,7 +157,7 @@ export default function BookingForm({ equipment, onClose }: BookingFormProps) {
     return prices.length > 0 ? Math.min(...prices) : equipment.pricePerDay
   }
 
-  const today = new Date().toISOString().split('T')[0]
+  const today = getDateInputValue(new Date())
 
   const pricingTiers = equipment.pricing
     ? [
@@ -204,6 +241,9 @@ export default function BookingForm({ equipment, onClose }: BookingFormProps) {
                   />
                 </div>
               </div>
+              <p className="text-xs text-gray-400 mt-2">
+                Для аренды на один день можно выбрать одну и ту же дату начала и окончания.
+              </p>
             </div>
 
             {/* Price calculation */}

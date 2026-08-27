@@ -1,11 +1,14 @@
 import { useState, useEffect } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useEquipment, useEquipmentStats, useCategoryCounts } from '../hooks/useEquipment'
+import { articlesApi } from '../api/articles'
+import type { Article } from '../types'
 import EquipmentGrid from '../components/equipment/EquipmentGrid'
 import HowItWorks from '../components/HowItWorks'
 import Testimonials from '../components/Testimonials'
 import SEO from '../components/SEO'
 import { ChevronLeft, ChevronRight, Phone, Shield, Truck, Clock, Sparkles, Search, X } from 'lucide-react'
+import { trackEvent } from '../lib/analytics'
 
 // Конфиг стилей по ключу категории из БД (без переименований — label берём с бэка)
 const CAT_CONFIG: Record<string, { gradient: string; iconBg: string; blobColor: string }> = {
@@ -52,6 +55,7 @@ export default function HomePage() {
   const [page, setPage] = useState(1)
   const [category, setCategory] = useState('')
   const [search, setSearch] = useState('')
+  const [recentArticles, setRecentArticles] = useState<Article[]>([])
 
   useEffect(() => {
     setSearch(searchParams.get('search') || '')
@@ -63,6 +67,12 @@ export default function HomePage() {
       }, 100)
     }
   }, [searchParams])
+
+  useEffect(() => {
+    articlesApi.getRecent(3)
+      .then(setRecentArticles)
+      .catch((error) => console.error('Error loading recent articles:', error))
+  }, [])
 
   const { data, isLoading, error } = useEquipment({
     page, limit: 12,
@@ -189,7 +199,11 @@ export default function HomePage() {
                     Открыть каталог
                     <span className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center text-sm">›</span>
                   </a>
-                  <a href="tel:+79933636464" className="btn-pill btn-secondary bg-white/70 backdrop-blur-sm">
+                  <a
+                    href="tel:+79933636464"
+                    onClick={() => trackEvent('phone_click', { source: 'home_hero' })}
+                    className="btn-pill btn-secondary bg-white/70 backdrop-blur-sm"
+                  >
                     <Phone className="w-4 h-4" />
                     +7 (993) 363-64-64
                   </a>
@@ -452,6 +466,47 @@ export default function HomePage() {
         </div>
       </section>
 
+      {recentArticles.length > 0 && (
+        <section className="py-10 bg-white">
+          <div className="container mx-auto px-4">
+            <div className="flex items-end justify-between gap-4 mb-6">
+              <div>
+                <p className="text-xs font-bold text-[#2563EB] uppercase tracking-widest mb-2">Гайды по выбору</p>
+                <h2 className="text-2xl md:text-3xl font-extrabold text-gray-900">Полезно перед арендой</h2>
+              </div>
+              <a href="/blog" className="hidden sm:inline-flex items-center gap-1 text-sm font-semibold text-[#2563EB] hover:text-[#1D4ED8]">
+                Все статьи <ChevronRight className="w-4 h-4" />
+              </a>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+              {recentArticles.map((article) => (
+                <a
+                  key={article.id}
+                  href={`/blog/${article.slug}`}
+                  className="group rounded-2xl border border-gray-100 bg-[#F8FAFC] p-5 hover:bg-white hover:shadow-md transition-all"
+                >
+                  <span className="inline-block px-2.5 py-1 bg-white text-[#2563EB] text-xs font-semibold rounded-full mb-4 border border-blue-50">
+                    {article.category}
+                  </span>
+                  <h3 className="text-lg font-bold text-gray-900 leading-snug mb-3 group-hover:text-[#2563EB] transition-colors">
+                    {article.title}
+                  </h3>
+                  <p className="text-sm text-gray-500 leading-relaxed line-clamp-3 mb-4">{article.excerpt}</p>
+                  <span className="inline-flex items-center gap-1 text-sm font-semibold text-[#2563EB]">
+                    Читать гид <ChevronRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
+                  </span>
+                </a>
+              ))}
+            </div>
+
+            <a href="/blog" className="mt-5 sm:hidden inline-flex items-center gap-1 text-sm font-semibold text-[#2563EB]">
+              Все статьи <ChevronRight className="w-4 h-4" />
+            </a>
+          </div>
+        </section>
+      )}
+
       {/* ── CTA Banner ── */}
       <section className="py-8">
         <div className="container mx-auto px-4">
@@ -467,11 +522,13 @@ export default function HomePage() {
               </p>
               <div className="flex flex-col sm:flex-row gap-3">
                 <a href="tel:+79933636464"
+                  onClick={() => trackEvent('phone_click', { source: 'home_cta' })}
                   className="flex items-center justify-center gap-2 bg-white text-gray-900 font-semibold px-6 py-3 rounded-2xl hover:bg-gray-50 transition-colors">
                   <Phone className="w-4 h-4" />
                   +7 (993) 363-64-64
                 </a>
                 <a href="https://t.me/VozmiMenyaRent" target="_blank" rel="noopener noreferrer"
+                  onClick={() => trackEvent('telegram_click', { source: 'home_cta' })}
                   className="flex items-center justify-center gap-2 bg-white/15 border border-white/20 text-white font-semibold px-6 py-3 rounded-2xl hover:bg-white/25 transition-colors">
                   Написать в Telegram
                 </a>

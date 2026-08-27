@@ -3,6 +3,7 @@ import { Phone } from 'lucide-react'
 import CallbackModal from './CallbackModal'
 import avitoIcon from '../assets/avito.png'
 import maxIcon from '../assets/max.png'
+import { trackEvent } from '../lib/analytics'
 
 export default function FloatingActions() {
   const [isCallbackModalOpen, setIsCallbackModalOpen] = useState(false)
@@ -12,7 +13,10 @@ export default function FloatingActions() {
       <div className="fixed right-4 z-40 flex flex-col space-y-3 sm:space-y-4 sm:bottom-8 sm:right-8 floating-actions-bottom">
         {/* Callback button */}
         <button
-          onClick={() => setIsCallbackModalOpen(true)}
+          onClick={() => {
+            trackEvent('callback_open', { source: 'floating_actions' })
+            setIsCallbackModalOpen(true)
+          }}
           className="group relative w-9 h-9 sm:w-12 sm:h-12 bg-gradient-to-br from-primary-600 to-primary-700 text-white rounded-xl shadow-2xl hover:shadow-primary-500/50 flex items-center justify-center transition-all duration-300 hover:scale-110"
           title="Заказать звонок"
         >
@@ -25,6 +29,7 @@ export default function FloatingActions() {
           href="https://wa.me/79933636464"
           target="_blank"
           rel="noopener noreferrer"
+          onClick={() => trackEvent('whatsapp_click', { source: 'floating_actions' })}
           className="group relative w-9 h-9 sm:w-12 sm:h-12 bg-gradient-to-br from-green-500 to-green-600 text-white rounded-xl shadow-2xl hover:shadow-green-500/50 flex items-center justify-center transition-all duration-300 hover:scale-110"
           title="Написать в WhatsApp"
         >
@@ -38,6 +43,7 @@ export default function FloatingActions() {
         <a
           href="tg://resolve?domain=@VozmiMenyaRent&start=chat79933636464"
           onClick={(e) => {
+            trackEvent('telegram_click', { source: 'floating_actions' })
             // Фоллбэк для веб-версии если приложение не установлено
             const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
             if (!isMobile) {
@@ -59,6 +65,7 @@ export default function FloatingActions() {
           href="https://max.ru/+79933636464"
           target="_blank"
           rel="noopener noreferrer"
+          onClick={() => trackEvent('max_click', { source: 'floating_actions' })}
           className="group relative w-9 h-9 sm:w-12 sm:h-12 bg-white rounded-xl shadow-2xl hover:shadow-violet-500/50 flex items-center justify-center transition-all duration-300 hover:scale-110"
           title="Написать в Max"
         >
@@ -71,6 +78,7 @@ export default function FloatingActions() {
           href="https://www.avito.ru/brands/bec2558749c417a5576049cbce277ace/all?page_from=from_item_card&iid=7408898363&sellerId=f68e169e975bcc285ceb9bab886e60f3"
           target="_blank"
           rel="noopener noreferrer"
+          onClick={() => trackEvent('avito_click', { source: 'floating_actions' })}
           className="group relative w-9 h-9 sm:w-12 sm:h-12 bg-white rounded-xl shadow-2xl hover:shadow-[#0AF]/50 flex items-center justify-center transition-all duration-300 hover:scale-110"
           title="Наш профиль на Авито"
         >

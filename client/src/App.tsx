@@ -18,6 +18,7 @@ const TermsOfServicePage = lazy(() => import('./pages/TermsOfServicePage'))
 const OfferPage = lazy(() => import('./pages/OfferPage'))
 const RequisitesPage = lazy(() => import('./pages/RequisitesPage'))
 const FAQPage = lazy(() => import('./pages/FAQPage'))
+const SitemapPage = lazy(() => import('./pages/SitemapPage'))
 const AdminDashboardPage = lazy(() => import('./pages/AdminDashboardPage'))
 // RentAdmin pages
 const RentAdminLoginPage = lazy(() => import('./pages/admin/LoginPage'))
@@ -145,6 +146,7 @@ function App() {
                 <Route path="/offer" element={<OfferPage />} />
                 <Route path="/requisites" element={<RequisitesPage />} />
                 <Route path="/faq" element={<FAQPage />} />
+                <Route path="/sitemap" element={<SitemapPage />} />
                 <Route path="/rental-agreement" element={<RentalAgreementPage />} />
                 <Route path="*" element={<NotFoundPage />} />
               </Routes>

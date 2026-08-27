@@ -4,6 +4,7 @@ import type { Equipment } from '../../types'
 
 import { getImageUrl } from '../../lib/utils'
 import BookingForm from './BookingForm'
+import { trackEvent } from '../../lib/analytics'
 
 interface EquipmentCardProps {
   equipment: Equipment
@@ -66,7 +67,11 @@ export default function EquipmentCard({ equipment, priority = false }: Equipment
               </div>
             </Link>
             <button
-              onClick={(e) => { e.preventDefault(); setShowBookingForm(true) }}
+              onClick={(e) => {
+                e.preventDefault()
+                trackEvent('booking_open', { equipment_id: equipment.id, equipment_name: equipment.name, source: 'equipment_card_mobile' })
+                setShowBookingForm(true)
+              }}
               className="mt-2 w-full text-xs font-semibold text-white bg-primary py-2 rounded-xl"
             >
               Забронировать
@@ -104,7 +109,11 @@ export default function EquipmentCard({ equipment, priority = false }: Equipment
               <div className="text-xs text-gray-400">от {formatPrice(getWeekPrice())}/нед</div>
             </div>
             <button
-              onClick={(e) => { e.preventDefault(); setShowBookingForm(true) }}
+              onClick={(e) => {
+                e.preventDefault()
+                trackEvent('booking_open', { equipment_id: equipment.id, equipment_name: equipment.name, source: 'equipment_card_desktop' })
+                setShowBookingForm(true)
+              }}
               className="btn-primary text-xs px-4 py-2"
               style={{ borderRadius: '10px', padding: '8px 16px', fontSize: '13px' }}
             >

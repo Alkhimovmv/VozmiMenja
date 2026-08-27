@@ -7,6 +7,83 @@ import RelatedCard from '../components/equipment/RelatedCard'
 import SEO from '../components/SEO'
 import { ArrowLeft, Check, ChevronRight, Shield, Clock } from 'lucide-react'
 import { getImageUrl } from '../lib/utils'
+import { trackEvent } from '../lib/analytics'
+
+function getEquipmentGuidance(category: string, name: string) {
+  if (category.includes('Пылесос') || category.includes('клининг')) {
+    return {
+      scenarios: ['Уборка после ремонта', 'Химчистка дивана и ковров', 'Сбор пыли, мусора и жидкости'],
+      faq: [
+        {
+          question: `Подойдет ли ${name} для уборки после ремонта?`,
+          answer: 'Да, если задача связана со строительной пылью, влажной уборкой или чисткой мебели. Если сомневаетесь, напишите нам: подберем модель под площадь и тип загрязнения.',
+        },
+        {
+          question: 'Что входит в комплект?',
+          answer: 'Перед выдачей комплект проверяется. Обычно в аренду входят основные насадки, шланг и инструкция по использованию.',
+        },
+        {
+          question: 'Можно ли взять на один день?',
+          answer: 'Да, можно оформить аренду на один календарный день и выбрать одинаковые даты начала и окончания.',
+        },
+      ],
+    }
+  }
+
+  if (category.includes('Камер')) {
+    return {
+      scenarios: ['Путешествия и влоги', 'Съемка мероприятий', 'Reels, Shorts и YouTube-контент'],
+      faq: [
+        {
+          question: `Для чего лучше всего подходит ${name}?`,
+          answer: 'Камера подходит для съемки видео, поездок, мероприятий и контента для соцсетей. Конкретный формат зависит от модели и условий съемки.',
+        },
+        {
+          question: 'Нужны ли аксессуары?',
+          answer: 'Для поездки или съемки на целый день обычно полезны карта памяти, крепления, запасные аккумуляторы и внешний микрофон.',
+        },
+        {
+          question: 'Можно ли получить консультацию перед арендой?',
+          answer: 'Да, расскажите задачу, локацию и формат ролика, а мы подскажем камеру и комплект.',
+        },
+      ],
+    }
+  }
+
+  if (category.includes('Аудио')) {
+    return {
+      scenarios: ['Интервью и подкасты', 'Вечеринки и мероприятия', 'Съемка видео с чистым звуком'],
+      faq: [
+        {
+          question: `Хватит ли ${name} для моего мероприятия?`,
+          answer: 'Зависит от помещения, количества гостей и задачи: фон, речь или танцы. Опишите формат, и мы поможем выбрать комплект.',
+        },
+        {
+          question: 'Можно ли подключить телефон или ноутбук?',
+          answer: 'Для большинства аудиосценариев подключение возможно, но лучше заранее уточнить устройство и нужный формат подключения.',
+        },
+        {
+          question: 'Что проверить перед мероприятием?',
+          answer: 'Проверьте питание, место установки, подключение источника звука и нужен ли микрофон для речи.',
+        },
+      ],
+    }
+  }
+
+  return {
+    scenarios: ['Разовая задача', 'Тест перед покупкой', 'Проект без лишних затрат'],
+    faq: [
+      {
+        question: `Можно ли взять ${name} на один день?`,
+        answer: 'Да, можно оформить краткосрочную аренду и вернуть оборудование после выполнения задачи.',
+      },
+      {
+        question: 'Поможете выбрать комплект?',
+        answer: 'Да, расскажите задачу и срок аренды, а мы предложим подходящий вариант.',
+      },
+    ],
+  }
+}
 
 export default function EquipmentDetailsPage() {
   const { id } = useParams<{ id: string }>()
@@ -107,6 +184,7 @@ export default function EquipmentDetailsPage() {
   }
 
   const minPrice = getMinPrice()
+  const guidance = getEquipmentGuidance(equipment.category, equipment.name)
   const seoTitle = `Аренда ${equipment.name} в Москве | от ${formatPrice(minPrice)}/сутки | Доставка в день заказа | ВозьмиМеня`
   const seoDescription = `Аренда ${equipment.name} в Москве от ${formatPrice(minPrice)}/сутки | Доставка в день заказа | Постамат 24/7 | Звоните: +7 (993) 363-64-64`
   const seoKeywords = `аренда ${equipment.name}, прокат ${equipment.name}, ${equipment.name} аренда Москва, взять в аренду ${equipment.name}, ${equipment.category} аренда Москва, прокат ${equipment.category}`
@@ -215,7 +293,10 @@ export default function EquipmentDetailsPage() {
 
               {/* Book button */}
               <button
-                onClick={() => setShowBookingForm(true)}
+                onClick={() => {
+                  trackEvent('booking_open', { equipment_id: equipment.id, equipment_name: equipment.name, source: 'equipment_page' })
+                  setShowBookingForm(true)
+                }}
                 className="w-full mt-5 py-4 px-6 rounded-2xl font-bold text-base text-white flex items-center justify-center gap-2 transition-all hover:opacity-90 active:scale-[0.98]"
                 style={{ background: 'linear-gradient(135deg, #6366f1, #7c3aed)', boxShadow: '0 4px 20px rgba(99,102,241,0.3)' }}
               >
@@ -246,13 +327,18 @@ export default function EquipmentDetailsPage() {
             <div className="bg-ink rounded-2xl p-5">
               <p className="text-xs text-slate-400 uppercase tracking-widest mb-1">Или позвоните</p>
               <div className="flex items-center justify-between">
-                <a href="tel:+79933636464" className="text-white text-xl font-bold hover:opacity-90 transition-opacity">
+                <a
+                  href="tel:+79933636464"
+                  onClick={() => trackEvent('phone_click', { source: 'equipment_page', equipment_id: equipment.id })}
+                  className="text-white text-xl font-bold hover:opacity-90 transition-opacity"
+                >
                   +7 (993) 363-64-64
                 </a>
                 <a
                   href="https://t.me/VozmiMenyaRent"
                   target="_blank"
                   rel="noopener noreferrer"
+                  onClick={() => trackEvent('telegram_click', { source: 'equipment_page', equipment_id: equipment.id })}
                   className="flex items-center gap-1.5 bg-[#2AABEE] text-white text-sm font-semibold px-4 py-2 rounded-xl hover:opacity-90 transition-opacity"
                 >
                   <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
@@ -261,6 +347,32 @@ export default function EquipmentDetailsPage() {
                   Telegram
                 </a>
               </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-10 grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <div className="bg-white rounded-2xl border border-line p-6">
+            <h2 className="text-xl font-bold text-ink mb-4">Для каких задач подходит</h2>
+            <div className="space-y-3">
+              {guidance.scenarios.map((scenario) => (
+                <div key={scenario} className="flex items-center gap-2 text-sm text-muted">
+                  <Check className="w-4 h-4 text-emerald-500 flex-shrink-0" />
+                  {scenario}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="bg-white rounded-2xl border border-line p-6">
+            <h2 className="text-xl font-bold text-ink mb-4">Частые вопросы</h2>
+            <div className="space-y-4">
+              {guidance.faq.map((item) => (
+                <div key={item.question}>
+                  <h3 className="font-bold text-gray-900 text-sm mb-1">{item.question}</h3>
+                  <p className="text-sm text-muted leading-relaxed">{item.answer}</p>
+                </div>
+              ))}
             </div>
           </div>
         </div>

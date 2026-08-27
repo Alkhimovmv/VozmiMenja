@@ -49,6 +49,39 @@ cd client && npm run dev      # Frontend на :5173
 
 Админка доступна по адресу: http://localhost:5173/admin/rentals
 
+## Работа с агент-командой
+
+В репозитории добавлена базовая операционная схема для Codex-агента:
+
+- [AGENTS.md](/home/maxim/VozmiMenja/AGENTS.md) — роли, правила и рабочий цикл
+- [.agents/board.md](/home/maxim/VozmiMenja/.agents/board.md) — доска задач
+- [.agents/templates/blog-task.md](/home/maxim/VozmiMenja/.agents/templates/blog-task.md) — шаблон контентной задачи
+- [.agents/templates/feature-task.md](/home/maxim/VozmiMenja/.agents/templates/feature-task.md) — шаблон продуктовой/технической задачи
+
+Это позволяет ставить задачи не просто "сделай что-нибудь", а как мини-команде:
+
+```md
+Роль: Product Lead + Frontend Engineer
+Задача: улучшить конверсию карточки товара в бронь
+Цель: увеличить число отправок формы
+Готово, если:
+- CTA заметнее
+- форма проще
+- mobile UX не ухудшен
+- typecheck проходит
+```
+
+По умолчанию агент может работать в полуавтономном режиме: сам предлагает 1-3 следующие задачи, готовит изменения и проверки, а владелец проекта подтверждает направление и production-релиз.
+
+Production размещен на Cloud.ru. После попадания изменений в Git обновление на сервере выполняется так:
+
+```bash
+git pull
+sudo ./deploy-local.sh update
+```
+
+`deploy-local.sh update` делает бэкап, устанавливает зависимости, собирает backend/frontend и перезапускает сервисы, но не обновляет код из Git.
+
 ## Переменные окружения
 
 Создай файл `server/.env`:

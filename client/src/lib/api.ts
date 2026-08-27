@@ -1,6 +1,6 @@
 import type { Equipment, Booking, BookingRequest, ApiResponse, PaginatedResponse } from '../types'
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api'
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3002/api'
 
 // Извлекаем URL сервера, убирая /api с конца
 export const API_SERVER_URL = API_BASE_URL.endsWith('/api')
@@ -25,7 +25,19 @@ class ApiClient {
     const response = await fetch(url, config)
 
     if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`)
+      const contentType = response.headers.get('content-type') || ''
+      let message = `HTTP error! status: ${response.status}`
+
+      if (contentType.includes('application/json')) {
+        const errorData = await response.json().catch(() => null)
+        message = errorData?.message || errorData?.error || message
+      }
+
+      throw new Error(message)
+    }
+
+    if (response.status === 204) {
+      return undefined as T
     }
 
     const data = await response.json()

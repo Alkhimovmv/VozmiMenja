@@ -7,6 +7,60 @@ import { Calendar, Eye, User, ArrowLeft, Tag } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 
+const rentalCtas = {
+  cleaning: {
+    title: 'Нужно оборудование для уборки?',
+    description: 'Посмотрите моющие и строительные пылесосы в аренду. Подберем модель под квартиру, диван, ковер или уборку после ремонта.',
+    primaryHref: '/arenda-pylesosov-moskva',
+    primaryLabel: 'Смотреть пылесосы',
+    links: [
+      { href: '/equipment/51022efa-99b7-4c93-a5ad-0f19851f6c1a', label: 'Karcher Puzzi 8/1' },
+      { href: '/equipment/f2260efd-d0e7-4622-91b0-c90a2cbc64ad', label: 'Karcher Puzzi 10/1' },
+      { href: '/equipment/0519e3d0-e02f-4f8e-b77d-0c80fe58a9cc', label: 'Karcher WD5' },
+    ],
+  },
+  cameras: {
+    title: 'Хотите снять видео без покупки камеры?',
+    description: 'Возьмите GoPro, DJI Osmo Pocket или Insta360 на нужные даты. Поможем выбрать камеру под поездку, влог или мероприятие.',
+    primaryHref: '/arenda-gopro-moskva',
+    primaryLabel: 'Смотреть камеры',
+    links: [
+      { href: '/equipment/64e19704-b0dc-4879-9b90-6adc4eddd923', label: 'GoPro 13' },
+      { href: '/equipment/5e1bd056-e6e8-4e92-ae17-519a56f564ad', label: 'DJI Osmo Pocket 3' },
+      { href: '/equipment/98794938-b0c8-4a7d-b182-b6645ba8039b', label: 'Insta360 X5' },
+    ],
+  },
+  audio: {
+    title: 'Нужен звук для съемки или праздника?',
+    description: 'Посмотрите микрофоны и колонки в аренду. Подскажем, что подойдет для видео, подкаста, вечеринки или небольшого события.',
+    primaryHref: '/arenda-audiooborudovaniya-moskva',
+    primaryLabel: 'Смотреть аудио',
+    links: [
+      { href: '/equipment/1232f00f-dc96-46df-b1e4-2d724ede3ef8', label: 'DJI Mic 2' },
+      { href: '/equipment/fd15952980910f1f05be88fa6853e1fd', label: 'JBL PartyBox 320' },
+      { href: '/equipment/e609e0bec87c0653a070088843f2df8c', label: 'JBL PartyBox 710' },
+    ],
+  },
+  default: {
+    title: 'Хотите подобрать оборудование под задачу?',
+    description: 'Откройте каталог или напишите нам: поможем выбрать технику, срок аренды и удобный способ получения.',
+    primaryHref: '/',
+    primaryLabel: 'Открыть каталог',
+    links: [
+      { href: '/arenda-pylesosov-moskva', label: 'Пылесосы' },
+      { href: '/arenda-gopro-moskva', label: 'Камеры' },
+      { href: '/arenda-audiooborudovaniya-moskva', label: 'Аудио' },
+    ],
+  },
+}
+
+function getRentalCta(category: string) {
+  if (category.includes('Пылесос') || category.includes('клининг')) return rentalCtas.cleaning
+  if (category.includes('Камер')) return rentalCtas.cameras
+  if (category.includes('Аудио')) return rentalCtas.audio
+  return rentalCtas.default
+}
+
 export default function BlogArticlePage() {
   const { slug } = useParams<{ slug: string }>()
   const navigate = useNavigate()
@@ -74,6 +128,7 @@ export default function BlogArticlePage() {
     publisher: { '@type': 'Organization', name: 'ВозьмиМеня', logo: { '@type': 'ImageObject', url: 'https://vozmimenya.ru/logo.png' } },
     mainEntityOfPage: { '@type': 'WebPage', '@id': `https://vozmimenya.ru/blog/${article.slug}` },
   }
+  const rentalCta = getRentalCta(article.category)
 
   return (
     <>
@@ -118,6 +173,32 @@ export default function BlogArticlePage() {
           <p className="text-lg text-gray-700 leading-relaxed mb-8 p-5 bg-blue-50 rounded-2xl border-l-4 border-[#2563EB]">
             {article.excerpt}
           </p>
+
+          <div className="mb-8 bg-white rounded-2xl border border-gray-100 p-5">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+              <div>
+                <h2 className="text-xl font-bold text-gray-900 mb-2">{rentalCta.title}</h2>
+                <p className="text-sm text-gray-500 leading-relaxed">{rentalCta.description}</p>
+              </div>
+              <Link
+                to={rentalCta.primaryHref}
+                className="inline-flex items-center justify-center px-5 py-3 bg-[#2563EB] text-white rounded-xl font-semibold hover:bg-[#1D4ED8] transition-colors text-sm shrink-0"
+              >
+                {rentalCta.primaryLabel}
+              </Link>
+            </div>
+            <div className="mt-4 flex flex-wrap gap-2">
+              {rentalCta.links.map((link) => (
+                <Link
+                  key={link.href}
+                  to={link.href}
+                  className="px-3 py-1.5 bg-[#F8FAFC] text-gray-700 rounded-lg border border-gray-100 hover:text-[#2563EB] hover:border-blue-100 transition-colors text-sm font-medium"
+                >
+                  {link.label}
+                </Link>
+              ))}
+            </div>
+          </div>
 
           {/* Body */}
           <div className="prose prose-lg max-w-none
