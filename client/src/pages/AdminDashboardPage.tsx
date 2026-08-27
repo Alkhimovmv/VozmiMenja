@@ -6,6 +6,7 @@ import EquipmentForm from '../components/admin/EquipmentForm'
 import ConfirmDialog from '../components/ConfirmDialog'
 import { getImageUrl } from '../lib/utils'
 import UnifiedAdminLayout from '../components/admin/UnifiedAdminLayout'
+import { getPricingRows } from '../utils/pricing'
 
 export default function AdminDashboardPage() {
   const [equipment, setEquipment] = useState<Equipment[]>([])
@@ -137,13 +138,9 @@ export default function AdminDashboardPage() {
                     <td className="px-6 py-4 text-sm text-gray-500">
                       {item.pricing ? (
                         <div className="space-y-1">
-                          <div>1д (10-20): {item.pricing.day1_10to20}₽</div>
-                          <div>1 сутки: {item.pricing.day1}₽</div>
-                          <div>2 суток: {item.pricing.days2}₽/сут</div>
-                          <div>3 суток: {item.pricing.days3}₽/сут</div>
-                          <div>Неделя: {item.pricing.days7}₽/сут</div>
-                          <div>2 недели: {item.pricing.days14}₽/сут</div>
-                          <div>Месяц: {item.pricing.days30}₽/сут</div>
+                          {getPricingRows(item.pricing).map((tier) => (
+                            <div key={tier.key}>{tier.label}: {tier.value}₽{tier.suffix}</div>
+                          ))}
                         </div>
                       ) : (
                         <div>{item.pricePerDay}₽/сутки</div>
@@ -188,34 +185,12 @@ export default function AdminDashboardPage() {
 
               {item.pricing && (
                 <div className="mb-4 text-xs text-gray-600 space-y-1">
-                  <div className="flex justify-between">
-                    <span>1 день (10:00-20:00):</span>
-                    <span>{item.pricing.day1_10to20}₽</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>1 сутки:</span>
-                    <span>{item.pricing.day1}₽</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>2 суток:</span>
-                    <span>{item.pricing.days2}₽/сутки</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>3 суток:</span>
-                    <span>{item.pricing.days3}₽/сутки</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Неделя:</span>
-                    <span>{item.pricing.days7}₽/сутки</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>2 недели:</span>
-                    <span>{item.pricing.days14}₽/сутки</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Месяц:</span>
-                    <span>{item.pricing.days30}₽/сутки</span>
-                  </div>
+                  {getPricingRows(item.pricing).map((tier) => (
+                    <div key={tier.key} className="flex justify-between gap-3">
+                      <span>{tier.label}:</span>
+                      <span>{tier.value}₽{tier.suffix}</span>
+                    </div>
+                  ))}
                 </div>
               )}
 

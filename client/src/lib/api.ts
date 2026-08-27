@@ -97,7 +97,7 @@ class ApiClient {
   }
 
   async createEquipment(equipment: Partial<Equipment>): Promise<ApiResponse<Equipment>> {
-    const token = localStorage.getItem('adminToken')
+    const token = localStorage.getItem('authToken')
     return this.request('/admin/equipment', {
       method: 'POST',
       headers: {
@@ -108,7 +108,7 @@ class ApiClient {
   }
 
   async updateEquipment(id: string, equipment: Partial<Equipment>): Promise<ApiResponse<Equipment>> {
-    const token = localStorage.getItem('adminToken')
+    const token = localStorage.getItem('authToken')
     return this.request(`/admin/equipment/${id}`, {
       method: 'PUT',
       headers: {
@@ -119,7 +119,7 @@ class ApiClient {
   }
 
   async deleteEquipment(id: string): Promise<ApiResponse<void>> {
-    const token = localStorage.getItem('adminToken')
+    const token = localStorage.getItem('authToken')
     return this.request(`/admin/equipment/${id}`, {
       method: 'DELETE',
       headers: {
@@ -129,7 +129,7 @@ class ApiClient {
   }
 
   async uploadImages(files: File[]): Promise<ApiResponse<string[]>> {
-    const token = localStorage.getItem('adminToken')
+    const token = localStorage.getItem('authToken')
     const formData = new FormData()
 
     files.forEach(file => {

@@ -9,6 +9,7 @@ import logo from '../../assets/logo-header.png'
 import apiClient from '../../api/admin/client';
 import type { AdminUser } from '../../hooks/useAuth';
 import { useQueryClient } from '@tanstack/react-query';
+import GlobalBookingAlert from './GlobalBookingAlert';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -277,6 +278,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           )}
 
           <main className={`flex-1 overflow-hidden bg-gray-50 ${isCompactMode ? 'ml-16' : 'ml-0'} pb-safe flex flex-col`}>
+            <GlobalBookingAlert enabled={hasSelectedAccount} />
             <ErrorBoundary>
               {isSuperAdmin && !hasSelectedAccount && location.pathname !== '/admin/users' ? (
                 <div className="flex flex-col items-center justify-center h-full text-center px-4">

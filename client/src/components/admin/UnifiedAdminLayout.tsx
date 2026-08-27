@@ -1,6 +1,7 @@
 import { ReactNode, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import AdminSidebar from './AdminSidebar'
+import GlobalBookingAlert from './GlobalBookingAlert'
 
 interface UnifiedAdminLayoutProps {
   children: ReactNode
@@ -16,7 +17,7 @@ export default function UnifiedAdminLayout({ children }: UnifiedAdminLayoutProps
   })
 
   useEffect(() => {
-    const token = localStorage.getItem('adminToken')
+    const token = localStorage.getItem('authToken')
     if (!token) {
       navigate('/admin/rent/login')
     }
@@ -35,7 +36,7 @@ export default function UnifiedAdminLayout({ children }: UnifiedAdminLayoutProps
   }, [])
 
   const handleLogout = () => {
-    localStorage.removeItem('adminToken')
+    localStorage.removeItem('authToken')
     navigate('/admin/rent/login')
   }
 
@@ -45,6 +46,9 @@ export default function UnifiedAdminLayout({ children }: UnifiedAdminLayoutProps
 
       {/* Main content */}
       <div className="flex-1 flex flex-col overflow-hidden">
+        <div className={isCompactMode ? 'ml-16' : ''}>
+          <GlobalBookingAlert />
+        </div>
         <main className={`flex-1 overflow-x-hidden overflow-y-auto bg-gray-50 ${isCompactMode ? 'ml-16' : 'ml-0'} pb-safe`}>
           <div className="container mx-auto px-4 sm:px-6 py-4 sm:py-8 pb-6 sm:pb-8">
             {children}

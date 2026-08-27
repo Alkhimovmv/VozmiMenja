@@ -42,7 +42,7 @@ export default function ArticleModal({ article, onClose }: ArticleModalProps) {
 
   const createMutation = useMutation({
     mutationFn: (data: CreateArticleDto) => {
-      const token = localStorage.getItem('adminToken')
+      const token = localStorage.getItem('authToken')
       if (!token) throw new Error('No token')
       return articlesApi.admin.create(data, token)
     },
@@ -54,7 +54,7 @@ export default function ArticleModal({ article, onClose }: ArticleModalProps) {
 
   const updateMutation = useMutation({
     mutationFn: (data: CreateArticleDto) => {
-      const token = localStorage.getItem('adminToken')
+      const token = localStorage.getItem('authToken')
       if (!token || !article) throw new Error('No token or article')
       return articlesApi.admin.update(article.id, data, token)
     },

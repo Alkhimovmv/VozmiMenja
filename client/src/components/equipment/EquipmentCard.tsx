@@ -1,10 +1,10 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import type { Equipment } from '../../types'
-
 import { getImageUrl } from '../../lib/utils'
-import BookingForm from './BookingForm'
 import { trackEvent } from '../../lib/analytics'
+import { getPeriodPrice } from '../../utils/pricing'
+import BookingForm from './BookingForm'
 
 interface EquipmentCardProps {
   equipment: Equipment
@@ -13,99 +13,61 @@ interface EquipmentCardProps {
 
 export default function EquipmentCard({ equipment, priority = false }: EquipmentCardProps) {
   const [showBookingForm, setShowBookingForm] = useState(false)
-  const isAvailable = equipment.availableQuantity > 0
+  const dayPrice = equipment.pricing?.day1 || equipment.pricePerDay
+  const weekPrice = getPeriodPrice(equipment.pricing, 7, equipment.pricePerDay)
 
   const formatPrice = (price: number) =>
     new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', minimumFractionDigits: 0 }).format(price)
 
-  const getMinPrice = () => {
-    if (equipment.pricing) {
-      const prices = [
-        equipment.pricing.day1_10to20,
-        equipment.pricing.day1,
-        equipment.pricing.days2,
-        equipment.pricing.days3,
-        equipment.pricing.days7,
-        equipment.pricing.days14,
-        equipment.pricing.days30,
-      ].filter((p) => p > 0)
-      return prices.length > 0 ? Math.min(...prices) : equipment.pricePerDay
-    }
-    return equipment.pricePerDay
-  }
-
-  const getWeekPrice = () => {
-    if (equipment.pricing?.days7 && equipment.pricing.days7 > 0) {
-      return equipment.pricing.days7 * 7
-    }
-    return getMinPrice() * 7
+  const openBooking = (source: string) => {
+    trackEvent('booking_open', { equipment_id: equipment.id, equipment_name: equipment.name, source })
+    setShowBookingForm(true)
   }
 
   return (
     <>
-      {/* ── Mobile: горизонтальная карточка ── */}
-      <div className="md:hidden group bg-white rounded-2xl border border-gray-100 overflow-hidden active:scale-[0.99] transition-transform shadow-sm">
+      <article className="md:hidden overflow-hidden rounded-xl border border-gray-200 bg-white">
         <div className="flex gap-3 p-3">
-          <Link to={`/equipment/${equipment.id}`} className="relative flex-shrink-0 w-24 h-24 rounded-xl overflow-hidden bg-[#F8FAFC]" style={{ backgroundColor: '#fff' }}>
-            <span className={`absolute left-2 top-2 z-10 rounded-full px-2 py-0.5 text-[10px] font-bold ${isAvailable ? 'bg-emerald-50 text-emerald-700' : 'bg-gray-100 text-gray-500'}`}>
-              {isAvailable ? 'В наличии' : 'Под запрос'}
-            </span>
+          <Link to={`/equipment/${equipment.id}`} className="h-24 w-24 flex-shrink-0 overflow-hidden rounded-lg bg-white">
             <img
               src={getImageUrl(equipment.images[0])}
               alt={`Аренда ${equipment.name}`}
-              className="w-full h-full object-contain bg-white"
+              className="h-full w-full object-contain"
               loading={priority ? 'eager' : 'lazy'}
               decoding="async"
             />
           </Link>
-          <div className="flex-1 min-w-0 flex flex-col justify-between py-0.5">
-            <Link to={`/equipment/${equipment.id}`}>
-              <h3 className="font-bold text-gray-900 text-sm line-clamp-1">{equipment.name}</h3>
-              <p className="text-xs text-gray-400 line-clamp-1 mt-0.5">{equipment.description}</p>
-              <div className="mt-2">
-                <div className="text-base font-extrabold text-gray-900 leading-tight">
-                  {formatPrice(getMinPrice())}
-                  <span className="text-xs font-normal text-gray-400 ml-0.5">/сут</span>
-                </div>
-                <div className="text-[11px] text-gray-400">от {formatPrice(getWeekPrice())}/нед</div>
-              </div>
+          <div className="flex min-w-0 flex-1 flex-col">
+            <Link to={`/equipment/${equipment.id}`} className="min-w-0">
+              <h3 className="line-clamp-1 text-sm font-semibold text-gray-950">{equipment.name}</h3>
+              <p className="mt-1 line-clamp-1 text-xs text-gray-500">{equipment.description}</p>
             </Link>
-            <div className="mt-2 grid grid-cols-[1fr_auto] gap-2">
+            <div className="mt-2 flex gap-4 text-xs text-gray-500">
+              <span><strong className="text-sm text-gray-950">{formatPrice(dayPrice)}</strong> / сутки</span>
+              <span><strong className="text-sm text-gray-950">{formatPrice(weekPrice)}</strong> / 7 суток</span>
+            </div>
+            <div className="mt-auto flex items-center gap-3 pt-2">
               <button
-                onClick={(e) => {
-                  e.preventDefault()
-                  trackEvent('booking_open', { equipment_id: equipment.id, equipment_name: equipment.name, source: 'equipment_card_mobile' })
-                  setShowBookingForm(true)
-                }}
-                className="text-xs font-semibold text-white bg-primary py-2 rounded-xl"
+                type="button"
+                onClick={() => openBooking('equipment_card_mobile')}
+                className="rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-white hover:opacity-90"
               >
                 Забронировать
               </button>
-              <Link to={`/equipment/${equipment.id}`} className="text-xs font-semibold text-gray-700 bg-gray-50 border border-gray-100 px-3 py-2 rounded-xl">
-                Еще
+              <Link to={`/equipment/${equipment.id}`} className="text-xs font-medium text-gray-600 hover:text-primary">
+                Подробнее
               </Link>
             </div>
           </div>
         </div>
-      </div>
+      </article>
 
-      {/* ── Desktop: вертикальная карточка ── */}
-      <div className="hidden md:block group bg-white rounded-2xl border border-gray-100 hover:border-blue-100 hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200 overflow-hidden">
-        <Link to={`/equipment/${equipment.id}`} className="block relative bg-gradient-to-br from-white to-[#F8FAFC] aspect-[4/3] overflow-hidden">
-          <div className="absolute left-3 top-3 z-10 flex flex-wrap gap-2">
-            <span className={`rounded-full px-2.5 py-1 text-[11px] font-bold shadow-sm ${isAvailable ? 'bg-emerald-50 text-emerald-700' : 'bg-gray-100 text-gray-500'}`}>
-              {isAvailable ? 'В наличии' : 'Под запрос'}
-            </span>
-            {equipment.pricing?.days7 && equipment.pricing.days7 > 0 && (
-              <span className="rounded-full bg-white/90 px-2.5 py-1 text-[11px] font-bold text-gray-600 shadow-sm">
-                выгодно от 7 дней
-              </span>
-            )}
-          </div>
+      <article className="group hidden overflow-hidden rounded-xl border border-gray-200 bg-white transition-shadow hover:shadow-md md:block">
+        <Link to={`/equipment/${equipment.id}`} className="block aspect-[4/3] overflow-hidden border-b border-gray-100 bg-white">
           <img
             src={getImageUrl(equipment.images[0])}
             alt={`Аренда ${equipment.name}`}
-            className="w-full h-full object-contain bg-white group-hover:scale-105 transition-transform duration-300"
+            className="h-full w-full object-contain p-2"
             loading={priority ? 'eager' : 'lazy'}
             decoding="async"
             fetchPriority={priority ? 'high' : 'auto'}
@@ -113,50 +75,39 @@ export default function EquipmentCard({ equipment, priority = false }: Equipment
         </Link>
         <div className="p-4">
           <Link to={`/equipment/${equipment.id}`}>
-            <h3 className="font-bold text-gray-900 text-sm mb-1 line-clamp-1 hover:text-[#2563EB] transition-colors">
+            <h3 className="line-clamp-1 text-base font-semibold text-gray-950 transition-colors group-hover:text-primary">
               {equipment.name}
             </h3>
-            <p className="text-xs text-gray-500 mb-3 line-clamp-1">{equipment.description}</p>
+            <p className="mt-1 line-clamp-2 min-h-8 text-xs leading-4 text-gray-500">{equipment.description}</p>
           </Link>
-          <div className="rounded-2xl bg-[#F8FAFC] border border-gray-100 p-3 mb-3">
-            <div className="flex items-end justify-between gap-3">
-              <div>
-                <div className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">от</div>
-                <div className="text-xl font-extrabold text-gray-900 leading-tight">
-                  {formatPrice(getMinPrice())}
-                  <span className="text-xs font-normal text-gray-500">/сут</span>
-                </div>
-              </div>
-              <div className="text-right text-xs text-gray-400">
-                <div>неделя</div>
-                <div className="font-bold text-gray-600">{formatPrice(getWeekPrice())}</div>
-              </div>
+
+          <dl className="mt-4 grid grid-cols-2 border-y border-gray-100 py-3">
+            <div>
+              <dt className="text-[11px] text-gray-500">1 сутки</dt>
+              <dd className="mt-0.5 text-base font-semibold text-gray-950">{formatPrice(dayPrice)}</dd>
             </div>
-          </div>
-          <div className="flex items-center justify-between gap-2">
-            <Link to={`/equipment/${equipment.id}`} className="text-sm font-semibold text-gray-600 hover:text-[#2563EB] transition-colors">
+            <div className="border-l border-gray-100 pl-4">
+              <dt className="text-[11px] text-gray-500">7 суток</dt>
+              <dd className="mt-0.5 text-base font-semibold text-gray-950">{formatPrice(weekPrice)}</dd>
+            </div>
+          </dl>
+
+          <div className="mt-4 flex items-center justify-between gap-3">
+            <Link to={`/equipment/${equipment.id}`} className="text-sm font-medium text-gray-600 hover:text-primary">
               Подробнее
             </Link>
-            <div>
-              <button
-                onClick={(e) => {
-                  e.preventDefault()
-                  trackEvent('booking_open', { equipment_id: equipment.id, equipment_name: equipment.name, source: 'equipment_card_desktop' })
-                  setShowBookingForm(true)
-                }}
-                className="btn-primary text-xs px-4 py-2"
-                style={{ borderRadius: '10px', padding: '8px 16px', fontSize: '13px' }}
-              >
-                Забронировать
-              </button>
-            </div>
+            <button
+              type="button"
+              onClick={() => openBooking('equipment_card_desktop')}
+              className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white hover:opacity-90"
+            >
+              Забронировать
+            </button>
           </div>
         </div>
-      </div>
+      </article>
 
-      {showBookingForm && (
-        <BookingForm equipment={equipment} onClose={() => setShowBookingForm(false)} />
-      )}
+      {showBookingForm && <BookingForm equipment={equipment} onClose={() => setShowBookingForm(false)} />}
     </>
   )
 }

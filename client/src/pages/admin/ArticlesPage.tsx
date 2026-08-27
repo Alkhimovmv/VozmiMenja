@@ -19,7 +19,7 @@ export default function ArticlesPage() {
   const [deleteConfirm, setDeleteConfirm] = useState<{ isOpen: boolean; articleId: number | null }>({ isOpen: false, articleId: null })
   const queryClient = useQueryClient()
 
-  const token = localStorage.getItem('adminToken')
+  const token = localStorage.getItem('authToken')
 
   const { data: articles = [], isLoading } = useQuery<Article[]>({
     queryKey: ['articles'],
@@ -259,7 +259,7 @@ export default function ArticlesPage() {
         type="danger"
         onConfirm={() => {
           if (deleteConfirm.articleId) {
-            const token = localStorage.getItem('adminToken')
+            const token = localStorage.getItem('authToken')
             if (token) deleteMutation.mutate({ id: deleteConfirm.articleId, token })
           }
           setDeleteConfirm({ isOpen: false, articleId: null })

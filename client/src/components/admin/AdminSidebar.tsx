@@ -32,12 +32,13 @@ export default function AdminSidebar({ onLogout }: AdminSidebarProps) {
     if (onLogout) {
       onLogout()
     } else {
-      localStorage.removeItem('adminToken')
+      localStorage.removeItem('authToken')
       navigate('/admin/rent/login')
     }
   }
 
   const menuItems = [
+    { path: '/admin/rentals', label: 'Аренды и заявки', icon: '📋' },
     { path: '/admin/dashboard', label: 'Оборудование', icon: '🎥' },
     { path: '/admin/articles', label: 'Блог', icon: '📝' },
   ]

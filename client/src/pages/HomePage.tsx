@@ -73,8 +73,8 @@ const QUICK_SCENARIOS = [
   },
   {
     eyebrow: 'Звук',
-    title: 'Озвучить праздник',
-    text: 'Колонки JBL и микрофоны для речи, музыки и видео.',
+    title: 'Колонка для вечеринки',
+    text: 'JBL PartyBox для дома, дачи и небольших мероприятий.',
     href: '/arenda-audiooborudovaniya-moskva',
     accent: 'from-lime-100 via-emerald-100 to-teal-100',
   },

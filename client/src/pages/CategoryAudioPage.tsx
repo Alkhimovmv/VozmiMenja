@@ -72,7 +72,7 @@ export default function CategoryAudioPage() {
       guideLabel: 'Гайд по звуку',
     },
     {
-      title: 'Озвучить домашний праздник',
+      title: 'Музыка для домашней вечеринки',
       description: 'Для квартиры, небольшой дачи или камерной встречи подойдет мощная портативная колонка.',
       equipmentHref: '/equipment/fd15952980910f1f05be88fa6853e1fd',
       equipmentLabel: 'JBL PartyBox 320',

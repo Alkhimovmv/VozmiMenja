@@ -5,6 +5,7 @@ import { useCreateBooking } from '../../hooks/useEquipment'
 import { X, Calendar, User, Phone, MessageSquare, ChevronRight } from 'lucide-react'
 import { getImageUrl } from '../../lib/utils'
 import { trackEvent } from '../../lib/analytics'
+import { calculateRentalTotal, getEffectiveDailyPrice, getMinimumDailyPrice, getPricingRows } from '../../utils/pricing'
 
 interface BookingFormProps {
   equipment: Equipment
@@ -57,8 +58,8 @@ export default function BookingForm({ equipment, onClose }: BookingFormProps) {
 
     if (endDate < startDate) return 0
 
-    const diffDays = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24))
-    return Math.max(diffDays, 1)
+    const diffDays = Math.round((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24))
+    return diffDays + 1
   }
 
   const calculatePrice = (start: string, end: string) => {
@@ -77,29 +78,34 @@ export default function BookingForm({ equipment, onClose }: BookingFormProps) {
       return
     }
 
-    let pricePerDay = equipment.pricePerDay
-    if (equipment.pricing) {
-      if (diffDays >= 30) pricePerDay = equipment.pricing.days30
-      else if (diffDays >= 14) pricePerDay = equipment.pricing.days14
-      else if (diffDays >= 7) pricePerDay = equipment.pricing.days7
-      else if (diffDays >= 3) pricePerDay = equipment.pricing.days3
-      else if (diffDays === 2) pricePerDay = equipment.pricing.days2
-      else if (diffDays === 1) pricePerDay = equipment.pricing.day1
-    }
+    const pricePerDay = getEffectiveDailyPrice(equipment.pricing, diffDays, equipment.pricePerDay)
 
     setTotalDays(diffDays)
-    setTotalPrice(diffDays * pricePerDay)
-    setDiscountedPricePerDay(pricePerDay)
+    setTotalPrice(calculateRentalTotal(equipment.pricing, diffDays, equipment.pricePerDay))
+    setDiscountedPricePerDay(Math.round(pricePerDay))
   }
 
   const formatPhoneNumber = (value: string) => {
-    const phone = value.replace(/\D/g, '')
-    if (phone.length === 0) return ''
-    if (phone.length <= 1) return phone
-    if (phone.length <= 4) return `+7 (${phone.slice(1)}`
-    if (phone.length <= 7) return `+7 (${phone.slice(1, 4)}) ${phone.slice(4)}`
-    if (phone.length <= 9) return `+7 (${phone.slice(1, 4)}) ${phone.slice(4, 7)}-${phone.slice(7)}`
-    return `+7 (${phone.slice(1, 4)}) ${phone.slice(4, 7)}-${phone.slice(7, 9)}-${phone.slice(9, 11)}`
+    const digits = value.replace(/\D/g, '')
+    if (!digits) return ''
+
+    const normalized = digits.startsWith('8')
+      ? `7${digits.slice(1)}`
+      : digits.startsWith('7')
+      ? digits
+      : `7${digits}`
+
+    const phone = normalized.slice(0, 11)
+    const area = phone.slice(1, 4)
+    const first = phone.slice(4, 7)
+    const second = phone.slice(7, 9)
+    const third = phone.slice(9, 11)
+
+    if (phone.length <= 1) return '+7'
+    if (phone.length <= 4) return `+7 (${area}`
+    if (phone.length <= 7) return `+7 (${area}) ${first}`
+    if (phone.length <= 9) return `+7 (${area}) ${first}-${second}`
+    return `+7 (${area}) ${first}-${second}-${third}`
   }
 
   const capitalizeWords = (str: string) =>
@@ -143,33 +149,31 @@ export default function BookingForm({ equipment, onClose }: BookingFormProps) {
   const formatPrice = (price: number) =>
     new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', minimumFractionDigits: 0 }).format(price)
 
-  const getMinPrice = () => {
-    if (!equipment.pricing) return equipment.pricePerDay
-    const prices = [
-      equipment.pricing.day1_10to20,
-      equipment.pricing.day1,
-      equipment.pricing.days2,
-      equipment.pricing.days3,
-      equipment.pricing.days7,
-      equipment.pricing.days14,
-      equipment.pricing.days30,
-    ].filter((p) => p > 0)
-    return prices.length > 0 ? Math.min(...prices) : equipment.pricePerDay
-  }
+  const getMinPrice = () => getMinimumDailyPrice(equipment.pricing, equipment.pricePerDay)
 
   const today = getDateInputValue(new Date())
 
-  const pricingTiers = equipment.pricing
-    ? [
-        { label: '1 день (10:00–20:00)', value: equipment.pricing.day1_10to20 },
-        { label: '1 сутки', value: equipment.pricing.day1 },
-        { label: '2 суток', value: equipment.pricing.days2, perDay: true },
-        { label: '3 суток', value: equipment.pricing.days3, perDay: true },
-        { label: 'Неделя', value: equipment.pricing.days7, perDay: true },
-        { label: '2 недели', value: equipment.pricing.days14, perDay: true },
-        { label: 'Месяц', value: equipment.pricing.days30, perDay: true },
-      ].filter((t) => t.value > 0)
-    : []
+  const addDays = (days: number) => {
+    const date = new Date()
+    date.setDate(date.getDate() + days)
+    return getDateInputValue(date)
+  }
+
+  const setRentalPreset = (days: number) => {
+    const startDate = today
+    const endDate = addDays(Math.max(days - 1, 0))
+    setFormData((prev) => ({ ...prev, startDate, endDate }))
+    calculatePrice(startDate, endDate)
+  }
+
+  const rentalPresets = [
+    { label: 'Сегодня', days: 1 },
+    { label: 'Завтра', days: 2 },
+    { label: '3 дня', days: 3 },
+    { label: 'Неделя', days: 7 },
+  ]
+
+  const pricingTiers = getPricingRows(equipment.pricing)
 
   return (
     <div className="fixed inset-0 z-50">
@@ -244,6 +248,18 @@ export default function BookingForm({ equipment, onClose }: BookingFormProps) {
               <p className="text-xs text-gray-400 mt-2">
                 Для аренды на один день можно выбрать одну и ту же дату начала и окончания.
               </p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {rentalPresets.map((preset) => (
+                  <button
+                    key={preset.label}
+                    type="button"
+                    onClick={() => setRentalPreset(preset.days)}
+                    className="rounded-full border border-blue-100 bg-blue-50 px-3 py-1.5 text-xs font-semibold text-[#2563EB] hover:bg-blue-100 transition-colors"
+                  >
+                    {preset.label}
+                  </button>
+                ))}
+              </div>
             </div>
 
             {/* Price calculation */}
@@ -272,7 +288,7 @@ export default function BookingForm({ equipment, onClose }: BookingFormProps) {
                   {pricingTiers.map((tier) => (
                     <div key={tier.label} className="flex justify-between items-center text-sm">
                       <span className="text-gray-500">{tier.label}</span>
-                      <span className="font-semibold text-gray-900">{formatPrice(tier.value)}{tier.perDay ? '/сут' : ''}</span>
+                      <span className="font-semibold text-gray-900">{formatPrice(tier.value)}{tier.suffix}</span>
                     </div>
                   ))}
                 </div>

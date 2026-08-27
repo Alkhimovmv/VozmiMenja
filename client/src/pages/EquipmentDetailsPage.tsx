@@ -8,6 +8,7 @@ import SEO from '../components/SEO'
 import { ArrowLeft, Check, ChevronRight, Shield, Clock } from 'lucide-react'
 import { getImageUrl } from '../lib/utils'
 import { trackEvent } from '../lib/analytics'
+import { getMinimumDailyPrice, getPricingRows } from '../utils/pricing'
 
 function getEquipmentGuidance(category: string, name: string) {
   if (category.includes('Пылесос') || category.includes('клининг')) {
@@ -153,33 +154,8 @@ export default function EquipmentDetailsPage() {
   const formatPrice = (price: number) =>
     new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', minimumFractionDigits: 0 }).format(price)
 
-  const getMinPrice = () => {
-    if (equipment.pricing) {
-      const prices = [
-        equipment.pricing.day1_10to20,
-        equipment.pricing.day1,
-        equipment.pricing.days2,
-        equipment.pricing.days3,
-        equipment.pricing.days7,
-        equipment.pricing.days14,
-        equipment.pricing.days30,
-      ].filter((p) => p > 0)
-      return prices.length > 0 ? Math.min(...prices) : equipment.pricePerDay
-    }
-    return equipment.pricePerDay
-  }
-
-  const pricingTiers = equipment.pricing
-    ? [
-        { label: '1 день (10:00–20:00)', value: equipment.pricing.day1_10to20 },
-        { label: '1 сутки', value: equipment.pricing.day1 },
-        { label: '2 суток', value: equipment.pricing.days2, perDay: true },
-        { label: '3 суток', value: equipment.pricing.days3, perDay: true },
-        { label: 'Неделя', value: equipment.pricing.days7, perDay: true },
-        { label: '2 недели', value: equipment.pricing.days14, perDay: true },
-        { label: 'Месяц', value: equipment.pricing.days30, perDay: true },
-      ].filter((t) => t.value > 0)
-    : []
+  const getMinPrice = () => getMinimumDailyPrice(equipment.pricing, equipment.pricePerDay)
+  const pricingTiers = getPricingRows(equipment.pricing)
 
   const productStructuredData = {
     '@context': 'https://schema.org',
@@ -196,7 +172,9 @@ export default function EquipmentDetailsPage() {
       priceCurrency: 'RUB',
       price: getMinPrice(),
       priceValidUntil: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-      availability: 'https://schema.org/InStock',
+      availability: equipment.availableQuantity > 0
+        ? 'https://schema.org/InStock'
+        : 'https://schema.org/LimitedAvailability',
       seller: {
         '@type': 'LocalBusiness',
         name: 'ВозьмиМеня',
@@ -297,11 +275,8 @@ export default function EquipmentDetailsPage() {
             <h1 className="text-3xl md:text-4xl font-bold text-ink mb-2">{equipment.name}</h1>
 
             {/* Status badge */}
-            <div className="flex items-center gap-2 mb-6">
-              <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-full px-3 py-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block" />
-                В наличии
-              </span>
+            <div className="mb-6 text-sm text-muted">
+              Доступность подтвердим после выбора дат
             </div>
 
             {/* Pricing card */}
@@ -329,7 +304,7 @@ export default function EquipmentDetailsPage() {
                       <div key={tier.label} className="flex items-center justify-between text-sm">
                         <span className="text-muted">{tier.label}</span>
                         <span className="font-bold text-ink">
-                          {formatPrice(tier.value)}{tier.perDay ? '/сут' : ''}
+                          {formatPrice(tier.value)}{tier.suffix}
                         </span>
                       </div>
                     ))}

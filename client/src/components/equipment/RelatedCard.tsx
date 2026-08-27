@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom'
 import { ChevronRight } from 'lucide-react'
 import type { Equipment } from '../../types'
 import { getImageUrl } from '../../lib/utils'
+import { getMinimumDailyPrice, getPeriodPrice } from '../../utils/pricing'
 
 interface RelatedCardProps {
   equipment: Equipment
@@ -11,28 +12,8 @@ export default function RelatedCard({ equipment }: RelatedCardProps) {
   const formatPrice = (price: number) =>
     new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', minimumFractionDigits: 0 }).format(price)
 
-  const getMinPrice = () => {
-    if (equipment.pricing) {
-      const prices = [
-        equipment.pricing.day1_10to20,
-        equipment.pricing.day1,
-        equipment.pricing.days2,
-        equipment.pricing.days3,
-        equipment.pricing.days7,
-        equipment.pricing.days14,
-        equipment.pricing.days30,
-      ].filter((p) => p > 0)
-      return prices.length > 0 ? Math.min(...prices) : equipment.pricePerDay
-    }
-    return equipment.pricePerDay
-  }
-
-  const getWeekPrice = () => {
-    if (equipment.pricing?.days7 && equipment.pricing.days7 > 0) {
-      return equipment.pricing.days7 * 7
-    }
-    return getMinPrice() * 7
-  }
+  const getMinPrice = () => getMinimumDailyPrice(equipment.pricing, equipment.pricePerDay)
+  const getWeekPrice = () => getPeriodPrice(equipment.pricing, 7, equipment.pricePerDay)
 
   return (
     <Link
@@ -63,7 +44,7 @@ export default function RelatedCard({ equipment }: RelatedCardProps) {
               {formatPrice(getMinPrice())}
               <span className="text-sm font-normal text-muted ml-0.5">/сут</span>
             </div>
-            <div className="text-xs text-muted">от {formatPrice(getWeekPrice())}/нед</div>
+            <div className="text-xs text-muted">{formatPrice(getWeekPrice())} за 7 суток</div>
           </div>
           <span className="flex items-center gap-1 text-sm font-semibold text-primary bg-blue-50 px-3 py-1.5 rounded-xl group-hover:bg-primary group-hover:text-white transition-colors">
             Подробнее <ChevronRight className="w-4 h-4" />

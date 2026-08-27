@@ -16,7 +16,7 @@ export default function AdminLoginPage() {
     try {
       const response = await apiClient.adminLogin(password)
       if (response.success && response.data.token) {
-        localStorage.setItem('adminToken', response.data.token)
+        localStorage.setItem('authToken', response.data.token)
         navigate('/admin/dashboard')
       } else {
         setError('Неверный пароль')

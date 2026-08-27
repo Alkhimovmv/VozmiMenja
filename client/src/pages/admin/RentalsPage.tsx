@@ -4,7 +4,8 @@ import { useAuthenticatedQuery } from '../../hooks/useAuthenticatedQuery';
 import { rentalsApi } from '../../api/admin/rentals';
 import { equipmentApi } from '../../api/admin/equipment';
 import { officesApi } from '../../api/admin/offices';
-import type { Rental, CreateRentalDto, Equipment } from '../../types/index';
+import { bookingsApi } from '../../api/admin/bookings';
+import type { Rental, CreateRentalDto, Equipment, Booking } from '../../types/index';
 import { formatDate, getStatusText, getStatusColor } from '../../utils/dateUtils';
 import RentalModal from '../../components/admin/RentalModal';
 import CustomSelect from '../../components/admin/CustomSelect';
@@ -45,6 +46,20 @@ const RentalsPage: React.FC = () => {
 
   const { data: equipment = [] } = useAuthenticatedQuery<Equipment[]>(['equipment-rental', currentOfficeId], () => equipmentApi.getForRental(currentOfficeId));
   const { data: offices = [] } = useAuthenticatedQuery(['offices'], officesApi.getAll);
+  const { data: bookings = [] } = useAuthenticatedQuery<Booking[]>(['admin-bookings'], bookingsApi.getAll);
+
+  const openBookings = useMemo(
+    () => bookings.filter((booking) => booking.status === 'pending' || booking.status === 'confirmed'),
+    [bookings]
+  );
+
+  const todayOperations = useMemo(() => {
+    const today = startOfDay(new Date());
+    return {
+      issue: rentals.filter((rental) => isSameDay(new Date(rental.start_date), today) && rental.status === 'pending').length,
+      return: rentals.filter((rental) => isSameDay(new Date(rental.end_date), today) && (rental.status === 'active' || rental.status === 'overdue')).length,
+    };
+  }, [rentals]);
 
   // Фильтрация и сортировка аренд
   const filteredRentals = useMemo(() => {
@@ -172,6 +187,17 @@ const RentalsPage: React.FC = () => {
     onSuccess: () => { invalidateAll(); },
   });
 
+  const bookingStatusMutation = useMutation({
+    mutationFn: ({ id, status }: { id: string; status: Booking['status'] }) => bookingsApi.updateStatus(id, status),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-bookings'] });
+      toast.success('Статус заявки обновлен');
+    },
+    onError: (error: any) => {
+      toast.error(error?.response?.data?.error || error?.message || 'Не удалось обновить заявку');
+    },
+  });
+
   const handleCreateRental = (data: CreateRentalDto) => {
     createMutation.mutate({ ...data, office_id: currentOfficeId } as any);
   };
@@ -280,6 +306,25 @@ const RentalsPage: React.FC = () => {
           </button>
         </div>
 
+        <div className="grid grid-cols-2 gap-3 sm:max-w-lg">
+          <button
+            type="button"
+            onClick={() => setDateFilter('ends_today')}
+            className="rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-left transition-colors hover:bg-blue-100"
+          >
+            <span className="block text-xs font-bold uppercase tracking-wide text-blue-600">Сегодня выдать</span>
+            <span className="mt-1 block text-2xl font-black text-blue-950">{todayOperations.issue}</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setDateFilter('ends_today')}
+            className="rounded-xl border border-emerald-100 bg-emerald-50 px-4 py-3 text-left transition-colors hover:bg-emerald-100"
+          >
+            <span className="block text-xs font-bold uppercase tracking-wide text-emerald-700">Сегодня принять</span>
+            <span className="mt-1 block text-2xl font-black text-emerald-950">{todayOperations.return}</span>
+          </button>
+        </div>
+
         <div className="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-4">
           <div className="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-4">
             <label className="text-sm font-medium text-gray-700">Период:</label>
@@ -333,6 +378,76 @@ const RentalsPage: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {openBookings.length > 0 && (
+        <section id="site-bookings" className="scroll-mt-4 rounded-2xl border border-amber-100 bg-amber-50/70 p-4 sm:p-5">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-widest text-amber-700">Заявки с сайта</p>
+              <h2 className="mt-1 text-lg font-bold text-gray-900">Новые лиды, которые ждут обработки</h2>
+            </div>
+            <div className="text-sm font-semibold text-amber-800">
+              {openBookings.length} активных из {bookings.length}
+            </div>
+          </div>
+
+          <div className="mt-4 grid gap-3">
+            {openBookings.map((booking) => (
+              <div key={booking.id} className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-amber-100">
+                <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className={`rounded-full px-2.5 py-1 text-xs font-bold ${
+                        booking.status === 'pending' ? 'bg-blue-50 text-blue-700' : 'bg-emerald-50 text-emerald-700'
+                      }`}>
+                        {booking.status === 'pending' ? 'Новая' : 'В работе'}
+                      </span>
+                      <span className="text-sm font-bold text-gray-900">{booking.equipment?.name || booking.equipmentId}</span>
+                    </div>
+                    <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-gray-600">
+                      <span>👤 {booking.customerName}</span>
+                      <a href={`tel:${booking.customerPhone}`} className="font-semibold text-indigo-600 hover:underline">📞 {booking.customerPhone}</a>
+                      <span>🕐 {formatDate(booking.startDate)} - {formatDate(booking.endDate)}</span>
+                      <span className="font-semibold text-gray-900">💰 {booking.totalPrice}₽</span>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col gap-2 sm:flex-row">
+                    {booking.status === 'pending' && (
+                      <button
+                        type="button"
+                        onClick={() => bookingStatusMutation.mutate({ id: booking.id, status: 'confirmed' })}
+                        disabled={bookingStatusMutation.isPending}
+                        className="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-50"
+                      >
+                        В работу
+                      </button>
+                    )}
+                    {booking.status === 'confirmed' && (
+                      <button
+                        type="button"
+                        onClick={() => bookingStatusMutation.mutate({ id: booking.id, status: 'completed' })}
+                        disabled={bookingStatusMutation.isPending}
+                        className="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-50"
+                      >
+                        Обработана
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => bookingStatusMutation.mutate({ id: booking.id, status: 'cancelled' })}
+                      disabled={bookingStatusMutation.isPending}
+                      className="rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+                    >
+                      Отменить
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       <div className="bg-white shadow overflow-hidden sm:rounded-md">
         <ul className="divide-y divide-gray-200">

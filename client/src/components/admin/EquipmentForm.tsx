@@ -175,6 +175,44 @@ export default function EquipmentForm({ equipment, onClose }: EquipmentFormProps
                 onChange={(e) => setFormData({ ...formData, category: e.target.value })}
               />
             </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Всего единиц *
+              </label>
+              <input
+                type="number"
+                required
+                min="1"
+                step="1"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                value={formData.quantity}
+                onChange={(e) => {
+                  const quantity = Math.max(1, Number(e.target.value))
+                  setFormData({ ...formData, quantity, availableQuantity: Math.min(formData.availableQuantity, quantity) })
+                }}
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Доступно сейчас *
+              </label>
+              <input
+                type="number"
+                required
+                min="0"
+                max={formData.quantity}
+                step="1"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                value={formData.availableQuantity}
+                onChange={(e) => setFormData({
+                  ...formData,
+                  availableQuantity: Math.min(formData.quantity, Math.max(0, Number(e.target.value)))
+                })}
+              />
+              <p className="mt-1 text-xs text-gray-500">Ручной остаток для каталога. Ноль раньше показывался как «Под запрос».</p>
+            </div>
           </div>
 
           {/* Description */}
@@ -193,7 +231,10 @@ export default function EquipmentForm({ equipment, onClose }: EquipmentFormProps
 
           {/* Pricing */}
           <div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Цены</h3>
+            <h3 className="text-lg font-semibold text-gray-900">Цены</h3>
+            <p className="mt-1 mb-4 text-sm text-gray-500">
+              Для длинных сроков можно указать ставку за сутки или цену пакета целиком. Значение выше цены одних суток считается пакетной ценой.
+            </p>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -269,7 +310,7 @@ export default function EquipmentForm({ equipment, onClose }: EquipmentFormProps
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Неделя (₽/сутки) *
+                  7 суток (₽/сутки или пакет) *
                 </label>
                 <input
                   type="number"
@@ -287,7 +328,7 @@ export default function EquipmentForm({ equipment, onClose }: EquipmentFormProps
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  2 недели (₽/сутки) *
+                  14 суток (₽/сутки или пакет) *
                 </label>
                 <input
                   type="number"
@@ -305,7 +346,7 @@ export default function EquipmentForm({ equipment, onClose }: EquipmentFormProps
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Месяц (₽/сутки) *
+                  30 суток (₽/сутки или пакет) *
                 </label>
                 <input
                   type="number"

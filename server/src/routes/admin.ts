@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express'
 import { upload } from '../middleware/upload'
 import { authMiddleware, superAdminMiddleware, signToken } from '../middleware/auth'
 import { adminUserModel } from '../models/AdminUser'
+import { bookingModel, Booking } from '../models/Booking'
 import { schedulerService } from '../services/scheduler'
 import { emailBackupService } from '../services/emailBackup'
 
@@ -48,6 +49,39 @@ router.get('/auth/verify', authMiddleware, async (req: Request, res: Response) =
     res.json({ valid: true, user: adminUserModel.toPublic(user) })
   } catch (error) {
     res.status(500).json({ error: 'Internal server error' })
+  }
+})
+
+router.get('/bookings', authMiddleware, async (_req: Request, res: Response) => {
+  try {
+    const bookings = await bookingModel.findAll()
+    res.json(bookings)
+  } catch (error) {
+    console.error('Admin bookings list error:', error)
+    res.status(500).json({ error: 'Ошибка получения заявок' })
+  }
+})
+
+router.patch('/bookings/:id/status', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const status = req.body.status as Booking['status']
+    const allowedStatuses: Booking['status'][] = ['pending', 'confirmed', 'active', 'completed', 'cancelled']
+
+    if (!allowedStatuses.includes(status)) {
+      return res.status(400).json({ error: 'Некорректный статус заявки' })
+    }
+
+    const booking = await bookingModel.findById(req.params.id)
+    if (!booking) {
+      return res.status(404).json({ error: 'Заявка не найдена' })
+    }
+
+    await bookingModel.updateStatus(req.params.id, status)
+    const updated = await bookingModel.findById(req.params.id)
+    res.json(updated)
+  } catch (error) {
+    console.error('Admin booking status update error:', error)
+    res.status(500).json({ error: 'Ошибка обновления статуса заявки' })
   }
 })
 

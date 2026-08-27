@@ -6,6 +6,8 @@ import { equipmentModel } from '../models/Equipment'
 import { telegramService } from '../services/telegram'
 import { emailNotifyService } from '../services/emailNotify'
 import { vkNotifyService } from '../services/vkNotify'
+import { authMiddleware } from '../middleware/auth'
+import { calculateRentalTotal } from '../utils/pricing'
 
 const router = Router()
 
@@ -15,8 +17,8 @@ const parseDateInput = (value: string) => {
 }
 
 const calculateRentalDays = (startDate: Date, endDate: Date) => {
-  const diffDays = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24))
-  return Math.max(diffDays, 1)
+  const diffDays = Math.round((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24))
+  return diffDays + 1
 }
 
 const createBookingSchema = z.object({
@@ -29,7 +31,7 @@ const createBookingSchema = z.object({
   comment: z.string().optional()
 })
 
-router.get('/', async (req: Request, res: Response) => {
+router.get('/', authMiddleware, async (req: Request, res: Response) => {
   try {
     const bookings = await bookingModel.findAll()
 
@@ -46,7 +48,7 @@ router.get('/', async (req: Request, res: Response) => {
   }
 })
 
-router.get('/:id', async (req: Request, res: Response) => {
+router.get('/:id', authMiddleware, async (req: Request, res: Response) => {
   try {
     const { id } = req.params
     const booking = await bookingModel.findById(id)
@@ -107,26 +109,7 @@ router.post('/', async (req: Request, res: Response) => {
     // Рассчитываем стоимость
     const diffDays = calculateRentalDays(startDate, endDate)
 
-    // Определяем цену за день на основе тарифов
-    let pricePerDay = equipment.pricePerDay
-
-    if (equipment.pricing) {
-      if (diffDays >= 30) {
-        pricePerDay = equipment.pricing.days30
-      } else if (diffDays >= 14) {
-        pricePerDay = equipment.pricing.days14
-      } else if (diffDays >= 7) {
-        pricePerDay = equipment.pricing.days7
-      } else if (diffDays >= 3) {
-        pricePerDay = equipment.pricing.days3
-      } else if (diffDays === 2) {
-        pricePerDay = equipment.pricing.days2
-      } else if (diffDays === 1) {
-        pricePerDay = equipment.pricing.day1
-      }
-    }
-
-    const totalPrice = diffDays * pricePerDay
+    const totalPrice = calculateRentalTotal(equipment.pricing, diffDays, equipment.pricePerDay)
 
     // Создаем бронирование
     const bookingId = uuidv4()
