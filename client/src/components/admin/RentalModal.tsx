@@ -10,6 +10,7 @@ interface RentalModalProps {
   onClose: () => void;
   onSubmit: (data: CreateRentalDto | Partial<CreateRentalDto & { status: string }>) => void;
   rental?: Rental | null;
+  initialData?: Partial<CreateRentalDto> | null;
   equipment: Equipment[];
   isLoading?: boolean;
   errorMessage?: string | null;
@@ -42,6 +43,7 @@ const RentalModal: React.FC<RentalModalProps> = ({
   onClose,
   onSubmit,
   rental,
+  initialData = null,
   equipment,
   isLoading = false,
   errorMessage = null,
@@ -194,7 +196,9 @@ const RentalModal: React.FC<RentalModalProps> = ({
         }
       } else {
         setInitialRentalId(null);
-        setFormData({
+        const initialEquipmentInstances = initialData?.equipment_instances || [];
+        const initialEquipmentIds = initialData?.equipment_ids || initialEquipmentInstances.map(item => item.equipment_id);
+        const emptyRentalData: CreateRentalDto = {
           equipment_id: 0,
           equipment_ids: [],
           start_date: '',
@@ -209,9 +213,18 @@ const RentalModal: React.FC<RentalModalProps> = ({
           source: 'авито',
           comment: '',
           office_id: defaultOfficeId,
+        };
+
+        setFormData({
+          ...emptyRentalData,
+          ...initialData,
+          equipment_id: initialData?.equipment_id || initialEquipmentIds[0] || 0,
+          equipment_ids: initialEquipmentIds,
+          equipment_instances: initialEquipmentInstances,
+          office_id: initialData?.office_id || defaultOfficeId,
         });
-        setSelectedOfficeId(defaultOfficeId);
-        setSelectedInstances(new Set());
+        setSelectedOfficeId(initialData?.office_id || defaultOfficeId);
+        setSelectedInstances(new Set(initialEquipmentInstances.map(item => `${item.equipment_id}:${item.instance_number}`)));
       }
       if (isNewOpen || !rental) {
         setValidationErrors({});
@@ -220,7 +233,7 @@ const RentalModal: React.FC<RentalModalProps> = ({
     } else {
       setInitialRentalId(null);
     }
-  }, [rental, isOpen]);
+  }, [rental, isOpen, initialData, defaultOfficeId]);
 
   const validatePhone = (phone: string): string | null => {
     const cleanPhone = phone.replace(/\D/g, '');

@@ -13,6 +13,7 @@ const AboutPage = lazy(() => import('./pages/AboutPage'))
 const ContactPage = lazy(() => import('./pages/ContactPage'))
 const DeliveryPage = lazy(() => import('./pages/DeliveryPage'))
 const PrivacyPolicyPage = lazy(() => import('./pages/PrivacyPolicyPage'))
+const ReturnPolicyPage = lazy(() => import('./pages/ReturnPolicyPage'))
 const CookiePolicyPage = lazy(() => import('./pages/CookiePolicyPage'))
 const TermsOfServicePage = lazy(() => import('./pages/TermsOfServicePage'))
 const OfferPage = lazy(() => import('./pages/OfferPage'))
@@ -71,6 +72,7 @@ function ScrollToTop() {
 function App() {
   const location = useLocation()
   const isAdminRoute = location.pathname.startsWith('/admin')
+  const isEquipmentRoute = location.pathname.startsWith('/equipment/')
 
   return (
     <>
@@ -101,7 +103,7 @@ function App() {
         }}
       />
       <ScrollToTop />
-      {!isAdminRoute && <FloatingActions />}
+      {!isAdminRoute && !isEquipmentRoute && <FloatingActions />}
       {!isAdminRoute && <CookieBanner />}
       <Suspense fallback={<PageLoader />}>
         <Routes>
@@ -142,6 +144,7 @@ function App() {
                 <Route path="/contact" element={<ContactPage />} />
                 <Route path="/delivery" element={<DeliveryPage />} />
                 <Route path="/privacy" element={<PrivacyPolicyPage />} />
+                <Route path="/return-policy" element={<ReturnPolicyPage />} />
                 <Route path="/cookies" element={<CookiePolicyPage />} />
                 <Route path="/terms" element={<TermsOfServicePage />} />
                 <Route path="/offer" element={<OfferPage />} />

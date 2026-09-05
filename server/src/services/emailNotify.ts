@@ -3,6 +3,13 @@ import dotenv from 'dotenv'
 
 dotenv.config()
 
+const escapeHtml = (value: string): string =>
+  value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+
 class EmailNotifyService {
   private isConfigured(): boolean {
     return !!(
@@ -39,13 +46,27 @@ class EmailNotifyService {
     endDate: string
     totalPrice: number
     comment?: string
+    sourcePage?: string
+    referrer?: string
+    utmSource?: string
+    utmMedium?: string
+    utmCampaign?: string
   }) {
     if (!this.isConfigured()) {
       console.log('⚠️  Email уведомления не настроены (NOTIFY_EMAIL_FROM/PASS/TO)')
       return
     }
 
-    const commentRow = data.comment ? `<tr><td style="padding:6px 0;color:#6b7280">Комментарий</td><td style="padding:6px 0;font-weight:600">${data.comment}</td></tr>` : ''
+    const commentRow = data.comment ? `<tr><td style="padding:6px 0;color:#6b7280">Комментарий</td><td style="padding:6px 0;font-weight:600">${escapeHtml(data.comment)}</td></tr>` : ''
+    const source = [data.utmSource, data.utmMedium, data.utmCampaign].filter(Boolean).join(' / ')
+    const sourceRows = source || data.sourcePage || data.referrer
+      ? `
+      <tr><td colspan="2"><hr style="border:none;border-top:1px solid #f1f5f9;margin:8px 0"></td></tr>
+      ${source ? `<tr><td style="padding:6px 0;color:#6b7280">UTM</td><td style="padding:6px 0;font-weight:600">${escapeHtml(source)}</td></tr>` : ''}
+      ${data.sourcePage ? `<tr><td style="padding:6px 0;color:#6b7280">Страница</td><td style="padding:6px 0;font-weight:600">${escapeHtml(data.sourcePage)}</td></tr>` : ''}
+      ${data.referrer ? `<tr><td style="padding:6px 0;color:#6b7280">Referrer</td><td style="padding:6px 0;font-weight:600">${escapeHtml(data.referrer)}</td></tr>` : ''}
+      `
+      : ''
 
     const html = `
 <div style="font-family:Inter,Arial,sans-serif;max-width:520px;margin:0 auto;background:#f8fafc;padding:24px">
@@ -54,17 +75,18 @@ class EmailNotifyService {
   </div>
   <div style="background:#fff;border-radius:16px;padding:24px;border:1px solid #e2e8f0">
     <table style="width:100%;border-collapse:collapse">
-      <tr><td style="padding:6px 0;color:#6b7280;width:140px">Оборудование</td><td style="padding:6px 0;font-weight:700;color:#2563eb">${data.equipmentName}</td></tr>
+      <tr><td style="padding:6px 0;color:#6b7280;width:140px">Оборудование</td><td style="padding:6px 0;font-weight:700;color:#2563eb">${escapeHtml(data.equipmentName)}</td></tr>
       <tr><td colspan="2"><hr style="border:none;border-top:1px solid #f1f5f9;margin:8px 0"></td></tr>
-      <tr><td style="padding:6px 0;color:#6b7280">Клиент</td><td style="padding:6px 0;font-weight:600">${data.customerName}</td></tr>
-      <tr><td style="padding:6px 0;color:#6b7280">Телефон</td><td style="padding:6px 0;font-weight:600"><a href="tel:${data.customerPhone}" style="color:#2563eb">${data.customerPhone}</a></td></tr>
-      <tr><td style="padding:6px 0;color:#6b7280">Email</td><td style="padding:6px 0">${data.customerEmail || 'не указан'}</td></tr>
+      <tr><td style="padding:6px 0;color:#6b7280">Клиент</td><td style="padding:6px 0;font-weight:600">${escapeHtml(data.customerName)}</td></tr>
+      <tr><td style="padding:6px 0;color:#6b7280">Телефон</td><td style="padding:6px 0;font-weight:600"><a href="tel:${escapeHtml(data.customerPhone)}" style="color:#2563eb">${escapeHtml(data.customerPhone)}</a></td></tr>
+      <tr><td style="padding:6px 0;color:#6b7280">Email</td><td style="padding:6px 0">${escapeHtml(data.customerEmail || 'не указан')}</td></tr>
       <tr><td colspan="2"><hr style="border:none;border-top:1px solid #f1f5f9;margin:8px 0"></td></tr>
       <tr><td style="padding:6px 0;color:#6b7280">Начало</td><td style="padding:6px 0;font-weight:600">${this.formatDate(data.startDate)}</td></tr>
       <tr><td style="padding:6px 0;color:#6b7280">Окончание</td><td style="padding:6px 0;font-weight:600">${this.formatDate(data.endDate)}</td></tr>
       <tr><td colspan="2"><hr style="border:none;border-top:1px solid #f1f5f9;margin:8px 0"></td></tr>
       <tr><td style="padding:6px 0;color:#6b7280">Стоимость</td><td style="padding:6px 0;font-weight:700;font-size:18px;color:#16a34a">${data.totalPrice.toLocaleString('ru-RU')} ₽</td></tr>
       ${commentRow}
+      ${sourceRows}
     </table>
   </div>
   <p style="color:#94a3b8;font-size:12px;text-align:center;margin-top:16px">ВозьмиМеня — vozmimenya.ru</p>

@@ -49,12 +49,35 @@ class Database {
         start_date DATE NOT NULL,
         end_date DATE NOT NULL,
         total_price REAL NOT NULL,
+        comment TEXT,
+        source_page TEXT,
+        referrer TEXT,
+        utm_source TEXT,
+        utm_medium TEXT,
+        utm_campaign TEXT,
         status TEXT NOT NULL CHECK (status IN ('pending', 'confirmed', 'active', 'completed', 'cancelled')),
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (equipment_id) REFERENCES equipment (id)
       )
     `)
+
+    const bookingColumns = [
+      ['comment', 'TEXT'],
+      ['source_page', 'TEXT'],
+      ['referrer', 'TEXT'],
+      ['utm_source', 'TEXT'],
+      ['utm_medium', 'TEXT'],
+      ['utm_campaign', 'TEXT'],
+    ] as const
+
+    for (const [column, definition] of bookingColumns) {
+      try {
+        await run(`ALTER TABLE bookings ADD COLUMN ${column} ${definition}`)
+      } catch (error: any) {
+        if (!error.message?.includes('duplicate column name')) throw error
+      }
+    }
 
     // Таблица для оборудования (RentAdmin)
     await run(`

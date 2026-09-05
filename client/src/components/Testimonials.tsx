@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import avitoIcon from '../assets/avito.png'
-
-const AVITO_URL = 'https://www.avito.ru/brands/bec2558749c417a5576049cbce277ace/all?page_from=from_item_card&iid=7408898363&sellerId=f68e169e975bcc285ceb9bab886e60f3'
+import { trackEvent } from '../lib/analytics'
+import { AVITO_PROFILE_URL } from '../lib/contactLinks'
 
 function StarIcon() {
   return (
@@ -78,9 +78,10 @@ export default function Testimonials() {
 
             {/* Big Avito banner */}
             <a
-              href={AVITO_URL}
+              href={AVITO_PROFILE_URL}
               target="_blank"
               rel="noopener noreferrer"
+              onClick={() => trackEvent('avito_click', { source: 'testimonials_banner' })}
               className="group flex flex-col justify-between rounded-2xl p-6 transition-all hover:scale-[1.01] active:scale-[0.99] flex-1"
               style={{ background: 'linear-gradient(135deg, #00AAFF 0%, #0080CC 100%)' }}
             >
@@ -119,9 +120,10 @@ export default function Testimonials() {
 
             {/* CTA */}
             <a
-              href={AVITO_URL}
+              href={AVITO_PROFILE_URL}
               target="_blank"
               rel="noopener noreferrer"
+              onClick={() => trackEvent('avito_click', { source: 'testimonials_review_cta' })}
               className="bg-white border border-gray-200 rounded-2xl p-4 flex items-center gap-4 hover:border-[#00AAFF] hover:shadow-md transition-all group flex-shrink-0"
             >
               <img src={avitoIcon} alt="Avito" className="w-10 h-10 object-contain flex-shrink-0" />

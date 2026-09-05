@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { Phone } from 'lucide-react'
 import logoHeader from '../../assets/logo-header.png'
+import { CONTACT_PHONE, CONTACT_PHONE_LABEL } from '../../lib/contactLinks'
 
 export default function Header() {
   const [isScrolled, setIsScrolled] = useState(false)
@@ -69,12 +70,12 @@ export default function Header() {
           {/* Desktop right */}
           <div className="hidden md:flex items-center gap-3">
             <a
-              href="tel:+79933636464"
+              href={`tel:${CONTACT_PHONE}`}
               className="btn-primary"
               style={{ padding: '8px 18px', fontSize: '14px', borderRadius: '12px' }}
             >
               <Phone className="w-4 h-4" />
-              +7 (993) 363-64-64
+              {CONTACT_PHONE_LABEL}
             </a>
           </div>
 

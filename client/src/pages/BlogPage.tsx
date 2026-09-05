@@ -4,6 +4,8 @@ import { Article } from '../types'
 import { articlesApi } from '../api/articles'
 import SEO from '../components/SEO'
 import { Calendar, Eye, User, ChevronRight } from 'lucide-react'
+import { trackEvent } from '../lib/analytics'
+import { getTelegramUrl } from '../lib/contactLinks'
 
 export default function BlogPage() {
   const [articles, setArticles] = useState<Article[]>([])
@@ -172,10 +174,16 @@ export default function BlogPage() {
 
                 <div className="mt-6 p-4 bg-blue-50 rounded-2xl">
                   <h4 className="font-bold text-gray-900 text-sm mb-1">Нужна консультация?</h4>
-                  <p className="text-xs text-gray-500 mb-3">Поможем выбрать оборудование под вашу задачу</p>
-                  <Link to="/contact" className="block w-full bg-[#2563EB] hover:bg-[#1D4ED8] text-white text-center py-2 rounded-xl text-sm font-semibold transition-colors">
-                    Связаться с нами
-                  </Link>
+                  <p className="text-xs text-gray-500 mb-3">Напишите в Telegram, если хотите быстро подобрать оборудование по задаче</p>
+                  <a
+                    href={getTelegramUrl()}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={() => trackEvent('telegram_click', { source: 'blog_sidebar' })}
+                    className="block w-full bg-[#2AABEE] hover:bg-[#1A9BD8] text-white text-center py-2 rounded-xl text-sm font-semibold transition-colors"
+                  >
+                    Написать в Telegram
+                  </a>
                 </div>
               </div>
             </div>

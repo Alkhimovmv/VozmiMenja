@@ -81,6 +81,11 @@ export interface Booking {
   endDate: string
   totalPrice: number
   comment?: string
+  sourcePage?: string
+  referrer?: string
+  utmSource?: string
+  utmMedium?: string
+  utmCampaign?: string
   status: 'pending' | 'confirmed' | 'active' | 'completed' | 'cancelled'
   createdAt: string
   updatedAt: string
@@ -94,6 +99,11 @@ export interface BookingRequest {
   startDate: string
   endDate: string
   comment?: string
+  sourcePage?: string
+  referrer?: string
+  utmSource?: string
+  utmMedium?: string
+  utmCampaign?: string
 }
 
 export interface ApiResponse<T> {

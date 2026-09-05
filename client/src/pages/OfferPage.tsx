@@ -1,3 +1,5 @@
+import { Link } from 'react-router-dom'
+
 export default function OfferPage() {
   return (
     <div className="min-h-screen bg-[#F8FAFC]">
@@ -91,7 +93,15 @@ export default function OfferPage() {
             </div>
 
             <div>
-              <h2 className="text-xl font-bold text-gray-900 mb-3">10. Реквизиты и контакты</h2>
+              <h2 className="text-xl font-bold text-gray-900 mb-3">10. Возврат и отказ от услуги</h2>
+              <p>
+                Порядок отказа от бронирования, возврата оборудования и возврата товара при дистанционной покупке опубликован на странице{' '}
+                <Link to="/return-policy" className="text-[#2563EB] font-semibold hover:underline">«Возврат и отказ от услуги»</Link>.
+              </p>
+            </div>
+
+            <div>
+              <h2 className="text-xl font-bold text-gray-900 mb-3">11. Реквизиты и контакты</h2>
               <div className="space-y-1">
                 <p><strong>ИП Алхимова Софья Вадимовна</strong></p>
                 <p>ОГРНИП: 326670000005031</p>

@@ -35,6 +35,11 @@ class VkNotifyService {
     endDate: string
     totalPrice: number
     comment?: string
+    sourcePage?: string
+    referrer?: string
+    utmSource?: string
+    utmMedium?: string
+    utmCampaign?: string
   }) {
     if (!this.vk || !this.peerId) return
 
@@ -50,6 +55,14 @@ class VkNotifyService {
 
     if (data.comment) {
       message += `\n\n💬 Комментарий: ${data.comment}`
+    }
+
+    const source = [data.utmSource, data.utmMedium, data.utmCampaign].filter(Boolean).join(' / ')
+    if (source || data.sourcePage || data.referrer) {
+      message += `\n\n📈 Источник:`
+      if (source) message += `\nUTM: ${source}`
+      if (data.sourcePage) message += `\nСтраница: ${data.sourcePage}`
+      if (data.referrer) message += `\nReferrer: ${data.referrer}`
     }
 
     try {

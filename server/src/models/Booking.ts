@@ -11,6 +11,12 @@ export interface Booking {
   startDate: string
   endDate: string
   totalPrice: number
+  comment?: string
+  sourcePage?: string
+  referrer?: string
+  utmSource?: string
+  utmMedium?: string
+  utmCampaign?: string
   status: 'pending' | 'confirmed' | 'active' | 'completed' | 'cancelled'
   createdAt: string
   updatedAt: string
@@ -25,6 +31,11 @@ export interface CreateBookingData {
   endDate: string
   totalPrice: number
   comment?: string
+  sourcePage?: string
+  referrer?: string
+  utmSource?: string
+  utmMedium?: string
+  utmCampaign?: string
 }
 
 export class BookingModel {
@@ -66,8 +77,9 @@ export class BookingModel {
     await run(`
       INSERT INTO bookings (
         id, equipment_id, customer_name, customer_phone, customer_email,
-        start_date, end_date, total_price, status
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending')
+        start_date, end_date, total_price, comment, source_page, referrer,
+        utm_source, utm_medium, utm_campaign, status
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')
     `, [
       data.id,
       data.equipmentId,
@@ -76,7 +88,13 @@ export class BookingModel {
       data.customerEmail || '',
       data.startDate,
       data.endDate,
-      data.totalPrice
+      data.totalPrice,
+      data.comment || '',
+      data.sourcePage || '',
+      data.referrer || '',
+      data.utmSource || '',
+      data.utmMedium || '',
+      data.utmCampaign || ''
     ])
 
     const booking = await this.findById(data.id)
@@ -139,6 +157,12 @@ export class BookingModel {
       startDate: row.start_date,
       endDate: row.end_date,
       totalPrice: row.total_price,
+      comment: row.comment || undefined,
+      sourcePage: row.source_page || undefined,
+      referrer: row.referrer || undefined,
+      utmSource: row.utm_source || undefined,
+      utmMedium: row.utm_medium || undefined,
+      utmCampaign: row.utm_campaign || undefined,
       status: row.status,
       createdAt: row.created_at,
       updatedAt: row.updated_at

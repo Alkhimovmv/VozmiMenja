@@ -4,6 +4,8 @@ import { useEquipment } from '../hooks/useEquipment'
 import EquipmentGrid from '../components/equipment/EquipmentGrid'
 import SEO from '../components/SEO'
 import { Check, Mic, Music, Radio } from 'lucide-react'
+import { trackEvent } from '../lib/analytics'
+import { CONTACT_PHONE, CONTACT_PHONE_LABEL, getTelegramUrl } from '../lib/contactLinks'
 
 export default function CategoryAudioPage() {
   const [page] = useState(1)
@@ -93,7 +95,7 @@ export default function CategoryAudioPage() {
     <div className="min-h-screen bg-[#F8FAFC]">
       <SEO
         title="Аренда аудиооборудования в Москве - Микрофоны, колонки, акустика"
-        description="✅ Аренда профессионального аудиооборудования в Москве. Микрофоны, колонки, акустические системы. Доставка 24/7. ☎️ +7 (993) 363-64-64"
+        description="✅ Аренда профессионального аудиооборудования в Москве. Микрофоны, колонки, акустика. Доставка 24/7. Подбор комплекта и бронь через Telegram."
         keywords="аренда аудиооборудования москва, прокат микрофонов, аренда колонок, звуковое оборудование напрокат, акустика в аренду"
         url="https://vozmimenya.ru/arenda-audiooborudovaniya-moskva"
         structuredData={[categoryStructuredData, faqStructuredData]}
@@ -114,12 +116,14 @@ export default function CategoryAudioPage() {
             Профессиональные микрофоны, колонки и акустика для любых мероприятий.
             Студийное качество звука от <span className="font-bold text-white">450₽/день</span>.
           </p>
-          <a
-            href="tel:+79933636464"
-            className="btn bg-white text-primary hover:bg-blue-50 shadow-sm"
-          >
-            +7 (993) 363-64-64
-          </a>
+          <div className="flex flex-col sm:flex-row gap-3">
+            <a href={getTelegramUrl()} target="_blank" rel="noopener noreferrer" onClick={() => trackEvent('telegram_click', { source: 'category_audio_hero' })} className="btn bg-white text-primary hover:bg-blue-50 shadow-sm">
+              Написать в Telegram
+            </a>
+            <a href="#catalog" className="btn border border-white/20 bg-white/10 text-white hover:bg-white/20">
+              Смотреть аудио
+            </a>
+          </div>
         </div>
       </section>
 
@@ -211,14 +215,14 @@ export default function CategoryAudioPage() {
         <div className="container mx-auto px-4">
           <div className="bg-gradient-to-br from-[#1D4ED8] to-[#0F172A] rounded-2xl p-10 text-center text-white">
             <h2 className="text-2xl font-extrabold mb-3">Нужно качественное звуковое оборудование?</h2>
-            <p className="text-blue-100 mb-6 max-w-xl mx-auto text-sm">Звоните прямо сейчас — подберем оптимальное решение для ваших задач!</p>
+            <p className="text-blue-100 mb-6 max-w-xl mx-auto text-sm">Напишите в Telegram — подберем колонку, микрофон или комплект под ваш формат.</p>
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
-              <a href="tel:+79933636464" className="btn bg-white text-primary hover:bg-blue-50">
-                +7 (993) 363-64-64
+              <a href={getTelegramUrl()} target="_blank" rel="noopener noreferrer" onClick={() => trackEvent('telegram_click', { source: 'category_audio_bottom_cta' })} className="btn bg-white text-primary hover:bg-blue-50">
+                Написать в Telegram
               </a>
-              <Link to="/contact" className="btn bg-white text-primary hover:bg-blue-50">
-                Связаться с нами
-              </Link>
+              <a href={`tel:${CONTACT_PHONE}`} onClick={() => trackEvent('phone_click', { source: 'category_audio_bottom_cta' })} className="btn border border-white/20 bg-white/10 text-white hover:bg-white/20">
+                {CONTACT_PHONE_LABEL}
+              </a>
             </div>
           </div>
         </div>

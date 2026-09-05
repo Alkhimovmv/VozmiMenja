@@ -38,6 +38,7 @@ const staticUrls: SitemapUrl[] = [
   { loc: '/delivery', lastmod: today(), changefreq: 'monthly', priority: '0.7' },
   { loc: '/faq', lastmod: today(), changefreq: 'monthly', priority: '0.7' },
   { loc: '/privacy', lastmod: today(), changefreq: 'yearly', priority: '0.3' },
+  { loc: '/return-policy', lastmod: today(), changefreq: 'yearly', priority: '0.3' },
   { loc: '/cookies', lastmod: today(), changefreq: 'yearly', priority: '0.3' },
   { loc: '/terms', lastmod: today(), changefreq: 'yearly', priority: '0.3' },
   { loc: '/offer', lastmod: today(), changefreq: 'yearly', priority: '0.3' },

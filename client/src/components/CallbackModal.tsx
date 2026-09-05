@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom'
 import { X, Phone } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { apiClient } from '../lib/api'
+import { trackEvent } from '../lib/analytics'
+import { getPageLeadMessage } from '../lib/contactLinks'
 
 interface CallbackModalProps {
   isOpen: boolean
@@ -17,6 +19,29 @@ export default function CallbackModal({ isOpen, onClose }: CallbackModalProps) {
   const [consent, setConsent] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
+  const formatPhoneNumber = (value: string) => {
+    const digits = value.replace(/\D/g, '')
+    if (!digits) return ''
+
+    const normalized = digits.startsWith('8')
+      ? `7${digits.slice(1)}`
+      : digits.startsWith('7')
+      ? digits
+      : `7${digits}`
+
+    const phone = normalized.slice(0, 11)
+    const area = phone.slice(1, 4)
+    const first = phone.slice(4, 7)
+    const second = phone.slice(7, 9)
+    const third = phone.slice(9, 11)
+
+    if (phone.length <= 1) return '+7'
+    if (phone.length <= 4) return `+7 (${area}`
+    if (phone.length <= 7) return `+7 (${area}) ${first}`
+    if (phone.length <= 9) return `+7 (${area}) ${first}-${second}`
+    return `+7 (${area}) ${first}-${second}-${third}`
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsSubmitting(true)
@@ -26,10 +51,11 @@ export default function CallbackModal({ isOpen, onClose }: CallbackModalProps) {
         name: formData.name,
         phone: formData.phone,
         subject: 'Заказ обратного звонка',
-        message: 'Прошу перезвонить мне',
+        message: `Прошу перезвонить мне\n\n${getPageLeadMessage('Обратный звонок')}`,
       })
 
       toast.success('Заявка отправлена! Мы свяжемся с вами в ближайшее время')
+      trackEvent('callback_submit', { source: 'callback_modal' })
       setFormData({ name: '', phone: '' })
       onClose()
     } catch (error) {
@@ -91,7 +117,7 @@ export default function CallbackModal({ isOpen, onClose }: CallbackModalProps) {
                 id="phone"
                 required
                 value={formData.phone}
-                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                onChange={(e) => setFormData({ ...formData, phone: formatPhoneNumber(e.target.value) })}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 placeholder="+7 (___) ___-__-__"
               />

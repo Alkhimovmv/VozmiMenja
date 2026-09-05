@@ -6,11 +6,14 @@ import SEO from '../components/SEO'
 import { Calendar, Eye, User, ArrowLeft, Tag } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
+import { trackEvent } from '../lib/analytics'
+import { CONTACT_PHONE, CONTACT_PHONE_LABEL, getTelegramUrl } from '../lib/contactLinks'
 
 const rentalCtas = {
   cleaning: {
     title: 'Нужно оборудование для уборки?',
     description: 'Посмотрите моющие и строительные пылесосы в аренду. Подберем модель под квартиру, диван, ковер или уборку после ремонта.',
+    telegramSource: 'blog_article_cleaning_cta',
     primaryHref: '/arenda-pylesosov-moskva',
     primaryLabel: 'Смотреть пылесосы',
     links: [
@@ -22,6 +25,7 @@ const rentalCtas = {
   cameras: {
     title: 'Хотите снять видео без покупки камеры?',
     description: 'Возьмите GoPro, DJI Osmo Pocket или Insta360 на нужные даты. Поможем выбрать камеру под поездку, влог или мероприятие.',
+    telegramSource: 'blog_article_cameras_cta',
     primaryHref: '/arenda-gopro-moskva',
     primaryLabel: 'Смотреть камеры',
     links: [
@@ -33,6 +37,7 @@ const rentalCtas = {
   audio: {
     title: 'Нужен звук для съемки или праздника?',
     description: 'Посмотрите микрофоны и колонки в аренду. Подскажем, что подойдет для видео, подкаста, вечеринки или небольшого события.',
+    telegramSource: 'blog_article_audio_cta',
     primaryHref: '/arenda-audiooborudovaniya-moskva',
     primaryLabel: 'Смотреть аудио',
     links: [
@@ -44,6 +49,7 @@ const rentalCtas = {
   default: {
     title: 'Хотите подобрать оборудование под задачу?',
     description: 'Откройте каталог или напишите нам: поможем выбрать технику, срок аренды и удобный способ получения.',
+    telegramSource: 'blog_article_default_cta',
     primaryHref: '/',
     primaryLabel: 'Открыть каталог',
     links: [
@@ -216,12 +222,23 @@ export default function BlogArticlePage() {
                 <h2 className="text-xl font-bold text-gray-900 mb-2">{rentalCta.title}</h2>
                 <p className="text-sm text-gray-500 leading-relaxed">{rentalCta.description}</p>
               </div>
-              <Link
-                to={rentalCta.primaryHref}
-                className="inline-flex items-center justify-center px-5 py-3 bg-[#2563EB] text-white rounded-xl font-semibold hover:bg-[#1D4ED8] transition-colors text-sm shrink-0"
-              >
-                {rentalCta.primaryLabel}
-              </Link>
+              <div className="flex flex-col sm:flex-row md:flex-col gap-2 shrink-0">
+                <a
+                  href={getTelegramUrl()}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={() => trackEvent('telegram_click', { source: rentalCta.telegramSource })}
+                  className="inline-flex items-center justify-center px-5 py-3 bg-[#2AABEE] text-white rounded-xl font-semibold hover:bg-[#1A9BD8] transition-colors text-sm"
+                >
+                  Написать в Telegram
+                </a>
+                <Link
+                  to={rentalCta.primaryHref}
+                  className="inline-flex items-center justify-center px-5 py-3 bg-[#2563EB] text-white rounded-xl font-semibold hover:bg-[#1D4ED8] transition-colors text-sm"
+                >
+                  {rentalCta.primaryLabel}
+                </Link>
+              </div>
             </div>
             <div className="mt-4 flex flex-wrap gap-2">
               {rentalCta.links.map((link) => (
@@ -291,11 +308,21 @@ export default function BlogArticlePage() {
               Наши специалисты помогут подобрать идеальное оборудование для вашего проекта
             </p>
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
-              <Link to="/contact" className="px-6 py-3 bg-white text-[#2563EB] rounded-xl font-semibold hover:bg-gray-50 transition-colors text-sm">
-                Связаться с нами
-              </Link>
-              <a href="tel:+79933636464" className="btn bg-white text-primary hover:bg-blue-50">
-                +7 (993) 363-64-64
+              <a
+                href={getTelegramUrl()}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => trackEvent('telegram_click', { source: 'blog_article_bottom_cta' })}
+                className="px-6 py-3 bg-white text-[#2563EB] rounded-xl font-semibold hover:bg-gray-50 transition-colors text-sm"
+              >
+                Написать в Telegram
+              </a>
+              <a
+                href={`tel:${CONTACT_PHONE}`}
+                onClick={() => trackEvent('phone_click', { source: 'blog_article_bottom_cta' })}
+                className="btn bg-white text-primary hover:bg-blue-50"
+              >
+                {CONTACT_PHONE_LABEL}
               </a>
             </div>
           </div>

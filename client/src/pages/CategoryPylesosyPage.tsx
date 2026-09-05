@@ -5,6 +5,8 @@ import EquipmentGrid from '../components/equipment/EquipmentGrid'
 import SEO from '../components/SEO'
 import HowItWorks from '../components/HowItWorks'
 import { Check, Star, Clock, Shield, Truck } from 'lucide-react'
+import { trackEvent } from '../lib/analytics'
+import { CONTACT_PHONE, CONTACT_PHONE_LABEL, getTelegramUrl } from '../lib/contactLinks'
 
 export default function CategoryPylesosyPage() {
   const [page] = useState(1)
@@ -108,7 +110,7 @@ export default function CategoryPylesosyPage() {
     <div className="min-h-screen bg-[#F8FAFC]">
       <SEO
         title="Аренда пылесосов в Москве от 400₽/день - Строительные и промышленные"
-        description="✅ Аренда строительных и промышленных пылесосов в Москве. Низкие цены от 400₽/день. Доставка 24/7. Без залога для постоянных клиентов. ☎️ +7 (993) 363-64-64"
+        description="✅ Аренда строительных и промышленных пылесосов в Москве. Низкие цены от 400₽/день. Доставка 24/7. Подбор модели и бронь через Telegram."
         keywords="аренда пылесосов москва, прокат строительных пылесосов, промышленные пылесосы аренда, клининговое оборудование напрокат, строительный пылесос москва"
         url="https://vozmimenya.ru/arenda-pylesosov-moskva"
         structuredData={[categoryStructuredData, faqStructuredData]}
@@ -130,8 +132,8 @@ export default function CategoryPylesosyPage() {
             Профессиональная техника от <span className="font-bold text-white">400₽/день</span>. Доставка по Москве за 2-4 часа.
           </p>
           <div className="flex flex-col sm:flex-row gap-3 mb-10">
-            <a href="tel:+79933636464" className="btn bg-white text-primary hover:bg-blue-50">
-              +7 (993) 363-64-64
+            <a href={getTelegramUrl()} target="_blank" rel="noopener noreferrer" onClick={() => trackEvent('telegram_click', { source: 'category_pylesosy_hero' })} className="btn bg-white text-primary hover:bg-blue-50">
+              Написать в Telegram
             </a>
             <a href="#catalog" className="btn bg-white text-primary hover:bg-blue-50">
               Смотреть каталог
@@ -254,13 +256,13 @@ export default function CategoryPylesosyPage() {
         <div className="container mx-auto px-4">
           <div className="bg-gradient-to-br from-[#1D4ED8] to-[#0F172A] rounded-2xl p-10 text-center text-white">
             <h2 className="text-2xl font-extrabold mb-3">Готовы арендовать пылесос?</h2>
-            <p className="text-blue-100 mb-6 max-w-xl mx-auto text-sm">Позвоните нам или оставьте заявку — доставим оборудование уже сегодня!</p>
+            <p className="text-blue-100 mb-6 max-w-xl mx-auto text-sm">Напишите в Telegram — подберем модель, срок и доставку без лишней переписки.</p>
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
-              <a href="tel:+79933636464" className="btn bg-white text-primary hover:bg-blue-50">
-                +7 (993) 363-64-64
-              </a>
-              <a href="https://t.me/VozmiMenyaRent" target="_blank" rel="noopener noreferrer" className="btn bg-white text-primary hover:bg-blue-50">
+              <a href={getTelegramUrl()} target="_blank" rel="noopener noreferrer" onClick={() => trackEvent('telegram_click', { source: 'category_pylesosy_bottom_cta' })} className="btn bg-white text-primary hover:bg-blue-50">
                 Написать в Telegram
+              </a>
+              <a href={`tel:${CONTACT_PHONE}`} onClick={() => trackEvent('phone_click', { source: 'category_pylesosy_bottom_cta' })} className="btn border border-white/20 bg-white/10 text-white hover:bg-white/20">
+                {CONTACT_PHONE_LABEL}
               </a>
             </div>
           </div>

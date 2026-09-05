@@ -9,6 +9,7 @@ import { ArrowLeft, Check, ChevronRight, Shield, Clock } from 'lucide-react'
 import { getImageUrl } from '../lib/utils'
 import { trackEvent } from '../lib/analytics'
 import { getMinimumDailyPrice, getPricingRows } from '../utils/pricing'
+import { CONTACT_PHONE, CONTACT_PHONE_LABEL, getTelegramUrl, getWhatsAppUrl } from '../lib/contactLinks'
 
 function getEquipmentGuidance(category: string, name: string) {
   if (category.includes('Пылесос') || category.includes('клининг')) {
@@ -197,6 +198,7 @@ export default function EquipmentDetailsPage() {
   const guidance = getEquipmentGuidance(equipment.category, equipment.name)
   const categoryLandingHref = getCategoryLandingHref(equipment.category)
   const categoryGuideHref = getCategoryGuideHref(equipment.category)
+  const quickMessage = `Здравствуйте! Хочу арендовать ${equipment.name}. Страница: https://vozmimenya.ru/equipment/${equipment.id}`
   const faqStructuredData = {
     '@context': 'https://schema.org',
     '@type': 'FAQPage',
@@ -210,7 +212,7 @@ export default function EquipmentDetailsPage() {
     })),
   }
   const seoTitle = `Аренда ${equipment.name} в Москве | от ${formatPrice(minPrice)}/сутки | Доставка в день заказа | ВозьмиМеня`
-  const seoDescription = `Аренда ${equipment.name} в Москве от ${formatPrice(minPrice)}/сутки | Доставка в день заказа | Постамат 24/7 | Звоните: +7 (993) 363-64-64`
+  const seoDescription = `Аренда ${equipment.name} в Москве от ${formatPrice(minPrice)}/сутки | Доставка в день заказа | Постамат 24/7 | Подбор и бронь через Telegram`
   const seoKeywords = `аренда ${equipment.name}, прокат ${equipment.name}, ${equipment.name} аренда Москва, взять в аренду ${equipment.name}, ${equipment.category} аренда Москва, прокат ${equipment.category}`
 
   return (
@@ -240,7 +242,7 @@ export default function EquipmentDetailsPage() {
         </div>
       </div>
 
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-4 py-8 pb-32 md:pb-8">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
 
           {/* ── Left: Images ── */}
@@ -345,28 +347,36 @@ export default function EquipmentDetailsPage() {
             </div>
 
             {/* Phone CTA */}
-            <div className="bg-ink rounded-2xl p-5">
-              <p className="text-xs text-slate-400 uppercase tracking-widest mb-1">Или позвоните</p>
-              <div className="flex items-center justify-between">
+            <div className="rounded-2xl bg-ink p-5">
+              <p className="mb-1 text-xs uppercase tracking-widest text-slate-400">Быстро уточнить наличие</p>
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <a
-                  href="tel:+79933636464"
+                  href={`tel:${CONTACT_PHONE}`}
                   onClick={() => trackEvent('phone_click', { source: 'equipment_page', equipment_id: equipment.id })}
-                  className="text-white text-xl font-bold hover:opacity-90 transition-opacity"
+                  className="text-xl font-bold text-white transition-opacity hover:opacity-90"
                 >
-                  +7 (993) 363-64-64
+                  {CONTACT_PHONE_LABEL}
                 </a>
-                <a
-                  href="https://t.me/VozmiMenyaRent"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={() => trackEvent('telegram_click', { source: 'equipment_page', equipment_id: equipment.id })}
-                  className="flex items-center gap-1.5 bg-[#2AABEE] text-white text-sm font-semibold px-4 py-2 rounded-xl hover:opacity-90 transition-opacity"
-                >
-                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/>
-                  </svg>
-                  Telegram
-                </a>
+                <div className="flex gap-2">
+                  <a
+                    href={getTelegramUrl()}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={() => trackEvent('telegram_click', { source: 'equipment_page', equipment_id: equipment.id })}
+                    className="rounded-xl bg-white px-4 py-2 text-sm font-semibold text-gray-900 transition-colors hover:bg-slate-100"
+                  >
+                    Telegram
+                  </a>
+                  <a
+                    href={getWhatsAppUrl(quickMessage)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={() => trackEvent('whatsapp_click', { source: 'equipment_page', equipment_id: equipment.id })}
+                    className="rounded-xl border border-white/20 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-white/10"
+                  >
+                    WhatsApp
+                  </a>
+                </div>
               </div>
             </div>
           </div>
@@ -475,6 +485,33 @@ export default function EquipmentDetailsPage() {
       {showBookingForm && (
         <BookingForm equipment={equipment} onClose={() => setShowBookingForm(false)} />
       )}
+
+      <div
+        className="fixed left-0 right-0 z-40 border-t border-gray-200 bg-white/95 px-4 py-3 shadow-[0_-8px_24px_rgba(15,23,42,0.12)] backdrop-blur md:hidden"
+        style={{ bottom: 'calc(3.75rem + env(safe-area-inset-bottom, 0px))' }}
+      >
+        <div className="mx-auto flex max-w-md gap-2">
+          <button
+            type="button"
+            onClick={() => {
+              trackEvent('booking_open', { equipment_id: equipment.id, equipment_name: equipment.name, source: 'equipment_sticky_bar' })
+              setShowBookingForm(true)
+            }}
+            className="flex-1 rounded-xl bg-gray-900 px-4 py-3 text-sm font-bold text-white active:scale-[0.99]"
+          >
+            Забронировать
+          </button>
+          <a
+            href={getTelegramUrl()}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={() => trackEvent('telegram_click', { source: 'equipment_sticky_bar', equipment_id: equipment.id })}
+            className="rounded-xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm font-bold text-sky-700 active:scale-[0.99]"
+          >
+            Telegram
+          </a>
+        </div>
+      </div>
     </div>
   )
 }

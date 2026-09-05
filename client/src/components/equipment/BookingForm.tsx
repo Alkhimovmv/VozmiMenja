@@ -111,6 +111,17 @@ export default function BookingForm({ equipment, onClose }: BookingFormProps) {
   const capitalizeWords = (str: string) =>
     str.split(' ').map((w) => (w.length === 0 ? w : w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())).join(' ')
 
+  const getLeadContext = () => {
+    const params = new URLSearchParams(window.location.search)
+    return {
+      sourcePage: `${window.location.pathname}${window.location.search}`,
+      referrer: document.referrer,
+      utmSource: params.get('utm_source') || undefined,
+      utmMedium: params.get('utm_medium') || undefined,
+      utmCampaign: params.get('utm_campaign') || undefined,
+    }
+  }
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target
     let processedValue = value
@@ -137,8 +148,18 @@ export default function BookingForm({ equipment, onClose }: BookingFormProps) {
       return
     }
     try {
-      await createBookingMutation.mutateAsync({ equipmentId: equipment.id, ...formData })
-      trackEvent('booking_submit', { equipment_id: equipment.id, equipment_name: equipment.name, total_price: totalPrice, total_days: totalDays })
+      const leadContext = getLeadContext()
+      await createBookingMutation.mutateAsync({ equipmentId: equipment.id, ...formData, ...leadContext })
+      trackEvent('booking_submit', {
+        equipment_id: equipment.id,
+        equipment_name: equipment.name,
+        total_price: totalPrice,
+        total_days: totalDays,
+        source_page: leadContext.sourcePage,
+        utm_source: leadContext.utmSource,
+        utm_medium: leadContext.utmMedium,
+        utm_campaign: leadContext.utmCampaign,
+      })
       toast.success('Бронирование успешно создано! Мы свяжемся с вами для подтверждения.')
       onClose()
     } catch (error: any) {

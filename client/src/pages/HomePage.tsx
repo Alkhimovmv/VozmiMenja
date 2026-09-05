@@ -9,6 +9,7 @@ import Testimonials from '../components/Testimonials'
 import SEO from '../components/SEO'
 import { ChevronLeft, ChevronRight, Phone, Shield, Truck, Clock, Sparkles, Search, X, MapPin, Mail, SprayCan } from 'lucide-react'
 import { trackEvent } from '../lib/analytics'
+import { CONTACT_PHONE, CONTACT_PHONE_LABEL, getTelegramUrl } from '../lib/contactLinks'
 
 // Конфиг стилей по ключу категории из БД (без переименований — label берём с бэка)
 const CAT_CONFIG: Record<string, { gradient: string; iconBg: string; blobColor: string }> = {
@@ -147,9 +148,9 @@ export default function HomePage() {
     ? `Аренда ${search} в Москве | ВозьмиМеня`
     : 'Аренда оборудования в Москве — камеры, аудио, клининг | ВозьмиМеня'
   const seoDescription = category
-    ? `Прокат ${category} в Москве. Низкие цены, доставка в день заказа, постамат 24/7. Бронируйте онлайн на vozmimenya.ru или звоните: +7 (993) 363-64-64`
+    ? `Прокат ${category} в Москве. Низкие цены, доставка в день заказа, постамат 24/7. Бронируйте онлайн или пишите в Telegram.`
     : search
-    ? `Аренда ${search} в Москве. Доставка в день заказа, постамат 24/7, без залога. Звоните: +7 (993) 363-64-64`
+    ? `Аренда ${search} в Москве. Доставка в день заказа, постамат 24/7, без залога. Быстрый подбор в Telegram.`
     : 'Аренда профессионального оборудования в Москве: камеры, аудиотехника JBL, клининг. Доставка в день заказа, постамат 24/7, без залога. От 200 ₽/сутки.'
 
   return (
@@ -226,12 +227,13 @@ export default function HomePage() {
                     <span className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center text-sm">›</span>
                   </a>
                   <a
-                    href="tel:+79933636464"
-                    onClick={() => trackEvent('phone_click', { source: 'home_hero' })}
+                    href={getTelegramUrl()}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={() => trackEvent('telegram_click', { source: 'home_hero' })}
                     className="btn-pill btn-secondary bg-white/70 backdrop-blur-sm"
                   >
-                    <Phone className="w-4 h-4" />
-                    +7 (993) 363-64-64
+                    Написать в Telegram
                   </a>
                 </div>
               </div>
@@ -588,16 +590,16 @@ export default function HomePage() {
                 Расскажите задачу — подберём технику, рассчитаем стоимость и привезём в удобное время.
               </p>
               <div className="flex flex-col sm:flex-row gap-3">
-                <a href="tel:+79933636464"
-                  onClick={() => trackEvent('phone_click', { source: 'home_cta' })}
-                  className="flex items-center justify-center gap-2 bg-white text-gray-900 font-semibold px-6 py-3 rounded-2xl hover:bg-gray-50 transition-colors">
-                  <Phone className="w-4 h-4" />
-                  +7 (993) 363-64-64
-                </a>
-                <a href="https://t.me/VozmiMenyaRent" target="_blank" rel="noopener noreferrer"
+                <a href={getTelegramUrl()} target="_blank" rel="noopener noreferrer"
                   onClick={() => trackEvent('telegram_click', { source: 'home_cta' })}
-                  className="flex items-center justify-center gap-2 bg-white/15 border border-white/20 text-white font-semibold px-6 py-3 rounded-2xl hover:bg-white/25 transition-colors">
+                  className="flex items-center justify-center gap-2 bg-white text-gray-900 font-semibold px-6 py-3 rounded-2xl hover:bg-gray-50 transition-colors">
                   Написать в Telegram
+                </a>
+                <a href={`tel:${CONTACT_PHONE}`}
+                  onClick={() => trackEvent('phone_click', { source: 'home_cta' })}
+                  className="flex items-center justify-center gap-2 bg-white/15 border border-white/20 text-white font-semibold px-6 py-3 rounded-2xl hover:bg-white/25 transition-colors">
+                  <Phone className="w-4 h-4" />
+                  {CONTACT_PHONE_LABEL}
                 </a>
               </div>
             </div>

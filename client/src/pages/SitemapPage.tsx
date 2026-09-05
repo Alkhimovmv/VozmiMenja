@@ -15,6 +15,9 @@ const staticPages = [
   { href: '/delivery', label: 'Условия доставки' },
   { href: '/faq', label: 'FAQ' },
   { href: '/contact', label: 'Контакты' },
+  { href: '/return-policy', label: 'Возврат и отказ от услуги' },
+  { href: '/privacy', label: 'Политика обработки персональных данных' },
+  { href: '/offer', label: 'Договор публичной оферты' },
 ]
 
 export default function SitemapPage() {

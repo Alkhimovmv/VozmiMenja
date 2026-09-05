@@ -37,6 +37,11 @@ class TelegramService {
     endDate: string
     totalPrice: number
     comment?: string
+    sourcePage?: string
+    referrer?: string
+    utmSource?: string
+    utmMedium?: string
+    utmCampaign?: string
   }) {
     if (!this.bot || !this.chatId) {
       console.log('Telegram бот не настроен, уведомление не отправлено')
@@ -44,15 +49,16 @@ class TelegramService {
     }
 
     try {
+      const source = [data.utmSource, data.utmMedium, data.utmCampaign].filter(Boolean).join(' / ')
       let message = `
 🔔 <b>Новая заявка на аренду</b>
 
-📦 <b>Оборудование:</b> ${data.equipmentName}
+📦 <b>Оборудование:</b> ${this.escapeHtml(data.equipmentName)}
 
 👤 <b>Клиент:</b>
-• Имя: ${data.customerName}
-• Телефон: ${data.customerPhone}
-• Email: ${data.customerEmail || 'не указан'}
+• Имя: ${this.escapeHtml(data.customerName)}
+• Телефон: ${this.escapeHtml(data.customerPhone)}
+• Email: ${this.escapeHtml(data.customerEmail || 'не указан')}
 
 📅 <b>Даты аренды:</b>
 • Начало: ${this.formatDate(data.startDate)}
@@ -61,7 +67,14 @@ class TelegramService {
 💰 <b>Стоимость:</b> ${data.totalPrice}₽`
 
       if (data.comment) {
-        message += `\n\n💬 <b>Комментарий:</b>\n${data.comment}`
+        message += `\n\n💬 <b>Комментарий:</b>\n${this.escapeHtml(data.comment)}`
+      }
+
+      if (source || data.sourcePage || data.referrer) {
+        message += `\n\n📈 <b>Источник:</b>`
+        if (source) message += `\n• UTM: ${this.escapeHtml(source)}`
+        if (data.sourcePage) message += `\n• Страница: ${this.escapeHtml(data.sourcePage)}`
+        if (data.referrer) message += `\n• Referrer: ${this.escapeHtml(data.referrer)}`
       }
 
       message += `\n\n👉 Свяжитесь с клиентом для подтверждения бронирования`
@@ -145,6 +158,14 @@ ${data.message}
       month: '2-digit',
       year: 'numeric'
     })
+  }
+
+  private escapeHtml(value: string): string {
+    return value
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
   }
 }
 

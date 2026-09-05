@@ -4,6 +4,8 @@ import { useEquipment } from '../hooks/useEquipment'
 import EquipmentGrid from '../components/equipment/EquipmentGrid'
 import SEO from '../components/SEO'
 import { Check, Clock, Camera, Video, Zap } from 'lucide-react'
+import { trackEvent } from '../lib/analytics'
+import { CONTACT_PHONE, CONTACT_PHONE_LABEL, getTelegramUrl } from '../lib/contactLinks'
 
 export default function CategoryCamerasPage() {
   const [page] = useState(1)
@@ -93,7 +95,7 @@ export default function CategoryCamerasPage() {
     <div className="min-h-screen bg-[#F8FAFC]">
       <SEO
         title="Аренда GoPro в Москве от 400₽/день - Прокат экшн-камер и фототехники"
-        description="✅ Аренда GoPro Hero 11/12 и других экшн-камер в Москве. Полный комплект креплений. Доставка 24/7. ☎️ +7 (993) 363-64-64"
+        description="✅ Аренда GoPro, DJI Osmo Pocket и Insta360 в Москве. Полный комплект креплений. Доставка 24/7. Подбор камеры и бронь через Telegram."
         keywords="аренда gopro москва, прокат экшн камер, аренда gopro hero 12, прокат видеокамер, фототехника напрокат москва"
         url="https://vozmimenya.ru/arenda-gopro-moskva"
         structuredData={[categoryStructuredData, faqStructuredData]}
@@ -114,12 +116,14 @@ export default function CategoryCamerasPage() {
             Профессиональные камеры для съемки спорта, путешествий, влогов.
             От <span className="font-bold text-white">400₽/день</span>. Полный комплект креплений в подарок.
           </p>
-          <a
-            href="tel:+79933636464"
-            className="btn bg-white text-primary hover:bg-blue-50 shadow-sm"
-          >
-            +7 (993) 363-64-64
-          </a>
+          <div className="flex flex-col sm:flex-row gap-3">
+            <a href={getTelegramUrl()} target="_blank" rel="noopener noreferrer" onClick={() => trackEvent('telegram_click', { source: 'category_cameras_hero' })} className="btn bg-white text-primary hover:bg-blue-50 shadow-sm">
+              Написать в Telegram
+            </a>
+            <a href="#catalog" className="btn border border-white/20 bg-white/10 text-white hover:bg-white/20">
+              Смотреть камеры
+            </a>
+          </div>
         </div>
       </section>
 
@@ -212,14 +216,14 @@ export default function CategoryCamerasPage() {
         <div className="container mx-auto px-4">
           <div className="bg-gradient-to-br from-[#1D4ED8] to-[#0F172A] rounded-2xl p-10 text-center text-white">
             <h2 className="text-2xl font-extrabold mb-3">Готовы снимать крутые видео?</h2>
-            <p className="text-blue-100 mb-6 max-w-xl mx-auto text-sm">Арендуйте камеру сегодня и получите полный комплект креплений!</p>
+            <p className="text-blue-100 mb-6 max-w-xl mx-auto text-sm">Напишите в Telegram — подберем камеру, крепления и срок аренды под вашу съемку.</p>
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
-              <a href="tel:+79933636464" className="btn bg-white text-primary hover:bg-blue-50">
-                +7 (993) 363-64-64
+              <a href={getTelegramUrl()} target="_blank" rel="noopener noreferrer" onClick={() => trackEvent('telegram_click', { source: 'category_cameras_bottom_cta' })} className="btn bg-white text-primary hover:bg-blue-50">
+                Написать в Telegram
               </a>
-              <Link to="/contact" className="btn bg-white text-primary hover:bg-blue-50">
-                Связаться с нами
-              </Link>
+              <a href={`tel:${CONTACT_PHONE}`} onClick={() => trackEvent('phone_click', { source: 'category_cameras_bottom_cta' })} className="btn border border-white/20 bg-white/10 text-white hover:bg-white/20">
+                {CONTACT_PHONE_LABEL}
+              </a>
             </div>
           </div>
         </div>

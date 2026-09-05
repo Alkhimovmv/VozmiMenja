@@ -21,6 +21,9 @@ const calculateRentalDays = (startDate: Date, endDate: Date) => {
   return diffDays + 1
 }
 
+const optionalLeadField = (maxLength: number) =>
+  z.string().optional().transform((value) => value?.slice(0, maxLength))
+
 const createBookingSchema = z.object({
   equipmentId: z.string().uuid(),
   customerName: z.string().min(2, 'Имя должно содержать минимум 2 символа'),
@@ -28,7 +31,12 @@ const createBookingSchema = z.object({
   customerEmail: z.string().email('Некорректный email').optional().or(z.literal('')),
   startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Некорректная дата начала'),
   endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Некорректная дата окончания'),
-  comment: z.string().optional()
+  comment: z.string().max(1000).optional(),
+  sourcePage: optionalLeadField(500),
+  referrer: optionalLeadField(500),
+  utmSource: optionalLeadField(120),
+  utmMedium: optionalLeadField(120),
+  utmCampaign: optionalLeadField(180)
 })
 
 router.get('/', authMiddleware, async (req: Request, res: Response) => {
@@ -130,7 +138,12 @@ router.post('/', async (req: Request, res: Response) => {
       startDate: validatedData.startDate,
       endDate: validatedData.endDate,
       totalPrice,
-      comment: validatedData.comment
+      comment: validatedData.comment,
+      sourcePage: validatedData.sourcePage,
+      referrer: validatedData.referrer,
+      utmSource: validatedData.utmSource,
+      utmMedium: validatedData.utmMedium,
+      utmCampaign: validatedData.utmCampaign
     }
 
     // Отправляем уведомления (не прерываем процесс при ошибке)
