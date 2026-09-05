@@ -38,13 +38,16 @@ export default function AdminSidebar({ onLogout }: AdminSidebarProps) {
   }
 
   const menuItems = [
-    { path: '/admin/rentals', label: 'Аренды и заявки', icon: '📋' },
+    { path: '/admin/rentals', label: 'Аренды', icon: '📋' },
+    { path: '/admin/rentals#site-bookings', label: 'Заявки с сайта', icon: '✉️' },
     { path: '/admin/dashboard', label: 'Оборудование', icon: '🎥' },
     { path: '/admin/articles', label: 'Блог', icon: '📝' },
   ]
 
   const isActive = (path: string) => {
-    return location.pathname === path || location.pathname.startsWith(path + '/')
+    const [pathname, hash] = path.split('#')
+    if (hash) return location.pathname === pathname && location.hash === `#${hash}`
+    return (location.pathname === pathname && !location.hash) || location.pathname.startsWith(pathname + '/')
   }
 
   return (

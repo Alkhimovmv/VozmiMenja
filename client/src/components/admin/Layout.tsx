@@ -102,6 +102,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     { path: '/admin/customers', label: 'Арендаторы', icon: '👥' },
     { path: '/admin/finances', label: 'Финансы', icon: '💰' },
     { path: '/admin/lockers', label: 'Ячейки постомата', icon: '🔐' },
+    { path: '/admin/rentals#site-bookings', label: 'Заявки с сайта', icon: '✉️' },
   ];
 
   const bottomMenuItems = [
@@ -111,7 +112,9 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   ];
 
   const isActive = (path: string) => {
-    return location.pathname === path || location.pathname.startsWith(path + '/');
+    const [pathname, hash] = path.split('#');
+    if (hash) return location.pathname === pathname && location.hash === `#${hash}`;
+    return (location.pathname === pathname && !location.hash) || location.pathname.startsWith(pathname + '/');
   };
 
   return (

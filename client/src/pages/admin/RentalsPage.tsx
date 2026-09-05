@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuthenticatedQuery } from '../../hooks/useAuthenticatedQuery';
 import { rentalsApi } from '../../api/admin/rentals';
@@ -66,6 +67,7 @@ const formatBookingAge = (createdAt: string) => {
 };
 
 const RentalsPage: React.FC = () => {
+  const location = useLocation();
   const { currentOfficeId } = useOffice();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingRental, setEditingRental] = useState<Rental | null>(null);
@@ -200,6 +202,14 @@ const RentalsPage: React.FC = () => {
 
   // Сбрасываем страницу при изменении фильтров
   React.useEffect(() => { setCurrentPage(1); }, [dateFilter, specificDate, equipmentFilter, currentOfficeId]);
+
+  React.useEffect(() => {
+    if (location.hash !== '#site-bookings') return;
+    const timer = window.setTimeout(() => {
+      document.getElementById('site-bookings')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 100);
+    return () => window.clearTimeout(timer);
+  }, [location.hash, openBookings.length]);
 
   const totalPages = Math.max(1, Math.ceil(filteredRentals.length / PAGE_SIZE));
   const pagedRentals = filteredRentals.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
@@ -517,8 +527,7 @@ const RentalsPage: React.FC = () => {
         </div>
       </div>
 
-      {openBookings.length > 0 && (
-        <section id="site-bookings" className="scroll-mt-4 rounded-2xl border border-amber-100 bg-amber-50/70 p-4 sm:p-5">
+      <section id="site-bookings" className="scroll-mt-4 rounded-2xl border border-amber-100 bg-amber-50/70 p-4 sm:p-5">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
             <div>
               <p className="text-xs font-bold uppercase tracking-widest text-amber-700">Заявки с сайта</p>
@@ -530,6 +539,11 @@ const RentalsPage: React.FC = () => {
           </div>
 
           <div className="mt-4 grid gap-3">
+            {openBookings.length === 0 && (
+              <div className="rounded-2xl bg-white p-5 text-sm text-gray-500 shadow-sm ring-1 ring-amber-100">
+                Активных заявок с сайта сейчас нет. Новые заявки появятся здесь и в верхнем индикаторе админки.
+              </div>
+            )}
             {openBookings.map((booking) => (
               <div key={booking.id} className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-amber-100">
                 <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
@@ -620,7 +634,6 @@ const RentalsPage: React.FC = () => {
             ))}
           </div>
         </section>
-      )}
 
       <div className="bg-white shadow overflow-hidden sm:rounded-md">
         <ul className="divide-y divide-gray-200">
