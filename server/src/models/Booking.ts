@@ -79,7 +79,7 @@ export class BookingModel {
         id, equipment_id, customer_name, customer_phone, customer_email,
         start_date, end_date, total_price, comment, source_page, referrer,
         utm_source, utm_medium, utm_campaign, status
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')
     `, [
       data.id,
       data.equipmentId,

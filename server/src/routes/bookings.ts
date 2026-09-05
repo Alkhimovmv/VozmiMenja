@@ -25,7 +25,7 @@ const optionalLeadField = (maxLength: number) =>
   z.string().optional().transform((value) => value?.slice(0, maxLength))
 
 const createBookingSchema = z.object({
-  equipmentId: z.string().uuid(),
+  equipmentId: z.string().min(1, 'Не выбрано оборудование').max(120, 'Некорректный ID оборудования'),
   customerName: z.string().min(2, 'Имя должно содержать минимум 2 символа'),
   customerPhone: z.string().min(10, 'Некорректный номер телефона'),
   customerEmail: z.string().email('Некорректный email').optional().or(z.literal('')),

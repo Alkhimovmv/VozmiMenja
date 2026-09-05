@@ -30,7 +30,10 @@ class ApiClient {
 
       if (contentType.includes('application/json')) {
         const errorData = await response.json().catch(() => null)
-        message = errorData?.message || errorData?.error || message
+        const firstValidationError = Array.isArray(errorData?.errors)
+          ? errorData.errors[0]?.message
+          : undefined
+        message = firstValidationError || errorData?.message || errorData?.error || message
       }
 
       throw new Error(message)
