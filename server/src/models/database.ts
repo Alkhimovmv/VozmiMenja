@@ -79,6 +79,25 @@ class Database {
       }
     }
 
+    await run(`
+      CREATE TABLE IF NOT EXISTS contact_leads (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        phone TEXT NOT NULL,
+        email TEXT,
+        subject TEXT NOT NULL,
+        message TEXT NOT NULL,
+        source_page TEXT,
+        referrer TEXT,
+        utm_source TEXT,
+        utm_medium TEXT,
+        utm_campaign TEXT,
+        status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'confirmed', 'completed', 'cancelled')),
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      )
+    `)
+
     // Таблица для оборудования (RentAdmin)
     await run(`
       CREATE TABLE IF NOT EXISTS rental_equipment (
@@ -491,6 +510,14 @@ class Database {
 
     await run(`
       CREATE INDEX IF NOT EXISTS idx_bookings_dates ON bookings(start_date, end_date);
+    `)
+
+    await run(`
+      CREATE INDEX IF NOT EXISTS idx_contact_leads_status ON contact_leads(status);
+    `)
+
+    await run(`
+      CREATE INDEX IF NOT EXISTS idx_contact_leads_created_at ON contact_leads(created_at);
     `)
 
     // Индексы для RentAdmin

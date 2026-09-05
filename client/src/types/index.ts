@@ -106,6 +106,23 @@ export interface BookingRequest {
   utmCampaign?: string
 }
 
+export interface ContactLead {
+  id: number
+  name: string
+  phone: string
+  email?: string
+  subject: string
+  message: string
+  sourcePage?: string
+  referrer?: string
+  utmSource?: string
+  utmMedium?: string
+  utmCampaign?: string
+  status: 'pending' | 'confirmed' | 'completed' | 'cancelled'
+  createdAt: string
+  updatedAt: string
+}
+
 export interface ApiResponse<T> {
   data: T
   success: boolean

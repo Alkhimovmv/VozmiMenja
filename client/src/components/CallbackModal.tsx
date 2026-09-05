@@ -4,7 +4,7 @@ import { X, Phone } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { apiClient } from '../lib/api'
 import { trackEvent } from '../lib/analytics'
-import { getPageLeadMessage } from '../lib/contactLinks'
+import { getLeadContext, getPageLeadMessage } from '../lib/contactLinks'
 
 interface CallbackModalProps {
   isOpen: boolean
@@ -52,6 +52,7 @@ export default function CallbackModal({ isOpen, onClose }: CallbackModalProps) {
         phone: formData.phone,
         subject: 'Заказ обратного звонка',
         message: `Прошу перезвонить мне\n\n${getPageLeadMessage('Обратный звонок')}`,
+        ...getLeadContext(),
       })
 
       toast.success('Заявка отправлена! Мы свяжемся с вами в ближайшее время')

@@ -1,12 +1,10 @@
 import React, { useState, useMemo } from 'react';
-import { useLocation } from 'react-router-dom';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuthenticatedQuery } from '../../hooks/useAuthenticatedQuery';
 import { rentalsApi } from '../../api/admin/rentals';
 import { equipmentApi } from '../../api/admin/equipment';
 import { officesApi } from '../../api/admin/offices';
-import { bookingsApi } from '../../api/admin/bookings';
-import type { Rental, CreateRentalDto, Equipment, Booking } from '../../types/index';
+import type { Rental, CreateRentalDto, Equipment } from '../../types/index';
 import { formatDate, getStatusText, getStatusColor } from '../../utils/dateUtils';
 import RentalModal from '../../components/admin/RentalModal';
 import CustomSelect from '../../components/admin/CustomSelect';
@@ -26,53 +24,10 @@ type DateFilter = 'week' | 'month' | 'all' | 'ends_today' | 'ends_tomorrow' | 's
 
 const PAGE_SIZE = 20;
 
-const formatLeadSource = (booking: Booking) => {
-  if (booking.utmSource) {
-    return [booking.utmSource, booking.utmMedium, booking.utmCampaign].filter(Boolean).join(' / ');
-  }
-
-  if (booking.referrer) {
-    try {
-      return new URL(booking.referrer).hostname.replace(/^www\./, '');
-    } catch {
-      return booking.referrer;
-    }
-  }
-
-  return 'Прямой заход';
-};
-
-const formatSourcePage = (sourcePage?: string) => {
-  if (!sourcePage) return 'Страница не передана';
-  try {
-    const url = sourcePage.startsWith('http') ? new URL(sourcePage) : new URL(sourcePage, window.location.origin);
-    return url.pathname === '/' ? 'Главная' : url.pathname;
-  } catch {
-    return sourcePage;
-  }
-};
-
-const normalizeEquipmentName = (name: string) =>
-  name.toLowerCase().replace(/ё/g, 'е').replace(/[^a-zа-я0-9]+/g, '');
-
-const formatBookingDateTime = (date: string, time: '10:00' | '20:00') => `${date}T${time}`;
-
-const formatBookingAge = (createdAt: string) => {
-  const minutes = Math.max(0, Math.floor((Date.now() - new Date(createdAt).getTime()) / 60000));
-  if (minutes < 1) return 'только что';
-  if (minutes < 60) return `${minutes} мин назад`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours} ч назад`;
-  return `${Math.floor(hours / 24)} дн назад`;
-};
-
 const RentalsPage: React.FC = () => {
-  const location = useLocation();
   const { currentOfficeId } = useOffice();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingRental, setEditingRental] = useState<Rental | null>(null);
-  const [initialRentalData, setInitialRentalData] = useState<Partial<CreateRentalDto> | null>(null);
-  const [convertingBookingId, setConvertingBookingId] = useState<string | null>(null);
   const [dateFilter, setDateFilter] = useState<DateFilter>('all');
   const [specificDate, setSpecificDate] = useState<string>('');
   const [equipmentFilter, setEquipmentFilter] = useState<string>('all');
@@ -90,18 +45,6 @@ const RentalsPage: React.FC = () => {
 
   const { data: equipment = [] } = useAuthenticatedQuery<Equipment[]>(['equipment-rental', currentOfficeId], () => equipmentApi.getForRental(currentOfficeId));
   const { data: offices = [] } = useAuthenticatedQuery(['offices'], officesApi.getAll);
-  const { data: bookings = [] } = useAuthenticatedQuery<Booking[]>(['admin-bookings'], bookingsApi.getAll);
-
-  const openBookings = useMemo(
-    () => bookings
-      .filter((booking) => booking.status === 'pending' || booking.status === 'confirmed')
-      .sort((a, b) => {
-        if (a.status === 'pending' && b.status !== 'pending') return -1;
-        if (a.status !== 'pending' && b.status === 'pending') return 1;
-        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-      }),
-    [bookings]
-  );
 
   const todayOperations = useMemo(() => {
     const today = startOfDay(new Date());
@@ -203,14 +146,6 @@ const RentalsPage: React.FC = () => {
   // Сбрасываем страницу при изменении фильтров
   React.useEffect(() => { setCurrentPage(1); }, [dateFilter, specificDate, equipmentFilter, currentOfficeId]);
 
-  React.useEffect(() => {
-    if (location.hash !== '#site-bookings') return;
-    const timer = window.setTimeout(() => {
-      document.getElementById('site-bookings')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }, 100);
-    return () => window.clearTimeout(timer);
-  }, [location.hash, openBookings.length]);
-
   const totalPages = Math.max(1, Math.ceil(filteredRentals.length / PAGE_SIZE));
   const pagedRentals = filteredRentals.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
@@ -222,22 +157,7 @@ const RentalsPage: React.FC = () => {
 
   const createMutation = useMutation({
     mutationFn: rentalsApi.create,
-    onSuccess: async () => {
-      invalidateAll();
-      if (convertingBookingId) {
-        try {
-          await bookingsApi.updateStatus(convertingBookingId, 'completed');
-          queryClient.invalidateQueries({ queryKey: ['admin-bookings'] });
-          toast.success('Аренда создана, заявка помечена обработанной');
-        } catch {
-          queryClient.invalidateQueries({ queryKey: ['admin-bookings'] });
-          toast.error('Аренда создана, но статус заявки не обновился');
-        }
-      }
-      setConvertingBookingId(null);
-      setInitialRentalData(null);
-      setIsModalOpen(false);
-    },
+    onSuccess: () => { invalidateAll(); setIsModalOpen(false); },
   });
 
   const updateMutation = useMutation({
@@ -258,17 +178,6 @@ const RentalsPage: React.FC = () => {
   const deleteMutation = useMutation({
     mutationFn: rentalsApi.delete,
     onSuccess: () => { invalidateAll(); },
-  });
-
-  const bookingStatusMutation = useMutation({
-    mutationFn: ({ id, status }: { id: string; status: Booking['status'] }) => bookingsApi.updateStatus(id, status),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin-bookings'] });
-      toast.success('Статус заявки обновлен');
-    },
-    onError: (error: any) => {
-      toast.error(error?.response?.data?.error || error?.message || 'Не удалось обновить заявку');
-    },
   });
 
   const handleCreateRental = (data: CreateRentalDto) => {
@@ -343,83 +252,13 @@ const RentalsPage: React.FC = () => {
   };
 
   const handleEditRental = (rental: Rental) => {
-    setInitialRentalData(null);
-    setConvertingBookingId(null);
     setEditingRental(rental);
     setIsModalOpen(true);
   };
 
   const handleOpenNewRental = () => {
     setEditingRental(null);
-    setInitialRentalData(null);
-    setConvertingBookingId(null);
     setIsModalOpen(true);
-  };
-
-  const handleCreateRentalFromBooking = (booking: Booking) => {
-    const bookingEquipmentName = normalizeEquipmentName(booking.equipment?.name || '');
-    const matchedEquipment = bookingEquipmentName ? equipment.find((item) => {
-      const adminName = normalizeEquipmentName(item.name);
-      return adminName === bookingEquipmentName || adminName.includes(bookingEquipmentName) || bookingEquipmentName.includes(adminName);
-    }) : undefined;
-    const equipmentInstances = matchedEquipment
-      ? [{ equipment_id: Number(matchedEquipment.id), instance_number: 1 }]
-      : [];
-    const sourceText = [
-      `Заявка с сайта #${booking.id}`,
-      booking.equipment?.name ? `Оборудование на сайте: ${booking.equipment.name}` : '',
-      booking.comment ? `Комментарий клиента: ${booking.comment}` : '',
-      `Страница: ${formatSourcePage(booking.sourcePage)}`,
-      `Источник: ${formatLeadSource(booking)}`,
-    ].filter(Boolean).join('\n');
-
-    setEditingRental(null);
-    setConvertingBookingId(booking.id);
-    setInitialRentalData({
-      equipment_id: equipmentInstances[0]?.equipment_id || 0,
-      equipment_ids: equipmentInstances.map(item => item.equipment_id),
-      equipment_instances: equipmentInstances,
-      start_date: formatBookingDateTime(booking.startDate, '10:00'),
-      end_date: formatBookingDateTime(booking.endDate, '20:00'),
-      customer_name: booking.customerName,
-      customer_phone: booking.customerPhone,
-      needs_delivery: false,
-      rental_price: booking.totalPrice,
-      delivery_price: null,
-      delivery_costs: null,
-      source: 'сайт',
-      comment: sourceText,
-      office_id: currentOfficeId,
-    });
-    setIsModalOpen(true);
-  };
-
-  const buildLeadReplyText = (booking: Booking) => [
-    `${booking.customerName}, здравствуйте! Это ВозьмиМеня по заявке на аренду.`,
-    '',
-    `Оборудование: ${booking.equipment?.name || booking.equipmentId}`,
-    `Даты: ${formatDate(booking.startDate)} - ${formatDate(booking.endDate)}`,
-    `Предварительная стоимость: ${booking.totalPrice}₽`,
-    '',
-    'Подскажите, пожалуйста, удобный способ получения: постамат, самовывоз или доставка?',
-  ].join('\n');
-
-  const handleCopyLeadReply = async (booking: Booking) => {
-    const text = buildLeadReplyText(booking);
-    try {
-      await navigator.clipboard.writeText(text);
-      toast.success('Текст ответа скопирован');
-    } catch {
-      const textarea = document.createElement('textarea');
-      textarea.value = text;
-      textarea.style.position = 'fixed';
-      textarea.style.opacity = '0';
-      document.body.appendChild(textarea);
-      textarea.select();
-      document.execCommand('copy');
-      document.body.removeChild(textarea);
-      toast.success('Текст ответа скопирован');
-    }
   };
 
   if (isLoading) {
@@ -526,114 +365,6 @@ const RentalsPage: React.FC = () => {
           </div>
         </div>
       </div>
-
-      <section id="site-bookings" className="scroll-mt-4 rounded-2xl border border-amber-100 bg-amber-50/70 p-4 sm:p-5">
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-            <div>
-              <p className="text-xs font-bold uppercase tracking-widest text-amber-700">Заявки с сайта</p>
-              <h2 className="mt-1 text-lg font-bold text-gray-900">Новые лиды, которые ждут обработки</h2>
-            </div>
-            <div className="text-sm font-semibold text-amber-800">
-              {openBookings.length} активных из {bookings.length}
-            </div>
-          </div>
-
-          <div className="mt-4 grid gap-3">
-            {openBookings.length === 0 && (
-              <div className="rounded-2xl bg-white p-5 text-sm text-gray-500 shadow-sm ring-1 ring-amber-100">
-                Активных заявок с сайта сейчас нет. Новые заявки появятся здесь и в верхнем индикаторе админки.
-              </div>
-            )}
-            {openBookings.map((booking) => (
-              <div key={booking.id} className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-amber-100">
-                <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-                  <div className="min-w-0">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className={`rounded-full px-2.5 py-1 text-xs font-bold ${
-                        booking.status === 'pending' ? 'bg-blue-50 text-blue-700' : 'bg-emerald-50 text-emerald-700'
-                      }`}>
-                        {booking.status === 'pending' ? 'Новая' : 'В работе'}
-                      </span>
-                      <span className="rounded-full bg-amber-50 px-2.5 py-1 text-xs font-bold text-amber-700">
-                        {formatBookingAge(booking.createdAt)}
-                      </span>
-                      <span className="text-sm font-bold text-gray-900">{booking.equipment?.name || booking.equipmentId}</span>
-                    </div>
-                    <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-gray-600">
-                      <span>👤 {booking.customerName}</span>
-                      <a href={`tel:${booking.customerPhone}`} className="font-semibold text-indigo-600 hover:underline">📞 {booking.customerPhone}</a>
-                      <span>🕐 {formatDate(booking.startDate)} - {formatDate(booking.endDate)}</span>
-                      <span className="font-semibold text-gray-900">💰 {booking.totalPrice}₽</span>
-                    </div>
-                    <div className="mt-2 flex flex-wrap gap-2 text-xs">
-                      <span className="rounded-full bg-gray-100 px-2.5 py-1 font-semibold text-gray-700">
-                        Источник: {formatLeadSource(booking)}
-                      </span>
-                      <span className="rounded-full bg-gray-100 px-2.5 py-1 font-semibold text-gray-700">
-                        Страница: {formatSourcePage(booking.sourcePage)}
-                      </span>
-                    </div>
-                    {booking.comment && (
-                      <p className="mt-2 max-w-3xl whitespace-pre-wrap rounded-xl bg-amber-50 px-3 py-2 text-sm text-gray-700 ring-1 ring-amber-100">
-                        {booking.comment}
-                      </p>
-                    )}
-                    <div className="mt-3 max-w-3xl rounded-xl border border-sky-100 bg-sky-50 px-3 py-2">
-                      <p className="text-xs font-bold uppercase tracking-wide text-sky-700">Быстрый ответ клиенту</p>
-                      <p className="mt-1 whitespace-pre-wrap text-sm text-sky-950">{buildLeadReplyText(booking)}</p>
-                    </div>
-                  </div>
-
-                  <div className="flex flex-col gap-2 sm:flex-row">
-                    <button
-                      type="button"
-                      onClick={() => handleCopyLeadReply(booking)}
-                      className="rounded-xl bg-sky-500 px-4 py-2 text-sm font-semibold text-white hover:bg-sky-600"
-                    >
-                      Скопировать ответ
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleCreateRentalFromBooking(booking)}
-                      disabled={createMutation.isPending || bookingStatusMutation.isPending}
-                      className="rounded-xl bg-gray-900 px-4 py-2 text-sm font-semibold text-white hover:bg-gray-800 disabled:opacity-50"
-                    >
-                      Создать аренду
-                    </button>
-                    {booking.status === 'pending' && (
-                      <button
-                        type="button"
-                        onClick={() => bookingStatusMutation.mutate({ id: booking.id, status: 'confirmed' })}
-                        disabled={bookingStatusMutation.isPending}
-                        className="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-50"
-                      >
-                        В работу
-                      </button>
-                    )}
-                    {booking.status === 'confirmed' && (
-                      <button
-                        type="button"
-                        onClick={() => bookingStatusMutation.mutate({ id: booking.id, status: 'completed' })}
-                        disabled={bookingStatusMutation.isPending}
-                        className="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-50"
-                      >
-                        Обработана
-                      </button>
-                    )}
-                    <button
-                      type="button"
-                      onClick={() => bookingStatusMutation.mutate({ id: booking.id, status: 'cancelled' })}
-                      disabled={bookingStatusMutation.isPending}
-                      className="rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-50"
-                    >
-                      Отменить
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
 
       <div className="bg-white shadow overflow-hidden sm:rounded-md">
         <ul className="divide-y divide-gray-200">
@@ -856,15 +587,12 @@ const RentalsPage: React.FC = () => {
         onClose={() => {
           setIsModalOpen(false);
           setEditingRental(null);
-          setInitialRentalData(null);
-          setConvertingBookingId(null);
         }}
         onSubmit={editingRental ?
           (data) => handleUpdateRental(data as Partial<CreateRentalDto & { status: string }>) :
           (data) => handleCreateRental(data as CreateRentalDto)
         }
         rental={editingRental}
-        initialData={initialRentalData}
         equipment={equipment}
         offices={offices}
         defaultOfficeId={currentOfficeId}

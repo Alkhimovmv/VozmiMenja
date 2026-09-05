@@ -25,6 +25,7 @@ const AdminDashboardPage = lazy(() => import('./pages/AdminDashboardPage'))
 const RentAdminLoginPage = lazy(() => import('./pages/admin/LoginPage'))
 const RentAdminSchedulePage = lazy(() => import('./pages/admin/SchedulePage'))
 const RentAdminRentalsPage = lazy(() => import('./pages/admin/RentalsPage'))
+const RentAdminSiteBookingsPage = lazy(() => import('./pages/admin/SiteBookingsPage'))
 const RentAdminCustomersPage = lazy(() => import('./pages/admin/CustomersPage'))
 const RentAdminFinancesPage = lazy(() => import('./pages/admin/FinancesPage'))
 const RentAdminEquipmentPage = lazy(() => import('./pages/admin/EquipmentPage'))
@@ -116,6 +117,7 @@ function App() {
           <Route path="/admin/rent/login" element={<RentAdminLoginPage />} />
           <Route path="/admin/schedule" element={<AdminLayout><RentAdminSchedulePage /></AdminLayout>} />
           <Route path="/admin/rentals" element={<AdminLayout><RentAdminRentalsPage /></AdminLayout>} />
+          <Route path="/admin/bookings" element={<AdminLayout><RentAdminSiteBookingsPage /></AdminLayout>} />
           <Route path="/admin/customers" element={<AdminLayout><RentAdminCustomersPage /></AdminLayout>} />
           <Route path="/admin/equipment" element={<AdminLayout><RentAdminEquipmentPage /></AdminLayout>} />
           <Route path="/admin/finances" element={<AdminLayout><RentAdminFinancesPage /></AdminLayout>} />

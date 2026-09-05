@@ -4,7 +4,7 @@ import { apiClient } from '../lib/api'
 import avitoIcon from '../assets/avito.png'
 import maxIcon from '../assets/max.png'
 import { trackEvent } from '../lib/analytics'
-import { AVITO_PROFILE_URL, CONTACT_PHONE, CONTACT_PHONE_LABEL, getPageLeadMessage, getTelegramUrl, getWhatsAppUrl, MAX_URL } from '../lib/contactLinks'
+import { AVITO_PROFILE_URL, CONTACT_PHONE, CONTACT_PHONE_LABEL, getLeadContext, getPageLeadMessage, getTelegramUrl, getWhatsAppUrl, MAX_URL } from '../lib/contactLinks'
 
 const DEFAULT_SUBJECT = 'other'
 
@@ -58,6 +58,7 @@ export default function ContactPage() {
         ...formData,
         subject: DEFAULT_SUBJECT,
         message: `${formData.message}\n\n${getPageLeadMessage('Контактная форма')}`,
+        ...getLeadContext(),
       })
       trackEvent('contact_submit', { source: 'contact_page' })
       setSubmitStatus('success')

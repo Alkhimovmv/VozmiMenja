@@ -158,6 +158,11 @@ class ApiClient {
     email?: string
     subject: string
     message: string
+    sourcePage?: string
+    referrer?: string
+    utmSource?: string
+    utmMedium?: string
+    utmCampaign?: string
   }): Promise<ApiResponse<void>> {
     return this.request('/contact', {
       method: 'POST',

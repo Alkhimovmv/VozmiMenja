@@ -9,6 +9,18 @@ export function getPageLeadMessage(pageTitle = document.title) {
   return `Здравствуйте! Хочу уточнить аренду. Страница: ${pageTitle} ${pageUrl}`
 }
 
+export function getLeadContext() {
+  const params = new URLSearchParams(window.location.search)
+
+  return {
+    sourcePage: `${window.location.origin}${window.location.pathname}${window.location.search}`,
+    referrer: document.referrer || undefined,
+    utmSource: params.get('utm_source') || undefined,
+    utmMedium: params.get('utm_medium') || undefined,
+    utmCampaign: params.get('utm_campaign') || undefined,
+  }
+}
+
 export function getWhatsAppUrl(message = getPageLeadMessage()) {
   return `https://wa.me/79933636464?text=${encodeURIComponent(message)}`
 }

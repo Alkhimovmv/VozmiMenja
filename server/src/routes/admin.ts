@@ -3,6 +3,7 @@ import { upload } from '../middleware/upload'
 import { authMiddleware, superAdminMiddleware, signToken } from '../middleware/auth'
 import { adminUserModel } from '../models/AdminUser'
 import { bookingModel, Booking } from '../models/Booking'
+import { contactLeadModel, ContactLead } from '../models/ContactLead'
 import { schedulerService } from '../services/scheduler'
 import { emailBackupService } from '../services/emailBackup'
 
@@ -82,6 +83,44 @@ router.patch('/bookings/:id/status', authMiddleware, async (req: Request, res: R
   } catch (error) {
     console.error('Admin booking status update error:', error)
     res.status(500).json({ error: 'Ошибка обновления статуса заявки' })
+  }
+})
+
+router.get('/contact-leads', authMiddleware, async (_req: Request, res: Response) => {
+  try {
+    const leads = await contactLeadModel.findAll()
+    res.json(leads)
+  } catch (error) {
+    console.error('Admin contact leads list error:', error)
+    res.status(500).json({ error: 'Ошибка получения обращений с сайта' })
+  }
+})
+
+router.patch('/contact-leads/:id/status', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const id = Number(req.params.id)
+    const status = req.body.status as ContactLead['status']
+    const allowedStatuses: ContactLead['status'][] = ['pending', 'confirmed', 'completed', 'cancelled']
+
+    if (!Number.isInteger(id) || id <= 0) {
+      return res.status(400).json({ error: 'Некорректный номер обращения' })
+    }
+
+    if (!allowedStatuses.includes(status)) {
+      return res.status(400).json({ error: 'Некорректный статус обращения' })
+    }
+
+    const lead = await contactLeadModel.findById(id)
+    if (!lead) {
+      return res.status(404).json({ error: 'Обращение не найдено' })
+    }
+
+    await contactLeadModel.updateStatus(id, status)
+    const updated = await contactLeadModel.findById(id)
+    res.json(updated)
+  } catch (error) {
+    console.error('Admin contact lead status update error:', error)
+    res.status(500).json({ error: 'Ошибка обновления обращения' })
   }
 })
 

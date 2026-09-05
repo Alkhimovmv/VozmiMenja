@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { telegramService } from '../services/telegram'
 import { emailNotifyService } from '../services/emailNotify'
 import { vkNotifyService } from '../services/vkNotify'
+import { contactLeadModel } from '../models/ContactLead'
 
 const router = Router()
 
@@ -11,12 +12,18 @@ const contactMessageSchema = z.object({
   phone: z.string().min(10, 'Некорректный номер телефона'),
   email: z.string().email('Некорректный email').optional(),
   subject: z.string().min(1, 'Выберите тему'),
-  message: z.string().min(10, 'Сообщение должно содержать минимум 10 символов')
+  message: z.string().min(10, 'Сообщение должно содержать минимум 10 символов'),
+  sourcePage: z.string().max(500).optional(),
+  referrer: z.string().max(500).optional(),
+  utmSource: z.string().max(120).optional(),
+  utmMedium: z.string().max(120).optional(),
+  utmCampaign: z.string().max(160).optional()
 })
 
 router.post('/', async (req: Request, res: Response) => {
   try {
     const validatedData = contactMessageSchema.parse(req.body)
+    const lead = await contactLeadModel.create(validatedData)
 
     const contactData = {
       name: validatedData.name,
@@ -34,6 +41,7 @@ router.post('/', async (req: Request, res: Response) => {
 
     res.status(200).json({
       success: true,
+      data: lead,
       message: 'Ваше сообщение успешно отправлено. Мы свяжемся с вами в ближайшее время.'
     })
 
