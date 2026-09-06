@@ -1,6 +1,7 @@
 import type { Equipment, Booking, BookingRequest, ApiResponse, PaginatedResponse } from '../types'
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3002/api'
+const API_BASE_URL = import.meta.env.VITE_API_URL
+  || (import.meta.env.MODE === 'production' ? '/api' : 'http://localhost:3002/api')
 
 // Извлекаем URL сервера, убирая /api с конца
 export const API_SERVER_URL = API_BASE_URL.endsWith('/api')

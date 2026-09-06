@@ -18,7 +18,7 @@ const parseDateInput = (value: string) => {
 
 const calculateRentalDays = (startDate: Date, endDate: Date) => {
   const diffDays = Math.round((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24))
-  return diffDays + 1
+  return Math.max(1, diffDays)
 }
 
 const optionalLeadField = (maxLength: number) =>

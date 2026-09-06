@@ -16,6 +16,7 @@ export default function GlobalBookingAlert({ enabled = true }: GlobalBookingAler
     enabled,
     refetchInterval: 30_000,
     refetchOnWindowFocus: true,
+    retry: false,
     staleTime: 10_000,
   });
   const { data: contactLeads = [] } = useAuthenticatedQuery<ContactLead[]>({
@@ -24,6 +25,7 @@ export default function GlobalBookingAlert({ enabled = true }: GlobalBookingAler
     enabled,
     refetchInterval: 30_000,
     refetchOnWindowFocus: true,
+    retry: false,
     staleTime: 10_000,
   });
 

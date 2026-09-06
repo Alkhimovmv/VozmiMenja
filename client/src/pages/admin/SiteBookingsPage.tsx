@@ -66,6 +66,9 @@ const formatBookingAge = (createdAt: string) => {
   return `${Math.floor(hours / 24)} дн назад`;
 };
 
+const getErrorMessage = (error: unknown) =>
+  error instanceof Error ? error.message : 'Не удалось загрузить данные';
+
 export default function SiteBookingsPage() {
   const { currentOfficeId } = useOffice();
   const queryClient = useQueryClient();
@@ -73,8 +76,26 @@ export default function SiteBookingsPage() {
   const [initialRentalData, setInitialRentalData] = useState<Partial<CreateRentalDto> | null>(null);
   const [convertingBookingId, setConvertingBookingId] = useState<string | null>(null);
 
-  const { data: bookings = [], isLoading } = useAuthenticatedQuery<Booking[]>(['admin-bookings'], bookingsApi.getAll);
-  const { data: contactLeads = [], isLoading: isContactLeadsLoading } = useAuthenticatedQuery<ContactLead[]>(['admin-contact-leads'], contactLeadsApi.getAll);
+  const {
+    data: bookings = [],
+    isLoading,
+    isError: isBookingsError,
+    error: bookingsError,
+  } = useAuthenticatedQuery<Booking[]>({
+    queryKey: ['admin-bookings'],
+    queryFn: bookingsApi.getAll,
+    retry: false,
+  });
+  const {
+    data: contactLeads = [],
+    isLoading: isContactLeadsLoading,
+    isError: isContactLeadsError,
+    error: contactLeadsError,
+  } = useAuthenticatedQuery<ContactLead[]>({
+    queryKey: ['admin-contact-leads'],
+    queryFn: contactLeadsApi.getAll,
+    retry: false,
+  });
   const { data: equipment = [] } = useAuthenticatedQuery<Equipment[]>(['equipment-rental', currentOfficeId], () => equipmentApi.getForRental(currentOfficeId));
   const { data: offices = [] } = useAuthenticatedQuery(['offices'], officesApi.getAll);
 
@@ -246,7 +267,7 @@ export default function SiteBookingsPage() {
     }
   };
 
-  if (isLoading || isContactLeadsLoading) {
+  if (isLoading) {
     return (
       <div className="flex h-64 items-center justify-center">
         <div className="h-12 w-12 animate-spin rounded-full border-b-2 border-indigo-600" />
@@ -278,13 +299,19 @@ export default function SiteBookingsPage() {
       </div>
 
       <section className="rounded-2xl border border-amber-100 bg-amber-50/70 p-4 sm:p-5">
+        {(isBookingsError || isContactLeadsError) && (
+          <div className="mb-4 rounded-2xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-800">
+            {isBookingsError && <p>Бронирования не загрузились: {getErrorMessage(bookingsError)}</p>}
+            {isContactLeadsError && <p>Обращения contact/callback не загрузились: {getErrorMessage(contactLeadsError)}</p>}
+          </div>
+        )}
         <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <p className="text-xs font-bold uppercase tracking-widest text-amber-700">Inbox</p>
             <h2 className="mt-1 text-lg font-bold text-gray-900">Новые лиды, которые ждут обработки</h2>
           </div>
           <div className="text-sm font-semibold text-amber-800">
-            {activeCount} активных из {totalCount}
+            {activeCount} активных из {totalCount}{isContactLeadsLoading ? ' · обращения загружаются' : ''}
           </div>
         </div>
 

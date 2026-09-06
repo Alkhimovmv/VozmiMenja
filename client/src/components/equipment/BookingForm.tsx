@@ -59,7 +59,7 @@ export default function BookingForm({ equipment, onClose }: BookingFormProps) {
     if (endDate < startDate) return 0
 
     const diffDays = Math.round((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24))
-    return diffDays + 1
+    return Math.max(1, diffDays)
   }
 
   const calculatePrice = (start: string, end: string) => {
@@ -180,17 +180,17 @@ export default function BookingForm({ equipment, onClose }: BookingFormProps) {
     return getDateInputValue(date)
   }
 
-  const setRentalPreset = (days: number) => {
+  const setRentalPreset = (days: number, sameDay = false) => {
     const startDate = today
-    const endDate = addDays(Math.max(days - 1, 0))
+    const endDate = sameDay ? today : addDays(days)
     setFormData((prev) => ({ ...prev, startDate, endDate }))
     calculatePrice(startDate, endDate)
   }
 
   const rentalPresets = [
-    { label: 'Сегодня', days: 1 },
-    { label: 'Завтра', days: 2 },
-    { label: '3 дня', days: 3 },
+    { label: 'Сегодня', days: 1, sameDay: true },
+    { label: '1 сутки', days: 1 },
+    { label: '2 суток', days: 2 },
     { label: 'Неделя', days: 7 },
   ]
 
@@ -253,7 +253,7 @@ export default function BookingForm({ equipment, onClose }: BookingFormProps) {
                   />
                 </div>
                 <div className="min-w-0">
-                  <label className="block text-xs text-gray-500 mb-1.5">Дата окончания *</label>
+                  <label className="block text-xs text-gray-500 mb-1.5">Дата возврата *</label>
                   <input
                     type="date"
                     name="endDate"
@@ -267,14 +267,14 @@ export default function BookingForm({ equipment, onClose }: BookingFormProps) {
                 </div>
               </div>
               <p className="text-xs text-gray-400 mt-2">
-                Для аренды на один день можно выбрать одну и ту же дату начала и окончания.
+                Если берете 6-го и возвращаете 7-го, это считается как 1 сутки. Для аренды в тот же день выберите одну дату.
               </p>
               <div className="mt-3 flex flex-wrap gap-2">
                 {rentalPresets.map((preset) => (
                   <button
                     key={preset.label}
                     type="button"
-                    onClick={() => setRentalPreset(preset.days)}
+                    onClick={() => setRentalPreset(preset.days, preset.sameDay)}
                     className="rounded-full border border-blue-100 bg-blue-50 px-3 py-1.5 text-xs font-semibold text-[#2563EB] hover:bg-blue-100 transition-colors"
                   >
                     {preset.label}
