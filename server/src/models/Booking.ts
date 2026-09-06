@@ -41,6 +41,17 @@ export interface CreateBookingData {
 export class BookingModel {
   private db = database.instance
 
+  private parseImages(value: unknown): string[] {
+    if (typeof value !== 'string' || !value.trim()) return []
+
+    try {
+      const parsed = JSON.parse(value)
+      return Array.isArray(parsed) ? parsed.filter((item): item is string => typeof item === 'string') : []
+    } catch {
+      return []
+    }
+  }
+
   async findAll(): Promise<Booking[]> {
     const rows = await all(`
       SELECT
@@ -54,7 +65,7 @@ export class BookingModel {
       ORDER BY b.created_at DESC
     `) as any[]
 
-    return rows.map(this.mapRowWithEquipment)
+    return rows.map((row) => this.mapRowWithEquipment(row))
   }
 
   async findById(id: string): Promise<Booking | null> {
@@ -178,7 +189,7 @@ export class BookingModel {
         name: row.equipment_name,
         category: row.equipment_category,
         pricePerDay: row.equipment_price_per_day,
-        images: JSON.parse(row.equipment_images || '[]'),
+        images: this.parseImages(row.equipment_images),
         quantity: 0,
         availableQuantity: 0,
         description: '',
