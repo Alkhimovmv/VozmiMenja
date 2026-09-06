@@ -211,62 +211,6 @@ export default function SiteBookingsPage() {
     setIsRentalModalOpen(true);
   };
 
-  const buildLeadReplyText = (booking: Booking) => [
-    `${booking.customerName}, здравствуйте! Это ВозьмиМеня по заявке на аренду.`,
-    '',
-    `Оборудование: ${booking.equipment?.name || booking.equipmentId}`,
-    `Даты: ${formatDate(booking.startDate)} - ${formatDate(booking.endDate)}`,
-    `Предварительная стоимость: ${booking.totalPrice}₽`,
-    '',
-    'Подскажите, пожалуйста, удобный способ получения: постамат, самовывоз или доставка?',
-  ].join('\n');
-
-  const buildContactLeadReplyText = (lead: ContactLead) => [
-    `${lead.name}, здравствуйте! Это ВозьмиМеня по вашей заявке.`,
-    '',
-    lead.subject === 'Заказ обратного звонка'
-      ? 'Вы оставляли заявку на обратный звонок. Подскажите, пожалуйста, какое оборудование и на какие даты нужно?'
-      : 'Подскажите, пожалуйста, какое оборудование и на какие даты нужно? Поможем подобрать вариант и посчитаем стоимость.',
-    '',
-    'Можно получить через постамат, самовывоз или доставку.',
-  ].join('\n');
-
-  const handleCopyLeadReply = async (booking: Booking) => {
-    const text = buildLeadReplyText(booking);
-    try {
-      await navigator.clipboard.writeText(text);
-      toast.success('Текст ответа скопирован');
-    } catch {
-      const textarea = document.createElement('textarea');
-      textarea.value = text;
-      textarea.style.position = 'fixed';
-      textarea.style.opacity = '0';
-      document.body.appendChild(textarea);
-      textarea.select();
-      document.execCommand('copy');
-      document.body.removeChild(textarea);
-      toast.success('Текст ответа скопирован');
-    }
-  };
-
-  const handleCopyContactLeadReply = async (lead: ContactLead) => {
-    const text = buildContactLeadReplyText(lead);
-    try {
-      await navigator.clipboard.writeText(text);
-      toast.success('Текст ответа скопирован');
-    } catch {
-      const textarea = document.createElement('textarea');
-      textarea.value = text;
-      textarea.style.position = 'fixed';
-      textarea.style.opacity = '0';
-      document.body.appendChild(textarea);
-      textarea.select();
-      document.execCommand('copy');
-      document.body.removeChild(textarea);
-      toast.success('Текст ответа скопирован');
-    }
-  };
-
   if (isLoading) {
     return (
       <div className="flex h-64 items-center justify-center">
@@ -355,20 +299,9 @@ export default function SiteBookingsPage() {
                       {booking.comment}
                     </p>
                   )}
-                  <div className="mt-3 max-w-3xl rounded-xl border border-sky-100 bg-sky-50 px-3 py-2">
-                    <p className="text-xs font-bold uppercase tracking-wide text-sky-700">Быстрый ответ клиенту</p>
-                    <p className="mt-1 whitespace-pre-wrap text-sm text-sky-950">{buildLeadReplyText(booking)}</p>
-                  </div>
                 </div>
 
                 <div className="flex flex-col gap-2 sm:flex-row">
-                  <button
-                    type="button"
-                    onClick={() => handleCopyLeadReply(booking)}
-                    className="rounded-xl bg-sky-500 px-4 py-2 text-sm font-semibold text-white hover:bg-sky-600"
-                  >
-                    Скопировать ответ
-                  </button>
                   <button
                     type="button"
                     onClick={() => handleCreateRentalFromBooking(booking)}
@@ -441,20 +374,9 @@ export default function SiteBookingsPage() {
                   <p className="mt-2 max-w-3xl whitespace-pre-wrap rounded-xl bg-amber-50 px-3 py-2 text-sm text-gray-700 ring-1 ring-amber-100">
                     {lead.message}
                   </p>
-                  <div className="mt-3 max-w-3xl rounded-xl border border-sky-100 bg-sky-50 px-3 py-2">
-                    <p className="text-xs font-bold uppercase tracking-wide text-sky-700">Быстрый ответ клиенту</p>
-                    <p className="mt-1 whitespace-pre-wrap text-sm text-sky-950">{buildContactLeadReplyText(lead)}</p>
-                  </div>
                 </div>
 
                 <div className="flex flex-col gap-2 sm:flex-row">
-                  <button
-                    type="button"
-                    onClick={() => handleCopyContactLeadReply(lead)}
-                    className="rounded-xl bg-sky-500 px-4 py-2 text-sm font-semibold text-white hover:bg-sky-600"
-                  >
-                    Скопировать ответ
-                  </button>
                   {lead.status === 'pending' && (
                     <button
                       type="button"
