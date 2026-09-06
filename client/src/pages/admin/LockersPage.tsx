@@ -17,9 +17,11 @@ import LockerCabinet from '../../components/admin/LockerCabinet';
 import ConfirmDialog from '../../components/admin/ConfirmDialog';
 import apiClient from '../../api/admin/client';
 import { useOffice } from '../../hooks/useOffice';
+import { getApiErrorMessage } from '../../lib/apiError';
 
 // Ключ выбранного экземпляра: "equipmentId:instanceNumber"
 type InstanceKey = string;
+type CreateLockerWithOfficeDto = CreateLockerDto & { office_id: number };
 
 const COMMAND_STATUS_LABELS: Record<LockerCommand['status'], string> = {
   pending: 'Ожидает',
@@ -91,15 +93,15 @@ const LockersPage: React.FC = () => {
     });
 
   const createMutation = useMutation({
-    mutationFn: lockersApi.create,
+    mutationFn: (data: CreateLockerWithOfficeDto) => lockersApi.create(data),
     onSuccess: async (locker) => {
       await lockersApi.setEquipment(locker.id, { items: instancesToApiItems(selectedInstances) });
       queryClient.invalidateQueries({ queryKey: ['lockers'] });
       closeModal();
       toast.success('Ячейка сохранена');
     },
-    onError: (error: any) => {
-      toast.error(error?.response?.data?.error || 'Не удалось сохранить ячейку');
+    onError: (error: unknown) => {
+      toast.error(getApiErrorMessage(error, 'Не удалось сохранить ячейку'));
     },
   });
 
@@ -112,8 +114,8 @@ const LockersPage: React.FC = () => {
       closeModal();
       toast.success('Ячейка обновлена');
     },
-    onError: (error: any) => {
-      toast.error(error?.response?.data?.error || 'Не удалось обновить ячейку');
+    onError: (error: unknown) => {
+      toast.error(getApiErrorMessage(error, 'Не удалось обновить ячейку'));
     },
   });
 
@@ -123,8 +125,8 @@ const LockersPage: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ['lockers'] });
       toast.success('Ячейка удалена');
     },
-    onError: (error: any) => {
-      toast.error(error?.response?.data?.error || 'Не удалось удалить ячейку');
+    onError: (error: unknown) => {
+      toast.error(getApiErrorMessage(error, 'Не удалось удалить ячейку'));
     },
   });
 
@@ -135,8 +137,8 @@ const LockersPage: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ['locker-commands'], exact: false });
       toast.success('Команда открытия поставлена в очередь');
     },
-    onError: (error: any) => {
-      toast.error(error?.response?.data?.error || 'Не удалось отправить команду открытия');
+    onError: (error: unknown) => {
+      toast.error(getApiErrorMessage(error, 'Не удалось отправить команду открытия'));
     },
   });
 
@@ -156,8 +158,8 @@ const LockersPage: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ['lockers'] });
       toast.success('Ячейки инициализированы');
     },
-    onError: (error: any) => {
-      toast.error(error?.response?.data?.error || 'Не удалось инициализировать ячейки');
+    onError: (error: unknown) => {
+      toast.error(getApiErrorMessage(error, 'Не удалось инициализировать ячейки'));
     },
   });
 
@@ -167,8 +169,8 @@ const LockersPage: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ['lockers'] });
       toast.success('Ячейка отмечена как проверенная');
     },
-    onError: (error: any) => {
-      toast.error(error?.response?.data?.error || 'Не удалось обновить ячейку');
+    onError: (error: unknown) => {
+      toast.error(getApiErrorMessage(error, 'Не удалось обновить ячейку'));
     },
   });
 
@@ -237,14 +239,14 @@ const LockersPage: React.FC = () => {
     if (editingLocker) {
       updateMutation.mutate({ id: editingLocker.id, data: dataToSave });
     } else {
-      createMutation.mutate({ ...dataToSave, office_id: currentOfficeId } as any);
+      createMutation.mutate({ ...dataToSave, office_id: currentOfficeId });
     }
   };
 
   const [deleteConfirm, setDeleteConfirm] = useState<{ isOpen: boolean; lockerId: number | null }>({ isOpen: false, lockerId: null });
   const [initConfirm, setInitConfirm] = useState(false);
 
-  const totalLockersCount = (currentOffice?.locker_rows || []).reduce((sum: number, r: any) => sum + (r.count || 0), 0) || 13;
+  const totalLockersCount = (currentOffice?.locker_rows || []).reduce((sum, row) => sum + (row.count || 0), 0) || 13;
 
   const handleDelete = (id: number) => setDeleteConfirm({ isOpen: true, lockerId: id });
   const handleInitialize = () => setInitConfirm(true);
@@ -535,8 +537,8 @@ const LockersPage: React.FC = () => {
                     <p className="text-sm text-gray-400 italic">Нет оборудования в системе</p>
                   ) : (
                     allEquipment.flatMap((eq) => {
-                      const eqId = Number((eq as any).id);
-                      const qty = (eq as any).quantity as number;
+                      const eqId = Number(eq.id);
+                      const qty = eq.quantity;
                       return Array.from({ length: qty }, (_, i) => {
                         const instanceNumber = i + 1;
                         const key: InstanceKey = `${eqId}:${instanceNumber}`;

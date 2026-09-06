@@ -3,6 +3,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuthenticatedQuery } from '../../hooks/useAuthenticatedQuery';
 import { officesApi, type Office, type CreateOfficeDto, type LockerRow } from '../../api/admin/offices';
 import toast from 'react-hot-toast';
+import { getApiErrorMessage } from '../../lib/apiError';
 
 const DEFAULT_LOCKER_ROWS: LockerRow[] = [
   { row: 4, count: 6, size: 'small' },
@@ -45,7 +46,7 @@ const OfficesPage: React.FC = () => {
       closeModal();
       toast.success('Офис создан');
     },
-    onError: (err: any) => toast.error(err?.response?.data?.error || 'Ошибка создания'),
+    onError: (error: unknown) => toast.error(getApiErrorMessage(error, 'Ошибка создания')),
   });
 
   const updateMutation = useMutation({
@@ -55,7 +56,7 @@ const OfficesPage: React.FC = () => {
       closeModal();
       toast.success('Офис обновлён');
     },
-    onError: (err: any) => toast.error(err?.response?.data?.error || 'Ошибка обновления'),
+    onError: (error: unknown) => toast.error(getApiErrorMessage(error, 'Ошибка обновления')),
   });
 
   const deleteMutation = useMutation({
@@ -65,7 +66,7 @@ const OfficesPage: React.FC = () => {
       setDeleteConfirmId(null);
       toast.success('Офис удалён');
     },
-    onError: (err: any) => toast.error(err?.response?.data?.error || 'Ошибка удаления'),
+    onError: (error: unknown) => toast.error(getApiErrorMessage(error, 'Ошибка удаления')),
   });
 
   const openCreate = () => {
@@ -126,7 +127,7 @@ const OfficesPage: React.FC = () => {
     });
   };
 
-  const updateRow = (index: number, field: keyof LockerRow, value: any) => {
+  const updateRow = <K extends keyof LockerRow>(index: number, field: K, value: LockerRow[K]) => {
     setForm(prev => ({
       ...prev,
       locker_rows: prev.locker_rows.map((r, i) =>

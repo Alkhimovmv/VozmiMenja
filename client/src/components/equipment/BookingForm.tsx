@@ -5,6 +5,7 @@ import { useCreateBooking } from '../../hooks/useEquipment'
 import { X, Calendar, User, Phone, MessageSquare, ChevronRight } from 'lucide-react'
 import { getImageUrl } from '../../lib/utils'
 import { trackEvent } from '../../lib/analytics'
+import { getApiErrorMessage } from '../../lib/apiError'
 import { calculateRentalTotal, getEffectiveDailyPrice, getMinimumDailyPrice, getPricingRows } from '../../utils/pricing'
 
 interface BookingFormProps {
@@ -162,8 +163,8 @@ export default function BookingForm({ equipment, onClose }: BookingFormProps) {
       })
       toast.success('Бронирование успешно создано! Мы свяжемся с вами для подтверждения.')
       onClose()
-    } catch (error: any) {
-      toast.error(error.message || 'Произошла ошибка при создании бронирования')
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, 'Произошла ошибка при создании бронирования'))
     }
   }
 

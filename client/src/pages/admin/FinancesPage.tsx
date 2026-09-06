@@ -10,6 +10,8 @@ import CustomSelect from '../../components/admin/CustomSelect';
 import ConfirmDialog from '../../components/admin/ConfirmDialog';
 import { useOffice } from '../../hooks/useOffice';
 
+type CreateExpenseWithOfficeDto = CreateExpenseDto & { office_id: number };
+
 const FinancesPage: React.FC = () => {
   const { currentOfficeId } = useOffice();
   const [selectedMonth, setSelectedMonth] = useState<string>('');
@@ -48,7 +50,7 @@ const FinancesPage: React.FC = () => {
   );
 
   const createExpenseMutation = useMutation({
-    mutationFn: expensesApi.create,
+    mutationFn: (data: CreateExpenseWithOfficeDto) => expensesApi.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['expenses'] });
       queryClient.invalidateQueries({ queryKey: ['analytics'] });
@@ -76,7 +78,7 @@ const FinancesPage: React.FC = () => {
   });
 
   const handleCreateExpense = (data: CreateExpenseDto) => {
-    createExpenseMutation.mutate({ ...data, office_id: currentOfficeId } as any);
+    createExpenseMutation.mutate({ ...data, office_id: currentOfficeId });
   };
 
   const handleUpdateExpense = (data: Partial<CreateExpenseDto>) => {

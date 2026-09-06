@@ -95,25 +95,41 @@ export default function BlogArticlePage() {
   const [relatedArticles, setRelatedArticles] = useState<Article[]>([])
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => { if (slug) loadArticle() }, [slug])
+  useEffect(() => {
+    let isMounted = true
 
-  const loadArticle = async () => {
-    try {
-      setLoading(true)
-      if (!slug) return
-      const data = await articlesApi.getBySlug(slug)
-      setArticle(data)
-      if (data.category) {
-        const related = await articlesApi.getByCategory(data.category)
-        setRelatedArticles(related.filter((a) => a.id !== data.id).slice(0, 3))
+    const loadArticle = async () => {
+      try {
+        setLoading(true)
+        if (!slug) return
+        const data = await articlesApi.getBySlug(slug)
+        if (!isMounted) return
+
+        setArticle(data)
+        if (data.category) {
+          const related = await articlesApi.getByCategory(data.category)
+          if (isMounted) {
+            setRelatedArticles(related.filter((a) => a.id !== data.id).slice(0, 3))
+          }
+        }
+      } catch (error) {
+        console.error('Error loading article:', error)
+        if (isMounted) {
+          navigate('/blog')
+        }
+      } finally {
+        if (isMounted) {
+          setLoading(false)
+        }
       }
-    } catch (error) {
-      console.error('Error loading article:', error)
-      navigate('/blog')
-    } finally {
-      setLoading(false)
     }
-  }
+
+    loadArticle()
+
+    return () => {
+      isMounted = false
+    }
+  }, [slug, navigate])
 
   const formatDate = (dateString: string) =>
     new Date(dateString).toLocaleDateString('ru-RU', { year: 'numeric', month: 'long', day: 'numeric' })

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../hooks/useAuth';
 import apiClient from '../../api/admin/client';
+import { getApiErrorMessage } from '../../lib/apiError';
 
 interface AdminUser {
   id: number;
@@ -11,12 +12,19 @@ interface AdminUser {
   created_at: string;
 }
 
+interface UserForm {
+  phone: string;
+  password: string;
+  role: AdminUser['role'];
+  name: string;
+}
+
 const UsersPage: React.FC = () => {
   const { isSuperAdmin } = useAuth();
   const queryClient = useQueryClient();
   const [showForm, setShowForm] = useState(false);
   const [editUser, setEditUser] = useState<AdminUser | null>(null);
-  const [form, setForm] = useState({ phone: '', password: '', role: 'admin', name: '' });
+  const [form, setForm] = useState<UserForm>({ phone: '', password: '', role: 'admin', name: '' });
 
   const { data: users = [], isLoading } = useQuery<AdminUser[]>({
     queryKey: ['admin-users'],
@@ -28,7 +36,7 @@ const UsersPage: React.FC = () => {
   });
 
   const createMutation = useMutation({
-    mutationFn: (data: typeof form) => apiClient.post('/users', data),
+    mutationFn: (data: UserForm) => apiClient.post('/users', data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-users'] });
       setShowForm(false);
@@ -37,7 +45,7 @@ const UsersPage: React.FC = () => {
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: number; data: Partial<typeof form> }) =>
+    mutationFn: ({ id, data }: { id: number; data: Partial<UserForm> }) =>
       apiClient.put(`/users/${id}`, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-users'] });
@@ -62,7 +70,7 @@ const UsersPage: React.FC = () => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (editUser) {
-      const data: any = { role: form.role, name: form.name };
+      const data: Partial<UserForm> = { role: form.role, name: form.name };
       if (form.password) data.password = form.password;
       updateMutation.mutate({ id: editUser.id, data });
     } else {
@@ -82,7 +90,9 @@ const UsersPage: React.FC = () => {
     setShowForm(true);
   };
 
-  const error = (createMutation.error || updateMutation.error) as any;
+  const errorMessage = createMutation.error || updateMutation.error
+    ? getApiErrorMessage(createMutation.error || updateMutation.error, 'Ошибка')
+    : null;
 
   return (
     <div className="p-6 max-w-3xl mx-auto">
@@ -142,14 +152,14 @@ const UsersPage: React.FC = () => {
               <select
                 className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
                 value={form.role}
-                onChange={e => setForm(f => ({ ...f, role: e.target.value }))}
+                onChange={e => setForm(f => ({ ...f, role: e.target.value as AdminUser['role'] }))}
               >
                 <option value="admin">Администратор</option>
                 <option value="superadmin">Супер-администратор</option>
               </select>
             </div>
-            {error && (
-              <div className="text-red-600 text-sm">{error?.response?.data?.error || 'Ошибка'}</div>
+            {errorMessage && (
+              <div className="text-red-600 text-sm">{errorMessage}</div>
             )}
             <div className="flex gap-3 pt-1">
               <button

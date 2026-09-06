@@ -15,6 +15,7 @@ import { type RentalEquipment, type CreateRentalEquipmentDto } from '../../types
 import EquipmentModal, { type EquipmentInstanceOfficeChange } from '../../components/admin/EquipmentModal';
 import ConfirmDialog from '../../components/admin/ConfirmDialog';
 import { useOffice } from '../../hooks/useOffice';
+import { getApiErrorMessage } from '../../lib/apiError';
 
 const EquipmentPage: React.FC = () => {
   const { currentOfficeId } = useOffice();
@@ -35,8 +36,8 @@ const EquipmentPage: React.FC = () => {
       setEditingEquipment(null);
       toast.success('Оборудование сохранено');
     },
-    onError: (error: any) => {
-      toast.error(error?.response?.data?.error || 'Не удалось сохранить оборудование');
+    onError: (error: unknown) => {
+      toast.error(getApiErrorMessage(error, 'Не удалось сохранить оборудование'));
     },
   });
 
@@ -66,8 +67,8 @@ const EquipmentPage: React.FC = () => {
       setEditingEquipment(null);
       toast.success(movedCount > 0 ? 'Оборудование обновлено, экземпляры перенесены' : 'Оборудование обновлено');
     },
-    onError: (error: any) => {
-      toast.error(error?.response?.data?.error || 'Не удалось обновить оборудование');
+    onError: (error: unknown) => {
+      toast.error(getApiErrorMessage(error, 'Не удалось обновить оборудование'));
     },
   });
 
@@ -78,8 +79,8 @@ const EquipmentPage: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ['equipment-rental'], exact: false });
       toast.success('Оборудование удалено');
     },
-    onError: (error: any) => {
-      toast.error(error?.response?.data?.error || 'Не удалось удалить оборудование');
+    onError: (error: unknown) => {
+      toast.error(getApiErrorMessage(error, 'Не удалось удалить оборудование'));
     },
   });
 
@@ -89,7 +90,8 @@ const EquipmentPage: React.FC = () => {
 
   const handleUpdateEquipment = (data: Partial<CreateRentalEquipmentDto>, officeChanges: EquipmentInstanceOfficeChange[] = []) => {
     if (editingEquipment) {
-      const { office_id: _officeId, ...updateData } = data;
+      const { office_id, ...updateData } = data;
+      void office_id;
       updateMutation.mutate({ id: String(editingEquipment.id), data: updateData, officeChanges });
     }
   };

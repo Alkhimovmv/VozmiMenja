@@ -103,16 +103,42 @@ function getCategoryLandingHref(category: string) {
   return '/'
 }
 
-function getCategoryGuideHref(category: string) {
+function getCategoryGuideHref(category: string, name: string) {
+  const normalizedName = name.toLowerCase()
+
   if (category.includes('Пылесос') || category.includes('клининг')) {
+    if (normalizedName.includes('wd5')) {
+      return '/blog/kak-ubrat-stroitelnuyu-pyl-posle-remonta'
+    }
+
+    if (normalizedName.includes('puzzi')) {
+      return '/blog/puzzi-8-1-ili-puzzi-10-1-kakoj-moyushchij-pylesos-vzyat'
+    }
+
     return '/blog/kak-pochistit-divan-i-kover-moyushchim-pylesosom'
   }
 
   if (category.includes('Камер')) {
+    if (normalizedName.includes('gopro')) {
+      return '/blog/gopro-dlya-nachinayushchih-polnoe-rukovodstvo'
+    }
+
+    if (normalizedName.includes('osmo') || normalizedName.includes('insta360')) {
+      return '/blog/kakuyu-kameru-vzyat-v-puteshestvie-gopro-dji-insta360'
+    }
+
     return '/blog/kakuyu-kameru-vzyat-v-puteshestvie-gopro-dji-insta360'
   }
 
   if (category.includes('Аудио')) {
+    if (normalizedName.includes('mic')) {
+      return '/blog/kachestvennyj-zvuk-dlya-video-dji-mic-2'
+    }
+
+    if (normalizedName.includes('partybox')) {
+      return '/blog/kolonka-dlya-vecherinki-kakuyu-jbl-partybox-vzyat-v-arendu'
+    }
+
     return '/blog/kolonka-dlya-vecherinki-kakuyu-jbl-partybox-vzyat-v-arendu'
   }
 
@@ -197,7 +223,7 @@ export default function EquipmentDetailsPage() {
   const minPrice = getMinPrice()
   const guidance = getEquipmentGuidance(equipment.category, equipment.name)
   const categoryLandingHref = getCategoryLandingHref(equipment.category)
-  const categoryGuideHref = getCategoryGuideHref(equipment.category)
+  const categoryGuideHref = getCategoryGuideHref(equipment.category, equipment.name)
   const quickMessage = `Здравствуйте! Хочу арендовать ${equipment.name}. Страница: https://vozmimenya.ru/equipment/${equipment.id}`
   const faqStructuredData = {
     '@context': 'https://schema.org',

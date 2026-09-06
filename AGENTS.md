@@ -15,6 +15,17 @@
 
 ## Роли
 
+Практические инструкции для отдельных рабочих чатов лежат в `.agents/roles/`.
+Если чат запускается под конкретную роль, он дополнительно читает свой файл:
+
+- Product Lead: `.agents/roles/product-lead.md`
+- Frontend UX: `.agents/roles/frontend-ux.md`
+- Backend Automation: `.agents/roles/backend-automation.md`
+- SEO Content: `.agents/roles/seo-content.md`
+- QA Release: `.agents/roles/qa-release.md`
+
+Передачи между чатами фиксируются в `.agents/handoffs/`.
+
 ### 1. Product Lead
 - Формулирует задачу, критерии готовности и ожидаемый эффект.
 - Выбирает, что важнее сейчас: выручка, SEO, конверсия, скорость, стабильность.

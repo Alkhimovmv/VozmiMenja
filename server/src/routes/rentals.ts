@@ -63,7 +63,7 @@ router.get('/', authMiddleware, async (req: Request, res: Response) => {
     const userOfficeIds = await getUserOfficeIds(req)
 
     // Если officeId передан — проверяем что он входит в разрешённые
-    let resolvedOfficeId = officeId ? parseInt(officeId as string) : undefined
+    const resolvedOfficeId = officeId ? parseInt(officeId as string) : undefined
     if (userOfficeIds !== null) {
       if (resolvedOfficeId !== undefined && !userOfficeIds.includes(resolvedOfficeId)) {
         return res.json([])

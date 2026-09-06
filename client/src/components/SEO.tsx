@@ -8,7 +8,7 @@ interface SEOProps {
   url?: string
   type?: string
   noIndex?: boolean
-  structuredData?: Record<string, any> | Record<string, any>[]
+  structuredData?: Record<string, unknown> | Record<string, unknown>[]
 }
 
 export default function SEO({

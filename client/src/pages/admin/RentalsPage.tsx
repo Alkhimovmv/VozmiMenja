@@ -12,6 +12,7 @@ import ConfirmDialog from '../../components/admin/ConfirmDialog';
 import { subDays, startOfDay, endOfDay, isWithinInterval, startOfMonth, endOfMonth, addDays, isSameDay } from 'date-fns';
 import toast from 'react-hot-toast';
 import { useOffice } from '../../hooks/useOffice';
+import { getApiErrorMessage } from '../../lib/apiError';
 
 const Spinner = () => (
   <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
@@ -164,14 +165,14 @@ const RentalsPage: React.FC = () => {
     mutationFn: ({ id, data }: { id: number; data: Partial<CreateRentalDto & { status: string }> }) =>
       rentalsApi.update(id, data),
     onSuccess: () => { invalidateAll(); setIsModalOpen(false); setEditingRental(null); },
-    onError: (error: any) => {
-      const msg = error?.response?.data?.error || error?.message || 'Неизвестная ошибка';
+    onError: (error: unknown) => {
+      const msg = getApiErrorMessage(error, 'Неизвестная ошибка');
       const isBookingConflict = msg.includes('уже забронировано');
       toast.error(
         isBookingConflict ? `Нельзя сохранить аренду: ${msg}` : `Ошибка обновления: ${msg}`,
         { duration: isBookingConflict ? 8000 : 4000 }
       );
-      console.error('updateMutation error:', error?.response?.status, error?.response?.data, error?.message);
+      console.error('updateMutation error:', error);
     },
   });
 
@@ -181,7 +182,7 @@ const RentalsPage: React.FC = () => {
   });
 
   const handleCreateRental = (data: CreateRentalDto) => {
-    createMutation.mutate({ ...data, office_id: currentOfficeId } as any);
+    createMutation.mutate({ ...data, office_id: currentOfficeId });
   };
 
   const handleUpdateRental = (data: Partial<CreateRentalDto & { status: string }>) => {
@@ -598,8 +599,8 @@ const RentalsPage: React.FC = () => {
         defaultOfficeId={currentOfficeId}
         isLoading={createMutation.isPending || updateMutation.isPending}
         errorMessage={
-          (createMutation.error as any)?.response?.data?.error ||
-          (updateMutation.error as any)?.response?.data?.error ||
+          getApiErrorMessage(createMutation.error, '') ||
+          getApiErrorMessage(updateMutation.error, '') ||
           null
         }
       />

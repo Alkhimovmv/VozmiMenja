@@ -59,7 +59,7 @@ export default function CallbackModal({ isOpen, onClose }: CallbackModalProps) {
       trackEvent('callback_submit', { source: 'callback_modal' })
       setFormData({ name: '', phone: '' })
       onClose()
-    } catch (error) {
+    } catch {
       toast.error('Ошибка при отправке заявки')
     } finally {
       setIsSubmitting(false)

@@ -21,7 +21,7 @@ export default function AdminLoginPage() {
       } else {
         setError('Неверный пароль')
       }
-    } catch (err) {
+    } catch {
       setError('Неверный пароль')
     } finally {
       setIsLoading(false)

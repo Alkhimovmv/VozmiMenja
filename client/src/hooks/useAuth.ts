@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { authApi } from '../api/admin/auth';
+import { hasApiStatus } from '../lib/apiError';
 
 export interface AdminUser {
   id: number;
@@ -52,12 +53,9 @@ export const useAuth = () => {
   });
 
   useEffect(() => {
-    if (verifyQuery.error) {
-      const error: any = verifyQuery.error;
-      if (error?.response?.status === 401) {
-        localStorage.removeItem('authToken');
-        setToken(null);
-      }
+    if (hasApiStatus(verifyQuery.error, 401)) {
+      localStorage.removeItem('authToken');
+      setToken(null);
     }
   }, [verifyQuery.error]);
 

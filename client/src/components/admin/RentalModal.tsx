@@ -233,7 +233,7 @@ const RentalModal: React.FC<RentalModalProps> = ({
     } else {
       setInitialRentalId(null);
     }
-  }, [rental, isOpen, initialData, defaultOfficeId]);
+  }, [rental, isOpen, initialData, defaultOfficeId, initialRentalId]);
 
   const validatePhone = (phone: string): string | null => {
     const cleanPhone = phone.replace(/\D/g, '');

@@ -13,6 +13,14 @@ interface BlogArticleSeed {
   tags: string
 }
 
+interface BlogArticleRefresh {
+  slug: string
+  replacements: Array<{
+    from: string
+    to: string
+  }>
+}
+
 const articles: BlogArticleSeed[] = [
   {
     title: 'Как почистить диван и ковер дома: когда нужен моющий пылесос',
@@ -418,6 +426,46 @@ PartyBox 710 лучше выбирать для большого зала, да�
   },
 ]
 
+const articleRefreshes: BlogArticleRefresh[] = [
+  {
+    slug: '5-oshibok-pri-arende-oborudovaniya',
+    replacements: [
+      {
+        from: `Аренда оборудования кажется простой, но многие сталкиваются с проблемами. Разбираем 5 типичных ошибок и как их избежать.`,
+        to: `Аренда оборудования кажется простой, но многие сталкиваются с проблемами. Разбираем 5 типичных ошибок и как их избежать.
+
+Если вы еще выбираете технику, начните с нужного раздела: [строительный или моющий пылесос в аренду](/arenda-pylesosov-moskva), [камера для съемки в аренду](/arenda-gopro-moskva) или [микрофон и колонка в аренду](/arenda-audiooborudovaniya-moskva).`,
+      },
+      {
+        from: `**Позвоните нам** – , поможем выбрать`,
+        to: `**Напишите нам** - поможем выбрать модель под задачу, срок и формат получения`,
+      },
+    ],
+  },
+  {
+    slug: 'kachestvennyj-zvuk-dlya-video-dji-mic-2',
+    replacements: [
+      {
+        from: `Качественный звук - это 50% успеха любого видео. Даже идеальная картинка не спасёт ролик с плохим звуком. Если вы снимаете влоги, интервью, обзоры или контент для YouTube, аренда DJI Mic 2 - разумное решение для тестирования профессионального звука перед покупкой.`,
+        to: `Качественный звук - это 50% успеха любого видео. Даже идеальная картинка не спасёт ролик с плохим звуком. Если вы снимаете влоги, интервью, обзоры или контент для YouTube, аренда DJI Mic 2 - разумное решение для тестирования профессионального звука перед покупкой.
+
+Для такой задачи можно сразу посмотреть [DJI Mic 2](/equipment/1232f00f-dc96-46df-b1e4-2d724ede3ef8), открыть раздел [аренда микрофонов и аудиооборудования](/arenda-audiooborudovaniya-moskva) или подобрать камеру в разделе [аренда GoPro и камер](/arenda-gopro-moskva).`,
+      },
+    ],
+  },
+  {
+    slug: 'top-3-kamery-dlya-svadeb-2025',
+    replacements: [
+      {
+        from: `Съемка свадеб и мероприятий требует надёжной камеры с качественной картинкой и стабилизацией. Не хотите покупать дорогое оборудование для разовой съемки? Аренда камер - оптимальное решение. Рассказываем про три лучших варианта из нашего каталога.`,
+        to: `Съемка свадеб и мероприятий требует надёжной камеры с качественной картинкой и стабилизацией. Не хотите покупать дорогое оборудование для разовой съемки? Аренда камер - оптимальное решение. Рассказываем про три лучших варианта из нашего каталога.
+
+Если нужно быстро перейти к выбору, посмотрите раздел [камеры для съемки мероприятий в аренду](/arenda-gopro-moskva), карточку [GoPro 13](/equipment/64e19704-b0dc-4879-9b90-6adc4eddd923), [DJI Osmo Pocket 3 Creator Combo](/equipment/5e1bd056-e6e8-4e92-ae17-519a56f564ad) или [Insta360 X5](/equipment/98794938-b0c8-4a7d-b182-b6645ba8039b).`,
+      },
+    ],
+  },
+]
+
 async function seedBlogGrowthArticles() {
   const db = new sqlite3.Database(dbPath)
   const run = (sql: string, params: unknown[] = []) => new Promise<void>((resolve, reject) => {
@@ -445,6 +493,14 @@ async function seedBlogGrowthArticles() {
           author = excluded.author,
           published = excluded.published,
           updated_at = CURRENT_TIMESTAMP
+        WHERE articles.title IS NOT excluded.title
+          OR articles.excerpt IS NOT excluded.excerpt
+          OR articles.content IS NOT excluded.content
+          OR articles.image_url IS NOT excluded.image_url
+          OR articles.category IS NOT excluded.category
+          OR articles.tags IS NOT excluded.tags
+          OR articles.author IS NOT excluded.author
+          OR articles.published IS NOT excluded.published
       `, [
         article.title,
         article.slug,
@@ -457,6 +513,25 @@ async function seedBlogGrowthArticles() {
     }
 
     console.log(`✅ Готово: обработано статей ${articles.length}`)
+
+    console.log('🔄 Обновление внутренней перелинковки старых статей...')
+    for (const refresh of articleRefreshes) {
+      for (const replacement of refresh.replacements) {
+        await run(`
+          UPDATE articles
+          SET content = replace(content, ?, ?),
+              updated_at = CURRENT_TIMESTAMP
+          WHERE slug = ?
+            AND instr(content, ?) > 0
+        `, [
+          replacement.from,
+          replacement.to,
+          refresh.slug,
+          replacement.from,
+        ])
+      }
+    }
+    console.log(`✅ Готово: проверено refresh-правил ${articleRefreshes.length}`)
   } finally {
     await new Promise<void>((resolve, reject) => {
       db.close((error) => {

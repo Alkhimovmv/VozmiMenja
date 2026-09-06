@@ -154,7 +154,11 @@ router.get('/equipment/:id', async (req: Request, res: Response) => {
     if (!eq) return res.status(404).send('Not found')
 
     let images: string[] = []
-    try { images = JSON.parse(eq.images || '[]') } catch {}
+    try {
+      images = JSON.parse(eq.images || '[]')
+    } catch {
+      images = []
+    }
     const imageUrl = images.length > 0 ? normalizeImageUrl(images[0]) : 'https://vozmimenya.ru/og-image.jpg'
 
     // Берём pricing если есть
@@ -163,7 +167,9 @@ router.get('/equipment/:id', async (req: Request, res: Response) => {
       const pricing = JSON.parse(eq.pricing || '{}')
       const prices = Object.values(pricing as Record<string, number>).filter(p => p > 0)
       if (prices.length > 0) minPrice = Math.min(...prices)
-    } catch {}
+    } catch {
+      minPrice = eq.price_per_day || 0
+    }
 
     const name: string = eq.name
     const url = `https://vozmimenya.ru/equipment/${eq.id}`

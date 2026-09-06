@@ -11,6 +11,7 @@ import { useAuthenticatedQuery } from '../../hooks/useAuthenticatedQuery';
 import { useOffice } from '../../hooks/useOffice';
 import type { Booking, ContactLead, CreateRentalDto, Equipment } from '../../types';
 import { formatDate } from '../../utils/dateUtils';
+import { getApiErrorMessage } from '../../lib/apiError';
 
 const formatLeadSource = (lead: {
   utmSource?: string;
@@ -147,8 +148,8 @@ export default function SiteBookingsPage() {
       setInitialRentalData(null);
       setIsRentalModalOpen(false);
     },
-    onError: (error: any) => {
-      toast.error(error?.response?.data?.error || error?.message || 'Не удалось создать аренду');
+    onError: (error: unknown) => {
+      toast.error(getApiErrorMessage(error, 'Не удалось создать аренду'));
     },
   });
 
@@ -158,8 +159,8 @@ export default function SiteBookingsPage() {
       queryClient.invalidateQueries({ queryKey: ['admin-bookings'] });
       toast.success('Статус заявки обновлен');
     },
-    onError: (error: any) => {
-      toast.error(error?.response?.data?.error || error?.message || 'Не удалось обновить заявку');
+    onError: (error: unknown) => {
+      toast.error(getApiErrorMessage(error, 'Не удалось обновить заявку'));
     },
   });
 
@@ -169,8 +170,8 @@ export default function SiteBookingsPage() {
       queryClient.invalidateQueries({ queryKey: ['admin-contact-leads'] });
       toast.success('Статус обращения обновлен');
     },
-    onError: (error: any) => {
-      toast.error(error?.response?.data?.error || error?.message || 'Не удалось обновить обращение');
+    onError: (error: unknown) => {
+      toast.error(getApiErrorMessage(error, 'Не удалось обновить обращение'));
     },
   });
 

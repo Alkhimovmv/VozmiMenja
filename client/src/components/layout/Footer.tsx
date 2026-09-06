@@ -62,6 +62,7 @@ export default function Footer() {
                 { to: '/delivery', label: 'Условия доставки' },
                 { to: '/contact', label: 'Контакты' },
                 { to: '/faq', label: 'FAQ' },
+                { to: '/sitemap', label: 'Карта сайта' },
               ].map((link) => (
                 <Link key={link.label} to={link.to}
                   className="block text-sm text-gray-400 hover:text-white transition-colors">
@@ -109,6 +110,7 @@ export default function Footer() {
             <Link to="/cookies" className="text-gray-600 hover:text-gray-400 text-xs transition-colors">Политика использования cookie</Link>
             <Link to="/terms" className="text-gray-600 hover:text-gray-400 text-xs transition-colors">Условия использования</Link>
             <Link to="/requisites" className="text-gray-600 hover:text-gray-400 text-xs transition-colors">Реквизиты</Link>
+            <Link to="/sitemap" className="text-gray-600 hover:text-gray-400 text-xs transition-colors">Карта сайта</Link>
           </div>
         </div>
       </div>

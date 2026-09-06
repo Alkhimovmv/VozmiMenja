@@ -19,7 +19,6 @@ const CustomSelect: React.FC<CustomSelectProps> = ({
   onChange,
   options,
   placeholder = "Выберите опцию",
-  required: _required = false,
   className = ""
 }) => {
   const [isOpen, setIsOpen] = useState(false);

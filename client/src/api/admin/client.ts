@@ -147,9 +147,10 @@ export const apiClientPromise = initializeApiClient();
 // Для обратной совместимости - ленивый API клиент
 export const apiClient = new Proxy({} as AxiosInstance, {
   get(_target, prop) {
-    return async (...args: any[]) => {
+    return async (...args: unknown[]) => {
       const client = await apiClientPromise;
-      return (client as any)[prop](...args);
+      const method = Reflect.get(client, prop) as (...methodArgs: unknown[]) => unknown;
+      return method(...args);
     };
   }
 });

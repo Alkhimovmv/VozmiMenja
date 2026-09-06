@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../hooks/useAuth';
+import { getApiErrorMessage } from '../../lib/apiError';
 
 const LoginPage: React.FC = () => {
   const [phone, setPhone] = useState('');
@@ -18,7 +19,7 @@ const LoginPage: React.FC = () => {
   };
 
   const errorMessage = loginError
-    ? (loginError as any)?.response?.data?.error || 'Неверный номер телефона или пароль'
+    ? getApiErrorMessage(loginError, 'Неверный номер телефона или пароль')
     : null;
 
   return (

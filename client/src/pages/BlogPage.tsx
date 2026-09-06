@@ -13,31 +13,54 @@ export default function BlogPage() {
   const [loading, setLoading] = useState(true)
   const [selectedCategory, setSelectedCategory] = useState<string>('all')
 
-  useEffect(() => { loadArticles() }, [selectedCategory])
-  useEffect(() => { loadPopularArticles() }, [])
+  useEffect(() => {
+    let isMounted = true
 
-  const loadArticles = async () => {
-    try {
-      setLoading(true)
-      const data = selectedCategory === 'all'
-        ? await articlesApi.getAll()
-        : await articlesApi.getByCategory(selectedCategory)
-      setArticles(data)
-    } catch (error) {
-      console.error('Error loading articles:', error)
-    } finally {
-      setLoading(false)
+    const loadArticles = async () => {
+      try {
+        setLoading(true)
+        const data = selectedCategory === 'all'
+          ? await articlesApi.getAll()
+          : await articlesApi.getByCategory(selectedCategory)
+        if (isMounted) {
+          setArticles(data)
+        }
+      } catch (error) {
+        console.error('Error loading articles:', error)
+      } finally {
+        if (isMounted) {
+          setLoading(false)
+        }
+      }
     }
-  }
 
-  const loadPopularArticles = async () => {
-    try {
-      const data = await articlesApi.getPopular(5)
-      setPopularArticles(data)
-    } catch (error) {
-      console.error('Error loading popular articles:', error)
+    loadArticles()
+
+    return () => {
+      isMounted = false
     }
-  }
+  }, [selectedCategory])
+
+  useEffect(() => {
+    let isMounted = true
+
+    const loadPopularArticles = async () => {
+      try {
+        const data = await articlesApi.getPopular(5)
+        if (isMounted) {
+          setPopularArticles(data)
+        }
+      } catch (error) {
+        console.error('Error loading popular articles:', error)
+      }
+    }
+
+    loadPopularArticles()
+
+    return () => {
+      isMounted = false
+    }
+  }, [])
 
   const formatDate = (dateString: string) =>
     new Date(dateString).toLocaleDateString('ru-RU', { year: 'numeric', month: 'long', day: 'numeric' })

@@ -50,7 +50,7 @@ router.get('/', authMiddleware, async (req: Request, res: Response) => {
     const officeId = req.query.officeId ? parseInt(req.query.officeId as string) : undefined
     const userOfficeIds = await getUserOfficeIds(req)
 
-    let resolvedOfficeId = officeId
+    const resolvedOfficeId = officeId
     if (userOfficeIds !== null) {
       if (resolvedOfficeId !== undefined && !userOfficeIds.includes(resolvedOfficeId)) {
         return res.json([])
