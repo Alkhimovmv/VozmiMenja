@@ -15,6 +15,28 @@ const queryClient = new QueryClient({
   },
 })
 
+const redirectSearch = window.location.search
+
+if (redirectSearch.startsWith('?/')) {
+  const redirectPath = redirectSearch.slice(2)
+  const queryStartIndex = redirectPath.indexOf('&')
+  const pathname =
+    (queryStartIndex === -1
+      ? redirectPath
+      : redirectPath.slice(0, queryStartIndex)
+    ).replace(/~and~/g, '&')
+  const search =
+    queryStartIndex === -1
+      ? ''
+      : `?${redirectPath.slice(queryStartIndex + 1).replace(/~and~/g, '&')}`
+
+  window.history.replaceState(
+    null,
+    '',
+    `/${pathname}${search}${window.location.hash}`,
+  )
+}
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <HelmetProvider>
