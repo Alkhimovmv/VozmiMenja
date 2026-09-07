@@ -4,6 +4,9 @@
 
 ## 2026-09-08
 
+- Исправлена публикация SPA на GitHub Pages: build теперь генерирует статические entrypoints для прямых sitemap URL; production smoke подтвердил HTTP 200 для публичных страниц.
+- Реализована MVP-сценарная посадочная `/arenda-moyushchego-pylesosa-dlya-divana-kovra-moskva` для привлечения заявок на Puzzi 8/1, Puzzi 10/1 и бытовую химчистку дивана/ковра.
+- Новая посадочная добавлена в route, sitemap, HTML-карту сайта, обязательный smoke-набор и SEO-очередь.
 - Реализована MVP-сценарная посадочная `/arenda-stroitelnogo-pylesosa-posle-remonta-moskva` для привлечения заявок по уборке после ремонта; после review страница добавлена в sitemap, HTML-карту и обязательный smoke-набор.
 - В `seed:blog-growth` добавлена коммерческая статья `GoPro или Insta360: что взять для поездки, спорта и блога`; sitemap пересобран с новым blog URL.
 - QA acquisition-итерации прошел: `git diff --check`, `npm run lint`, `npm run typecheck`, `npm run build`, `SMOKE_BASE_URL=http://127.0.0.1:4173 npm run smoke:public`.

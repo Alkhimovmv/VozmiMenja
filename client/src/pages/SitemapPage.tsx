@@ -9,6 +9,7 @@ const staticPages = [
   { href: '/', label: 'Главная' },
   { href: '/arenda-pylesosov-moskva', label: 'Аренда пылесосов в Москве' },
   { href: '/arenda-stroitelnogo-pylesosa-posle-remonta-moskva', label: 'Аренда строительного пылесоса после ремонта' },
+  { href: '/arenda-moyushchego-pylesosa-dlya-divana-kovra-moskva', label: 'Аренда моющего пылесоса для дивана и ковра' },
   { href: '/arenda-gopro-moskva', label: 'Аренда GoPro и камер в Москве' },
   { href: '/arenda-audiooborudovaniya-moskva', label: 'Аренда аудиооборудования в Москве' },
   { href: '/blog', label: 'Блог' },

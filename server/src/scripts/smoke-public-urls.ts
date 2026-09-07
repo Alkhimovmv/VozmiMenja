@@ -9,6 +9,7 @@ const requiredPaths = [
   '/',
   '/arenda-pylesosov-moskva',
   '/arenda-stroitelnogo-pylesosa-posle-remonta-moskva',
+  '/arenda-moyushchego-pylesosa-dlya-divana-kovra-moskva',
   '/arenda-gopro-moskva',
   '/arenda-audiooborudovaniya-moskva',
   '/blog',
