@@ -44,14 +44,26 @@ function normalizeRoute(rawPathname) {
   return normalized
 }
 
-function routeOutputPath(route) {
-  const relativeRoute = route.replace(/^\/+/, '')
-  const outputPath = path.resolve(distDir, relativeRoute, 'index.html')
+function assertInsideDist(outputPath, route) {
   const relativeOutput = path.relative(distDir, outputPath)
 
   if (relativeOutput.startsWith('..') || path.isAbsolute(relativeOutput)) {
     throw new Error(`Refusing to write outside dist for route: ${route}`)
   }
+}
+
+function routeIndexOutputPath(route) {
+  const relativeRoute = route.replace(/^\/+/, '')
+  const outputPath = path.resolve(distDir, relativeRoute, 'index.html')
+  assertInsideDist(outputPath, route)
+
+  return outputPath
+}
+
+function routeHtmlOutputPath(route) {
+  const relativeRoute = route.replace(/^\/+/, '')
+  const outputPath = path.resolve(distDir, `${relativeRoute}.html`)
+  assertInsideDist(outputPath, route)
 
   return outputPath
 }
@@ -89,13 +101,17 @@ async function main() {
 
   await Promise.all(
     routes.map(async (route) => {
-      const outputPath = routeOutputPath(route)
-      await fs.mkdir(path.dirname(outputPath), { recursive: true })
-      await fs.writeFile(outputPath, indexHtml, 'utf8')
+      const indexOutputPath = routeIndexOutputPath(route)
+      const htmlOutputPath = routeHtmlOutputPath(route)
+
+      await fs.mkdir(path.dirname(indexOutputPath), { recursive: true })
+      await fs.mkdir(path.dirname(htmlOutputPath), { recursive: true })
+      await fs.writeFile(indexOutputPath, indexHtml, 'utf8')
+      await fs.writeFile(htmlOutputPath, indexHtml, 'utf8')
     }),
   )
 
-  console.log(`Static route entrypoints generated: ${routes.length}`)
+  console.log(`Static route entrypoints generated: ${routes.length} routes, ${routes.length * 2} files`)
 }
 
 main().catch((error) => {
