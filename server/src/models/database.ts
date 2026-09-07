@@ -98,6 +98,22 @@ class Database {
       )
     `)
 
+    const contactLeadColumns = [
+      ['source_page', 'TEXT'],
+      ['referrer', 'TEXT'],
+      ['utm_source', 'TEXT'],
+      ['utm_medium', 'TEXT'],
+      ['utm_campaign', 'TEXT'],
+    ] as const
+
+    for (const [column, definition] of contactLeadColumns) {
+      try {
+        await run(`ALTER TABLE contact_leads ADD COLUMN ${column} ${definition}`)
+      } catch (error: any) {
+        if (!error.message?.includes('duplicate column name')) throw error
+      }
+    }
+
     // Таблица для оборудования (RentAdmin)
     await run(`
       CREATE TABLE IF NOT EXISTS rental_equipment (

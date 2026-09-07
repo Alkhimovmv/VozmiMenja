@@ -8,6 +8,7 @@ const sitemapLimit = Number(process.env.SMOKE_SITEMAP_LIMIT || 25)
 const requiredPaths = [
   '/',
   '/arenda-pylesosov-moskva',
+  '/arenda-stroitelnogo-pylesosa-posle-remonta-moskva',
   '/arenda-gopro-moskva',
   '/arenda-audiooborudovaniya-moskva',
   '/blog',
