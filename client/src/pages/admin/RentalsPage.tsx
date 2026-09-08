@@ -9,7 +9,7 @@ import { formatDate, getStatusText, getStatusColor } from '../../utils/dateUtils
 import RentalModal from '../../components/admin/RentalModal';
 import CustomSelect from '../../components/admin/CustomSelect';
 import ConfirmDialog from '../../components/admin/ConfirmDialog';
-import { subDays, startOfDay, endOfDay, isWithinInterval, startOfMonth, endOfMonth, addDays, isSameDay } from 'date-fns';
+import { subDays, startOfDay, endOfDay, isWithinInterval, startOfMonth, endOfMonth, addDays, isSameDay, isBefore } from 'date-fns';
 import toast from 'react-hot-toast';
 import { useOffice } from '../../hooks/useOffice';
 import { getApiErrorMessage } from '../../lib/apiError';
@@ -24,6 +24,33 @@ const Spinner = () => (
 type DateFilter = 'week' | 'month' | 'all' | 'ends_today' | 'ends_tomorrow' | 'specific_date';
 
 const PAGE_SIZE = 20;
+
+const formatRentalEquipmentNames = (rental: Rental, equipment: Equipment[]) => {
+  if (!rental.equipment_list || rental.equipment_list.length === 0) {
+    return rental.equipment_name;
+  }
+
+  const equipmentByName = rental.equipment_list.reduce((acc, item) => {
+    if (!acc[item.name]) {
+      acc[item.name] = [];
+    }
+    acc[item.name].push(item);
+    return acc;
+  }, {} as Record<string, Array<{ id: number; name: string; instance_number: number }>>);
+
+  return Object.entries(equipmentByName)
+    .map(([name, items]) => {
+      const equipmentInfo = equipment.find((item) => item.name === name);
+      const totalQuantity = equipmentInfo?.quantity || 1;
+
+      if (totalQuantity > 1) {
+        return items.map((item) => `${name} #${item.instance_number}`).join(', ');
+      }
+
+      return name;
+    })
+    .join(', ');
+};
 
 const RentalsPage: React.FC = () => {
   const { currentOfficeId } = useOffice();
@@ -49,11 +76,21 @@ const RentalsPage: React.FC = () => {
 
   const todayOperations = useMemo(() => {
     const today = startOfDay(new Date());
+    const issue = rentals.filter((rental) => isSameDay(new Date(rental.start_date), today) && rental.status === 'pending');
+    const returns = rentals.filter((rental) => isSameDay(new Date(rental.end_date), today) && (rental.status === 'active' || rental.status === 'overdue'));
+    const overdue = rentals.filter((rental) => {
+      const endDate = startOfDay(new Date(rental.end_date));
+      return isBefore(endDate, today) && rental.status !== 'completed' && rental.status !== 'cancelled';
+    });
+
     return {
-      issue: rentals.filter((rental) => isSameDay(new Date(rental.start_date), today) && rental.status === 'pending').length,
-      return: rentals.filter((rental) => isSameDay(new Date(rental.end_date), today) && (rental.status === 'active' || rental.status === 'overdue')).length,
+      issue,
+      returns,
+      overdue,
     };
   }, [rentals]);
+
+  const todayOperationsTotal = todayOperations.issue.length + todayOperations.returns.length + todayOperations.overdue.length;
 
   // Фильтрация и сортировка аренд
   const filteredRentals = useMemo(() => {
@@ -301,7 +338,7 @@ const RentalsPage: React.FC = () => {
             className="rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-left transition-colors hover:bg-blue-100"
           >
             <span className="block text-xs font-bold uppercase tracking-wide text-blue-600">Сегодня выдать</span>
-            <span className="mt-1 block text-2xl font-black text-blue-950">{todayOperations.issue}</span>
+            <span className="mt-1 block text-2xl font-black text-blue-950">{todayOperations.issue.length}</span>
           </button>
           <button
             type="button"
@@ -309,9 +346,129 @@ const RentalsPage: React.FC = () => {
             className="rounded-xl border border-emerald-100 bg-emerald-50 px-4 py-3 text-left transition-colors hover:bg-emerald-100"
           >
             <span className="block text-xs font-bold uppercase tracking-wide text-emerald-700">Сегодня принять</span>
-            <span className="mt-1 block text-2xl font-black text-emerald-950">{todayOperations.return}</span>
+            <span className="mt-1 block text-2xl font-black text-emerald-950">{todayOperations.returns.length}</span>
           </button>
         </div>
+
+        <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-widest text-indigo-600">Операционный экран</p>
+              <h2 className="mt-1 text-lg font-bold text-gray-900">Сегодня: выдать, принять, не забыть</h2>
+              <p className="mt-1 text-sm text-gray-500">
+                Быстрый список действий по текущему офису. Полный календарь остается в расписании.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setDateFilter('ends_today')}
+              className="rounded-xl border border-indigo-100 bg-indigo-50 px-4 py-2 text-sm font-bold text-indigo-700 hover:bg-indigo-100"
+            >
+              Показать сегодня в списке
+            </button>
+          </div>
+
+          {todayOperationsTotal === 0 ? (
+            <div className="mt-4 rounded-xl bg-slate-50 px-4 py-5 text-sm text-slate-600">
+              На сегодня нет выдач, возвратов и просрочек. Красиво, когда день не кусается.
+            </div>
+          ) : (
+            <div className="mt-4 grid gap-4 lg:grid-cols-3">
+              {[
+                {
+                  title: 'Выдать сегодня',
+                  subtitle: 'Ожидают старта',
+                  rentals: todayOperations.issue,
+                  tone: 'blue',
+                  empty: 'Нет выдач',
+                },
+                {
+                  title: 'Принять сегодня',
+                  subtitle: 'Активные возвраты',
+                  rentals: todayOperations.returns,
+                  tone: 'emerald',
+                  empty: 'Нет возвратов',
+                },
+                {
+                  title: 'Просрочено',
+                  subtitle: 'Нужен контакт',
+                  rentals: todayOperations.overdue,
+                  tone: 'red',
+                  empty: 'Нет просрочек',
+                },
+              ].map((group) => (
+                <div key={group.title} className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
+                  <div className="mb-3 flex items-center justify-between gap-3">
+                    <div>
+                      <h3 className="font-bold text-gray-900">{group.title}</h3>
+                      <p className="text-xs text-gray-500">{group.subtitle}</p>
+                    </div>
+                    <span className={`rounded-full px-2.5 py-1 text-xs font-black ${
+                      group.tone === 'red'
+                        ? 'bg-red-100 text-red-700'
+                        : group.tone === 'emerald'
+                          ? 'bg-emerald-100 text-emerald-700'
+                          : 'bg-blue-100 text-blue-700'
+                    }`}>
+                      {group.rentals.length}
+                    </span>
+                  </div>
+
+                  {group.rentals.length === 0 ? (
+                    <p className="rounded-xl bg-white px-3 py-3 text-sm text-gray-500">{group.empty}</p>
+                  ) : (
+                    <div className="space-y-3">
+                      {group.rentals.slice(0, 5).map((rental) => (
+                        <div key={`${group.title}-${rental.id}`} className="rounded-xl bg-white p-3 ring-1 ring-slate-100">
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="min-w-0">
+                              <p className="truncate text-sm font-bold text-gray-900">{formatRentalEquipmentNames(rental, equipment)}</p>
+                              <p className="mt-1 text-xs text-gray-500">{rental.customer_name} · {rental.customer_phone}</p>
+                              <p className="mt-1 text-xs text-gray-500">{formatDate(rental.start_date)} — {formatDate(rental.end_date)}</p>
+                            </div>
+                            <span className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-bold border ${getStatusColor(rental.status)}`}>
+                              {getStatusText(rental.status)}
+                            </span>
+                          </div>
+                          <div className="mt-3 flex flex-wrap gap-2">
+                            {rental.status === 'pending' && (
+                              <button
+                                onClick={() => handleStartRental(rental)}
+                                disabled={updateMutation.isPending}
+                                className="rounded-lg bg-indigo-600 px-3 py-2 text-xs font-bold text-white hover:bg-indigo-700 disabled:opacity-60"
+                              >
+                                Выдать
+                              </button>
+                            )}
+                            {(rental.status === 'active' || rental.status === 'overdue') && (
+                              <button
+                                onClick={() => handleCompleteRentalNow(rental)}
+                                disabled={updateMutation.isPending}
+                                className="rounded-lg bg-green-600 px-3 py-2 text-xs font-bold text-white hover:bg-green-700 disabled:opacity-60"
+                              >
+                                Принять сейчас
+                              </button>
+                            )}
+                            <button
+                              onClick={() => handleEditRental(rental)}
+                              disabled={updateMutation.isPending}
+                              className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-60"
+                            >
+                              Открыть
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                      {group.rentals.length > 5 && (
+                        <p className="px-1 text-xs text-gray-500">Еще {group.rentals.length - 5} в полном списке</p>
+                      )}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
 
         <div className="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-4">
           <div className="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-4">
@@ -378,37 +535,7 @@ const RentalsPage: React.FC = () => {
                       {getStatusText(rental.status)}
                     </span>
                     <h3 className="text-lg font-medium text-gray-900">
-                      {rental.equipment_list && rental.equipment_list.length > 0 ? (
-                        (() => {
-                          // Группируем оборудование по названию
-                          const equipmentByName = rental.equipment_list.reduce((acc, item) => {
-                            if (!acc[item.name]) {
-                              acc[item.name] = [];
-                            }
-                            acc[item.name].push(item);
-                            return acc;
-                          }, {} as Record<string, Array<{ id: number; name: string; instance_number: number }>>);
-
-                          // Формируем строку с номерами для каждого типа
-                          return Object.entries(equipmentByName)
-                            .map(([name, items]) => {
-                              // Находим оборудование в общем списке по имени
-                              const equipmentInfo = equipment.find(e => e.name === name);
-                              const totalQuantity = equipmentInfo?.quantity || 1;
-
-                              // Показываем номера, если у оборудования несколько экземпляров (quantity > 1)
-                              if (totalQuantity > 1) {
-                                return items.map((item) => `${name} #${item.instance_number}`).join(', ');
-                              } else {
-                                // Если у оборудования только 1 экземпляр, показываем без номера
-                                return name;
-                              }
-                            })
-                            .join(', ');
-                        })()
-                      ) : (
-                        rental.equipment_name
-                      )}
+                      {formatRentalEquipmentNames(rental, equipment)}
                     </h3>
                   </div>
                   <div className="mt-2 space-y-1">
