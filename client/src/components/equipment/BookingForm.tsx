@@ -13,6 +13,33 @@ interface BookingFormProps {
   onClose: () => void
 }
 
+function getCommentPlaceholder(equipment: Equipment) {
+  const category = equipment.category.toLowerCase()
+  const name = equipment.name.toLowerCase()
+
+  if (category.includes('пылесос') || category.includes('клининг')) {
+    if (name.includes('puzzi')) {
+      return 'Например: диван 2 места + ковер, есть пятна, нужна подсказка по химии'
+    }
+
+    if (name.includes('sc') || name.includes('паро')) {
+      return 'Например: кухня и плитка в ванной, нужно почистить швы, без деликатных поверхностей'
+    }
+
+    return 'Например: уборка после ремонта, 45 м², гипсовая пыль, нужен мешок/фильтр'
+  }
+
+  if (category.includes('камер')) {
+    return 'Например: поездка на 3 дня, нужна камера для влога, крепление и запасная батарея'
+  }
+
+  if (category.includes('аудио')) {
+    return 'Например: дача, 20 гостей, музыка для танцев, подключение с телефона'
+  }
+
+  return 'Коротко опишите задачу: где, на сколько дней и какой комплект нужен'
+}
+
 export default function BookingForm({ equipment, onClose }: BookingFormProps) {
   useEffect(() => {
     document.body.style.overflow = 'hidden'
@@ -196,6 +223,7 @@ export default function BookingForm({ equipment, onClose }: BookingFormProps) {
   ]
 
   const pricingTiers = getPricingRows(equipment.pricing)
+  const commentPlaceholder = getCommentPlaceholder(equipment)
 
   return (
     <div className="fixed inset-0 z-50">
@@ -361,11 +389,14 @@ export default function BookingForm({ equipment, onClose }: BookingFormProps) {
                       name="comment"
                       value={formData.comment}
                       onChange={handleInputChange}
-                      placeholder="Пожелания или вопросы..."
+                      placeholder={commentPlaceholder}
                       rows={3}
                       className="w-full pl-9 pr-3 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#2563EB]/30 focus:border-[#2563EB] transition-colors resize-none"
                     />
                   </div>
+                  <p className="mt-1.5 text-xs text-gray-400">
+                    Чем точнее задача, тем быстрее менеджер подтвердит наличие, комплект и срок.
+                  </p>
                 </div>
               </div>
             </div>

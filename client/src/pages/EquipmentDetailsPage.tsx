@@ -12,9 +12,36 @@ import { getMinimumDailyPrice, getPricingRows } from '../utils/pricing'
 import { CONTACT_PHONE, CONTACT_PHONE_LABEL, getTelegramUrl, getWhatsAppUrl } from '../lib/contactLinks'
 
 function getEquipmentGuidance(category: string, name: string) {
+  const normalizedName = name.toLowerCase()
+
   if (category.includes('Пылесос') || category.includes('клининг')) {
+    const isPuzzi = normalizedName.includes('puzzi')
+    const isSteam = normalizedName.includes('sc') || normalizedName.includes('паро')
+    const isConstruction = normalizedName.includes('wd') || normalizedName.includes('стро')
+
     return {
-      scenarios: ['Уборка после ремонта', 'Химчистка дивана и ковров', 'Сбор пыли, мусора и жидкости'],
+      scenarios: isPuzzi
+        ? ['Химчистка дивана и кресел', 'Чистка ковров и матрасов', 'Салон автомобиля']
+        : isSteam
+        ? ['Кухня, плитка и швы', 'Санузел и твердые поверхности', 'Финальная уборка без агрессивной химии']
+        : ['Уборка после ремонта', 'Сбор строительной пыли', 'Сухой мусор и крупная грязь'],
+      rentalHints: isPuzzi
+        ? ['Один диван или салон авто — часто 1 день', 'Квартира с коврами и мебелью — 1–2 дня', 'Клининг нескольких объектов — от 2 дней']
+        : isSteam
+        ? ['Кухня или санузел — обычно 1 день', 'Квартира целиком — 1–2 дня', 'Сильные загрязнения лучше планировать с запасом времени']
+        : isConstruction
+        ? ['Небольшая уборка после работ — 1 день', 'Квартира после ремонта — 1–2 дня', 'Большая площадь или несколько этапов — 2–3 дня']
+        : ['Разовая уборка — 1 день', 'Несколько зон — 1–2 дня', 'Регулярная задача — выгоднее от недели'],
+      included: isPuzzi
+        ? ['Проверенный моющий пылесос', 'Шланг и основные насадки', 'Короткая инструкция по запуску', 'Подскажем по химии и порядку чистки']
+        : isSteam
+        ? ['Проверенный пароочиститель', 'Базовые насадки по комплекту', 'Инструкция по безопасному использованию', 'Поможем понять, подойдет ли пар под поверхность']
+        : ['Проверенный строительный пылесос', 'Шланг и базовая насадка', 'Фильтр/мешок — уточним под задачу', 'Инструкция по сбору строительной пыли'],
+      questions: isPuzzi
+        ? ['Что чистите: диван, ковер, матрас или авто?', 'Сколько зон и есть ли сильные пятна?', 'Нужна ли подсказка по моющему средству?']
+        : isSteam
+        ? ['Какая поверхность: плитка, кухня, санузел, швы?', 'Есть ли деликатные материалы?', 'Нужна ли доставка в тот же день?']
+        : ['Какая пыль: бетон, гипс, дерево или обычный мусор?', 'Какая площадь уборки?', 'Нужен ли сбор крупного мусора или только пыль?'],
       faq: [
         {
           question: `Подойдет ли ${name} для уборки после ремонта?`,
@@ -35,6 +62,9 @@ function getEquipmentGuidance(category: string, name: string) {
   if (category.includes('Камер')) {
     return {
       scenarios: ['Путешествия и влоги', 'Съемка мероприятий', 'Reels, Shorts и YouTube-контент'],
+      rentalHints: ['Тест перед покупкой — 1 день', 'Поездка или мероприятие — выходные', 'Отпуск и съемочный проект — от недели'],
+      included: ['Проверенная камера', 'Зарядка или кабель по комплекту', 'Базовая консультация по сценарию съемки', 'Подскажем крепления и звук под задачу'],
+      questions: ['Что снимаете: поездку, спорт, блог или мероприятие?', 'Нужны ли крепления, карта памяти или микрофон?', 'Сколько часов камера должна работать без подзарядки?'],
       faq: [
         {
           question: `Для чего лучше всего подходит ${name}?`,
@@ -53,8 +83,21 @@ function getEquipmentGuidance(category: string, name: string) {
   }
 
   if (category.includes('Аудио')) {
+    const isPartyBox = normalizedName.includes('partybox') || normalizedName.includes('jbl')
+
     return {
-      scenarios: ['Интервью и подкасты', 'Вечеринки и мероприятия', 'Съемка видео с чистым звуком'],
+      scenarios: isPartyBox
+        ? ['Домашняя вечеринка', 'Дача и небольшой праздник', 'Музыка для зала или танцев']
+        : ['Интервью и подкасты', 'Вечеринки и мероприятия', 'Съемка видео с чистым звуком'],
+      rentalHints: isPartyBox
+        ? ['Вечеринка дома — обычно 1 день', 'Дача или праздник — выходные', 'Мероприятие с монтажом — лучше взять с запасом на день']
+        : ['Интервью или съемка — 1 день', 'Мероприятие — 1–2 дня', 'Серия съемок — выгоднее от недели'],
+      included: isPartyBox
+        ? ['Проверенная колонка JBL', 'Кабель питания', 'Поможем с подключением телефона или ноутбука', 'Подскажем, нужна ли вторая колонка или микрофон']
+        : ['Проверенное аудиооборудование', 'Базовые кабели по комплекту', 'Инструкция по подключению', 'Подскажем комплект под речь, музыку или съемку'],
+      questions: isPartyBox
+        ? ['Сколько гостей и какая площадь?', 'Музыка нужна фоном или для танцев?', 'Будет ли розетка рядом и нужен ли микрофон?']
+        : ['Что записываете: речь, музыку или мероприятие?', 'К чему подключаем: телефон, камера, ноутбук?', 'Будет ли шумная локация?'],
       faq: [
         {
           question: `Хватит ли ${name} для моего мероприятия?`,
@@ -74,6 +117,9 @@ function getEquipmentGuidance(category: string, name: string) {
 
   return {
     scenarios: ['Разовая задача', 'Тест перед покупкой', 'Проект без лишних затрат'],
+    rentalHints: ['Разовая задача — 1 день', 'Проект на выходные — 2 дня', 'Долгий тест — от недели'],
+    included: ['Проверенное оборудование', 'Базовый комплект для запуска', 'Инструкция по использованию', 'Поддержка при вопросах'],
+    questions: ['Для какой задачи берете?', 'На сколько дней нужна техника?', 'Нужны ли доставка и помощь с комплектом?'],
     faq: [
       {
         question: `Можно ли взять ${name} на один день?`,
@@ -225,6 +271,10 @@ export default function EquipmentDetailsPage() {
   const categoryLandingHref = getCategoryLandingHref(equipment.category)
   const categoryGuideHref = getCategoryGuideHref(equipment.category, equipment.name)
   const quickMessage = `Здравствуйте! Хочу арендовать ${equipment.name}. Страница: https://vozmimenya.ru/equipment/${equipment.id}`
+  const copyQuickMessage = () => {
+    if (!navigator.clipboard) return
+    navigator.clipboard.writeText(quickMessage).catch(() => undefined)
+  }
   const faqStructuredData = {
     '@context': 'https://schema.org',
     '@type': 'FAQPage',
@@ -278,6 +328,9 @@ export default function EquipmentDetailsPage() {
                 src={getImageUrl(equipment.images[selectedImage])}
                 alt={equipment.name}
                 className="w-full h-full object-contain bg-white"
+                loading="eager"
+                decoding="async"
+                fetchPriority="high"
               />
             </div>
             {equipment.images.length > 1 && (
@@ -290,7 +343,13 @@ export default function EquipmentDetailsPage() {
                       selectedImage === index ? 'border-primary' : 'border-line hover:border-muted'
                     }`}
                   >
-                    <img src={getImageUrl(image)} alt={`${equipment.name} ${index + 1}`} className="w-full h-full object-contain bg-white" />
+                    <img
+                      src={getImageUrl(image)}
+                      alt={`${equipment.name} ${index + 1}`}
+                      className="w-full h-full object-contain bg-white"
+                      loading="lazy"
+                      decoding="async"
+                    />
                   </button>
                 ))}
               </div>
@@ -388,7 +447,10 @@ export default function EquipmentDetailsPage() {
                     href={getTelegramUrl()}
                     target="_blank"
                     rel="noopener noreferrer"
-                    onClick={() => trackEvent('telegram_click', { source: 'equipment_page', equipment_id: equipment.id })}
+                    onClick={() => {
+                      copyQuickMessage()
+                      trackEvent('telegram_click', { source: 'equipment_page', equipment_id: equipment.id })
+                    }}
                     className="rounded-xl bg-white px-4 py-2 text-sm font-semibold text-gray-900 transition-colors hover:bg-slate-100"
                   >
                     Telegram
@@ -404,6 +466,9 @@ export default function EquipmentDetailsPage() {
                   </a>
                 </div>
               </div>
+              <p className="mt-3 text-xs text-slate-400">
+                При клике на Telegram скопируем короткий текст заявки со ссылкой на эту страницу.
+              </p>
             </div>
           </div>
         </div>
@@ -416,6 +481,30 @@ export default function EquipmentDetailsPage() {
                 <div key={scenario} className="flex items-center gap-2 text-sm text-muted">
                   <Check className="w-4 h-4 text-emerald-500 flex-shrink-0" />
                   {scenario}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="bg-white rounded-2xl border border-line p-6">
+            <h2 className="text-xl font-bold text-ink mb-4">Обычно берут на</h2>
+            <div className="space-y-3">
+              {guidance.rentalHints.map((hint) => (
+                <div key={hint} className="flex items-center gap-2 text-sm text-muted">
+                  <Clock className="w-4 h-4 text-[#2563EB] flex-shrink-0" />
+                  {hint}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="bg-white rounded-2xl border border-line p-6">
+            <h2 className="text-xl font-bold text-ink mb-4">Что уточнить менеджеру</h2>
+            <div className="space-y-3">
+              {guidance.questions.map((question) => (
+                <div key={question} className="flex items-center gap-2 text-sm text-muted">
+                  <Check className="w-4 h-4 text-emerald-500 flex-shrink-0" />
+                  {question}
                 </div>
               ))}
             </div>
@@ -464,12 +553,7 @@ export default function EquipmentDetailsPage() {
             <div className="mt-6">
               <h3 className="text-base font-bold text-ink mb-3">Что входит в аренду</h3>
               <div className="space-y-2">
-                {[
-                  'Полностью настроенное оборудование',
-                  'Техническая поддержка',
-                  'Инструкция по эксплуатации',
-                  'Гарантия работоспособности',
-                ].map((item) => (
+                {guidance.included.map((item) => (
                   <div key={item} className="flex items-center gap-2 text-sm text-muted">
                     <Check className="w-4 h-4 text-emerald-500 flex-shrink-0" />
                     {item}
@@ -531,7 +615,10 @@ export default function EquipmentDetailsPage() {
             href={getTelegramUrl()}
             target="_blank"
             rel="noopener noreferrer"
-            onClick={() => trackEvent('telegram_click', { source: 'equipment_sticky_bar', equipment_id: equipment.id })}
+            onClick={() => {
+              copyQuickMessage()
+              trackEvent('telegram_click', { source: 'equipment_sticky_bar', equipment_id: equipment.id })
+            }}
             className="rounded-xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm font-bold text-sky-700 active:scale-[0.99]"
           >
             Telegram

@@ -91,6 +91,13 @@ export default function CategoryAudioPage() {
     },
   ]
 
+  const partyBoxComparison = [
+    { label: 'Квартира / небольшая дача', partybox320: 'Лучший выбор', partybox710: 'С запасом, если нужны танцы' },
+    { label: '15–30 гостей', partybox320: 'Хватит для фона и обычной громкости', partybox710: 'Лучше для плотного звука' },
+    { label: 'Большой зал / громкая вечеринка', partybox320: 'Может быть мало', partybox710: 'Лучший выбор' },
+    { label: 'Перевозка и установка', partybox320: 'Проще и мобильнее', partybox710: 'Мощнее, но крупнее' },
+  ]
+
   return (
     <div className="min-h-screen bg-[#F8FAFC]">
       <SEO
@@ -163,6 +170,48 @@ export default function CategoryAudioPage() {
                 </div>
               </div>
             ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="py-12 bg-[#F8FAFC]">
+        <div className="container mx-auto px-4">
+          <div className="rounded-3xl border border-blue-100 bg-white p-5 md:p-7 shadow-sm">
+            <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-3 mb-6">
+              <div>
+                <p className="text-xs font-bold text-[#2563EB] uppercase tracking-widest mb-2">Сравнение колонок</p>
+                <h2 className="text-2xl font-extrabold text-gray-900">JBL PartyBox 320 или 710?</h2>
+              </div>
+              <p className="text-sm text-gray-500 max-w-xl">
+                320 чаще берут домой и на дачу, 710 — когда важны танцы, большой зал и запас громкости.
+              </p>
+            </div>
+
+            <div className="overflow-hidden rounded-2xl border border-gray-100">
+              {partyBoxComparison.map((row) => (
+                <div key={row.label} className="grid grid-cols-1 border-b border-gray-100 last:border-b-0 md:grid-cols-[1.1fr_1fr_1fr]">
+                  <div className="bg-slate-50 px-4 py-3 text-sm font-semibold text-gray-900">{row.label}</div>
+                  <div className="px-4 py-3 text-sm text-gray-600">
+                    <span className="font-bold text-gray-900">PartyBox 320:</span> {row.partybox320}
+                  </div>
+                  <div className="px-4 py-3 text-sm text-gray-600">
+                    <span className="font-bold text-gray-900">PartyBox 710:</span> {row.partybox710}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-5 flex flex-wrap gap-2">
+              <Link to="/equipment/fd15952980910f1f05be88fa6853e1fd" className="px-4 py-2 bg-[#2563EB] text-white rounded-xl text-sm font-semibold hover:bg-[#1D4ED8] transition-colors">
+                Смотреть PartyBox 320
+              </Link>
+              <Link to="/equipment/e609e0bec87c0653a070088843f2df8c" className="px-4 py-2 bg-gray-900 text-white rounded-xl text-sm font-semibold hover:bg-gray-800 transition-colors">
+                Смотреть PartyBox 710
+              </Link>
+              <Link to="/blog/kolonka-dlya-vecherinki-kakuyu-jbl-partybox-vzyat-v-arendu" className="px-4 py-2 bg-[#F8FAFC] text-gray-700 rounded-xl text-sm font-semibold border border-gray-100 hover:text-[#2563EB] transition-colors">
+                Читать гид по выбору
+              </Link>
+            </div>
           </div>
         </div>
       </section>

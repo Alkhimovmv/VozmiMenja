@@ -77,6 +77,29 @@ const QUICK_SCENARIOS = [
   },
 ]
 
+const CORE_CATEGORY_LINKS = [
+  {
+    title: 'Колонки JBL PartyBox',
+    text: 'Для квартиры, дачи, зала и праздника — поможем выбрать 320 или 710.',
+    href: '/arenda-audiooborudovaniya-moskva',
+  },
+  {
+    title: 'Экшн-камеры и камеры для влога',
+    text: 'GoPro, Insta360 и DJI Osmo Pocket под поездку, блог или мероприятие.',
+    href: '/arenda-gopro-moskva',
+  },
+  {
+    title: 'Пылесосы для ремонта и химчистки',
+    text: 'Karcher WD5 и Puzzi: сухая строительная пыль, диваны, ковры и авто.',
+    href: '/arenda-pylesosov-moskva',
+  },
+  {
+    title: 'Пароочистители',
+    text: 'Для кухни, плитки, швов и финальной уборки без покупки техники.',
+    href: '/arenda-paroochistitelya-dlya-kuhni-plitki-vannoy-moskva',
+  },
+]
+
 
 export default function HomePage() {
   const [searchParams, setSearchParams] = useSearchParams()
@@ -343,6 +366,39 @@ export default function HomePage() {
                   </div>
                   <span className="relative mt-5 inline-flex items-center gap-1 text-sm font-bold text-gray-900 group-hover:gap-2 transition-all">
                     Подобрать <ChevronRight className="w-4 h-4" />
+                  </span>
+                </Link>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="py-5 md:py-8">
+        <div className="container mx-auto px-4">
+          <div className="rounded-[28px] border border-blue-100 bg-gradient-to-br from-white to-blue-50 p-4 md:p-6">
+            <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-3 mb-5">
+              <div>
+                <p className="text-xs font-bold text-[#2563EB] uppercase tracking-widest mb-2">Основные направления</p>
+                <h2 className="text-2xl md:text-3xl font-extrabold text-gray-900 leading-tight">
+                  Самое частое берут здесь
+                </h2>
+              </div>
+              <p className="text-sm text-gray-500 max-w-lg">
+                Если не знаете модель — выбирайте задачу. Менеджер уточнит детали и предложит комплект.
+              </p>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+              {CORE_CATEGORY_LINKS.map((item) => (
+                <Link
+                  key={item.title}
+                  to={item.href}
+                  className="rounded-2xl border border-white bg-white/80 p-4 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md"
+                >
+                  <h3 className="text-sm font-bold text-gray-950">{item.title}</h3>
+                  <p className="mt-2 text-xs leading-relaxed text-gray-500">{item.text}</p>
+                  <span className="mt-4 inline-flex items-center gap-1 text-xs font-bold text-[#2563EB]">
+                    Смотреть <ChevronRight className="w-3.5 h-3.5" />
                   </span>
                 </Link>
               ))}

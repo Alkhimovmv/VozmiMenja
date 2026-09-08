@@ -43,6 +43,10 @@ export default function EquipmentCard({ equipment, priority = false }: Equipment
             <div className="mt-2 text-xs text-gray-500">
               от <strong className="text-sm text-gray-950">{formatPrice(dayPrice)}</strong> / сутки
             </div>
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              <span className="rounded-full bg-emerald-50 px-2 py-1 text-[10px] font-semibold text-emerald-700">Проверено</span>
+              <span className="rounded-full bg-blue-50 px-2 py-1 text-[10px] font-semibold text-blue-700">Доставка</span>
+            </div>
             <div className="mt-auto flex items-center gap-3 pt-2">
               <button
                 type="button"
@@ -82,6 +86,11 @@ export default function EquipmentCard({ equipment, priority = false }: Equipment
             <dt className="text-[11px] text-gray-500">от, за сутки</dt>
             <dd className="mt-0.5 text-base font-semibold text-gray-950">{formatPrice(dayPrice)}</dd>
           </dl>
+
+          <div className="mt-3 flex flex-wrap gap-2">
+            <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-700">Комплект проверен</span>
+            <span className="rounded-full bg-blue-50 px-2.5 py-1 text-[11px] font-semibold text-blue-700">Доставка по Москве</span>
+          </div>
 
           <div className="mt-4 flex items-center justify-between gap-3">
             <Link to={`/equipment/${equipment.id}`} className="text-sm font-medium text-gray-600 hover:text-primary">
