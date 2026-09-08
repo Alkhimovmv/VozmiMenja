@@ -309,7 +309,7 @@ export default function SiteBookingsPage() {
                     <span className={`rounded-full px-2.5 py-1 text-xs font-bold ${
                       booking.status === 'pending' ? 'bg-blue-50 text-blue-700' : 'bg-emerald-50 text-emerald-700'
                     }`}>
-                      {booking.status === 'pending' ? 'Новая' : 'В работе'}
+                      {booking.status === 'pending' ? 'Новая' : 'Связались'}
                     </span>
                     <span className="rounded-full bg-amber-50 px-2.5 py-1 text-xs font-bold text-amber-700">
                       {formatBookingAge(booking.createdAt)}
@@ -376,7 +376,7 @@ export default function SiteBookingsPage() {
                       disabled={bookingStatusMutation.isPending}
                       className="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-50"
                     >
-                      В работу
+                      Связался
                     </button>
                   )}
                   {booking.status === 'confirmed' && (
@@ -386,7 +386,7 @@ export default function SiteBookingsPage() {
                       disabled={bookingStatusMutation.isPending}
                       className="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-50"
                     >
-                      Обработана
+                      Закрыть
                     </button>
                   )}
                   <button
@@ -410,7 +410,7 @@ export default function SiteBookingsPage() {
                     <span className={`rounded-full px-2.5 py-1 text-xs font-bold ${
                       lead.status === 'pending' ? 'bg-blue-50 text-blue-700' : 'bg-emerald-50 text-emerald-700'
                     }`}>
-                      {lead.status === 'pending' ? 'Новое обращение' : 'В работе'}
+                      {lead.status === 'pending' ? 'Новое обращение' : 'Связались'}
                     </span>
                     <span className="rounded-full bg-amber-50 px-2.5 py-1 text-xs font-bold text-amber-700">
                       {formatBookingAge(lead.createdAt)}
@@ -474,7 +474,7 @@ export default function SiteBookingsPage() {
                       disabled={contactLeadStatusMutation.isPending}
                       className="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-50"
                     >
-                      В работу
+                      Связался
                     </button>
                   )}
                   {lead.status === 'confirmed' && (
@@ -484,7 +484,7 @@ export default function SiteBookingsPage() {
                       disabled={contactLeadStatusMutation.isPending}
                       className="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-50"
                     >
-                      Обработана
+                      Закрыть
                     </button>
                   )}
                   <button
