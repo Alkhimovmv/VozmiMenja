@@ -9,6 +9,7 @@
 - Реализована MVP-сценарная посадочная `/arenda-kolonki-dlya-vecherinki-moskva` для заявок на JBL PartyBox 320/710; страница добавлена в route, sitemap, HTML-карту и smoke-набор.
 - В админке заявок добавлены быстрые тексты ответа с подсказками комплектов для колонок, экшн-камер, пылесосов и пароочистителей.
 - Реализована MVP-сценарная посадочная `/arenda-paroochistitelya-dlya-kuhni-plitki-vannoy-moskva` для Karcher SC4; заодно исправлена ошибочная ссылка на SC4 со страницы моющего пылесоса.
+- Реализована MVP-сценарная посадочная `/arenda-kamery-dlya-puteshestviya-vloga-moskva` для GoPro 13, Insta360 X5 и DJI Osmo Pocket 3; страница добавлена в route, sitemap, HTML-карту и smoke-набор.
 - Исправлена публикация SPA на GitHub Pages: build теперь генерирует статические entrypoints для прямых sitemap URL; production smoke подтвердил HTTP 200 для публичных страниц.
 - Реализована MVP-сценарная посадочная `/arenda-moyushchego-pylesosa-dlya-divana-kovra-moskva` для привлечения заявок на Puzzi 8/1, Puzzi 10/1 и бытовую химчистку дивана/ковра.
 - Новая посадочная добавлена в route, sitemap, HTML-карту сайта, обязательный smoke-набор и SEO-очередь.

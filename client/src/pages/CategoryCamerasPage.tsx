@@ -78,8 +78,8 @@ export default function CategoryCamerasPage() {
       description: 'Для прогулок, разговорных видео и Reels удобно взять компактную камеру со стабилизацией.',
       equipmentHref: '/equipment/5e1bd056-e6e8-4e92-ae17-519a56f564ad',
       equipmentLabel: 'DJI Osmo Pocket 3',
-      guideHref: '/blog/kakuyu-kameru-vzyat-v-puteshestvie-gopro-dji-insta360',
-      guideLabel: 'Камера в путешествие',
+      guideHref: '/arenda-kamery-dlya-puteshestviya-vloga-moskva',
+      guideLabel: 'Камера для поездки',
     },
     {
       title: 'Получить необычные ракурсы',
