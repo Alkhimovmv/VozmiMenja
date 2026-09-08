@@ -120,6 +120,13 @@ const durationItems = [
   { title: 'Неделя', text: 'Отпуск, маршрут с запасом дней и спокойный возврат после дороги' },
 ]
 
+const kitItems = [
+  'Экшн-поездка: GoPro, крепление под активность, карта памяти, запасная батарея',
+  'Влог и Reels: DJI Osmo Pocket, микрофон для речи, мини-штатив, зарядка',
+  '360-ракурсы: Insta360, селфи-палка, запас питания, короткая подсказка по съемке',
+  'Мероприятие: камера, звук отдельно, срок с запасом на перенос файлов и возврат',
+]
+
 function handleTelegramClick(source: string) {
   trackEvent('telegram_click', { source, lead_context: leadMessage })
 
@@ -267,6 +274,8 @@ export default function TravelVlogCameraRentalPage() {
       </section>
 
       <ScenarioRentalInfo
+        kitItems={kitItems}
+        kitDescription="Для съемки чаще решает не только камера, но и крепления, звук, память и запас питания. Подберем набор под маршрут и формат видео."
         durationItems={durationItems}
         durationDescription="Для камер срок лучше считать не только по дню съемки, но и по дороге, зарядке, переносу файлов и спокойному возврату."
         cardClassName="border-[#D8DEE8] bg-[#F4F0E8]"

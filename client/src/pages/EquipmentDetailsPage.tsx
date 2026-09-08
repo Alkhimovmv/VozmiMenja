@@ -446,6 +446,136 @@ function getRentalConditions(category: string, name: string) {
   ]
 }
 
+function getReadyKits(category: string, name: string) {
+  const normalizedName = name.toLowerCase()
+
+  if (category.includes('Аудио') && (normalizedName.includes('partybox') || normalizedName.includes('jbl'))) {
+    return [
+      {
+        title: 'Вечеринка в квартире',
+        items: ['PartyBox 320', 'кабель питания', 'подключение телефона', 'срок 1 день'],
+      },
+      {
+        title: 'Дача или зал',
+        items: ['PartyBox 710 или 320', 'проверка розетки', 'доставка к окну', 'срок выходные'],
+      },
+      {
+        title: 'Речь, поздравления, караоке',
+        items: ['колонка', 'микрофон по наличию', 'подсказка по подключению', 'запас времени на тест'],
+      },
+    ]
+  }
+
+  if (category.includes('Камер')) {
+    if (normalizedName.includes('gopro')) {
+      return [
+        {
+          title: 'Активная поездка',
+          items: ['GoPro', 'крепление под шлем/руку', 'карта памяти', 'запасная батарея'],
+        },
+        {
+          title: 'Спорт и вода',
+          items: ['камера', 'нужное крепление', 'защита/кейс по комплекту', 'срок с запасом на дорогу'],
+        },
+        {
+          title: 'Влог с речью',
+          items: ['GoPro', 'микрофон для голоса', 'мини-штатив', 'проверка звука до съемки'],
+        },
+      ]
+    }
+
+    if (normalizedName.includes('insta360')) {
+      return [
+        {
+          title: '360-поездка',
+          items: ['Insta360', 'селфи-палка', 'карта памяти', 'запас питания'],
+        },
+        {
+          title: 'Съемка одному',
+          items: ['камера', 'крепление/держатель', 'подсказка по ракурсу', 'срок на монтажный тест'],
+        },
+        {
+          title: 'Вау-кадры для Reels',
+          items: ['Insta360', 'короткий сценарий кадров', 'зарядка', 'проверка формата перед поездкой'],
+        },
+      ]
+    }
+
+    return [
+      {
+        title: 'Влог и прогулка',
+        items: ['Osmo Pocket', 'микрофон для речи', 'зарядка', 'мини-штатив по задаче'],
+      },
+      {
+        title: 'Reels / Shorts',
+        items: ['камера', 'вертикальный формат', 'запас памяти', 'срок 1 день или выходные'],
+      },
+      {
+        title: 'Мероприятие',
+        items: ['камера', 'звук отдельно', 'питание', 'возврат после съемки без спешки'],
+      },
+    ]
+  }
+
+  if (category.includes('Пылесос') || category.includes('клининг')) {
+    if (normalizedName.includes('puzzi')) {
+      return [
+        {
+          title: 'Диван и кресла',
+          items: ['Puzzi 8/1 или 10/1', 'насадка для мебели', 'моющее средство', 'время на сушку'],
+        },
+        {
+          title: 'Ковер и матрас',
+          items: ['моющий пылесос', 'сухая уборка до чистки', 'химия под ткань', '1–2 дня'],
+        },
+        {
+          title: 'Салон автомобиля',
+          items: ['Puzzi', 'узкая насадка', 'средство под обивку', 'запас времени на просушку'],
+        },
+      ]
+    }
+
+    if (normalizedName.includes('wd5')) {
+      return [
+        {
+          title: 'После ремонта',
+          items: ['WD5', 'мешок/фильтр под пыль', 'насадка для пола', '1–2 дня'],
+        },
+        {
+          title: 'Сухая строительная пыль',
+          items: ['строительный пылесос', 'уточнение типа пыли', 'доставка на объект', 'запасной мешок по задаче'],
+        },
+        {
+          title: 'Финальная уборка',
+          items: ['WD5 для сухой пыли', 'SC4 для плитки/швов', 'Puzzi для текстиля при необходимости'],
+        },
+      ]
+    }
+
+    return [
+      {
+        title: 'Кухня и плитка',
+        items: ['SC4', 'насадки под швы', 'проверка поверхности', 'срок 1 день'],
+      },
+      {
+        title: 'Санузел и швы',
+        items: ['пароочиститель', 'базовые насадки', 'время на проходы', 'проветривание после уборки'],
+      },
+      {
+        title: 'Уборка после ремонта',
+        items: ['SC4 для твердых поверхностей', 'WD5 для сухой пыли', 'Puzzi для дивана/ковра'],
+      },
+    ]
+  }
+
+  return [
+    {
+      title: 'Комплект под задачу',
+      items: ['оборудование', 'базовые аксессуары', 'подсказка менеджера', 'удобный срок аренды'],
+    },
+  ]
+}
+
 function getChoiceWarnings(category: string, name: string) {
   const normalizedName = name.toLowerCase()
 
@@ -603,6 +733,7 @@ export default function EquipmentDetailsPage() {
   const guidance = getEquipmentGuidance(equipment.category, equipment.name)
   const companionOffers = getCompanionOffers(equipment.category, equipment.name)
   const rentalConditions = getRentalConditions(equipment.category, equipment.name)
+  const readyKits = getReadyKits(equipment.category, equipment.name)
   const choiceWarnings = getChoiceWarnings(equipment.category, equipment.name)
   const equipmentFaqItems = [...guidance.faq, ...getEquipmentProcessFaq(equipment.name)]
   const categoryLandingHref = getCategoryLandingHref(equipment.category)
@@ -882,6 +1013,36 @@ export default function EquipmentDetailsPage() {
                 Как выбрать
               </Link>
             </div>
+          </div>
+        </div>
+
+        <div className="mt-6 bg-white rounded-2xl border border-line p-6">
+          <p className="mb-2 text-xs font-bold uppercase tracking-widest text-[#2563EB]">Готовые комплекты</p>
+          <div className="mb-5 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+            <div>
+              <h2 className="text-xl font-bold text-ink">Можно взять не одну модель, а набор под задачу</h2>
+              <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted">
+                Это не фиксированные тарифы, а быстрые сценарии для заявки: менеджер подтвердит наличие, аксессуары, срок, доставку и залог до выдачи.
+              </p>
+            </div>
+            <Link to="/kak-prohodit-arenda-tehniki" className="text-sm font-bold text-[#2563EB] hover:underline">
+              Как проходит аренда →
+            </Link>
+          </div>
+          <div className="grid gap-3 md:grid-cols-3">
+            {readyKits.map((kit) => (
+              <div key={kit.title} className="rounded-2xl bg-[#F8FAFC] p-4 ring-1 ring-slate-100">
+                <h3 className="mb-3 font-bold text-gray-900">{kit.title}</h3>
+                <div className="space-y-2">
+                  {kit.items.map((item) => (
+                    <div key={item} className="flex gap-2 text-sm leading-6 text-muted">
+                      <Check className="mt-1 h-4 w-4 flex-shrink-0 text-emerald-500" />
+                      <span>{item}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
           </div>
         </div>
 

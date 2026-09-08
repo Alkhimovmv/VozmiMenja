@@ -350,30 +350,29 @@ const RentalsPage: React.FC = () => {
           </button>
         </div>
 
-        <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-            <div>
-              <p className="text-xs font-bold uppercase tracking-widest text-indigo-600">Операционный экран</p>
-              <h2 className="mt-1 text-lg font-bold text-gray-900">Сегодня: выдать, принять, не забыть</h2>
-              <p className="mt-1 text-sm text-gray-500">
-                Быстрый список действий по текущему офису. Полный календарь остается в расписании.
-              </p>
+        <section className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm sm:p-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex flex-wrap items-center gap-2">
+              <h2 className="mr-1 text-base font-bold text-gray-900">Сегодня</h2>
+              <span className="rounded-full bg-blue-50 px-2.5 py-1 text-xs font-bold text-blue-700">выдать {todayOperations.issue.length}</span>
+              <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-bold text-emerald-700">принять {todayOperations.returns.length}</span>
+              <span className="rounded-full bg-red-50 px-2.5 py-1 text-xs font-bold text-red-700">просрочено {todayOperations.overdue.length}</span>
             </div>
             <button
               type="button"
               onClick={() => setDateFilter('ends_today')}
-              className="rounded-xl border border-indigo-100 bg-indigo-50 px-4 py-2 text-sm font-bold text-indigo-700 hover:bg-indigo-100"
+              className="rounded-lg border border-indigo-100 bg-indigo-50 px-3 py-2 text-xs font-bold text-indigo-700 hover:bg-indigo-100"
             >
               Показать сегодня в списке
             </button>
           </div>
 
           {todayOperationsTotal === 0 ? (
-            <div className="mt-4 rounded-xl bg-slate-50 px-4 py-5 text-sm text-slate-600">
+            <div className="mt-3 rounded-xl bg-slate-50 px-4 py-3 text-sm text-slate-600">
               На сегодня нет выдач, возвратов и просрочек. Красиво, когда день не кусается.
             </div>
           ) : (
-            <div className="mt-4 grid gap-4 lg:grid-cols-3">
+            <div className="mt-3 grid gap-3 lg:grid-cols-3">
               {[
                 {
                   title: 'Выдать сегодня',
@@ -397,10 +396,10 @@ const RentalsPage: React.FC = () => {
                   empty: 'Нет просрочек',
                 },
               ].map((group) => (
-                <div key={group.title} className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
-                  <div className="mb-3 flex items-center justify-between gap-3">
+                <div key={group.title} className="rounded-xl border border-slate-100 bg-slate-50 p-3">
+                  <div className="mb-2 flex items-center justify-between gap-3">
                     <div>
-                      <h3 className="font-bold text-gray-900">{group.title}</h3>
+                      <h3 className="text-sm font-bold text-gray-900">{group.title}</h3>
                       <p className="text-xs text-gray-500">{group.subtitle}</p>
                     </div>
                     <span className={`rounded-full px-2.5 py-1 text-xs font-black ${
@@ -415,11 +414,11 @@ const RentalsPage: React.FC = () => {
                   </div>
 
                   {group.rentals.length === 0 ? (
-                    <p className="rounded-xl bg-white px-3 py-3 text-sm text-gray-500">{group.empty}</p>
+                    <p className="rounded-lg bg-white px-3 py-2 text-xs text-gray-500">{group.empty}</p>
                   ) : (
-                    <div className="space-y-3">
+                    <div className="space-y-2">
                       {group.rentals.slice(0, 5).map((rental) => (
-                        <div key={`${group.title}-${rental.id}`} className="rounded-xl bg-white p-3 ring-1 ring-slate-100">
+                        <div key={`${group.title}-${rental.id}`} className="rounded-lg bg-white p-2.5 ring-1 ring-slate-100">
                           <div className="flex items-start justify-between gap-2">
                             <div className="min-w-0">
                               <p className="truncate text-sm font-bold text-gray-900">{formatRentalEquipmentNames(rental, equipment)}</p>
@@ -430,12 +429,12 @@ const RentalsPage: React.FC = () => {
                               {getStatusText(rental.status)}
                             </span>
                           </div>
-                          <div className="mt-3 flex flex-wrap gap-2">
+                          <div className="mt-2 flex flex-wrap gap-2">
                             {rental.status === 'pending' && (
                               <button
                                 onClick={() => handleStartRental(rental)}
                                 disabled={updateMutation.isPending}
-                                className="rounded-lg bg-indigo-600 px-3 py-2 text-xs font-bold text-white hover:bg-indigo-700 disabled:opacity-60"
+                                className="rounded-md bg-indigo-600 px-2.5 py-1.5 text-xs font-bold text-white hover:bg-indigo-700 disabled:opacity-60"
                               >
                                 Выдать
                               </button>
@@ -444,7 +443,7 @@ const RentalsPage: React.FC = () => {
                               <button
                                 onClick={() => handleCompleteRentalNow(rental)}
                                 disabled={updateMutation.isPending}
-                                className="rounded-lg bg-green-600 px-3 py-2 text-xs font-bold text-white hover:bg-green-700 disabled:opacity-60"
+                                className="rounded-md bg-green-600 px-2.5 py-1.5 text-xs font-bold text-white hover:bg-green-700 disabled:opacity-60"
                               >
                                 Принять сейчас
                               </button>
@@ -452,7 +451,7 @@ const RentalsPage: React.FC = () => {
                             <button
                               onClick={() => handleEditRental(rental)}
                               disabled={updateMutation.isPending}
-                              className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-60"
+                              className="rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-60"
                             >
                               Открыть
                             </button>
