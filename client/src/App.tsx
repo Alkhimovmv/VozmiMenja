@@ -38,6 +38,7 @@ const CategoryCamerasPage = lazy(() => import('./pages/CategoryCamerasPage'))
 const CategoryAudioPage = lazy(() => import('./pages/CategoryAudioPage'))
 const ConstructionVacuumAfterRenovationPage = lazy(() => import('./pages/ConstructionVacuumAfterRenovationPage'))
 const WashingVacuumSofaCarpetPage = lazy(() => import('./pages/WashingVacuumSofaCarpetPage'))
+const InterviewMicrophoneRentalPage = lazy(() => import('./pages/InterviewMicrophoneRentalPage'))
 
 // Блог
 const BlogPage = lazy(() => import('./pages/BlogPage'))
@@ -141,6 +142,7 @@ function App() {
                 <Route path="/arenda-audiooborudovaniya-moskva" element={<CategoryAudioPage />} />
                 <Route path="/arenda-stroitelnogo-pylesosa-posle-remonta-moskva" element={<ConstructionVacuumAfterRenovationPage />} />
                 <Route path="/arenda-moyushchego-pylesosa-dlya-divana-kovra-moskva" element={<WashingVacuumSofaCarpetPage />} />
+                <Route path="/arenda-mikrofona-dlya-intervyu-moskva" element={<InterviewMicrophoneRentalPage />} />
 
                 {/* Блог */}
                 <Route path="/blog" element={<BlogPage />} />

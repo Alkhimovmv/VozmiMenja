@@ -70,8 +70,8 @@ export default function CategoryAudioPage() {
       description: 'Для чистой речи в кадре нужен внешний микрофон: особенно если вокруг шум, улица или большое помещение.',
       equipmentHref: '/equipment/1232f00f-dc96-46df-b1e4-2d724ede3ef8',
       equipmentLabel: 'DJI Mic 2',
-      guideHref: '/blog/kachestvennyj-zvuk-dlya-video-dji-mic-2',
-      guideLabel: 'Гайд по звуку',
+      guideHref: '/arenda-mikrofona-dlya-intervyu-moskva',
+      guideLabel: 'Микрофон для интервью',
     },
     {
       title: 'Музыка для домашней вечеринки',
