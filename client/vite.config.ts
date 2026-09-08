@@ -28,6 +28,19 @@ export default defineConfig({
         // Разделение кода на чанки для лучшей загрузки
         manualChunks: (id) => {
           if (id.includes('node_modules')) {
+            if (
+              id.includes('@react-pdf') ||
+              id.includes('pdfkit') ||
+              id.includes('fontkit') ||
+              id.includes('restructure') ||
+              id.includes('brotli') ||
+              id.includes('linebreak')
+            ) {
+              return 'pdf-vendor'
+            }
+            if (id.includes('lucide-react') || id.includes('lucide')) {
+              return 'icons-vendor'
+            }
             if (id.includes('react-markdown') || id.includes('remark') || id.includes('micromark') || id.includes('unified')) {
               return 'markdown-vendor'
             }
