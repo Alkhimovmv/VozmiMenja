@@ -19,6 +19,7 @@ const staticPages = [
   { href: '/blog', label: 'Блог' },
   { href: '/about', label: 'О нас' },
   { href: '/delivery', label: 'Условия доставки' },
+  { href: '/kak-prohodit-arenda-tehniki', label: 'Как проходит аренда техники' },
   { href: '/faq', label: 'FAQ' },
   { href: '/contact', label: 'Контакты' },
   { href: '/return-policy', label: 'Возврат и отказ от услуги' },

@@ -291,16 +291,21 @@ export default function HomePage() {
                       Камеры GoPro, колонки JBL, пылесосы Puzzi и пароочистители — всё это можно взять на день или месяц. Доставка по Москве, работаем круглосуточно.
                     </p>
                   </div>
-                  <div className="flex items-end justify-between mt-6">
+                  <div className="flex flex-wrap items-end justify-between gap-3 mt-6">
                     <div className="w-14 h-14 rounded-2xl bg-white/10 border border-white/10 flex items-center justify-center">
                       <Truck className="w-7 h-7 text-[#60A5FA]" />
                     </div>
-                    <button
-                      onClick={() => document.getElementById('catalog')?.scrollIntoView({ behavior: 'smooth' })}
-                      className="btn-primary"
-                      style={{ padding: '10px 20px', fontSize: '14px', borderRadius: '12px' }}>
-                      В каталог <ChevronRight className="w-4 h-4" />
-                    </button>
+                    <div className="flex flex-wrap gap-2">
+                      <Link to="/kak-prohodit-arenda-tehniki" className="btn border border-white/20 bg-white/10 text-white hover:bg-white/20" style={{ padding: '10px 16px', fontSize: '14px', borderRadius: '12px' }}>
+                        Как проходит аренда
+                      </Link>
+                      <button
+                        onClick={() => document.getElementById('catalog')?.scrollIntoView({ behavior: 'smooth' })}
+                        className="btn-primary"
+                        style={{ padding: '10px 20px', fontSize: '14px', borderRadius: '12px' }}>
+                        В каталог <ChevronRight className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>

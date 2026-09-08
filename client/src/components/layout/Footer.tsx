@@ -60,6 +60,7 @@ export default function Footer() {
                 { to: '/', label: 'Каталог' },
                 { to: '/about', label: 'О нас' },
                 { to: '/delivery', label: 'Условия доставки' },
+                { to: '/kak-prohodit-arenda-tehniki', label: 'Как проходит аренда' },
                 { to: '/contact', label: 'Контакты' },
                 { to: '/faq', label: 'FAQ' },
                 { to: '/sitemap', label: 'Карта сайта' },

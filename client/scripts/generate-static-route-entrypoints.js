@@ -19,6 +19,7 @@ const fallbackRoutes = [
   '/about',
   '/contact',
   '/delivery',
+  '/kak-prohodit-arenda-tehniki',
   '/faq',
   '/privacy',
   '/return-policy',

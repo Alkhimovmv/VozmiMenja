@@ -20,6 +20,7 @@ const OfferPage = lazy(() => import('./pages/OfferPage'))
 const RequisitesPage = lazy(() => import('./pages/RequisitesPage'))
 const FAQPage = lazy(() => import('./pages/FAQPage'))
 const SitemapPage = lazy(() => import('./pages/SitemapPage'))
+const RentalProcessPage = lazy(() => import('./pages/RentalProcessPage'))
 const AdminDashboardPage = lazy(() => import('./pages/AdminDashboardPage'))
 // RentAdmin pages
 const RentAdminLoginPage = lazy(() => import('./pages/admin/LoginPage'))
@@ -157,6 +158,7 @@ function App() {
                 <Route path="/about" element={<AboutPage />} />
                 <Route path="/contact" element={<ContactPage />} />
                 <Route path="/delivery" element={<DeliveryPage />} />
+                <Route path="/kak-prohodit-arenda-tehniki" element={<RentalProcessPage />} />
                 <Route path="/privacy" element={<PrivacyPolicyPage />} />
                 <Route path="/return-policy" element={<ReturnPolicyPage />} />
                 <Route path="/cookies" element={<CookiePolicyPage />} />

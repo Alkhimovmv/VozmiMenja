@@ -432,12 +432,94 @@ function getRentalConditions(category: string, name: string) {
         : 'Для клиентов с постоянной регистрацией в Москве или МО залог обычно не требуется; в остальных случаях условия подтвердим до выдачи.',
     },
     {
+      title: 'Доставка и возврат',
+      text: 'Можно согласовать доставку по Москве, самовывоз или постамат. Возврат и возможное продление лучше обсудить заранее до окончания аренды.',
+    },
+    {
       title: category.includes('Камер') ? 'Комплект' : category.includes('Аудио') ? 'Мероприятие' : 'Расходники',
       text: category.includes('Камер')
         ? 'Крепления, батареи, карта памяти и микрофон лучше обсудить до брони — так комплект не окажется неполным.'
         : category.includes('Аудио')
         ? 'Укажите гостей, площадь и нужна ли речь/караоке — подберем колонку и допы без лишнего запаса.'
         : 'Мешки, фильтры, насадки и химия зависят от загрязнения: ремонт, диван, ковер, плитка или салон авто.',
+    },
+  ]
+}
+
+function getChoiceWarnings(category: string, name: string) {
+  const normalizedName = name.toLowerCase()
+
+  if (category.includes('Пылесос') || category.includes('клининг')) {
+    if (normalizedName.includes('puzzi')) {
+      return [
+        'Puzzi не заменяет строительный пылесос: гипс, цементную пыль и сухой мусор сначала лучше убрать WD5.',
+        'Для плитки, швов и кухни чаще нужен пароочиститель SC4, а не моющий пылесос.',
+        'Если чистите большой диван, несколько ковров или офис, сразу напишите объем — возможно, нужен Puzzi 10/1 и запас по сроку.',
+      ]
+    }
+
+    if (normalizedName.includes('wd5')) {
+      return [
+        'WD5 не делает химчистку дивана, ковра или матраса — для текстиля нужен Puzzi.',
+        'Для очень мелкой строительной пыли важно заранее уточнить мешок и фильтр.',
+        'Если после ремонта есть плитка, кухня или швы, финально может понадобиться SC4.',
+      ]
+    }
+
+    return [
+      'Пароочиститель не собирает сухую строительную пыль и мусор — для этого нужен WD5.',
+      'SC4 не вытягивает грязь из ткани, дивана и ковра — для этого нужен Puzzi.',
+      'На деликатных поверхностях пар лучше применять осторожно: напишите материал, менеджер подскажет.',
+    ]
+  }
+
+  if (category.includes('Камер')) {
+    if (normalizedName.includes('gopro')) {
+      return [
+        'Для спокойного влога и речи с рук Osmo Pocket может быть удобнее GoPro.',
+        'Для длинной съемки одной батареи часто мало — лучше сразу уточнить запас питания.',
+        'Если важна речь на улице, не забудьте про микрофон: картинка без звука редко спасает ролик.',
+      ]
+    }
+
+    if (normalizedName.includes('insta360')) {
+      return [
+        'Insta360 дает эффектные ракурсы, но требует чуть больше внимания к монтажу.',
+        'Для простого быстрого видео без выбора ракурса GoPro или Osmo могут быть проще.',
+        'Для поездки лучше заранее обсудить селфи-палку, батарею и карту памяти.',
+      ]
+    }
+
+    return [
+      'Osmo Pocket удобен для влога, но не лучший выбор для воды, шлема и жесткого спорта — там чаще нужна GoPro.',
+      'Для речи на улице лучше добавить микрофон.',
+      'Если съемка целый день, заранее уточните питание и карту памяти.',
+    ]
+  }
+
+  if (category.includes('Аудио')) {
+    return [
+      'Для большого зала и танцев PartyBox 320 может быть слабоват — лучше сравнить с PartyBox 710.',
+      'Для поздравлений, ведущего и караоке микрофон лучше добавить заранее.',
+      'Если праздник за городом, сразу уточните питание, доставку и время возврата.',
+    ]
+  }
+
+  return [
+    'Если сомневаетесь в модели, напишите сценарий — менеджер подберет комплект без лишнего запаса.',
+    'Доставку, залог и возврат лучше подтвердить до выдачи.',
+  ]
+}
+
+function getEquipmentProcessFaq(name: string) {
+  return [
+    {
+      question: `Как быстрее получить ${name}?`,
+      answer: 'Оставьте заявку с датами и сценарием: менеджер подтвердит наличие, способ получения, комплект и условия залога. Если нужно срочно, напишите об этом в комментарии.',
+    },
+    {
+      question: 'Можно ли продлить аренду?',
+      answer: 'Да, если техника свободна на следующие даты. Лучше написать до окончания аренды, чтобы менеджер успел согласовать продление и стоимость.',
     },
   ]
 }
@@ -521,9 +603,17 @@ export default function EquipmentDetailsPage() {
   const guidance = getEquipmentGuidance(equipment.category, equipment.name)
   const companionOffers = getCompanionOffers(equipment.category, equipment.name)
   const rentalConditions = getRentalConditions(equipment.category, equipment.name)
+  const choiceWarnings = getChoiceWarnings(equipment.category, equipment.name)
+  const equipmentFaqItems = [...guidance.faq, ...getEquipmentProcessFaq(equipment.name)]
   const categoryLandingHref = getCategoryLandingHref(equipment.category)
   const categoryGuideHref = getCategoryGuideHref(equipment.category, equipment.name)
-  const quickMessage = `Здравствуйте! Хочу арендовать ${equipment.name}. Страница: https://vozmimenya.ru/equipment/${equipment.id}`
+  const quickMessage = [
+    `Здравствуйте! Хочу арендовать ${equipment.name}.`,
+    'Сценарий: подскажите, что лучше указать под мою задачу.',
+    'Даты: уточню в переписке.',
+    'Комплект: нужна подсказка по доставке, залогу и допам.',
+    `Страница: https://vozmimenya.ru/equipment/${equipment.id}`,
+  ].join('\n')
   const copyQuickMessage = () => {
     if (!navigator.clipboard) return
     navigator.clipboard.writeText(quickMessage).catch(() => undefined)
@@ -531,7 +621,7 @@ export default function EquipmentDetailsPage() {
   const faqStructuredData = {
     '@context': 'https://schema.org',
     '@type': 'FAQPage',
-    mainEntity: guidance.faq.map((item) => ({
+    mainEntity: equipmentFaqItems.map((item) => ({
       '@type': 'Question',
       name: item.question,
       acceptedAnswer: {
@@ -766,7 +856,7 @@ export default function EquipmentDetailsPage() {
           <div className="bg-white rounded-2xl border border-line p-6">
             <h2 className="text-xl font-bold text-ink mb-4">Частые вопросы</h2>
             <div className="space-y-4">
-              {guidance.faq.map((item) => (
+              {equipmentFaqItems.map((item) => (
                 <div key={item.question}>
                   <h3 className="font-bold text-gray-900 text-sm mb-1">{item.question}</h3>
                   <p className="text-sm text-muted leading-relaxed">{item.answer}</p>
@@ -820,6 +910,18 @@ export default function EquipmentDetailsPage() {
                 </div>
               ))}
             </div>
+          </div>
+        </div>
+
+        <div className="mt-6 bg-white rounded-2xl border border-amber-100 p-6">
+          <p className="mb-2 text-xs font-bold uppercase tracking-widest text-amber-600">Чтобы не ошибиться с выбором</p>
+          <h2 className="text-xl font-bold text-ink mb-4">Когда эта модель может не подойти</h2>
+          <div className="grid gap-3 md:grid-cols-3">
+            {choiceWarnings.map((warning) => (
+              <div key={warning} className="rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-900 ring-1 ring-amber-100">
+                {warning}
+              </div>
+            ))}
           </div>
         </div>
 

@@ -21,6 +21,7 @@ const requiredPaths = [
   '/contact',
   '/faq',
   '/delivery',
+  '/kak-prohodit-arenda-tehniki',
   '/sitemap.xml',
 ]
 

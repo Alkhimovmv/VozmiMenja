@@ -6,6 +6,7 @@ import { X, Calendar, User, Phone, MessageSquare, ChevronRight } from 'lucide-re
 import { getImageUrl } from '../../lib/utils'
 import { trackEvent } from '../../lib/analytics'
 import { getApiErrorMessage } from '../../lib/apiError'
+import { getTelegramUrl, getWhatsAppUrl } from '../../lib/contactLinks'
 import { calculateRentalTotal, getEffectiveDailyPrice, getMinimumDailyPrice, getPricingRows } from '../../utils/pricing'
 
 interface BookingFormProps {
@@ -243,6 +244,7 @@ export default function BookingForm({ equipment, onClose }: BookingFormProps) {
   const [totalDays, setTotalDays] = useState(0)
   const [discountedPricePerDay, setDiscountedPricePerDay] = useState(0)
   const [consent, setConsent] = useState(false)
+  const [selectedScenarioLabel, setSelectedScenarioLabel] = useState('')
 
   const createBookingMutation = useCreateBooking()
 
@@ -404,12 +406,33 @@ export default function BookingForm({ equipment, onClose }: BookingFormProps) {
   const commentPlaceholder = getCommentPlaceholder(equipment)
   const scenarioPresets = getScenarioPresets(equipment)
 
-  const applyScenarioPreset = (preset: { comment: string; kit: string }) => {
+  const applyScenarioPreset = (preset: { label: string; comment: string; kit: string }) => {
     const block = `${preset.comment}\nПодсказка менеджеру: ${preset.kit}`
+    setSelectedScenarioLabel(preset.label)
     setFormData((prev) => ({
       ...prev,
       comment: prev.comment.trim() ? `${block}\n\n${prev.comment}` : block,
     }))
+  }
+
+  const messengerText = [
+    `Здравствуйте! Хочу арендовать ${equipment.name}.`,
+    selectedScenarioLabel ? `Сценарий: ${selectedScenarioLabel}` : 'Сценарий: подскажу в переписке.',
+    formData.startDate && formData.endDate ? `Даты: ${formData.startDate} — ${formData.endDate}` : 'Даты: уточню.',
+    totalPrice > 0 ? `Расчет на сайте: ${formatPrice(totalPrice)}.` : '',
+    formData.comment.trim() ? `Комментарий: ${formData.comment.trim()}` : '',
+    `Страница: ${window.location.origin}/equipment/${equipment.id}`,
+  ].filter(Boolean).join('\n')
+
+  const copyMessengerText = async () => {
+    if (!navigator.clipboard?.writeText) {
+      toast.error('Не удалось скопировать текст')
+      return
+    }
+
+    await navigator.clipboard.writeText(messengerText)
+    trackEvent('booking_messenger_text_copy', { equipment_id: equipment.id, equipment_name: equipment.name })
+    toast.success('Текст заявки скопирован')
   }
 
   return (
@@ -603,11 +626,46 @@ export default function BookingForm({ equipment, onClose }: BookingFormProps) {
                       className="w-full pl-9 pr-3 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#2563EB]/30 focus:border-[#2563EB] transition-colors resize-none"
                     />
                   </div>
-                  <p className="mt-1.5 text-xs text-gray-400">
-                    Чем точнее задача, тем быстрее менеджер подтвердит наличие, комплект и срок.
-                  </p>
-                </div>
+                <p className="mt-1.5 text-xs text-gray-400">
+                  Чем точнее задача, тем быстрее менеджер подтвердит наличие, комплект и срок.
+                </p>
+                {(selectedScenarioLabel || formData.startDate || formData.comment.trim()) && (
+                  <div className="mt-3 rounded-2xl border border-blue-100 bg-blue-50 p-3">
+                    <p className="text-xs font-semibold text-blue-900">Быстро написать в мессенджер</p>
+                    <p className="mt-1 text-xs text-blue-700">
+                      Сценарий, даты и комментарий уже собраны в текст заявки.
+                    </p>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={copyMessengerText}
+                        className="rounded-lg bg-white px-3 py-2 text-xs font-bold text-blue-700 ring-1 ring-blue-100 hover:bg-blue-100"
+                      >
+                        Скопировать текст
+                      </button>
+                      <a
+                        href={getWhatsAppUrl(messengerText)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={() => trackEvent('whatsapp_click', { source: 'booking_form_context', equipment_id: equipment.id })}
+                        className="rounded-lg bg-emerald-600 px-3 py-2 text-xs font-bold text-white hover:bg-emerald-700"
+                      >
+                        WhatsApp с текстом
+                      </a>
+                      <a
+                        href={getTelegramUrl()}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={copyMessengerText}
+                        className="rounded-lg bg-[#2AABEE] px-3 py-2 text-xs font-bold text-white hover:bg-[#1A9BD8]"
+                      >
+                        Telegram + копия
+                      </a>
+                    </div>
+                  </div>
+                )}
               </div>
+            </div>
             </div>
 
             {/* Consent */}

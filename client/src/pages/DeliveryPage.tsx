@@ -1,4 +1,5 @@
-import { Truck, MapPin, Clock, Banknote, CheckCircle, AlertCircle, Phone } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import { Truck, MapPin, Clock, Banknote, CheckCircle, AlertCircle, Phone, RefreshCw, ShieldCheck } from 'lucide-react'
 import { trackEvent } from '../lib/analytics'
 import { CONTACT_PHONE, CONTACT_PHONE_LABEL, getTelegramUrl } from '../lib/contactLinks'
 
@@ -61,6 +62,7 @@ export default function DeliveryPage() {
                     'По Москве: от 300₽',
                     'По области: от 700₽',
                     'Доставка в день заказа',
+                    'Обратную доставку можно согласовать заранее',
                   ].map((item) => (
                     <div key={item} className="flex items-center gap-2">
                       <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0" />
@@ -68,6 +70,38 @@ export default function DeliveryPage() {
                     </div>
                   ))}
                 </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid gap-6 md:grid-cols-2">
+            <div className="bg-white rounded-2xl border border-gray-100 p-8 mb-6 shadow-sm">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 rounded-xl bg-[#2563EB] flex items-center justify-center">
+                  <ShieldCheck className="w-5 h-5 text-white" />
+                </div>
+                <h2 className="text-xl font-bold text-gray-900">Залог и документы</h2>
+              </div>
+              <div className="space-y-3 text-sm text-gray-600">
+                <p>При получении потребуется фото паспорта: первая страница и регистрация. Это нужно для сохранности техники.</p>
+                <p>Если есть постоянная регистрация в Москве или Московской области, залог обычно не требуется.</p>
+                <p>Для дорогих моделей, доставки или нестандартного срока менеджер заранее подтвердит условия залога до выдачи.</p>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-2xl border border-gray-100 p-8 mb-6 shadow-sm">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 rounded-xl bg-[#2563EB] flex items-center justify-center">
+                  <RefreshCw className="w-5 h-5 text-white" />
+                </div>
+                <h2 className="text-xl font-bold text-gray-900">Продление аренды</h2>
+              </div>
+              <div className="space-y-3 text-sm text-gray-600">
+                <p>Если не успеваете закончить съемку, уборку или мероприятие, напишите до окончания аренды.</p>
+                <p>Мы проверим, свободно ли оборудование дальше, пересчитаем срок и подтвердим новую дату возврата.</p>
+                <Link to="/kak-prohodit-arenda-tehniki" className="inline-flex font-semibold text-[#2563EB] hover:underline">
+                  Как проходит аренда →
+                </Link>
               </div>
             </div>
           </div>
