@@ -1,10 +1,16 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import { fileURLToPath, URL } from 'node:url'
 
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
   base: '/', // Для кастомного домена vozmimenya.ru
+  resolve: {
+    alias: {
+      'base64-js': fileURLToPath(new URL('./src/shims/base64-js.ts', import.meta.url)),
+    },
+  },
   server: {
     host: '0.0.0.0',
     port: 5173,
@@ -28,16 +34,6 @@ export default defineConfig({
         // Разделение кода на чанки для лучшей загрузки
         manualChunks: (id) => {
           if (id.includes('node_modules')) {
-            if (
-              id.includes('@react-pdf') ||
-              id.includes('pdfkit') ||
-              id.includes('fontkit') ||
-              id.includes('restructure') ||
-              id.includes('brotli') ||
-              id.includes('linebreak')
-            ) {
-              return 'pdf-vendor'
-            }
             if (id.includes('lucide-react') || id.includes('lucide')) {
               return 'icons-vendor'
             }
