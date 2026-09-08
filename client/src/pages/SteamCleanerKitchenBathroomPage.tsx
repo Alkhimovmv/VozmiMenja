@@ -3,6 +3,7 @@ import { Helmet } from 'react-helmet-async'
 import { ArrowRight, Bath, CheckCircle2, CookingPot, Droplets, MessageCircle, Sparkles, SprayCan, Timer, WandSparkles } from 'lucide-react'
 import { trackEvent } from '../lib/analytics'
 import { getTelegramUrl } from '../lib/contactLinks'
+import ScenarioRentalInfo from '../components/ui/ScenarioRentalInfo'
 
 const pageUrl = 'https://vozmimenya.ru/arenda-paroochistitelya-dlya-kuhni-plitki-vannoy-moskva'
 const sc4Href = '/equipment/d4cc7709-1ee5-4dcb-81a2-c0dadb538dc5'
@@ -112,6 +113,13 @@ const comparisonRows = [
     notFor: 'Не предназначен как основной инструмент для обработки паром',
     href: wd5Href,
   },
+]
+
+const kitItems = [
+  'Пароочиститель Karcher SC4 для кухни, плитки, ванной и твердых поверхностей',
+  'Насадки под задачу уточняем по выбранному комплекту и текущему наличию',
+  'Подсказка, когда нужен именно пар, а когда лучше Puzzi или WD5',
+  'Салфетки и расходники лучше согласовать заранее при заявке',
 ]
 
 function handleTelegramClick(source: string) {
@@ -259,6 +267,13 @@ export default function SteamCleanerKitchenBathroomPage() {
           </div>
         </div>
       </section>
+
+      <ScenarioRentalInfo
+        kitItems={kitItems}
+        kitDescription="SC4 важно брать под поверхность: пар хорошо помогает на плитке, швах и сантехнике, но не заменяет Puzzi для текстиля."
+        cardClassName="border-[#D8E5D9] bg-[#EEF4EF]"
+        accentClassName="text-[#2F7D57]"
+      />
 
       <section className="bg-white py-14">
         <div className="container mx-auto grid gap-8 px-4 lg:grid-cols-[.9fr_1.1fr] lg:items-start">

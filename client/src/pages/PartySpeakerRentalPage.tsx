@@ -3,6 +3,7 @@ import { Helmet } from 'react-helmet-async'
 import { ArrowRight, CheckCircle2, Clock, Home, MapPinned, MessageCircle, Music, Speaker, Truck, Users, Volume2 } from 'lucide-react'
 import { trackEvent } from '../lib/analytics'
 import { getTelegramUrl } from '../lib/contactLinks'
+import ScenarioRentalInfo from '../components/ui/ScenarioRentalInfo'
 
 const pageUrl = 'https://vozmimenya.ru/arenda-kolonki-dlya-vecherinki-moskva'
 const partyBox320Href = '/equipment/fd15952980910f1f05be88fa6853e1fd'
@@ -104,6 +105,19 @@ const comparisonRows = [
     when: 'Когда помещение больше, гостей много или музыка должна звучать уверенно весь вечер',
     href: partyBox710Href,
   },
+]
+
+const kitItems = [
+  'Колонка JBL PartyBox 320 или 710 под размер площадки',
+  'Кабель питания и базовое подключение к телефону или ноутбуку',
+  'Подсказка по размещению колонки в квартире, на даче или в зале',
+  'Опция караоке/микрофона обсуждается отдельно по наличию и задаче',
+]
+
+const durationItems = [
+  { title: '1 день', text: 'Если праздник вечером и удобно забрать/вернуть в тот же день' },
+  { title: 'Выходные', text: 'Если хотите проверить звук заранее и спокойно вернуть после гостей' },
+  { title: 'Неделя', text: 'Для дачи, серии мероприятий или длинного выезда' },
 ]
 
 function handleTelegramClick(source: string) {
@@ -252,6 +266,13 @@ export default function PartySpeakerRentalPage() {
           </div>
         </div>
       </section>
+
+      <ScenarioRentalInfo
+        kitItems={kitItems}
+        durationItems={durationItems}
+        cardClassName="border-slate-200 bg-[#F6F7F4]"
+        accentClassName="text-[#1D4ED8]"
+      />
 
       <section className="bg-white py-14">
         <div className="container mx-auto grid gap-8 px-4 lg:grid-cols-[.9fr_1.1fr] lg:items-start">

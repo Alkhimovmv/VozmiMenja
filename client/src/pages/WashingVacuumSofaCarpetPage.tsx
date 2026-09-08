@@ -3,6 +3,7 @@ import { Helmet } from 'react-helmet-async'
 import { ArrowRight, CheckCircle2, Clock, HelpCircle, MessageCircle, Sofa, Sparkles, SprayCan, Truck } from 'lucide-react'
 import { trackEvent } from '../lib/analytics'
 import { getTelegramUrl } from '../lib/contactLinks'
+import ScenarioRentalInfo from '../components/ui/ScenarioRentalInfo'
 
 const pageUrl = 'https://vozmimenya.ru/arenda-moyushchego-pylesosa-dlya-divana-kovra-moskva'
 const puzzi8Href = '/equipment/51022efa-99b7-4c93-a5ad-0f19851f6c1a'
@@ -111,6 +112,13 @@ const comparisonRows = [
     when: 'Когда задача не в извлечении грязи из ткани, а в обработке паром',
     href: sc4Href,
   },
+]
+
+const kitItems = [
+  'Моющий пылесос Puzzi 8/1 или Puzzi 10/1 под объем чистки',
+  'Мебельная или ковровая насадка — по выбранной модели и задаче',
+  'Подсказка по порядку чистки: пятна, проходы, сушка и возврат',
+  'Химию и расходники лучше уточнить при заявке — условия зависят от комплекта',
 ]
 
 function handleTelegramClick(source: string) {
@@ -258,6 +266,13 @@ export default function WashingVacuumSofaCarpetPage() {
           </div>
         </div>
       </section>
+
+      <ScenarioRentalInfo
+        kitItems={kitItems}
+        kitDescription="Для химчистки важна не только модель Puzzi, но и насадка, расходники, запас времени на сушку и понимание материала."
+        cardClassName="border-[#E6DDCA] bg-[#F7F3EA]"
+        accentClassName="text-[#2F7D57]"
+      />
 
       <section className="bg-white py-14">
         <div className="container mx-auto grid gap-8 px-4 lg:grid-cols-[.9fr_1.1fr] lg:items-start">

@@ -3,6 +3,7 @@ import { Helmet } from 'react-helmet-async'
 import { ArrowRight, CheckCircle2, ClipboardList, MessageCircle, Sparkles, SprayCan, Timer, Truck, Wind } from 'lucide-react'
 import { trackEvent } from '../lib/analytics'
 import { getTelegramUrl } from '../lib/contactLinks'
+import ScenarioRentalInfo from '../components/ui/ScenarioRentalInfo'
 
 const pageUrl = 'https://vozmimenya.ru/arenda-stroitelnogo-pylesosa-posle-remonta-moskva'
 const wd5Href = '/equipment/0519e3d0-e02f-4f8e-b77d-0c80fe58a9cc'
@@ -107,6 +108,13 @@ const comparisonRows = [
     suited: 'Плитка, кухня, сантехника, твердые поверхности',
     notFor: 'Не собирает пыль и мусор как пылесос',
   },
+]
+
+const kitItems = [
+  'Строительный пылесос под сухую пыль, крошку и уборку после ремонта',
+  'Подсказка по порядку уборки: сначала сухой этап, потом влажная чистка',
+  'Если есть мебель или ковры — отдельно подберем Puzzi после сухой уборки',
+  'Мешки, фильтры и режимы работы уточняем по конкретной модели и комплекту',
 ]
 
 function handleTelegramClick(source: string) {
@@ -243,6 +251,13 @@ export default function ConstructionVacuumAfterRenovationPage() {
           </div>
         </div>
       </section>
+
+      <ScenarioRentalInfo
+        kitItems={kitItems}
+        kitDescription="После ремонта важно не только взять мощный аппарат, но и не перепутать сухую строительную пыль, текстиль и твердые поверхности."
+        cardClassName="border-slate-200 bg-white"
+        accentClassName="text-[#1D4ED8]"
+      />
 
       <section className="bg-white py-14">
         <div className="container mx-auto grid gap-8 px-4 lg:grid-cols-[.9fr_1.1fr] lg:items-start">

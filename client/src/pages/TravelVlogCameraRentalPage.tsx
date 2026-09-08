@@ -3,6 +3,7 @@ import { Helmet } from 'react-helmet-async'
 import { ArrowRight, BatteryCharging, CheckCircle2, Compass, Film, MapPinned, MessageCircle, Mountain, Smartphone } from 'lucide-react'
 import { trackEvent } from '../lib/analytics'
 import { getTelegramUrl } from '../lib/contactLinks'
+import ScenarioRentalInfo from '../components/ui/ScenarioRentalInfo'
 
 const pageUrl = 'https://vozmimenya.ru/arenda-kamery-dlya-puteshestviya-vloga-moskva'
 const goproHref = '/equipment/64e19704-b0dc-4879-9b90-6adc4eddd923'
@@ -111,6 +112,12 @@ const comparisonRows = [
     notFor: 'Может быть избыточна, если нужен простой прямой кадр',
     href: insta360Href,
   },
+]
+
+const durationItems = [
+  { title: '1 день', text: 'Тест, прогулка, Reels или короткая съемка в Москве' },
+  { title: 'Выходные', text: 'Поездка на 2-3 дня, спорт, обзор или съемочный уикенд' },
+  { title: 'Неделя', text: 'Отпуск, маршрут с запасом дней и спокойный возврат после дороги' },
 ]
 
 function handleTelegramClick(source: string) {
@@ -258,6 +265,13 @@ export default function TravelVlogCameraRentalPage() {
           </div>
         </div>
       </section>
+
+      <ScenarioRentalInfo
+        durationItems={durationItems}
+        durationDescription="Для камер срок лучше считать не только по дню съемки, но и по дороге, зарядке, переносу файлов и спокойному возврату."
+        cardClassName="border-[#D8DEE8] bg-[#F4F0E8]"
+        accentClassName="text-[#2F7D57]"
+      />
 
       <section className="bg-white py-14">
         <div className="container mx-auto grid gap-8 px-4 lg:grid-cols-[.9fr_1.1fr] lg:items-start">
