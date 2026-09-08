@@ -51,28 +51,28 @@ const QUICK_SCENARIOS = [
     eyebrow: 'Уборка',
     title: 'Почистить диван или ковер',
     text: 'Моющие Puzzi для мебели, ковров и салона авто.',
-    href: '/blog/puzzi-8-1-ili-puzzi-10-1-kakoj-moyushchij-pylesos-vzyat',
+    href: '/arenda-moyushchego-pylesosa-dlya-divana-kovra-moskva',
     accent: 'from-cyan-100 via-blue-100 to-slate-100',
   },
   {
     eyebrow: 'Ремонт',
     title: 'Убрать строительную пыль',
     text: 'Пылесосы для пыли, мусора и уборки после работ.',
-    href: '/arenda-pylesosov-moskva',
+    href: '/arenda-stroitelnogo-pylesosa-posle-remonta-moskva',
     accent: 'from-amber-100 via-orange-100 to-stone-100',
   },
   {
     eyebrow: 'Съемка',
     title: 'Снять поездку или влог',
     text: 'GoPro, DJI Osmo Pocket и Insta360 под формат видео.',
-    href: '/arenda-gopro-moskva',
+    href: '/arenda-kamery-dlya-puteshestviya-vloga-moskva',
     accent: 'from-rose-100 via-pink-100 to-sky-100',
   },
   {
     eyebrow: 'Звук',
     title: 'Колонка для вечеринки',
     text: 'JBL PartyBox для дома, дачи и небольших мероприятий.',
-    href: '/arenda-audiooborudovaniya-moskva',
+    href: '/arenda-kolonki-dlya-vecherinki-moskva',
     accent: 'from-lime-100 via-emerald-100 to-teal-100',
   },
 ]
@@ -265,7 +265,7 @@ export default function HomePage() {
                       Профессиональное<br />оборудование<br />в аренду
                     </h3>
                     <p className="text-slate-300 text-sm leading-relaxed">
-                      Камеры GoPro, пылесосы для ремонта, микрофоны для подкастов — всё это можно взять на день или месяц. Доставка по Москве, работаем круглосуточно.
+                      Камеры GoPro, колонки JBL, пылесосы Puzzi и пароочистители — всё это можно взять на день или месяц. Доставка по Москве, работаем круглосуточно.
                     </p>
                   </div>
                   <div className="flex items-end justify-between mt-6">
@@ -323,7 +323,7 @@ export default function HomePage() {
                 </h2>
               </div>
               <p className="text-sm text-gray-500 max-w-md">
-                Четыре частых сценария ведут сразу к подходящим категориям, товарам и гайдам.
+                Четыре частых сценария ведут сразу к подходящим посадочным страницам, товарам и заявке.
               </p>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">

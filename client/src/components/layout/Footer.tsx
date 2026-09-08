@@ -87,6 +87,20 @@ export default function Footer() {
                 </Link>
               ))}
             </div>
+            <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider mt-5 mb-3">Популярные сценарии</h3>
+            <div className="space-y-2">
+              {[
+                { to: '/arenda-kolonki-dlya-vecherinki-moskva', label: 'Колонка для вечеринки' },
+                { to: '/arenda-kamery-dlya-puteshestviya-vloga-moskva', label: 'Камера для поездки и влога' },
+                { to: '/arenda-moyushchego-pylesosa-dlya-divana-kovra-moskva', label: 'Моющий пылесос для дивана' },
+                { to: '/arenda-paroochistitelya-dlya-kuhni-plitki-vannoy-moskva', label: 'Пароочиститель для кухни' },
+              ].map((link) => (
+                <Link key={link.label} to={link.to}
+                  className="block text-sm text-gray-400 hover:text-white transition-colors">
+                  {link.label}
+                </Link>
+              ))}
+            </div>
           </div>
 
           {/* Contacts & Offices */}

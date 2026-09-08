@@ -86,8 +86,8 @@ export default function CategoryAudioPage() {
       description: 'Для зала, танцев и громкой музыки лучше брать акустику с запасом мощности.',
       equipmentHref: '/equipment/e609e0bec87c0653a070088843f2df8c',
       equipmentLabel: 'JBL PartyBox 710',
-      guideHref: '/blog/kolonka-dlya-vecherinki-kakuyu-jbl-partybox-vzyat-v-arendu',
-      guideLabel: 'Сравнение PartyBox',
+      guideHref: '/arenda-kolonki-dlya-vecherinki-moskva',
+      guideLabel: 'Колонка для вечеринки',
     },
   ]
 
