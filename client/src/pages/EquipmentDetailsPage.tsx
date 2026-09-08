@@ -351,6 +351,97 @@ function getCategoryGuideHref(category: string, name: string) {
   return '/blog'
 }
 
+function getCompanionOffers(category: string, name: string) {
+  const normalizedName = name.toLowerCase()
+
+  if (category.includes('Аудио') && (normalizedName.includes('partybox') || normalizedName.includes('jbl'))) {
+    return [
+      { title: 'Микрофон для караоке или речи', description: 'Добавьте, если будут поздравления, ведущий или караоке.' },
+      { title: 'Доставка к началу праздника', description: 'Уточним адрес, этаж и удобное окно передачи.' },
+      { title: 'Подключение телефона/ноутбука', description: 'Подскажем, что проверить до мероприятия.' },
+    ]
+  }
+
+  if (category.includes('Камер')) {
+    if (normalizedName.includes('gopro')) {
+      return [
+        { title: 'Крепления под активность', description: 'Шлем, руль, рука, штатив или автомобиль — лучше указать сразу.' },
+        { title: 'Запасная батарея и карта памяти', description: 'Полезно для поездки, спорта и съемки на целый день.' },
+        { title: 'Микрофон для речи', description: 'Добавьте, если в ролике важен голос, обзор или комментарии.' },
+      ]
+    }
+
+    if (normalizedName.includes('insta360')) {
+      return [
+        { title: 'Селфи-палка / крепление', description: 'Поможет получить эффектные 360-ракурсы и съемку от третьего лица.' },
+        { title: 'Запасная батарея', description: 'Нужна для длинной прогулки, поездки или мероприятия.' },
+        { title: 'Подсказка по формату съемки', description: 'Менеджер уточнит, нужен ли 360-формат или проще взять GoPro/Osmo.' },
+      ]
+    }
+
+    return [
+      { title: 'Микрофон для влога', description: 'Для речи на улице и интервью звук лучше подготовить отдельно.' },
+      { title: 'Мини-штатив или держатель', description: 'Удобно для Reels, прогулок, обзоров и съемки одному.' },
+      { title: 'Карта памяти / запас питания', description: 'Особенно если съемка дольше пары часов.' },
+    ]
+  }
+
+  if (category.includes('Пылесос') || category.includes('клининг')) {
+    if (normalizedName.includes('puzzi')) {
+      return [
+        { title: 'Моющее средство под ткань', description: 'Уточните диван, ковер, матрас или авто — подскажем химию.' },
+        { title: 'Насадки под задачу', description: 'Для мебели, ковра и салона авто могут быть разные удобные насадки.' },
+        { title: 'Время на сушку', description: 'Подскажем реалистичный срок, чтобы не возвращать технику впритык.' },
+      ]
+    }
+
+    if (normalizedName.includes('wd5')) {
+      return [
+        { title: 'Мешок и фильтр под пыль', description: 'Для гипса, бетона и мелкой строительной пыли это лучше уточнить заранее.' },
+        { title: 'Puzzi после сухой уборки', description: 'Если есть диван, ковер или матрас, после WD5 может понадобиться моющий пылесос.' },
+        { title: 'Доставка на объект', description: 'Укажите площадь, этаж и есть ли лифт — менеджер быстрее подтвердит выдачу.' },
+      ]
+    }
+
+    return [
+      { title: 'Насадки под поверхность', description: 'Плитка, швы, кухня, сантехника и стекло требуют разных насадок.' },
+      { title: 'Проверка деликатных материалов', description: 'Лучше заранее написать, где планируете использовать пар.' },
+      { title: 'WD5 или Puzzi при смешанной задаче', description: 'Если есть пыль или текстиль, одного пароочистителя может быть мало.' },
+    ]
+  }
+
+  return [
+    { title: 'Комплект под задачу', description: 'Напишите сценарий, и менеджер подскажет, что добавить.' },
+    { title: 'Доставка или самовывоз', description: 'Уточним самый быстрый способ получить технику.' },
+  ]
+}
+
+function getRentalConditions(category: string, name: string) {
+  const normalizedName = name.toLowerCase()
+  const isPremium = normalizedName.includes('partybox 710') || normalizedName.includes('insta360') || normalizedName.includes('osmo')
+
+  return [
+    {
+      title: 'Документы',
+      text: 'При получении потребуется фото паспорта. Это стандартная проверка для сохранности техники.',
+    },
+    {
+      title: 'Залог',
+      text: isPremium
+        ? 'По дорогим моделям условия залога менеджер подтвердит после заявки: зависит от срока, доставки и истории клиента.'
+        : 'Для клиентов с постоянной регистрацией в Москве или МО залог обычно не требуется; в остальных случаях условия подтвердим до выдачи.',
+    },
+    {
+      title: category.includes('Камер') ? 'Комплект' : category.includes('Аудио') ? 'Мероприятие' : 'Расходники',
+      text: category.includes('Камер')
+        ? 'Крепления, батареи, карта памяти и микрофон лучше обсудить до брони — так комплект не окажется неполным.'
+        : category.includes('Аудио')
+        ? 'Укажите гостей, площадь и нужна ли речь/караоке — подберем колонку и допы без лишнего запаса.'
+        : 'Мешки, фильтры, насадки и химия зависят от загрязнения: ремонт, диван, ковер, плитка или салон авто.',
+    },
+  ]
+}
+
 export default function EquipmentDetailsPage() {
   const { id } = useParams<{ id: string }>()
   const { data, isLoading, error } = useEquipmentById(id!)
@@ -428,6 +519,8 @@ export default function EquipmentDetailsPage() {
 
   const minPrice = getMinPrice()
   const guidance = getEquipmentGuidance(equipment.category, equipment.name)
+  const companionOffers = getCompanionOffers(equipment.category, equipment.name)
+  const rentalConditions = getRentalConditions(equipment.category, equipment.name)
   const categoryLandingHref = getCategoryLandingHref(equipment.category)
   const categoryGuideHref = getCategoryGuideHref(equipment.category, equipment.name)
   const quickMessage = `Здравствуйте! Хочу арендовать ${equipment.name}. Страница: https://vozmimenya.ru/equipment/${equipment.id}`
@@ -586,7 +679,7 @@ export default function EquipmentDetailsPage() {
 
               {/* Conditions hint */}
               <div className="mt-3 text-center text-xs text-muted">
-                Для получения потребуется фото паспорта.{' '}
+                Паспорт и условия залога подтвердим до выдачи.{' '}
                 <a href="/delivery" className="text-[#2563EB] hover:underline">Условия аренды →</a>
               </div>
             </div>
@@ -698,6 +791,34 @@ export default function EquipmentDetailsPage() {
               <Link to={categoryGuideHref} className="px-4 py-2 bg-[#F8FAFC] text-gray-700 rounded-xl text-sm font-semibold border border-line hover:text-[#2563EB] transition-colors">
                 Как выбрать
               </Link>
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
+          <div className="bg-white rounded-2xl border border-line p-6">
+            <p className="mb-2 text-xs font-bold uppercase tracking-widest text-[#2563EB]">Что взять вместе</p>
+            <h2 className="text-xl font-bold text-ink mb-4">Комплект, чтобы задача не развалилась на мелочах</h2>
+            <div className="space-y-3">
+              {companionOffers.map((offer) => (
+                <div key={offer.title} className="rounded-xl bg-[#F8FAFC] p-4">
+                  <h3 className="font-bold text-gray-900 text-sm">{offer.title}</h3>
+                  <p className="mt-1 text-sm text-muted leading-relaxed">{offer.description}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="bg-white rounded-2xl border border-line p-6">
+            <p className="mb-2 text-xs font-bold uppercase tracking-widest text-[#2563EB]">Условия без сюрпризов</p>
+            <h2 className="text-xl font-bold text-ink mb-4">Что подтвердим перед выдачей</h2>
+            <div className="space-y-3">
+              {rentalConditions.map((condition) => (
+                <div key={condition.title} className="rounded-xl border border-gray-100 p-4">
+                  <h3 className="font-bold text-gray-900 text-sm">{condition.title}</h3>
+                  <p className="mt-1 text-sm text-muted leading-relaxed">{condition.text}</p>
+                </div>
+              ))}
             </div>
           </div>
         </div>

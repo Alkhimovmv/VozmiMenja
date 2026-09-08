@@ -53,6 +53,23 @@ const formatSourcePage = (sourcePage?: string) => {
   }
 };
 
+const extractBookingContext = (comment?: string) => {
+  if (!comment) {
+    return { scenario: null as string | null, managerHint: null as string | null, customerNote: null as string | null };
+  }
+
+  const lines = comment.split('\n').map((line) => line.trim()).filter(Boolean);
+  const scenarioLine = lines.find((line) => line.toLowerCase().startsWith('сценарий:'));
+  const managerLine = lines.find((line) => line.toLowerCase().startsWith('подсказка менеджеру:'));
+  const rest = lines.filter((line) => line !== scenarioLine && line !== managerLine).join('\n');
+
+  return {
+    scenario: scenarioLine ? scenarioLine.replace(/^сценарий:\s*/i, '') : null,
+    managerHint: managerLine ? managerLine.replace(/^подсказка менеджеру:\s*/i, '') : null,
+    customerNote: rest || (scenarioLine || managerLine ? null : comment),
+  };
+};
+
 const normalizeEquipmentName = (name: string) =>
   name.toLowerCase().replace(/ё/g, 'е').replace(/[^a-zа-я0-9]+/g, '');
 
@@ -303,6 +320,9 @@ export default function SiteBookingsPage() {
           )}
           {openBookings.map((booking) => (
             <div key={booking.id} className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-amber-100">
+              {(() => {
+                const bookingContext = extractBookingContext(booking.comment);
+                return (
               <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
@@ -330,9 +350,25 @@ export default function SiteBookingsPage() {
                       Страница: {formatSourcePage(booking.sourcePage)}
                     </span>
                   </div>
-                  {booking.comment && (
+                  {(bookingContext.scenario || bookingContext.managerHint) && (
+                    <div className="mt-3 grid gap-2 md:grid-cols-2">
+                      {bookingContext.scenario && (
+                        <div className="rounded-xl bg-indigo-50 px-3 py-2 text-sm text-indigo-900 ring-1 ring-indigo-100">
+                          <span className="block text-xs font-bold uppercase tracking-wide text-indigo-500">Сценарий</span>
+                          {bookingContext.scenario}
+                        </div>
+                      )}
+                      {bookingContext.managerHint && (
+                        <div className="rounded-xl bg-emerald-50 px-3 py-2 text-sm text-emerald-900 ring-1 ring-emerald-100">
+                          <span className="block text-xs font-bold uppercase tracking-wide text-emerald-600">Проверить комплект</span>
+                          {bookingContext.managerHint}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  {bookingContext.customerNote && (
                     <p className="mt-2 max-w-3xl whitespace-pre-wrap rounded-xl bg-amber-50 px-3 py-2 text-sm text-gray-700 ring-1 ring-amber-100">
-                      {booking.comment}
+                      {bookingContext.customerNote}
                     </p>
                   )}
                   <div className="mt-3 flex flex-wrap gap-2">
@@ -399,6 +435,8 @@ export default function SiteBookingsPage() {
                   </button>
                 </div>
               </div>
+                );
+              })()}
             </div>
           ))}
 

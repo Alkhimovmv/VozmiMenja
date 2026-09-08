@@ -91,6 +91,13 @@ export default function CategoryCamerasPage() {
     },
   ]
 
+  const cameraComparison = [
+    { task: 'Активный отдых, вода, крепления', gopro: 'Лучший выбор', osmo: 'Слабее для экстрима', insta360: 'Хорошо для необычных ракурсов' },
+    { task: 'Влог, прогулка, речь в кадре', gopro: 'Можно, но звук лучше продумать', osmo: 'Лучший выбор', insta360: 'Можно, если нужен 360-эффект' },
+    { task: 'Съемка одному без оператора', gopro: 'Нужно крепление', osmo: 'Удобно с рук', insta360: 'Лучший выбор для эффекта “оператор рядом”' },
+    { task: 'Быстрый монтаж без лишней возни', gopro: 'Проще всего', osmo: 'Проще всего для влога', insta360: 'Нужно выбрать ракурс после съемки' },
+  ]
+
   return (
     <div className="min-h-screen bg-[#F8FAFC]">
       <SEO
@@ -163,6 +170,45 @@ export default function CategoryCamerasPage() {
                 </div>
               </div>
             ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="py-12 bg-[#F8FAFC]">
+        <div className="container mx-auto px-4">
+          <div className="rounded-3xl border border-blue-100 bg-white p-5 md:p-7 shadow-sm">
+            <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-3 mb-6">
+              <div>
+                <p className="text-xs font-bold text-[#2563EB] uppercase tracking-widest mb-2">Сравнение камер</p>
+                <h2 className="text-2xl font-extrabold text-gray-900">GoPro, DJI Osmo Pocket или Insta360?</h2>
+              </div>
+              <p className="text-sm text-gray-500 max-w-xl">
+                Не надо угадывать по модели: выберите формат съемки, а менеджер поможет собрать крепления, звук и питание.
+              </p>
+            </div>
+
+            <div className="overflow-hidden rounded-2xl border border-gray-100">
+              {cameraComparison.map((row) => (
+                <div key={row.task} className="grid grid-cols-1 border-b border-gray-100 last:border-b-0 lg:grid-cols-[1.2fr_1fr_1fr_1fr]">
+                  <div className="bg-slate-50 px-4 py-3 text-sm font-semibold text-gray-900">{row.task}</div>
+                  <div className="px-4 py-3 text-sm text-gray-600"><span className="font-bold text-gray-900">GoPro:</span> {row.gopro}</div>
+                  <div className="px-4 py-3 text-sm text-gray-600"><span className="font-bold text-gray-900">Osmo:</span> {row.osmo}</div>
+                  <div className="px-4 py-3 text-sm text-gray-600"><span className="font-bold text-gray-900">Insta360:</span> {row.insta360}</div>
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-5 flex flex-wrap gap-2">
+              <Link to="/equipment/64e19704-b0dc-4879-9b90-6adc4eddd923" className="px-4 py-2 bg-[#2563EB] text-white rounded-xl text-sm font-semibold hover:bg-[#1D4ED8] transition-colors">
+                GoPro 13
+              </Link>
+              <Link to="/equipment/5e1bd056-e6e8-4e92-ae17-519a56f564ad" className="px-4 py-2 bg-gray-900 text-white rounded-xl text-sm font-semibold hover:bg-gray-800 transition-colors">
+                DJI Osmo Pocket 3
+              </Link>
+              <Link to="/equipment/98794938-b0c8-4a7d-b182-b6645ba8039b" className="px-4 py-2 bg-[#F8FAFC] text-gray-700 rounded-xl text-sm font-semibold border border-gray-100 hover:text-[#2563EB] transition-colors">
+                Insta360 X5
+              </Link>
+            </div>
           </div>
         </div>
       </section>

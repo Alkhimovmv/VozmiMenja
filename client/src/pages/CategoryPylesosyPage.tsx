@@ -106,6 +106,13 @@ export default function CategoryPylesosyPage() {
     },
   ]
 
+  const cleaningComparison = [
+    { task: 'Сухая строительная пыль, гипс, мусор', wd5: 'Лучший выбор', puzzi: 'Не для строительной пыли', sc4: 'Не собирает мусор' },
+    { task: 'Диван, ковер, матрас, салон авто', wd5: 'Не делает химчистку', puzzi: 'Лучший выбор', sc4: 'Не вытягивает грязь из ткани' },
+    { task: 'Кухня, плитка, швы, санузел', wd5: 'Только сухой/влажный сбор', puzzi: 'Не для твердых швов', sc4: 'Лучший выбор' },
+    { task: 'Уборка после ремонта с мебелью', wd5: 'Первый сухой этап', puzzi: 'После WD5 для текстиля', sc4: 'Финально для плитки/кухни' },
+  ]
+
   return (
     <div className="min-h-screen bg-[#F8FAFC]">
       <SEO
@@ -186,6 +193,45 @@ export default function CategoryPylesosyPage() {
                 </div>
               </div>
             ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="py-12 bg-[#F8FAFC]">
+        <div className="container mx-auto px-4">
+          <div className="rounded-3xl border border-blue-100 bg-white p-5 md:p-7 shadow-sm">
+            <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-3 mb-6">
+              <div>
+                <p className="text-xs font-bold text-[#2563EB] uppercase tracking-widest mb-2">Сравнение уборки</p>
+                <h2 className="text-2xl font-extrabold text-gray-900">WD5, Puzzi или SC4?</h2>
+              </div>
+              <p className="text-sm text-gray-500 max-w-xl">
+                Главная ошибка — брать “просто Karcher”. Для ремонта, текстиля и плитки нужны разные аппараты.
+              </p>
+            </div>
+
+            <div className="overflow-hidden rounded-2xl border border-gray-100">
+              {cleaningComparison.map((row) => (
+                <div key={row.task} className="grid grid-cols-1 border-b border-gray-100 last:border-b-0 lg:grid-cols-[1.2fr_1fr_1fr_1fr]">
+                  <div className="bg-slate-50 px-4 py-3 text-sm font-semibold text-gray-900">{row.task}</div>
+                  <div className="px-4 py-3 text-sm text-gray-600"><span className="font-bold text-gray-900">WD5:</span> {row.wd5}</div>
+                  <div className="px-4 py-3 text-sm text-gray-600"><span className="font-bold text-gray-900">Puzzi:</span> {row.puzzi}</div>
+                  <div className="px-4 py-3 text-sm text-gray-600"><span className="font-bold text-gray-900">SC4:</span> {row.sc4}</div>
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-5 flex flex-wrap gap-2">
+              <Link to="/equipment/0519e3d0-e02f-4f8e-b77d-0c80fe58a9cc" className="px-4 py-2 bg-[#2563EB] text-white rounded-xl text-sm font-semibold hover:bg-[#1D4ED8] transition-colors">
+                Karcher WD5
+              </Link>
+              <Link to="/equipment/51022efa-99b7-4c93-a5ad-0f19851f6c1a" className="px-4 py-2 bg-gray-900 text-white rounded-xl text-sm font-semibold hover:bg-gray-800 transition-colors">
+                Puzzi 8/1
+              </Link>
+              <Link to="/equipment/d4cc7709-1ee5-4dcb-81a2-c0dadb538dc5" className="px-4 py-2 bg-[#F8FAFC] text-gray-700 rounded-xl text-sm font-semibold border border-gray-100 hover:text-[#2563EB] transition-colors">
+                Karcher SC4
+              </Link>
+            </div>
           </div>
         </div>
       </section>
