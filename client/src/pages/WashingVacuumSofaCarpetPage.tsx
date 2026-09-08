@@ -7,7 +7,7 @@ import { getTelegramUrl } from '../lib/contactLinks'
 const pageUrl = 'https://vozmimenya.ru/arenda-moyushchego-pylesosa-dlya-divana-kovra-moskva'
 const puzzi8Href = '/equipment/51022efa-99b7-4c93-a5ad-0f19851f6c1a'
 const puzzi10Href = '/equipment/f2260efd-d0e7-4622-91b0-c90a2cbc64ad'
-const sc4Href = '/equipment/98794938-b0c8-4a7d-b182-b6645ba8039b'
+const sc4Href = '/equipment/d4cc7709-1ee5-4dcb-81a2-c0dadb538dc5'
 const leadMessage = 'Нужен моющий пылесос для чистки. Что чистим: диван/ковер/матрас/авто. Размер/количество: __. Пятна: __. Даты аренды: __. Район Москвы: __.'
 
 const faqItems = [

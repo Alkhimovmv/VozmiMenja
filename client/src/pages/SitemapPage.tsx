@@ -12,6 +12,7 @@ const staticPages = [
   { href: '/arenda-moyushchego-pylesosa-dlya-divana-kovra-moskva', label: 'Аренда моющего пылесоса для дивана и ковра' },
   { href: '/arenda-mikrofona-dlya-intervyu-moskva', label: 'Аренда микрофона для интервью' },
   { href: '/arenda-kolonki-dlya-vecherinki-moskva', label: 'Аренда колонки для вечеринки' },
+  { href: '/arenda-paroochistitelya-dlya-kuhni-plitki-vannoy-moskva', label: 'Аренда пароочистителя для кухни и плитки' },
   { href: '/arenda-gopro-moskva', label: 'Аренда GoPro и камер в Москве' },
   { href: '/arenda-audiooborudovaniya-moskva', label: 'Аренда аудиооборудования в Москве' },
   { href: '/blog', label: 'Блог' },

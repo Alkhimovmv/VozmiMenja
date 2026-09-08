@@ -10,6 +10,7 @@ const fallbackRoutes = [
   '/arenda-moyushchego-pylesosa-dlya-divana-kovra-moskva',
   '/arenda-mikrofona-dlya-intervyu-moskva',
   '/arenda-kolonki-dlya-vecherinki-moskva',
+  '/arenda-paroochistitelya-dlya-kuhni-plitki-vannoy-moskva',
   '/arenda-gopro-moskva',
   '/arenda-audiooborudovaniya-moskva',
   '/blog',

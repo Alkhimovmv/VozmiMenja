@@ -97,12 +97,12 @@ export default function CategoryPylesosyPage() {
       guideLabel: 'Как выбрать пылесос',
     },
     {
-      title: 'Сделать уборку как клининг',
-      description: 'Если задач несколько, удобно сравнить сухую, влажную уборку и химчистку в одном материале.',
-      equipmentHref: '/equipment/f2260efd-d0e7-4622-91b0-c90a2cbc64ad',
-      equipmentLabel: 'Karcher Puzzi 10/1',
-      guideHref: '/blog/professionalny-pylesy-dlya-klininga',
-      guideLabel: 'Что использует клининг',
+      title: 'Очистить кухню, плитку или ванную',
+      description: 'Для твердых поверхностей, швов и сантехники лучше смотреть пароочиститель, а не Puzzi.',
+      equipmentHref: '/equipment/d4cc7709-1ee5-4dcb-81a2-c0dadb538dc5',
+      equipmentLabel: 'Karcher SC4',
+      guideHref: '/arenda-paroochistitelya-dlya-kuhni-plitki-vannoy-moskva',
+      guideLabel: 'Пароочиститель для кухни',
     },
   ]
 

@@ -40,6 +40,7 @@ const ConstructionVacuumAfterRenovationPage = lazy(() => import('./pages/Constru
 const WashingVacuumSofaCarpetPage = lazy(() => import('./pages/WashingVacuumSofaCarpetPage'))
 const InterviewMicrophoneRentalPage = lazy(() => import('./pages/InterviewMicrophoneRentalPage'))
 const PartySpeakerRentalPage = lazy(() => import('./pages/PartySpeakerRentalPage'))
+const SteamCleanerKitchenBathroomPage = lazy(() => import('./pages/SteamCleanerKitchenBathroomPage'))
 
 // Блог
 const BlogPage = lazy(() => import('./pages/BlogPage'))
@@ -145,6 +146,7 @@ function App() {
                 <Route path="/arenda-moyushchego-pylesosa-dlya-divana-kovra-moskva" element={<WashingVacuumSofaCarpetPage />} />
                 <Route path="/arenda-mikrofona-dlya-intervyu-moskva" element={<InterviewMicrophoneRentalPage />} />
                 <Route path="/arenda-kolonki-dlya-vecherinki-moskva" element={<PartySpeakerRentalPage />} />
+                <Route path="/arenda-paroochistitelya-dlya-kuhni-plitki-vannoy-moskva" element={<SteamCleanerKitchenBathroomPage />} />
 
                 {/* Блог */}
                 <Route path="/blog" element={<BlogPage />} />
