@@ -78,8 +78,8 @@ export default function CategoryAudioPage() {
       description: 'Для квартиры, небольшой дачи или камерной встречи подойдет мощная портативная колонка.',
       equipmentHref: '/equipment/fd15952980910f1f05be88fa6853e1fd',
       equipmentLabel: 'JBL PartyBox 320',
-      guideHref: '/blog/kolonka-dlya-vecherinki-kakuyu-jbl-partybox-vzyat-v-arendu',
-      guideLabel: 'Как выбрать колонку',
+      guideHref: '/arenda-kolonki-dlya-vecherinki-moskva',
+      guideLabel: 'Колонка для вечеринки',
     },
     {
       title: 'Сделать звук для большого события',

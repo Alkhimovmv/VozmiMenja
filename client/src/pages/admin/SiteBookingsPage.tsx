@@ -67,6 +67,100 @@ const formatBookingAge = (createdAt: string) => {
   return `${Math.floor(hours / 24)} дн назад`;
 };
 
+type ReplyScenario = {
+  label: string;
+  match: string[];
+  kitHint: string;
+  question: string;
+};
+
+const replyScenarios: ReplyScenario[] = [
+  {
+    label: 'Колонка / вечеринка',
+    match: ['partybox', 'jbl', 'колонк', 'акустик', 'вечерин', 'деньрождения', 'дача', 'зал'],
+    kitHint: 'Для вечеринки обычно смотрим PartyBox 320/710 по площади, числу гостей и формату: фон, речь или танцы.',
+    question: 'Подскажите, пожалуйста, где будет мероприятие, сколько гостей и нужна ли доставка?',
+  },
+  {
+    label: 'Экшн-камера',
+    match: ['gopro', 'insta360', 'osmo', 'экшн', 'action', 'камера', 'съемк', 'съемка', 'поездк', 'спорт', 'блог'],
+    kitHint: 'По камере подберем GoPro, Insta360 или DJI Osmo, а также крепления, аккумуляторы и карту памяти под сценарий съемки.',
+    question: 'Напишите, пожалуйста, что планируете снимать, на сколько дней и нужны ли крепления?',
+  },
+  {
+    label: 'Пылесос / химчистка',
+    match: ['puzzi', 'wd5', 'пылесос', 'диван', 'ковер', 'ковёр', 'моющ', 'химчист'],
+    kitHint: 'Для дивана, ковра или салона обычно уточняем Puzzi и расходники под задачу, чтобы клиент сразу понимал полный комплект.',
+    question: 'Подскажите, пожалуйста, что нужно почистить: диван, ковер, салон авто или помещение после ремонта?',
+  },
+  {
+    label: 'Пароочиститель',
+    match: ['sc4', 'sc 4', 'пароочист', 'парогенератор', 'кухн', 'плитк', 'ванн', 'сануз', 'шв'],
+    kitHint: 'Для кухни, плитки и ванной обычно предлагаем SC4 с подходящими насадками и уточняем площадь/тип загрязнения.',
+    question: 'Подскажите, пожалуйста, какие поверхности нужно очистить и на какой день удобно забрать?',
+  },
+];
+
+const normalizeReplyText = (value?: string | number | null) =>
+  String(value ?? '').toLowerCase().replace(/ё/g, 'е').replace(/[^a-zа-я0-9]+/g, '');
+
+const getReplyScenario = (parts: Array<string | number | undefined | null>) => {
+  const haystack = normalizeReplyText(parts.filter(Boolean).join(' '));
+  return replyScenarios.find((scenario) => scenario.match.some((keyword) => haystack.includes(normalizeReplyText(keyword))));
+};
+
+const formatCustomerFirstName = (name: string) => name.trim().split(/\s+/)[0] || 'клиент';
+
+const getBookingReplyText = (booking: Booking) => {
+  const scenario = getReplyScenario([
+    booking.equipment?.name,
+    booking.equipmentId,
+    booking.comment,
+    booking.sourcePage,
+  ]);
+  const topic = booking.equipment?.name || 'оборудование';
+  const period = `${formatDate(booking.startDate)} - ${formatDate(booking.endDate)}`;
+  const intro = `Здравствуйте, ${formatCustomerFirstName(booking.customerName)}! Спасибо за заявку на ${topic} (${period}).`;
+
+  if (!scenario) {
+    return `${intro}\nУточните, пожалуйста, задачу, адрес/самовывоз и удобное время связи. Проверю наличие и сразу подтвержу условия аренды.`;
+  }
+
+  return `${intro}\n${scenario.kitHint}\n${scenario.question}\nПроверю наличие и сразу подтвержу условия аренды.`;
+};
+
+const getContactLeadReplyText = (lead: ContactLead) => {
+  const scenario = getReplyScenario([
+    lead.subject,
+    lead.message,
+    lead.sourcePage,
+  ]);
+  const intro = `Здравствуйте, ${formatCustomerFirstName(lead.name)}! Спасибо за обращение в ВозьмиМеня.`;
+
+  if (!scenario) {
+    return `${intro}\nУточните, пожалуйста, какое оборудование нужно, даты аренды и удобный способ получения. Проверю наличие и предложу подходящий вариант.`;
+  }
+
+  return `${intro}\n${scenario.kitHint}\n${scenario.question}\nПроверю наличие и предложу подходящий вариант.`;
+};
+
+const copyTextToClipboard = async (text: string) => {
+  if (navigator.clipboard?.writeText) {
+    await navigator.clipboard.writeText(text);
+    return;
+  }
+
+  const textarea = document.createElement('textarea');
+  textarea.value = text;
+  textarea.setAttribute('readonly', '');
+  textarea.style.position = 'fixed';
+  textarea.style.top = '-9999px';
+  document.body.appendChild(textarea);
+  textarea.select();
+  document.execCommand('copy');
+  document.body.removeChild(textarea);
+};
+
 const getErrorMessage = (error: unknown) =>
   error instanceof Error ? error.message : 'Не удалось загрузить данные';
 
@@ -212,6 +306,15 @@ export default function SiteBookingsPage() {
     setIsRentalModalOpen(true);
   };
 
+  const handleCopyReply = async (text: string) => {
+    try {
+      await copyTextToClipboard(text);
+      toast.success('Быстрый ответ скопирован');
+    } catch {
+      toast.error('Не удалось скопировать текст');
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex h-64 items-center justify-center">
@@ -268,6 +371,16 @@ export default function SiteBookingsPage() {
           )}
           {openBookings.map((booking) => (
             <div key={booking.id} className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-amber-100">
+              {(() => {
+                const replyScenario = getReplyScenario([
+                  booking.equipment?.name,
+                  booking.equipmentId,
+                  booking.comment,
+                  booking.sourcePage,
+                ]);
+                const replyText = getBookingReplyText(booking);
+
+                return (
               <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
@@ -300,6 +413,23 @@ export default function SiteBookingsPage() {
                       {booking.comment}
                     </p>
                   )}
+                  <div className="mt-3 max-w-3xl rounded-xl border border-slate-200 bg-slate-50 px-3 py-3">
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                      <div>
+                        <p className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                          Быстрый ответ{replyScenario ? ` · ${replyScenario.label}` : ''}
+                        </p>
+                        <p className="mt-1 whitespace-pre-wrap text-sm text-slate-700">{replyText}</p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleCopyReply(replyText)}
+                        className="shrink-0 rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-100"
+                      >
+                        Скопировать
+                      </button>
+                    </div>
+                  </div>
                 </div>
 
                 <div className="flex flex-col gap-2 sm:flex-row">
@@ -341,11 +471,22 @@ export default function SiteBookingsPage() {
                   </button>
                 </div>
               </div>
+                );
+              })()}
             </div>
           ))}
 
           {openContactLeads.map((lead) => (
             <div key={`contact-${lead.id}`} className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-amber-100">
+              {(() => {
+                const replyScenario = getReplyScenario([
+                  lead.subject,
+                  lead.message,
+                  lead.sourcePage,
+                ]);
+                const replyText = getContactLeadReplyText(lead);
+
+                return (
               <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
@@ -375,6 +516,23 @@ export default function SiteBookingsPage() {
                   <p className="mt-2 max-w-3xl whitespace-pre-wrap rounded-xl bg-amber-50 px-3 py-2 text-sm text-gray-700 ring-1 ring-amber-100">
                     {lead.message}
                   </p>
+                  <div className="mt-3 max-w-3xl rounded-xl border border-slate-200 bg-slate-50 px-3 py-3">
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                      <div>
+                        <p className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                          Быстрый ответ{replyScenario ? ` · ${replyScenario.label}` : ''}
+                        </p>
+                        <p className="mt-1 whitespace-pre-wrap text-sm text-slate-700">{replyText}</p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleCopyReply(replyText)}
+                        className="shrink-0 rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-100"
+                      >
+                        Скопировать
+                      </button>
+                    </div>
+                  </div>
                 </div>
 
                 <div className="flex flex-col gap-2 sm:flex-row">
@@ -408,6 +566,8 @@ export default function SiteBookingsPage() {
                   </button>
                 </div>
               </div>
+                );
+              })()}
             </div>
           ))}
         </div>

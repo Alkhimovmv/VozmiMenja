@@ -7,6 +7,9 @@ const SITE_ORIGIN = 'https://vozmimenya.ru'
 const fallbackRoutes = [
   '/arenda-pylesosov-moskva',
   '/arenda-stroitelnogo-pylesosa-posle-remonta-moskva',
+  '/arenda-moyushchego-pylesosa-dlya-divana-kovra-moskva',
+  '/arenda-mikrofona-dlya-intervyu-moskva',
+  '/arenda-kolonki-dlya-vecherinki-moskva',
   '/arenda-gopro-moskva',
   '/arenda-audiooborudovaniya-moskva',
   '/blog',
