@@ -22,8 +22,24 @@ const Spinner = () => (
 );
 
 type DateFilter = 'week' | 'month' | 'all' | 'ends_today' | 'ends_tomorrow' | 'specific_date';
+type AttentionTone = 'red' | 'amber' | 'blue' | 'emerald';
+type AttentionReason = { label: string; tone: AttentionTone };
+type TodayActionItem = {
+  rental: Rental;
+  label: string;
+  tone: AttentionTone;
+  reasons: AttentionReason[];
+};
 
 const PAGE_SIZE = 20;
+const CLOSED_RENTAL_STATUSES = new Set(['completed', 'cancelled']);
+
+const attentionToneClasses: Record<AttentionTone, string> = {
+  red: 'bg-red-100 text-red-700',
+  amber: 'bg-amber-100 text-amber-800',
+  blue: 'bg-blue-100 text-blue-700',
+  emerald: 'bg-emerald-100 text-emerald-700',
+};
 
 const formatRentalEquipmentNames = (rental: Rental, equipment: Equipment[]) => {
   if (!rental.equipment_list || rental.equipment_list.length === 0) {
@@ -82,15 +98,69 @@ const RentalsPage: React.FC = () => {
       const endDate = startOfDay(new Date(rental.end_date));
       return isBefore(endDate, today) && rental.status !== 'completed' && rental.status !== 'cancelled';
     });
+    const dataIssues = rentals
+      .map((rental) => {
+        const reasons: AttentionReason[] = [];
+        const startDate = startOfDay(new Date(rental.start_date));
+        const endDate = startOfDay(new Date(rental.end_date));
+        const isClosed = CLOSED_RENTAL_STATUSES.has(rental.status);
+        const isRelevantToday = isSameDay(startDate, today) || isSameDay(endDate, today) || isBefore(endDate, today);
+
+        if (isClosed || !isRelevantToday) {
+          return null;
+        }
+
+        if (!rental.rental_price && rental.rental_price !== 0) {
+          reasons.push({ label: 'Нет цены аренды', tone: 'amber' });
+        }
+
+        if (rental.needs_delivery && !rental.delivery_address?.trim()) {
+          reasons.push({ label: 'Нет адреса доставки', tone: 'amber' });
+        }
+
+        if (reasons.length === 0) {
+          return null;
+        }
+
+        return { rental, reasons };
+      })
+      .filter((item): item is { rental: Rental; reasons: AttentionReason[] } => item !== null);
 
     return {
       issue,
       returns,
       overdue,
+      dataIssues,
     };
   }, [rentals]);
 
-  const todayOperationsTotal = todayOperations.issue.length + todayOperations.returns.length + todayOperations.overdue.length;
+  const todayOperationsTotal = todayOperations.issue.length + todayOperations.returns.length + todayOperations.overdue.length + todayOperations.dataIssues.length;
+  const todayDataIssuesByRentalId = useMemo(() => new Map(todayOperations.dataIssues.map((item) => [item.rental.id, item.reasons])), [todayOperations.dataIssues]);
+  const todayActionItems = useMemo<TodayActionItem[]>(() => {
+    const usedRentalIds = new Set<number>();
+    const items: TodayActionItem[] = [];
+
+    const addItem = (rental: Rental, label: string, tone: AttentionTone) => {
+      if (usedRentalIds.has(rental.id)) {
+        return;
+      }
+
+      usedRentalIds.add(rental.id);
+      items.push({
+        rental,
+        label,
+        tone,
+        reasons: todayDataIssuesByRentalId.get(rental.id) ?? [],
+      });
+    };
+
+    todayOperations.overdue.forEach((rental) => addItem(rental, 'Просрочено', 'red'));
+    todayOperations.returns.forEach((rental) => addItem(rental, 'Принять', 'emerald'));
+    todayOperations.issue.forEach((rental) => addItem(rental, 'Выдать', 'blue'));
+    todayOperations.dataIssues.forEach((item) => addItem(item.rental, 'Проверить', 'amber'));
+
+    return items;
+  }, [todayDataIssuesByRentalId, todayOperations]);
 
   // Фильтрация и сортировка аренд
   const filteredRentals = useMemo(() => {
@@ -331,32 +401,14 @@ const RentalsPage: React.FC = () => {
           </button>
         </div>
 
-        <div className="grid grid-cols-2 gap-3 sm:max-w-lg">
-          <button
-            type="button"
-            onClick={() => setDateFilter('ends_today')}
-            className="rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-left transition-colors hover:bg-blue-100"
-          >
-            <span className="block text-xs font-bold uppercase tracking-wide text-blue-600">Сегодня выдать</span>
-            <span className="mt-1 block text-2xl font-black text-blue-950">{todayOperations.issue.length}</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => setDateFilter('ends_today')}
-            className="rounded-xl border border-emerald-100 bg-emerald-50 px-4 py-3 text-left transition-colors hover:bg-emerald-100"
-          >
-            <span className="block text-xs font-bold uppercase tracking-wide text-emerald-700">Сегодня принять</span>
-            <span className="mt-1 block text-2xl font-black text-emerald-950">{todayOperations.returns.length}</span>
-          </button>
-        </div>
-
-        <section className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm sm:p-4">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <section className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex flex-wrap items-center gap-2">
               <h2 className="mr-1 text-base font-bold text-gray-900">Сегодня</h2>
               <span className="rounded-full bg-blue-50 px-2.5 py-1 text-xs font-bold text-blue-700">выдать {todayOperations.issue.length}</span>
               <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-bold text-emerald-700">принять {todayOperations.returns.length}</span>
               <span className="rounded-full bg-red-50 px-2.5 py-1 text-xs font-bold text-red-700">просрочено {todayOperations.overdue.length}</span>
+              <span className="rounded-full bg-amber-50 px-2.5 py-1 text-xs font-bold text-amber-700">проверить {todayOperations.dataIssues.length}</span>
             </div>
             <button
               type="button"
@@ -368,103 +420,59 @@ const RentalsPage: React.FC = () => {
           </div>
 
           {todayOperationsTotal === 0 ? (
-            <div className="mt-3 rounded-xl bg-slate-50 px-4 py-3 text-sm text-slate-600">
-              На сегодня нет выдач, возвратов и просрочек. Красиво, когда день не кусается.
+            <div className="mt-2 rounded-lg bg-slate-50 px-3 py-2 text-sm text-slate-600">
+              На сегодня нет выдач, возвратов и просрочек.
             </div>
           ) : (
-            <div className="mt-3 grid gap-3 lg:grid-cols-3">
-              {[
-                {
-                  title: 'Выдать сегодня',
-                  subtitle: 'Ожидают старта',
-                  rentals: todayOperations.issue,
-                  tone: 'blue',
-                  empty: 'Нет выдач',
-                },
-                {
-                  title: 'Принять сегодня',
-                  subtitle: 'Активные возвраты',
-                  rentals: todayOperations.returns,
-                  tone: 'emerald',
-                  empty: 'Нет возвратов',
-                },
-                {
-                  title: 'Просрочено',
-                  subtitle: 'Нужен контакт',
-                  rentals: todayOperations.overdue,
-                  tone: 'red',
-                  empty: 'Нет просрочек',
-                },
-              ].map((group) => (
-                <div key={group.title} className="rounded-xl border border-slate-100 bg-slate-50 p-3">
-                  <div className="mb-2 flex items-center justify-between gap-3">
-                    <div>
-                      <h3 className="text-sm font-bold text-gray-900">{group.title}</h3>
-                      <p className="text-xs text-gray-500">{group.subtitle}</p>
-                    </div>
-                    <span className={`rounded-full px-2.5 py-1 text-xs font-black ${
-                      group.tone === 'red'
-                        ? 'bg-red-100 text-red-700'
-                        : group.tone === 'emerald'
-                          ? 'bg-emerald-100 text-emerald-700'
-                          : 'bg-blue-100 text-blue-700'
-                    }`}>
-                      {group.rentals.length}
+            <div className="mt-2 overflow-hidden rounded-lg border border-slate-100">
+              {todayActionItems.slice(0, 6).map(({ rental, label, tone, reasons }) => (
+                <div key={`today-action-${rental.id}`} className="flex flex-col gap-2 border-b border-slate-100 bg-slate-50 px-3 py-2 last:border-b-0 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-1">
+                    <span className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-bold ${attentionToneClasses[tone]}`}>
+                      {label}
                     </span>
+                    <span className="truncate text-sm font-bold text-gray-900">{formatRentalEquipmentNames(rental, equipment)}</span>
+                    <span className="text-xs text-gray-500">{rental.customer_name}</span>
+                    <span className="text-xs text-gray-500">{rental.customer_phone}</span>
+                    <span className="text-xs text-gray-400">{formatDate(rental.start_date)} — {formatDate(rental.end_date)}</span>
+                    {reasons.map((reason) => (
+                      <span key={`${rental.id}-${reason.label}`} className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${attentionToneClasses[reason.tone]}`}>
+                        {reason.label}
+                      </span>
+                    ))}
                   </div>
-
-                  {group.rentals.length === 0 ? (
-                    <p className="rounded-lg bg-white px-3 py-2 text-xs text-gray-500">{group.empty}</p>
-                  ) : (
-                    <div className="space-y-2">
-                      {group.rentals.slice(0, 5).map((rental) => (
-                        <div key={`${group.title}-${rental.id}`} className="rounded-lg bg-white p-2.5 ring-1 ring-slate-100">
-                          <div className="flex items-start justify-between gap-2">
-                            <div className="min-w-0">
-                              <p className="truncate text-sm font-bold text-gray-900">{formatRentalEquipmentNames(rental, equipment)}</p>
-                              <p className="mt-1 text-xs text-gray-500">{rental.customer_name} · {rental.customer_phone}</p>
-                              <p className="mt-1 text-xs text-gray-500">{formatDate(rental.start_date)} — {formatDate(rental.end_date)}</p>
-                            </div>
-                            <span className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-bold border ${getStatusColor(rental.status)}`}>
-                              {getStatusText(rental.status)}
-                            </span>
-                          </div>
-                          <div className="mt-2 flex flex-wrap gap-2">
-                            {rental.status === 'pending' && (
-                              <button
-                                onClick={() => handleStartRental(rental)}
-                                disabled={updateMutation.isPending}
-                                className="rounded-md bg-indigo-600 px-2.5 py-1.5 text-xs font-bold text-white hover:bg-indigo-700 disabled:opacity-60"
-                              >
-                                Выдать
-                              </button>
-                            )}
-                            {(rental.status === 'active' || rental.status === 'overdue') && (
-                              <button
-                                onClick={() => handleCompleteRentalNow(rental)}
-                                disabled={updateMutation.isPending}
-                                className="rounded-md bg-green-600 px-2.5 py-1.5 text-xs font-bold text-white hover:bg-green-700 disabled:opacity-60"
-                              >
-                                Принять сейчас
-                              </button>
-                            )}
-                            <button
-                              onClick={() => handleEditRental(rental)}
-                              disabled={updateMutation.isPending}
-                              className="rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-60"
-                            >
-                              Открыть
-                            </button>
-                          </div>
-                        </div>
-                      ))}
-                      {group.rentals.length > 5 && (
-                        <p className="px-1 text-xs text-gray-500">Еще {group.rentals.length - 5} в полном списке</p>
-                      )}
-                    </div>
-                  )}
+                  <div className="flex shrink-0 gap-2">
+                    {rental.status === 'pending' && (
+                      <button
+                        onClick={() => handleStartRental(rental)}
+                        disabled={updateMutation.isPending}
+                        className="rounded-md bg-indigo-600 px-2.5 py-1.5 text-xs font-bold text-white hover:bg-indigo-700 disabled:opacity-60"
+                      >
+                        Выдать
+                      </button>
+                    )}
+                    {(rental.status === 'active' || rental.status === 'overdue') && (
+                      <button
+                        onClick={() => handleCompleteRentalNow(rental)}
+                        disabled={updateMutation.isPending}
+                        className="rounded-md bg-green-600 px-2.5 py-1.5 text-xs font-bold text-white hover:bg-green-700 disabled:opacity-60"
+                      >
+                        Принять
+                      </button>
+                    )}
+                    <button
+                      onClick={() => handleEditRental(rental)}
+                      disabled={updateMutation.isPending}
+                      className="rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-60"
+                    >
+                      Открыть
+                    </button>
+                  </div>
                 </div>
               ))}
+              {todayActionItems.length > 6 && (
+                <p className="bg-white px-3 py-2 text-xs text-gray-500">Еще {todayActionItems.length - 6} в полном списке.</p>
+              )}
             </div>
           )}
         </section>
