@@ -1,6 +1,13 @@
+import SEO from '../components/SEO'
+
 export default function PrivacyPolicyPage() {
   return (
     <div className="min-h-screen bg-[#F8FAFC]">
+      <SEO
+        title="Политика обработки персональных данных ВозьмиМеня"
+        description="Политика обработки персональных данных ВозьмиМеня: какие данные нужны для аренды, как они используются, хранятся и защищаются."
+        url="https://vozmimenya.ru/privacy"
+      />
       <section className="bg-gradient-to-br from-[#1D4ED8] to-[#0F172A] text-white py-16">
         <div className="container mx-auto px-4 text-center">
           <h1 className="text-4xl md:text-5xl font-extrabold mb-4 text-white">Политика обработки персональных данных</h1>

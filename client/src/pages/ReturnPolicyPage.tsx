@@ -1,8 +1,14 @@
 import { Link } from 'react-router-dom'
+import SEO from '../components/SEO'
 
 export default function ReturnPolicyPage() {
   return (
     <div className="min-h-screen bg-[#F8FAFC]">
+      <SEO
+        title="Возврат и отказ от услуги аренды ВозьмиМеня"
+        description="Правила возврата оборудования и отказа от услуги аренды ВозьмиМеня: отмена брони, возврат после начала аренды и дистанционная покупка."
+        url="https://vozmimenya.ru/return-policy"
+      />
       <section className="bg-gradient-to-br from-[#1D4ED8] to-[#0F172A] text-white py-16">
         <div className="container mx-auto px-4 text-center">
           <h1 className="text-4xl md:text-5xl font-extrabold mb-4 text-white">Правила возврата и отказа от услуги</h1>

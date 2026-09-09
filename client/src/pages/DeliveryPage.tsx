@@ -2,10 +2,16 @@ import { Link } from 'react-router-dom'
 import { Truck, MapPin, Clock, Banknote, CheckCircle, AlertCircle, Phone, RefreshCw, ShieldCheck } from 'lucide-react'
 import { trackEvent } from '../lib/analytics'
 import { CONTACT_PHONE, CONTACT_PHONE_LABEL, getTelegramUrl } from '../lib/contactLinks'
+import SEO from '../components/SEO'
 
 export default function DeliveryPage() {
   return (
     <div className="min-h-screen bg-[#F8FAFC]">
+      <SEO
+        title="Условия доставки и самовывоза техники в Москве"
+        description="Как получить оборудование ВозьмиМеня: доставка по Москве, самовывоз, постамат 24/7, документы, залог, возврат и продление аренды."
+        url="https://vozmimenya.ru/delivery"
+      />
       {/* Hero */}
       <section className="bg-gradient-to-br from-[#1D4ED8] to-[#0F172A] text-white py-16 md:py-20">
         <div className="container mx-auto px-4 text-center">

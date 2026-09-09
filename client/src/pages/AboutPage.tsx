@@ -1,8 +1,14 @@
 import { Camera, SprayCan, Mic2 } from 'lucide-react'
+import SEO from '../components/SEO'
 
 export default function AboutPage() {
   return (
     <div className="min-h-screen bg-[#F8FAFC]">
+      <SEO
+        title="О компании ВозьмиМеня — аренда техники в Москве"
+        description="ВозьмиМеня — сервис аренды техники в Москве: камеры, колонки JBL, пылесосы, Puzzi и пароочистители для разовых задач."
+        url="https://vozmimenya.ru/about"
+      />
       {/* Hero */}
       <section className="bg-gradient-to-br from-[#1D4ED8] to-[#0F172A] text-white py-16 md:py-20">
         <div className="container mx-auto px-4 text-center">

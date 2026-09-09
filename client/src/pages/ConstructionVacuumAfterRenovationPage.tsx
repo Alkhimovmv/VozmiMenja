@@ -136,6 +136,7 @@ export default function ConstructionVacuumAfterRenovationPage() {
         <meta name="description" content={pageDescription} />
         <meta name="keywords" content="аренда строительного пылесоса после ремонта москва, убрать строительную пыль после ремонта, пылесос после ремонта аренда" />
         <meta name="robots" content="index, follow" />
+        <link rel="canonical" href={pageUrl} />
         <meta property="og:type" content="website" />
         <meta property="og:url" content={pageUrl} />
         <meta property="og:title" content={pageTitle} />

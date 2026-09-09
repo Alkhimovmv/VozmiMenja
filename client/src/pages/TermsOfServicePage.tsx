@@ -1,6 +1,13 @@
+import SEO from '../components/SEO'
+
 export default function TermsOfServicePage() {
   return (
     <div className="min-h-screen bg-[#F8FAFC]">
+      <SEO
+        title="Условия использования сервиса ВозьмиМеня"
+        description="Условия использования ВозьмиМеня: оформление аренды, документы, получение оборудования, оплата, возврат и правила работы сервиса."
+        url="https://vozmimenya.ru/terms"
+      />
       <section className="bg-gradient-to-br from-[#1D4ED8] to-[#0F172A] text-white py-16">
         <div className="container mx-auto px-4 text-center">
           <h1 className="text-4xl md:text-5xl font-extrabold mb-4 text-white">Условия использования</h1>

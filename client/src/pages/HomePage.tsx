@@ -100,6 +100,27 @@ const CORE_CATEGORY_LINKS = [
   },
 ]
 
+const CATEGORY_SEO: Record<string, {
+  title: string
+  description: string
+  canonicalUrl: string
+}> = {
+  'Камеры': {
+    title: 'Аренда камер в Москве — GoPro, Insta360, DJI Osmo',
+    description: 'Каталог камер в аренду в Москве: GoPro для экшна, Insta360 для 360-съемки и DJI Osmo Pocket для влога. Подберем комплект и срок.',
+    canonicalUrl: 'https://vozmimenya.ru/arenda-gopro-moskva',
+  },
+  'Пылесосы, уборка и клининг': {
+    title: 'Аренда пылесосов и клининговой техники в Москве',
+    description: 'Каталог клининговой техники в аренду: строительный WD5, моющие Puzzi и пароочиститель SC4 для ремонта, дивана, ковра, кухни и плитки.',
+    canonicalUrl: 'https://vozmimenya.ru/arenda-pylesosov-moskva',
+  },
+  'Аудиооборудование': {
+    title: 'Аренда аудиооборудования в Москве — колонки JBL',
+    description: 'Каталог аудиооборудования в аренду в Москве: JBL PartyBox для квартиры, дачи и зала, микрофоны для речи и съемки, подбор комплекта.',
+    canonicalUrl: 'https://vozmimenya.ru/arenda-audiooborudovaniya-moskva',
+  },
+}
 
 export default function HomePage() {
   const [searchParams, setSearchParams] = useSearchParams()
@@ -165,23 +186,29 @@ export default function HomePage() {
   }
   const handleSearchChange = (s: string) => updateSearchParams({ search: s, page: '1', category })
 
-  const seoTitle = category
+  const categorySeo = category ? CATEGORY_SEO[category] : undefined
+  const seoTitle = categorySeo
+    ? categorySeo.title
+    : category
     ? `Аренда ${category} в Москве — цены, доставка 24/7`
     : search
     ? `Аренда ${search} в Москве | ВозьмиМеня`
     : 'Аренда оборудования в Москве — камеры, аудио, клининг | ВозьмиМеня'
-  const seoDescription = category
-    ? `Прокат ${category} в Москве. Низкие цены, доставка в день заказа, постамат 24/7. Бронируйте онлайн или пишите в Telegram.`
+  const seoDescription = categorySeo
+    ? categorySeo.description
+    : category
+    ? `Прокат ${category} в Москве. Подберем модель под задачу, срок и способ получения. Бронь онлайн или через Telegram.`
     : search
     ? `Аренда ${search} в Москве. Доставка в день заказа, постамат 24/7, без залога. Быстрый подбор в Telegram.`
     : 'Аренда профессионального оборудования в Москве: камеры, аудиотехника JBL, клининг. Доставка в день заказа, постамат 24/7, без залога. От 200 ₽/сутки.'
+  const seoUrl = categorySeo?.canonicalUrl || 'https://vozmimenya.ru/'
 
   return (
     <div className="min-h-screen bg-[#F8FAFC]">
       <SEO
         title={seoTitle}
         description={seoDescription}
-        url={`https://vozmimenya.ru${category ? `?category=${encodeURIComponent(category)}` : ''}`}
+        url={seoUrl}
       />
 
       {/* ── Mobile Hero ── */}

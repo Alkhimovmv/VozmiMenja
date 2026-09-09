@@ -1,3 +1,5 @@
+import SEO from '../components/SEO'
+
 export default function RequisitesPage() {
   const rows = [
     { label: 'Наименование', value: 'Индивидуальный предприниматель Алхимова Софья Вадимовна' },
@@ -18,6 +20,11 @@ export default function RequisitesPage() {
 
   return (
     <div className="min-h-screen bg-[#F8FAFC]">
+      <SEO
+        title="Реквизиты ВозьмиМеня — ИП Алхимова С.В."
+        description="Реквизиты сервиса аренды ВозьмиМеня: ИП Алхимова Софья Вадимовна, ИНН, ОГРНИП, расчетный счет, контакты и режим работы."
+        url="https://vozmimenya.ru/requisites"
+      />
       <section className="bg-gradient-to-br from-[#1D4ED8] to-[#0F172A] text-white py-16">
         <div className="container mx-auto px-4 text-center">
           <h1 className="text-4xl md:text-5xl font-extrabold mb-4 text-white">Реквизиты</h1>

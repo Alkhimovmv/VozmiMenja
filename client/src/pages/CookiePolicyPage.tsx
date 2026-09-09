@@ -1,6 +1,13 @@
+import SEO from '../components/SEO'
+
 export default function CookiePolicyPage() {
   return (
     <div className="min-h-screen bg-[#F8FAFC]">
+      <SEO
+        title="Политика использования cookie ВозьмиМеня"
+        description="Политика cookie ВозьмиМеня: какие cookie и метрические системы используются на сайте, зачем они нужны и как ими управлять."
+        url="https://vozmimenya.ru/cookies"
+      />
       <section className="bg-gradient-to-br from-[#0F172A] via-[#1E293B] to-[#334155] text-white py-16">
         <div className="container mx-auto px-4 text-center">
           <h1 className="text-4xl md:text-5xl font-extrabold mb-4 text-white">Политика использования cookie</h1>

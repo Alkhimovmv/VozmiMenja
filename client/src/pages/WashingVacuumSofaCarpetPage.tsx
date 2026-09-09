@@ -140,6 +140,7 @@ export default function WashingVacuumSofaCarpetPage() {
         <meta name="description" content={pageDescription} />
         <meta name="keywords" content="аренда моющего пылесоса для дивана москва, аренда пуцци для ковра, моющий пылесос для химчистки в аренду" />
         <meta name="robots" content="index, follow" />
+        <link rel="canonical" href={pageUrl} />
         <meta property="og:type" content="website" />
         <meta property="og:url" content={pageUrl} />
         <meta property="og:title" content={pageTitle} />

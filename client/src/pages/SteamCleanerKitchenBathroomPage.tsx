@@ -141,6 +141,7 @@ export default function SteamCleanerKitchenBathroomPage() {
         <meta name="description" content={pageDescription} />
         <meta name="keywords" content="аренда пароочистителя москва, karcher sc4 аренда, пароочиститель для кухни плитки ванной" />
         <meta name="robots" content="index, follow" />
+        <link rel="canonical" href={pageUrl} />
         <meta property="og:type" content="website" />
         <meta property="og:url" content={pageUrl} />
         <meta property="og:title" content={pageTitle} />

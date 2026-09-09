@@ -146,6 +146,7 @@ export default function TravelVlogCameraRentalPage() {
         <meta name="description" content={pageDescription} />
         <meta name="keywords" content="аренда камеры для путешествия москва, камера для влога в аренду, gopro insta360 osmo pocket аренда" />
         <meta name="robots" content="index, follow" />
+        <link rel="canonical" href={pageUrl} />
         <meta property="og:type" content="website" />
         <meta property="og:url" content={pageUrl} />
         <meta property="og:title" content={pageTitle} />

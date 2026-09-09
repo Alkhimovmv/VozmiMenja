@@ -5,6 +5,7 @@ import avitoIcon from '../assets/avito.png'
 import maxIcon from '../assets/max.png'
 import { trackEvent } from '../lib/analytics'
 import { AVITO_PROFILE_URL, CONTACT_PHONE, CONTACT_PHONE_LABEL, getLeadContext, getPageLeadMessage, getTelegramUrl, getWhatsAppUrl, MAX_URL } from '../lib/contactLinks'
+import SEO from '../components/SEO'
 
 const DEFAULT_SUBJECT = 'other'
 
@@ -74,6 +75,11 @@ export default function ContactPage() {
 
   return (
     <div className="min-h-screen bg-[#F8FAFC]">
+      <SEO
+        title="Контакты ВозьмиМеня — аренда техники в Москве"
+        description="Контакты ВозьмиМеня: телефон, Telegram, WhatsApp, адреса самовывоза и заявка на аренду камер, колонок и клининговой техники в Москве."
+        url="https://vozmimenya.ru/contact"
+      />
       {/* Hero */}
       <section className="bg-gradient-to-br from-[#1D4ED8] to-[#0F172A] text-white py-16 md:py-20">
         <div className="container mx-auto px-4 text-center">

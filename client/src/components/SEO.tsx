@@ -16,7 +16,7 @@ export default function SEO({
   description = 'Аренда камер, клинингового оборудования и аудиотехники в Москве. Выгодные цены, быстрая доставка, подбор и бронь через Telegram.',
   keywords = 'аренда оборудования Москва, прокат камер, аренда фототехники, клининговое оборудование аренда, аренда аудиотехники, прокат техники Москва',
   image = '/og-image.jpg',
-  url = 'https://vozmimenya.ru',
+  url = 'https://vozmimenya.ru/',
   type = 'website',
   noIndex = false,
   structuredData
@@ -60,15 +60,6 @@ export default function SEO({
       {/* Языковые альтернативы */}
       <link rel="canonical" href={url} />
       <link rel="alternate" hrefLang="ru" href={url} />
-
-      {/* Mobile */}
-      <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes" />
-      <meta name="format-detection" content="telephone=yes" />
-      <meta name="theme-color" content="#2563eb" />
-
-      {/* PWA */}
-      <link rel="manifest" href="/manifest.json" />
-      <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
 
       {/* Structured Data */}
       {structuredData && (

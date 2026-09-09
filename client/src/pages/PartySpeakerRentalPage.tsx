@@ -139,6 +139,7 @@ export default function PartySpeakerRentalPage() {
         <meta name="description" content={pageDescription} />
         <meta name="keywords" content="аренда колонки для вечеринки москва, JBL PartyBox в аренду, аренда колонки JBL, колонка на день рождения" />
         <meta name="robots" content="index, follow" />
+        <link rel="canonical" href={pageUrl} />
         <meta property="og:type" content="website" />
         <meta property="og:url" content={pageUrl} />
         <meta property="og:title" content={pageTitle} />

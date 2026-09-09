@@ -1,8 +1,14 @@
 import { Link } from 'react-router-dom'
+import SEO from '../components/SEO'
 
 export default function OfferPage() {
   return (
     <div className="min-h-screen bg-[#F8FAFC]">
+      <SEO
+        title="Договор публичной оферты ВозьмиМеня"
+        description="Публичная оферта сервиса ВозьмиМеня: условия бронирования, оплаты, передачи, возврата и ответственности при аренде оборудования."
+        url="https://vozmimenya.ru/offer"
+      />
       <section className="bg-gradient-to-br from-[#1D4ED8] to-[#0F172A] text-white py-16">
         <div className="container mx-auto px-4 text-center">
           <h1 className="text-4xl md:text-5xl font-extrabold mb-4 text-white">Договор публичной оферты</h1>

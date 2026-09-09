@@ -1,9 +1,15 @@
 import { PDFDownloadLink } from '@react-pdf/renderer'
 import RentalAgreementPDF from '../components/RentalAgreementPDF'
+import SEO from '../components/SEO'
 
 export default function RentalAgreementPage() {
   return (
     <div className="min-h-screen bg-[#F8FAFC]">
+      <SEO
+        title="Договор аренды оборудования ВозьмиМеня"
+        description="Типовая форма договора аренды оборудования ВозьмиМеня: срок аренды, стоимость, залог, ответственность, реквизиты и подписи сторон."
+        url="https://vozmimenya.ru/rental-agreement"
+      />
       <section className="bg-gradient-to-br from-[#1D4ED8] to-[#0F172A] text-white py-16">
         <div className="container mx-auto px-4 text-center">
           <h1 className="text-4xl md:text-5xl font-extrabold mb-4 text-white">Договор аренды оборудования</h1>
