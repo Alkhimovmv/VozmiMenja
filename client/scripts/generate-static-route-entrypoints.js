@@ -20,6 +20,8 @@ const fallbackRoutes = [
   '/contact',
   '/delivery',
   '/kak-prohodit-arenda-tehniki',
+  '/samovyvoz-24-7-postamat',
+  '/arenda-tehniki-dlya-meropriyatiya-moskva',
   '/faq',
   '/privacy',
   '/return-policy',

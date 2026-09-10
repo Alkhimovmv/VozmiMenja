@@ -43,6 +43,8 @@ const staticUrls: SitemapUrl[] = [
   { loc: '/contact', lastmod: today(), changefreq: 'monthly', priority: '0.8' },
   { loc: '/delivery', lastmod: today(), changefreq: 'monthly', priority: '0.7' },
   { loc: '/kak-prohodit-arenda-tehniki', lastmod: today(), changefreq: 'monthly', priority: '0.7' },
+  { loc: '/samovyvoz-24-7-postamat', lastmod: today(), changefreq: 'monthly', priority: '0.7' },
+  { loc: '/arenda-tehniki-dlya-meropriyatiya-moskva', lastmod: today(), changefreq: 'weekly', priority: '0.8' },
   { loc: '/faq', lastmod: today(), changefreq: 'monthly', priority: '0.7' },
   { loc: '/privacy', lastmod: today(), changefreq: 'yearly', priority: '0.3' },
   { loc: '/return-policy', lastmod: today(), changefreq: 'yearly', priority: '0.3' },

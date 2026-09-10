@@ -61,6 +61,7 @@ export default function Footer() {
                 { to: '/about', label: 'О нас' },
                 { to: '/delivery', label: 'Условия доставки' },
                 { to: '/kak-prohodit-arenda-tehniki', label: 'Как проходит аренда' },
+                { to: '/samovyvoz-24-7-postamat', label: 'Самовывоз 24/7' },
                 { to: '/contact', label: 'Контакты' },
                 { to: '/faq', label: 'FAQ' },
                 { to: '/sitemap', label: 'Карта сайта' },
@@ -92,6 +93,7 @@ export default function Footer() {
             <div className="space-y-2">
               {[
                 { to: '/arenda-kolonki-dlya-vecherinki-moskva', label: 'Колонка для вечеринки' },
+                { to: '/arenda-tehniki-dlya-meropriyatiya-moskva', label: 'Техника для мероприятия' },
                 { to: '/arenda-kamery-dlya-puteshestviya-vloga-moskva', label: 'Камера для поездки и влога' },
                 { to: '/arenda-moyushchego-pylesosa-dlya-divana-kovra-moskva', label: 'Моющий пылесос для дивана' },
                 { to: '/arenda-paroochistitelya-dlya-kuhni-plitki-vannoy-moskva', label: 'Пароочиститель для кухни' },
