@@ -30,6 +30,10 @@ type TodayActionItem = {
   tone: AttentionTone;
   reasons: AttentionReason[];
 };
+type DayOperations = {
+  issue: Rental[];
+  returns: Rental[];
+};
 
 const PAGE_SIZE = 20;
 const CLOSED_RENTAL_STATUSES = new Set(['completed', 'cancelled']);
@@ -40,6 +44,13 @@ const attentionToneClasses: Record<AttentionTone, string> = {
   blue: 'bg-blue-100 text-blue-700',
   emerald: 'bg-emerald-100 text-emerald-700',
 };
+
+const isClosedRental = (rental: Rental) => CLOSED_RENTAL_STATUSES.has(rental.status);
+
+const getDayOperations = (rentals: Rental[], targetDate: Date): DayOperations => ({
+  issue: rentals.filter((rental) => isSameDay(new Date(rental.start_date), targetDate) && rental.status === 'pending'),
+  returns: rentals.filter((rental) => isSameDay(new Date(rental.end_date), targetDate) && (rental.status === 'active' || rental.status === 'overdue')),
+});
 
 const formatRentalEquipmentNames = (rental: Rental, equipment: Equipment[]) => {
   if (!rental.equipment_list || rental.equipment_list.length === 0) {
@@ -92,21 +103,19 @@ const RentalsPage: React.FC = () => {
 
   const todayOperations = useMemo(() => {
     const today = startOfDay(new Date());
-    const issue = rentals.filter((rental) => isSameDay(new Date(rental.start_date), today) && rental.status === 'pending');
-    const returns = rentals.filter((rental) => isSameDay(new Date(rental.end_date), today) && (rental.status === 'active' || rental.status === 'overdue'));
+    const dayOperations = getDayOperations(rentals, today);
     const overdue = rentals.filter((rental) => {
       const endDate = startOfDay(new Date(rental.end_date));
-      return isBefore(endDate, today) && rental.status !== 'completed' && rental.status !== 'cancelled';
+      return isBefore(endDate, today) && !isClosedRental(rental);
     });
     const dataIssues = rentals
       .map((rental) => {
         const reasons: AttentionReason[] = [];
         const startDate = startOfDay(new Date(rental.start_date));
         const endDate = startOfDay(new Date(rental.end_date));
-        const isClosed = CLOSED_RENTAL_STATUSES.has(rental.status);
         const isRelevantToday = isSameDay(startDate, today) || isSameDay(endDate, today) || isBefore(endDate, today);
 
-        if (isClosed || !isRelevantToday) {
+        if (isClosedRental(rental) || !isRelevantToday) {
           return null;
         }
 
@@ -127,14 +136,27 @@ const RentalsPage: React.FC = () => {
       .filter((item): item is { rental: Rental; reasons: AttentionReason[] } => item !== null);
 
     return {
-      issue,
-      returns,
+      issue: dayOperations.issue,
+      returns: dayOperations.returns,
       overdue,
       dataIssues,
     };
   }, [rentals]);
 
+  const tomorrowOperations = useMemo(() => getDayOperations(rentals, addDays(startOfDay(new Date()), 1)), [rentals]);
+
+  const operationsSummary = useMemo(() => {
+    const openRentals = rentals.filter((rental) => !isClosedRental(rental));
+
+    return {
+      open: openRentals.length,
+      missingPrice: openRentals.filter((rental) => !rental.rental_price && rental.rental_price !== 0).length,
+      missingDeliveryAddress: openRentals.filter((rental) => rental.needs_delivery && !rental.delivery_address?.trim()).length,
+    };
+  }, [rentals]);
+
   const todayOperationsTotal = todayOperations.issue.length + todayOperations.returns.length + todayOperations.overdue.length + todayOperations.dataIssues.length;
+  const tomorrowOperationsTotal = tomorrowOperations.issue.length + tomorrowOperations.returns.length;
   const todayDataIssuesByRentalId = useMemo(() => new Map(todayOperations.dataIssues.map((item) => [item.rental.id, item.reasons])), [todayOperations.dataIssues]);
   const todayActionItems = useMemo<TodayActionItem[]>(() => {
     const usedRentalIds = new Set<number>();
@@ -403,20 +425,37 @@ const RentalsPage: React.FC = () => {
 
         <section className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex flex-wrap items-center gap-2">
-              <h2 className="mr-1 text-base font-bold text-gray-900">Сегодня</h2>
-              <span className="rounded-full bg-blue-50 px-2.5 py-1 text-xs font-bold text-blue-700">выдать {todayOperations.issue.length}</span>
-              <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-bold text-emerald-700">принять {todayOperations.returns.length}</span>
-              <span className="rounded-full bg-red-50 px-2.5 py-1 text-xs font-bold text-red-700">просрочено {todayOperations.overdue.length}</span>
-              <span className="rounded-full bg-amber-50 px-2.5 py-1 text-xs font-bold text-amber-700">проверить {todayOperations.dataIssues.length}</span>
+            <div className="min-w-0 space-y-2">
+              <div className="flex flex-wrap items-center gap-2">
+                <h2 className="mr-1 text-base font-bold text-gray-900">Операции</h2>
+                <span className="rounded-full bg-blue-50 px-2.5 py-1 text-xs font-bold text-blue-700">сегодня выдать {todayOperations.issue.length}</span>
+                <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-bold text-emerald-700">принять {todayOperations.returns.length}</span>
+                <span className="rounded-full bg-red-50 px-2.5 py-1 text-xs font-bold text-red-700">просрочено {todayOperations.overdue.length}</span>
+                <span className="rounded-full bg-amber-50 px-2.5 py-1 text-xs font-bold text-amber-700">проверить {todayOperations.dataIssues.length}</span>
+              </div>
+              <div className="flex flex-wrap items-center gap-2 text-xs text-gray-500">
+                <span className="rounded-full bg-slate-50 px-2 py-0.5 font-semibold text-slate-700">завтра: выдать {tomorrowOperations.issue.length}, принять {tomorrowOperations.returns.length}</span>
+                <span className="rounded-full bg-slate-50 px-2 py-0.5 font-semibold text-slate-700">незакрыто {operationsSummary.open}</span>
+                <span className="rounded-full bg-slate-50 px-2 py-0.5 font-semibold text-slate-700">без цены {operationsSummary.missingPrice}</span>
+                <span className="rounded-full bg-slate-50 px-2 py-0.5 font-semibold text-slate-700">нет адреса {operationsSummary.missingDeliveryAddress}</span>
+              </div>
             </div>
-            <button
-              type="button"
-              onClick={() => setDateFilter('ends_today')}
-              className="rounded-lg border border-indigo-100 bg-indigo-50 px-3 py-2 text-xs font-bold text-indigo-700 hover:bg-indigo-100"
-            >
-              Показать сегодня в списке
-            </button>
+            <div className="flex shrink-0 gap-2">
+              <button
+                type="button"
+                onClick={() => setDateFilter('ends_today')}
+                className="rounded-lg border border-indigo-100 bg-indigo-50 px-3 py-2 text-xs font-bold text-indigo-700 hover:bg-indigo-100"
+              >
+                Сегодня
+              </button>
+              <button
+                type="button"
+                onClick={() => setDateFilter('ends_tomorrow')}
+                className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50"
+              >
+                Завтра {tomorrowOperationsTotal}
+              </button>
+            </div>
           </div>
 
           {todayOperationsTotal === 0 ? (
