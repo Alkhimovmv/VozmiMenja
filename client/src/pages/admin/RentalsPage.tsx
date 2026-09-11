@@ -150,8 +150,6 @@ const RentalsPage: React.FC = () => {
 
     return {
       open: openRentals.length,
-      missingPrice: openRentals.filter((rental) => !rental.rental_price && rental.rental_price !== 0).length,
-      missingDeliveryAddress: openRentals.filter((rental) => rental.needs_delivery && !rental.delivery_address?.trim()).length,
     };
   }, [rentals]);
 
@@ -431,13 +429,10 @@ const RentalsPage: React.FC = () => {
                 <span className="rounded-full bg-blue-50 px-2.5 py-1 text-xs font-bold text-blue-700">сегодня выдать {todayOperations.issue.length}</span>
                 <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-bold text-emerald-700">принять {todayOperations.returns.length}</span>
                 <span className="rounded-full bg-red-50 px-2.5 py-1 text-xs font-bold text-red-700">просрочено {todayOperations.overdue.length}</span>
-                <span className="rounded-full bg-amber-50 px-2.5 py-1 text-xs font-bold text-amber-700">проверить {todayOperations.dataIssues.length}</span>
               </div>
               <div className="flex flex-wrap items-center gap-2 text-xs text-gray-500">
                 <span className="rounded-full bg-slate-50 px-2 py-0.5 font-semibold text-slate-700">завтра: выдать {tomorrowOperations.issue.length}, принять {tomorrowOperations.returns.length}</span>
                 <span className="rounded-full bg-slate-50 px-2 py-0.5 font-semibold text-slate-700">незакрыто {operationsSummary.open}</span>
-                <span className="rounded-full bg-slate-50 px-2 py-0.5 font-semibold text-slate-700">без цены {operationsSummary.missingPrice}</span>
-                <span className="rounded-full bg-slate-50 px-2 py-0.5 font-semibold text-slate-700">нет адреса {operationsSummary.missingDeliveryAddress}</span>
               </div>
             </div>
             <div className="flex shrink-0 gap-2">

@@ -73,9 +73,21 @@ install_dependencies() {
 
     # Установка необходимых пакетов
     echo "Установка необходимых пакетов..."
-    apt-get install -y curl git nginx build-essential
+    apt-get install -y curl git nginx build-essential chromium || apt-get install -y curl git nginx build-essential chromium-browser
 
     print_success "Системные зависимости установлены"
+}
+
+ensure_chromium() {
+    if command -v google-chrome >/dev/null 2>&1 || command -v chromium >/dev/null 2>&1 || command -v chromium-browser >/dev/null 2>&1; then
+        print_success "Chrome/Chromium найден"
+        return 0
+    fi
+
+    print_step "Установка Chromium для SEO-smoke"
+    apt-get update -qq
+    apt-get install -y chromium || apt-get install -y chromium-browser
+    print_success "Chromium установлен"
 }
 
 # ================================================================================
@@ -171,6 +183,7 @@ install_project_dependencies() {
         echo "Установка зависимостей VozmiMenja Server..."
         cd server
         sudo -u $SUDO_USER npm install --production
+        sudo -u $SUDO_USER npm rebuild sqlite3 --build-from-source
         cd ..
     fi
 
@@ -225,6 +238,7 @@ build_projects() {
 
         # Установка dev зависимостей для сборки
         sudo -u $SUDO_USER npm install
+        sudo -u $SUDO_USER npm rebuild sqlite3 --build-from-source
         sudo -u $SUDO_USER NODE_OPTIONS="--max-old-space-size=512" npm run build
         sudo -u $SUDO_USER npm run seed:blog-growth
         sudo -u $SUDO_USER npm run sitemap
@@ -433,6 +447,7 @@ deploy() {
     check_root "$@"
 
     setup_directories
+    ensure_chromium
     install_project_dependencies
     backup_database
     build_projects
@@ -453,6 +468,7 @@ update() {
     check_root "$@"
 
     backup_database
+    ensure_chromium
     install_project_dependencies
     build_projects
     restart_services

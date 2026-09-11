@@ -1,4 +1,5 @@
 import nodemailer from 'nodemailer'
+import type { Transporter } from 'nodemailer'
 import dotenv from 'dotenv'
 
 dotenv.config()
@@ -19,7 +20,7 @@ class EmailNotifyService {
     )
   }
 
-  private getTransporter(): nodemailer.Transporter {
+  private getTransporter(): Transporter {
     return nodemailer.createTransport({
       host: process.env.NOTIFY_EMAIL_HOST || 'smtp.yandex.ru',
       port: parseInt(process.env.NOTIFY_EMAIL_PORT || '465'),

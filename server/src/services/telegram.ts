@@ -1,11 +1,11 @@
-import TelegramBot from 'node-telegram-bot-api'
+import { Bot } from 'node-telegram-bot-api'
 import dotenv from 'dotenv'
 
 // Загружаем переменные окружения
 dotenv.config()
 
 class TelegramService {
-  private bot: TelegramBot | null = null
+  private bot: Bot | null = null
   private chatId: string | null = null
 
   constructor() {
@@ -20,7 +20,7 @@ class TelegramService {
     })
 
     if (token && chatId) {
-      this.bot = new TelegramBot(token, { polling: false })
+      this.bot = new Bot(token)
       this.chatId = chatId
       console.log('✅ Telegram бот инициализирован')
     } else {
@@ -80,7 +80,9 @@ class TelegramService {
       message += `\n\n👉 Свяжитесь с клиентом для подтверждения бронирования`
       message = message.trim()
 
-      await this.bot.sendMessage(this.chatId, message, {
+      await this.bot.api.sendMessage({
+        chat_id: this.chatId,
+        text: message,
         parse_mode: 'HTML'
       })
 
@@ -124,7 +126,9 @@ class TelegramService {
 ${data.message}
       `.trim()
 
-      await this.bot.sendMessage(this.chatId, message, {
+      await this.bot.api.sendMessage({
+        chat_id: this.chatId,
+        text: message,
         parse_mode: 'HTML'
       })
 
@@ -141,7 +145,9 @@ ${data.message}
     }
 
     try {
-      await this.bot.sendMessage(this.chatId, message, {
+      await this.bot.api.sendMessage({
+        chat_id: this.chatId,
+        text: message,
         parse_mode: 'HTML'
       })
 

@@ -4,6 +4,10 @@
 
 ## 2026-09-11
 
+- Закрыта первая техническая итерация после project review: `npm audit` доведен до 0 уязвимостей, добавлен тестовый контур для брони/цены/auth/booking→rental/sitemap-canonical, prod-smoke явно смотрит на `https://vozmimenya.ru`, SEO-smoke получил server-friendly Chrome fallback, а `deploy-local.sh update` проверяет/ставит Chromium и пересобирает `sqlite3` из исходников под серверную glibc.
+- Из админского блока операций убраны лишние бейджи `проверить`, `без цены`, `нет адреса`; проверки неполных данных остались в списке действий без перегруза верхней строки.
+- Удалены старые deployment-доки и старые дубли admin-страниц; README приведен к актуальному порядку `git pull` + `sudo ./deploy-local.sh update`.
+- Начат безопасный разбор крупных файлов: логика создания аренды из заявки, правила брони, SEO-smoke config и сценарные подсказки формы вынесены в отдельные тестируемые модули.
 - Добавлены две growth-страницы: `/samovyvoz-24-7-postamat` про самовывоз/постамат 24/7 и `/arenda-tehniki-dlya-meropriyatiya-moskva` про аренду техники для мероприятий; страницы получили SEO meta, canonical, FAQ schema, CTA и внутренние ссылки.
 - Новые страницы подключены в роутинг, footer, HTML-карту, XML sitemap, static route entrypoints, public smoke и rendered SEO-smoke.
 

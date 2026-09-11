@@ -27,7 +27,7 @@ VozmiMenja/
 │       ├── api/admin/       # API клиент
 │       └── hooks/           # useAuth, useOffice, ...
 ├── ecosystem.config.js      # PM2 конфиг (production)
-├── deploy.sh                # Деплой на сервер
+├── deploy-local.sh          # Обновление production на сервере
 ├── start-dev.sh             # Запуск локально
 └── nginx.conf               # Конфиг Nginx
 ```
@@ -110,11 +110,9 @@ TELEGRAM_CHAT_ID=...
 ## Деплой на сервер
 
 ```bash
-# Первый деплой
-./deploy.sh
-
-# Обновление кода
-./update.sh
+# На сервере из /var/www/vozmimenya/
+git pull
+sudo ./deploy-local.sh update
 ```
 
 ### Управление на сервере

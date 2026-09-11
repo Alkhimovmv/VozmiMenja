@@ -103,6 +103,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     { path: '/admin/finances', label: 'Финансы', icon: '💰' },
     { path: '/admin/lockers', label: 'Ячейки постомата', icon: '🔐' },
     { path: '/admin/bookings', label: 'Заявки с сайта', icon: '✉️' },
+    { path: '/admin/articles', label: 'Блог', icon: '📝' },
   ];
 
   const bottomMenuItems = [

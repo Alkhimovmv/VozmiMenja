@@ -92,14 +92,6 @@ class ApiClient {
     return this.request(`/bookings/${id}`)
   }
 
-  // Admin methods
-  async adminLogin(password: string): Promise<ApiResponse<{ token: string }>> {
-    return this.request('/admin/login', {
-      method: 'POST',
-      body: JSON.stringify({ password }),
-    })
-  }
-
   async createEquipment(equipment: Partial<Equipment>): Promise<ApiResponse<Equipment>> {
     const token = localStorage.getItem('authToken')
     return this.request('/admin/equipment', {

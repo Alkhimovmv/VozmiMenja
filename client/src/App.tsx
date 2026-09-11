@@ -23,7 +23,6 @@ const SitemapPage = lazy(() => import('./pages/SitemapPage'))
 const RentalProcessPage = lazy(() => import('./pages/RentalProcessPage'))
 const SelfPickupPostamatPage = lazy(() => import('./pages/SelfPickupPostamatPage'))
 const EventEquipmentRentalPage = lazy(() => import('./pages/EventEquipmentRentalPage'))
-const AdminDashboardPage = lazy(() => import('./pages/AdminDashboardPage'))
 // RentAdmin pages
 const RentAdminLoginPage = lazy(() => import('./pages/admin/LoginPage'))
 const RentAdminSchedulePage = lazy(() => import('./pages/admin/SchedulePage'))
@@ -33,7 +32,6 @@ const RentAdminCustomersPage = lazy(() => import('./pages/admin/CustomersPage'))
 const RentAdminFinancesPage = lazy(() => import('./pages/admin/FinancesPage'))
 const RentAdminEquipmentPage = lazy(() => import('./pages/admin/EquipmentPage'))
 const AdminLayout = lazy(() => import('./components/admin/Layout'))
-const UnifiedAdminLayout = lazy(() => import('./components/admin/UnifiedAdminLayout'))
 
 // Посадочные страницы категорий
 const CategoryPylesosyPage = lazy(() => import('./pages/CategoryPylesosyPage'))
@@ -120,7 +118,7 @@ function App() {
           {/* Admin routes without layout */}
           <Route path="/admin" element={<Navigate to="/admin/rentals" replace />} />
           <Route path="/admin/login" element={<Navigate to="/admin/rent/login" replace />} />
-          <Route path="/admin/dashboard" element={<AdminDashboardPage />} />
+          <Route path="/admin/dashboard" element={<Navigate to="/admin/equipment" replace />} />
 
           {/* RentAdmin routes */}
           <Route path="/admin/rent/login" element={<RentAdminLoginPage />} />
@@ -133,7 +131,7 @@ function App() {
           <Route path="/admin/lockers" element={<AdminLayout><LockersPage /></AdminLayout>} />
           <Route path="/admin/offices" element={<AdminLayout><OfficesPage /></AdminLayout>} />
           <Route path="/admin/users" element={<AdminLayout><UsersPage /></AdminLayout>} />
-          <Route path="/admin/articles" element={<UnifiedAdminLayout><AdminArticlesPage /></UnifiedAdminLayout>} />
+          <Route path="/admin/articles" element={<AdminLayout><AdminArticlesPage /></AdminLayout>} />
 
           {/* Public routes with layout */}
           <Route path="/*" element={

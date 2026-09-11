@@ -1,4 +1,5 @@
 import nodemailer from 'nodemailer'
+import type { Transporter } from 'nodemailer'
 import fs from 'fs'
 import path from 'path'
 
@@ -6,7 +7,7 @@ import path from 'path'
 const DB_PATH = path.join(__dirname, '../../database.sqlite')
 
 class EmailBackupService {
-  private transporter: nodemailer.Transporter | null = null
+  private transporter: Transporter | null = null
 
   private isConfigured(): boolean {
     return !!(
@@ -16,7 +17,7 @@ class EmailBackupService {
     )
   }
 
-  private getTransporter(): nodemailer.Transporter {
+  private getTransporter(): Transporter {
     if (!this.transporter) {
       this.transporter = nodemailer.createTransport({
         host: process.env.BACKUP_EMAIL_HOST || 'smtp.gmail.com',
