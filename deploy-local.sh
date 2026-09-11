@@ -90,6 +90,21 @@ ensure_chromium() {
     print_success "Chromium установлен"
 }
 
+ensure_xdg_settings() {
+    if command -v xdg-settings >/dev/null 2>&1; then
+        print_success "xdg-settings найден"
+        return 0
+    fi
+
+    print_step "Создание xdg-settings shim для headless Chromium"
+    cat > /usr/local/bin/xdg-settings <<'EOF'
+#!/bin/sh
+exit 0
+EOF
+    chmod 755 /usr/local/bin/xdg-settings
+    print_success "xdg-settings shim создан"
+}
+
 # ================================================================================
 # Установка Node.js
 # ================================================================================
@@ -447,9 +462,10 @@ deploy() {
     check_root "$@"
 
     setup_directories
-    ensure_chromium
     install_project_dependencies
     backup_database
+    ensure_chromium
+    ensure_xdg_settings
     build_projects
     setup_nginx
     start_pm2
@@ -469,6 +485,7 @@ update() {
 
     backup_database
     ensure_chromium
+    ensure_xdg_settings
     install_project_dependencies
     build_projects
     restart_services
