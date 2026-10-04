@@ -9,12 +9,38 @@ describe('booking rules', () => {
       customerEmail: '',
       startDate: '2026-09-12',
       endDate: '2026-09-13',
+      preferredContact: 'telegram',
+      deliveryMethod: 'delivery',
+      deliveryAddress: 'Москва, Тверская 1',
       sourcePage: 'https://vozmimenya.ru/arenda-gopro-moskva',
       utmSource: 'yandex',
+      legal: {
+        offerAccepted: true,
+        agreementAccepted: true,
+        privacyAccepted: true,
+        termsVersion: 'offer-2026-05-09',
+      },
     })
 
     expect(parsed.customerEmail).toBe('')
     expect(parsed.utmSource).toBe('yandex')
+    expect(parsed.legal?.offerAccepted).toBe(true)
+  })
+
+  it('rejects partial legal acceptance', () => {
+    expect(() => createBookingSchema.parse({
+      equipmentId: 'equipment-1',
+      customerName: 'Максим',
+      customerPhone: '+7 999 000-00-00',
+      startDate: '2026-09-12',
+      endDate: '2026-09-13',
+      legal: {
+        offerAccepted: true,
+        agreementAccepted: false,
+        privacyAccepted: true,
+        termsVersion: 'offer-2026-05-09',
+      },
+    })).toThrow()
   })
 
   it('rejects invalid booking dates before creation logic runs', () => {

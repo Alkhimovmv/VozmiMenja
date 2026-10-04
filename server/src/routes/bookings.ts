@@ -12,6 +12,15 @@ import { calculateRentalDays, createBookingSchema, parseDateInput } from './book
 
 const router = Router()
 
+const getRequestIp = (req: Request) => {
+  const forwardedFor = req.headers['x-forwarded-for']
+  if (typeof forwardedFor === 'string' && forwardedFor.trim()) {
+    return forwardedFor.split(',')[0].trim()
+  }
+
+  return req.ip || req.socket.remoteAddress || ''
+}
+
 router.get('/', authMiddleware, async (req: Request, res: Response) => {
   try {
     const bookings = await bookingModel.findAll()
@@ -97,7 +106,9 @@ router.post('/', async (req: Request, res: Response) => {
     const booking = await bookingModel.create({
       id: bookingId,
       ...validatedData,
-      totalPrice
+      totalPrice,
+      legalAcceptanceIp: validatedData.legal ? getRequestIp(req) : undefined,
+      legalAcceptanceUserAgent: validatedData.legal ? req.get('user-agent') || '' : undefined
     })
 
     console.log('✅ Бронирование создано:', bookingId)

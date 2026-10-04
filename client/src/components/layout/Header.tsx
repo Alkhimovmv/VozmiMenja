@@ -29,6 +29,7 @@ export default function Header() {
   }
 
   const navLinks = [
+    { to: '/booking', label: 'Оформить бронь' },
     { to: '/about', label: 'О нас' },
     { to: '/delivery', label: 'Условия доставки' },
     { to: '/contact', label: 'Контакты' },

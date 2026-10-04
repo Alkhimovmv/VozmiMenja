@@ -19,6 +19,7 @@ const staticPages = [
   { href: '/blog', label: 'Блог' },
   { href: '/about', label: 'О нас' },
   { href: '/delivery', label: 'Условия доставки' },
+  { href: '/booking', label: 'Оформить бронь онлайн' },
   { href: '/kak-prohodit-arenda-tehniki', label: 'Как проходит аренда техники' },
   { href: '/samovyvoz-24-7-postamat', label: 'Самовывоз 24/7 и постамат' },
   { href: '/arenda-tehniki-dlya-meropriyatiya-moskva', label: 'Аренда техники для мероприятия' },

@@ -21,11 +21,20 @@ export const createBookingSchema = z.object({
   startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Некорректная дата начала'),
   endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Некорректная дата окончания'),
   comment: z.string().max(1000).optional(),
+  preferredContact: optionalLeadField(80),
+  deliveryMethod: z.enum(['pickup', 'delivery']).optional(),
+  deliveryAddress: optionalLeadField(500),
   sourcePage: optionalLeadField(500),
   referrer: optionalLeadField(500),
   utmSource: optionalLeadField(120),
   utmMedium: optionalLeadField(120),
-  utmCampaign: optionalLeadField(180)
+  utmCampaign: optionalLeadField(180),
+  legal: z.object({
+    offerAccepted: z.literal(true),
+    agreementAccepted: z.literal(true),
+    privacyAccepted: z.literal(true),
+    termsVersion: z.string().min(3).max(120),
+  }).optional(),
 })
 
 export type CreateBookingInput = z.infer<typeof createBookingSchema>

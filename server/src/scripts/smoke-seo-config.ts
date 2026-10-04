@@ -10,6 +10,7 @@ export const pagesToCheck = [
   { path: '/arenda-kolonki-dlya-vecherinki-moskva', canonicalPath: '/arenda-kolonki-dlya-vecherinki-moskva' },
   { path: '/arenda-kamery-dlya-puteshestviya-vloga-moskva', canonicalPath: '/arenda-kamery-dlya-puteshestviya-vloga-moskva' },
   { path: '/arenda-paroochistitelya-dlya-kuhni-plitki-vannoy-moskva', canonicalPath: '/arenda-paroochistitelya-dlya-kuhni-plitki-vannoy-moskva' },
+  { path: '/booking', canonicalPath: '/booking' },
   { path: '/kak-prohodit-arenda-tehniki', canonicalPath: '/kak-prohodit-arenda-tehniki' },
   { path: '/samovyvoz-24-7-postamat', canonicalPath: '/samovyvoz-24-7-postamat' },
   { path: '/arenda-tehniki-dlya-meropriyatiya-moskva', canonicalPath: '/arenda-tehniki-dlya-meropriyatiya-moskva' },

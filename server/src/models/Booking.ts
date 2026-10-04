@@ -12,11 +12,20 @@ export interface Booking {
   endDate: string
   totalPrice: number
   comment?: string
+  preferredContact?: string
+  deliveryMethod?: 'pickup' | 'delivery'
+  deliveryAddress?: string
   sourcePage?: string
   referrer?: string
   utmSource?: string
   utmMedium?: string
   utmCampaign?: string
+  legalOfferAcceptedAt?: string
+  legalAgreementAcceptedAt?: string
+  legalPrivacyAcceptedAt?: string
+  legalTermsVersion?: string
+  legalAcceptanceIp?: string
+  legalAcceptanceUserAgent?: string
   status: 'pending' | 'confirmed' | 'active' | 'completed' | 'cancelled'
   createdAt: string
   updatedAt: string
@@ -31,11 +40,22 @@ export interface CreateBookingData {
   endDate: string
   totalPrice: number
   comment?: string
+  preferredContact?: string
+  deliveryMethod?: 'pickup' | 'delivery'
+  deliveryAddress?: string
   sourcePage?: string
   referrer?: string
   utmSource?: string
   utmMedium?: string
   utmCampaign?: string
+  legal?: {
+    offerAccepted: true
+    agreementAccepted: true
+    privacyAccepted: true
+    termsVersion: string
+  }
+  legalAcceptanceIp?: string
+  legalAcceptanceUserAgent?: string
 }
 
 export class BookingModel {
@@ -85,12 +105,18 @@ export class BookingModel {
   }
 
   async create(data: CreateBookingData & { id: string }): Promise<Booking> {
+    const legalAcceptedAt = data.legal ? new Date().toISOString() : null
+
     await run(`
       INSERT INTO bookings (
         id, equipment_id, customer_name, customer_phone, customer_email,
-        start_date, end_date, total_price, comment, source_page, referrer,
-        utm_source, utm_medium, utm_campaign, status
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')
+        start_date, end_date, total_price, comment, preferred_contact,
+        delivery_method, delivery_address, source_page, referrer,
+        utm_source, utm_medium, utm_campaign, legal_offer_accepted_at,
+        legal_agreement_accepted_at, legal_privacy_accepted_at,
+        legal_terms_version, legal_acceptance_ip, legal_acceptance_user_agent,
+        status
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')
     `, [
       data.id,
       data.equipmentId,
@@ -101,11 +127,20 @@ export class BookingModel {
       data.endDate,
       data.totalPrice,
       data.comment || '',
+      data.preferredContact || '',
+      data.deliveryMethod || '',
+      data.deliveryAddress || '',
       data.sourcePage || '',
       data.referrer || '',
       data.utmSource || '',
       data.utmMedium || '',
-      data.utmCampaign || ''
+      data.utmCampaign || '',
+      legalAcceptedAt,
+      legalAcceptedAt,
+      legalAcceptedAt,
+      data.legal?.termsVersion || '',
+      data.legalAcceptanceIp || '',
+      data.legalAcceptanceUserAgent || ''
     ])
 
     const booking = await this.findById(data.id)
@@ -169,11 +204,20 @@ export class BookingModel {
       endDate: row.end_date,
       totalPrice: row.total_price,
       comment: row.comment || undefined,
+      preferredContact: row.preferred_contact || undefined,
+      deliveryMethod: row.delivery_method || undefined,
+      deliveryAddress: row.delivery_address || undefined,
       sourcePage: row.source_page || undefined,
       referrer: row.referrer || undefined,
       utmSource: row.utm_source || undefined,
       utmMedium: row.utm_medium || undefined,
       utmCampaign: row.utm_campaign || undefined,
+      legalOfferAcceptedAt: row.legal_offer_accepted_at || undefined,
+      legalAgreementAcceptedAt: row.legal_agreement_accepted_at || undefined,
+      legalPrivacyAcceptedAt: row.legal_privacy_accepted_at || undefined,
+      legalTermsVersion: row.legal_terms_version || undefined,
+      legalAcceptanceIp: row.legal_acceptance_ip || undefined,
+      legalAcceptanceUserAgent: row.legal_acceptance_user_agent || undefined,
       status: row.status,
       createdAt: row.created_at,
       updatedAt: row.updated_at

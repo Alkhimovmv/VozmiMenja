@@ -81,11 +81,20 @@ export interface Booking {
   endDate: string
   totalPrice: number
   comment?: string
+  preferredContact?: string
+  deliveryMethod?: 'pickup' | 'delivery'
+  deliveryAddress?: string
   sourcePage?: string
   referrer?: string
   utmSource?: string
   utmMedium?: string
   utmCampaign?: string
+  legalOfferAcceptedAt?: string
+  legalAgreementAcceptedAt?: string
+  legalPrivacyAcceptedAt?: string
+  legalTermsVersion?: string
+  legalAcceptanceIp?: string
+  legalAcceptanceUserAgent?: string
   status: 'pending' | 'confirmed' | 'active' | 'completed' | 'cancelled'
   createdAt: string
   updatedAt: string
@@ -99,11 +108,20 @@ export interface BookingRequest {
   startDate: string
   endDate: string
   comment?: string
+  preferredContact?: string
+  deliveryMethod?: 'pickup' | 'delivery'
+  deliveryAddress?: string
   sourcePage?: string
   referrer?: string
   utmSource?: string
   utmMedium?: string
   utmCampaign?: string
+  legal?: {
+    offerAccepted: true
+    agreementAccepted: true
+    privacyAccepted: true
+    termsVersion: string
+  }
 }
 
 export interface ContactLead {

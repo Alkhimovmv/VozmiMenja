@@ -64,11 +64,20 @@ class Database {
 
     const bookingColumns = [
       ['comment', 'TEXT'],
+      ['preferred_contact', 'TEXT'],
+      ['delivery_method', 'TEXT'],
+      ['delivery_address', 'TEXT'],
       ['source_page', 'TEXT'],
       ['referrer', 'TEXT'],
       ['utm_source', 'TEXT'],
       ['utm_medium', 'TEXT'],
       ['utm_campaign', 'TEXT'],
+      ['legal_offer_accepted_at', 'DATETIME'],
+      ['legal_agreement_accepted_at', 'DATETIME'],
+      ['legal_privacy_accepted_at', 'DATETIME'],
+      ['legal_terms_version', 'TEXT'],
+      ['legal_acceptance_ip', 'TEXT'],
+      ['legal_acceptance_user_agent', 'TEXT'],
     ] as const
 
     for (const [column, definition] of bookingColumns) {

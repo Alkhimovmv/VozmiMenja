@@ -21,6 +21,7 @@ const requiredPaths = [
   '/contact',
   '/faq',
   '/delivery',
+  '/booking',
   '/kak-prohodit-arenda-tehniki',
   '/samovyvoz-24-7-postamat',
   '/arenda-tehniki-dlya-meropriyatiya-moskva',

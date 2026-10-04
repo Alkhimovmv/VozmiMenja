@@ -283,7 +283,40 @@ export default function SiteBookingsPage() {
                     <span className="rounded-full bg-gray-100 px-2.5 py-1 font-semibold text-gray-700">
                       Страница: {formatSourcePage(booking.sourcePage)}
                     </span>
+                    {booking.preferredContact && (
+                      <span className="rounded-full bg-blue-50 px-2.5 py-1 font-semibold text-blue-700">
+                        Связь: {booking.preferredContact}
+                      </span>
+                    )}
+                    {booking.deliveryMethod && (
+                      <span className="rounded-full bg-violet-50 px-2.5 py-1 font-semibold text-violet-700">
+                        {booking.deliveryMethod === 'delivery' ? 'Доставка' : 'Самовывоз'}
+                      </span>
+                    )}
+                    {booking.legalOfferAcceptedAt && (
+                      <span className="rounded-full bg-emerald-50 px-2.5 py-1 font-semibold text-emerald-700">
+                        Документы приняты
+                      </span>
+                    )}
                   </div>
+                  {(booking.deliveryAddress || booking.legalOfferAcceptedAt) && (
+                    <div className="mt-3 grid gap-2 md:grid-cols-2">
+                      {booking.deliveryAddress && (
+                        <div className="rounded-xl bg-violet-50 px-3 py-2 text-sm text-violet-900 ring-1 ring-violet-100">
+                          <span className="block text-xs font-bold uppercase tracking-wide text-violet-600">Адрес доставки</span>
+                          {booking.deliveryAddress}
+                        </div>
+                      )}
+                      {booking.legalOfferAcceptedAt && (
+                        <div className="rounded-xl bg-emerald-50 px-3 py-2 text-sm text-emerald-900 ring-1 ring-emerald-100">
+                          <span className="block text-xs font-bold uppercase tracking-wide text-emerald-600">Юридическая фиксация</span>
+                          <span className="block">Оферта, договор и ПДн: {formatDate(booking.legalOfferAcceptedAt)}</span>
+                          {booking.legalTermsVersion && <span className="block text-xs">Версия: {booking.legalTermsVersion}</span>}
+                          {booking.legalAcceptanceIp && <span className="block text-xs">IP: {booking.legalAcceptanceIp}</span>}
+                        </div>
+                      )}
+                    </div>
+                  )}
                   {(bookingContext.scenario || bookingContext.managerHint) && (
                     <div className="mt-3 grid gap-2 md:grid-cols-2">
                       {bookingContext.scenario && (

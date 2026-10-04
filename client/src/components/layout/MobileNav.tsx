@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom'
-import { Home, Info, Truck, Phone, HelpCircle } from 'lucide-react'
+import { Home, Info, ClipboardCheck, Truck, Phone } from 'lucide-react'
 
 export default function MobileNav() {
   const { pathname } = useLocation()
@@ -7,9 +7,9 @@ export default function MobileNav() {
   const tabs = [
     { to: '/', icon: Home, label: 'Главная' },
     { to: '/about', icon: Info, label: 'О нас' },
+    { to: '/booking', icon: ClipboardCheck, label: 'Бронь' },
     { to: '/delivery', icon: Truck, label: 'Доставка' },
     { to: '/contact', icon: Phone, label: 'Контакты' },
-    { to: '/faq', icon: HelpCircle, label: 'FAQ' },
   ]
 
   return (

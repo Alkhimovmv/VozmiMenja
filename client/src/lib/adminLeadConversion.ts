@@ -59,7 +59,13 @@ export const buildRentalFromBooking = (
   const sourceText = [
     `Заявка с сайта #${booking.id}`,
     booking.equipment?.name ? `Оборудование на сайте: ${booking.equipment.name}` : '',
+    booking.preferredContact ? `Предпочтительный канал связи: ${booking.preferredContact}` : '',
+    booking.deliveryMethod ? `Получение: ${booking.deliveryMethod === 'delivery' ? 'доставка' : 'самовывоз'}` : '',
+    booking.deliveryAddress ? `Адрес доставки: ${booking.deliveryAddress}` : '',
     booking.comment ? `Комментарий клиента: ${booking.comment}` : '',
+    booking.legalOfferAcceptedAt
+      ? `Юридическое согласие: оферта/договор/ПДн приняты ${booking.legalOfferAcceptedAt}; версия: ${booking.legalTermsVersion || 'не указана'}`
+      : '',
     `Страница: ${formatSourcePage(booking.sourcePage, origin)}`,
     `Источник: ${formatLeadSource(booking)}`,
   ].filter(Boolean).join('\n')
@@ -72,7 +78,8 @@ export const buildRentalFromBooking = (
     end_date: formatBookingDateTime(booking.endDate, '20:00'),
     customer_name: booking.customerName,
     customer_phone: booking.customerPhone,
-    needs_delivery: false,
+    needs_delivery: booking.deliveryMethod === 'delivery',
+    delivery_address: booking.deliveryMethod === 'delivery' ? booking.deliveryAddress || '' : '',
     rental_price: booking.totalPrice,
     delivery_price: null,
     delivery_costs: null,
