@@ -143,28 +143,42 @@ export default function BookingForm({ equipment, onClose }: BookingFormProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!formData.startDate || !formData.endDate) {
-      toast.error('Пожалуйста, выберите даты аренды')
-      return
-    }
-    if (calculateRentalDays(formData.startDate, formData.endDate) === 0) {
+    const submitStartDate = formData.startDate || today
+    const submitEndDate = formData.endDate || formData.startDate || today
+    const datesWereSelected = Boolean(formData.startDate && formData.endDate)
+
+    if (formData.startDate && formData.endDate && calculateRentalDays(formData.startDate, formData.endDate) === 0) {
       toast.error('Дата окончания не может быть раньше даты начала')
       return
     }
+
+    const commentWithContext = [
+      datesWereSelected ? '' : 'Быстрая заявка: даты аренды клиент не выбрал, уточнить при связи.',
+      formData.comment.trim(),
+    ].filter(Boolean).join('\n\n')
+
     try {
       const leadContext = getLeadContext()
-      await createBookingMutation.mutateAsync({ equipmentId: equipment.id, ...formData, ...leadContext })
+      await createBookingMutation.mutateAsync({
+        equipmentId: equipment.id,
+        ...formData,
+        startDate: submitStartDate,
+        endDate: submitEndDate,
+        comment: commentWithContext,
+        ...leadContext,
+      })
       trackEvent('booking_submit', {
         equipment_id: equipment.id,
         equipment_name: equipment.name,
-        total_price: totalPrice,
-        total_days: totalDays,
+        total_price: totalPrice || null,
+        total_days: totalDays || null,
+        quick_request: !datesWereSelected,
         source_page: leadContext.sourcePage,
         utm_source: leadContext.utmSource,
         utm_medium: leadContext.utmMedium,
         utm_campaign: leadContext.utmCampaign,
       })
-      toast.success('Бронирование успешно создано! Мы свяжемся с вами для подтверждения.')
+      toast.success('Заявка отправлена! Мы свяжемся с вами для подтверждения.')
       onClose()
     } catch (error) {
       toast.error(getApiErrorMessage(error, 'Произошла ошибка при создании бронирования'))
@@ -267,42 +281,40 @@ export default function BookingForm({ equipment, onClose }: BookingFormProps) {
             </div>
           </div>
 
-          <form id="booking-form" onSubmit={handleSubmit} className="space-y-5">
+          <form id="booking-form" onSubmit={handleSubmit} className="flex flex-col gap-5">
             {/* Dates */}
-            <div>
+            <div className="order-2">
               <p className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
-                <Calendar className="w-4 h-4 text-[#2563EB]" /> Период аренды
+                <Calendar className="w-4 h-4 text-[#2563EB]" /> Период аренды <span className="font-normal text-gray-400">(можно уточнить позже)</span>
               </p>
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <div className="min-w-0">
-                  <label className="block text-xs text-gray-500 mb-1.5">Дата начала *</label>
+                  <label className="block text-xs text-gray-500 mb-1.5">Дата начала</label>
                   <input
                     type="date"
                     name="startDate"
                     value={formData.startDate}
                     onChange={handleInputChange}
                     min={today}
-                    required
                     placeholder="дд.мм.гггг"
                     className="block w-full min-w-0 max-w-full pl-3 pr-1.5 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#2563EB]/30 focus:border-[#2563EB] transition-colors [&:not(:valid)]:text-gray-400"
                   />
                 </div>
                 <div className="min-w-0">
-                  <label className="block text-xs text-gray-500 mb-1.5">Дата возврата *</label>
+                  <label className="block text-xs text-gray-500 mb-1.5">Дата возврата</label>
                   <input
                     type="date"
                     name="endDate"
                     value={formData.endDate}
                     onChange={handleInputChange}
                     min={formData.startDate || today}
-                    required
                     placeholder="дд.мм.гггг"
                     className="block w-full min-w-0 max-w-full pl-3 pr-1.5 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#2563EB]/30 focus:border-[#2563EB] transition-colors [&:not(:valid)]:text-gray-400"
                   />
                 </div>
               </div>
               <p className="text-xs text-gray-400 mt-2">
-                Если берете 6-го и возвращаете 7-го, это считается как 1 сутки. Для аренды в тот же день выберите одну дату.
+                Если пока не знаете даты — просто оставьте телефон, менеджер уточнит срок и наличие.
               </p>
               <div className="mt-3 flex flex-wrap gap-2">
                 {rentalPresets.map((preset) => (
@@ -320,7 +332,7 @@ export default function BookingForm({ equipment, onClose }: BookingFormProps) {
 
             {/* Price calculation */}
             {totalDays > 0 && (
-              <div className="bg-blue-50 rounded-2xl p-4 border border-blue-100">
+              <div className="order-3 bg-blue-50 rounded-2xl p-4 border border-blue-100">
                 <div className="flex justify-between text-sm text-blue-700 mb-1.5">
                   <span>Срок аренды</span>
                   <span className="font-semibold">{totalDays} {totalDays === 1 ? 'день' : totalDays < 5 ? 'дня' : 'дней'}</span>
@@ -338,7 +350,7 @@ export default function BookingForm({ equipment, onClose }: BookingFormProps) {
 
             {/* Pricing tiers */}
             {pricingTiers.length > 0 && (
-              <div className="bg-[#F8FAFC] rounded-2xl border border-gray-100 p-4">
+              <div className="order-5 bg-[#F8FAFC] rounded-2xl border border-gray-100 p-4">
                 <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Тарифы</p>
                 <div className="space-y-1.5">
                   {pricingTiers.map((tier) => (
@@ -353,7 +365,7 @@ export default function BookingForm({ equipment, onClose }: BookingFormProps) {
 
             {/* Scenario presets */}
             {scenarioPresets.length > 0 && (
-              <div className="bg-[#F8FAFC] rounded-2xl border border-gray-100 p-4">
+              <div className="order-4 bg-[#F8FAFC] rounded-2xl border border-gray-100 p-4">
                 <p className="text-sm font-semibold text-gray-700 mb-1">Для чего берете?</p>
                 <p className="text-xs text-gray-400 mb-3">
                   Выберите сценарий — мы добавим подсказку менеджеру в заявку.
@@ -374,9 +386,12 @@ export default function BookingForm({ equipment, onClose }: BookingFormProps) {
             )}
 
             {/* Contact info */}
-            <div>
+            <div className="order-1 rounded-2xl border border-blue-100 bg-blue-50/50 p-4">
               <p className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
-                <User className="w-4 h-4 text-[#2563EB]" /> Контактные данные
+                <User className="w-4 h-4 text-[#2563EB]" /> Быстрая заявка
+              </p>
+              <p className="-mt-1 mb-3 text-xs text-gray-500">
+                Достаточно имени и телефона — даты, доставку и комплект уточним в звонке или мессенджере.
               </p>
               <div className="space-y-3">
                 <div>
@@ -465,7 +480,7 @@ export default function BookingForm({ equipment, onClose }: BookingFormProps) {
             </div>
 
             {/* Consent */}
-            <label className="flex items-start gap-3 cursor-pointer group">
+            <label className="order-6 flex items-start gap-3 cursor-pointer group">
               <input
                 type="checkbox"
                 checked={consent}
@@ -481,7 +496,7 @@ export default function BookingForm({ equipment, onClose }: BookingFormProps) {
             </label>
 
             {/* Conditions */}
-            <div className="bg-blue-50 rounded-xl p-3 text-xs text-blue-800 space-y-1">
+            <div className="order-7 bg-blue-50 rounded-xl p-3 text-xs text-blue-800 space-y-1">
               <p className="font-semibold mb-1.5">Что потребуется при получении:</p>
               <p>• Фото первой страницы паспорта и страницы с пропиской</p>
               <p>• Оплата при получении оборудования</p>
@@ -507,7 +522,7 @@ export default function BookingForm({ equipment, onClose }: BookingFormProps) {
           <button
             type="submit"
             form="booking-form"
-            disabled={createBookingMutation.isPending || !totalPrice}
+            disabled={createBookingMutation.isPending}
             className="btn-primary flex-1 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {createBookingMutation.isPending ? (
