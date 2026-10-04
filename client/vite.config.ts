@@ -1,10 +1,11 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import tailwindcss from '@tailwindcss/vite'
 import { fileURLToPath, URL } from 'node:url'
 
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [react()],
+  plugins: [tailwindcss(), react()],
   base: '/', // Для кастомного домена vozmimenya.ru
   resolve: {
     alias: {
@@ -34,6 +35,36 @@ export default defineConfig({
         // Разделение кода на чанки для лучшей загрузки
         manualChunks: (id) => {
           if (id.includes('node_modules')) {
+            if (
+              id.includes('@react-pdf/font') ||
+              id.includes('fontkit') ||
+              id.includes('unicode-properties')
+            ) {
+              return 'pdf-font-vendor'
+            }
+            if (
+              id.includes('@react-pdf/layout') ||
+              id.includes('@react-pdf/textkit') ||
+              id.includes('linebreak') ||
+              id.includes('hyphen')
+            ) {
+              return 'pdf-layout-vendor'
+            }
+            if (
+              id.includes('@react-pdf/pdfkit') ||
+              id.includes('pdfkit') ||
+              id.includes('png-js') ||
+              id.includes('jpeg-exif')
+            ) {
+              return 'pdf-core-vendor'
+            }
+            if (
+              id.includes('@react-pdf') ||
+              id.includes('restructure') ||
+              id.includes('yoga-layout')
+            ) {
+              return 'pdf-vendor'
+            }
             if (id.includes('lucide-react') || id.includes('lucide')) {
               return 'icons-vendor'
             }
@@ -49,7 +80,10 @@ export default defineConfig({
             if (id.includes('date-fns') || id.includes('react-datepicker')) {
               return 'date-vendor'
             }
-            if (id.includes('react') || id.includes('react-dom') || id.includes('react-router')) {
+            if (id.includes('react-router')) {
+              return 'router-vendor'
+            }
+            if (id.includes('/react/') || id.includes('/react-dom/')) {
               return 'react-vendor'
             }
             if (id.includes('lucide-react')) {
