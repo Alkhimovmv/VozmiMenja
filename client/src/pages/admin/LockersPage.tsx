@@ -480,8 +480,9 @@ const LockersPage: React.FC = () => {
 
       {/* Модальное окно */}
       {isModalOpen && (
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-lg w-full mx-4 max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4 py-6">
+          <div className="fixed inset-0 bg-gray-600/50" onClick={closeModal} aria-hidden="true" />
+          <div className="relative z-10 bg-white rounded-lg p-6 max-w-lg w-full max-h-[90vh] overflow-y-auto shadow-xl">
             <h2 className="text-xl font-bold mb-4">
               {editingLocker ? 'Редактировать ячейку' : 'Добавить ячейку'}
             </h2>
