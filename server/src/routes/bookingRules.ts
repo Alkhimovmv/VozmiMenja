@@ -17,7 +17,6 @@ export const createBookingSchema = z.object({
   equipmentId: z.string().min(1, 'Не выбрано оборудование').max(120, 'Некорректный ID оборудования'),
   customerName: z.string().min(2, 'Имя должно содержать минимум 2 символа'),
   customerPhone: z.string().min(10, 'Некорректный номер телефона'),
-  customerEmail: z.string().email('Некорректный email').optional().or(z.literal('')),
   startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Некорректная дата начала'),
   endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Некорректная дата окончания'),
   comment: z.string().max(1000).optional(),

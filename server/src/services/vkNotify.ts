@@ -30,7 +30,6 @@ class VkNotifyService {
     equipmentName: string
     customerName: string
     customerPhone: string
-    customerEmail: string
     startDate: string
     endDate: string
     totalPrice: number
@@ -47,8 +46,7 @@ class VkNotifyService {
       `🔔 Новая заявка на аренду\n\n` +
       `📦 ${data.equipmentName}\n\n` +
       `👤 Клиент: ${data.customerName}\n` +
-      `📞 Телефон: ${data.customerPhone}\n` +
-      `✉️ Email: ${data.customerEmail || 'не указан'}\n\n` +
+      `📞 Телефон: ${data.customerPhone}\n\n` +
       `📅 Начало: ${this.formatDate(data.startDate)}\n` +
       `📅 Окончание: ${this.formatDate(data.endDate)}\n\n` +
       `💰 Стоимость: ${data.totalPrice.toLocaleString('ru-RU')} ₽`

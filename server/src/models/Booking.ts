@@ -7,7 +7,7 @@ export interface Booking {
   equipment?: Equipment
   customerName: string
   customerPhone: string
-  customerEmail: string
+  customerEmail?: string
   startDate: string
   endDate: string
   totalPrice: number
@@ -199,7 +199,7 @@ export class BookingModel {
       equipmentId: row.equipment_id,
       customerName: row.customer_name,
       customerPhone: row.customer_phone,
-      customerEmail: row.customer_email,
+      customerEmail: row.customer_email || undefined,
       startDate: row.start_date,
       endDate: row.end_date,
       totalPrice: row.total_price,

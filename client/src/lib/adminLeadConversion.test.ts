@@ -20,7 +20,6 @@ const booking: Booking = {
   },
   customerName: 'Максим',
   customerPhone: '+7 999 000-00-00',
-  customerEmail: '',
   startDate: '2026-09-12',
   endDate: '2026-09-13',
   totalPrice: 2000,

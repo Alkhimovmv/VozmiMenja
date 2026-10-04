@@ -32,7 +32,6 @@ class TelegramService {
     equipmentName: string
     customerName: string
     customerPhone: string
-    customerEmail: string
     startDate: string
     endDate: string
     totalPrice: number
@@ -58,7 +57,6 @@ class TelegramService {
 👤 <b>Клиент:</b>
 • Имя: ${this.escapeHtml(data.customerName)}
 • Телефон: ${this.escapeHtml(data.customerPhone)}
-• Email: ${this.escapeHtml(data.customerEmail || 'не указан')}
 
 📅 <b>Даты аренды:</b>
 • Начало: ${this.formatDate(data.startDate)}

@@ -42,7 +42,6 @@ class EmailNotifyService {
     equipmentName: string
     customerName: string
     customerPhone: string
-    customerEmail: string
     startDate: string
     endDate: string
     totalPrice: number
@@ -80,7 +79,6 @@ class EmailNotifyService {
       <tr><td colspan="2"><hr style="border:none;border-top:1px solid #f1f5f9;margin:8px 0"></td></tr>
       <tr><td style="padding:6px 0;color:#6b7280">Клиент</td><td style="padding:6px 0;font-weight:600">${escapeHtml(data.customerName)}</td></tr>
       <tr><td style="padding:6px 0;color:#6b7280">Телефон</td><td style="padding:6px 0;font-weight:600"><a href="tel:${escapeHtml(data.customerPhone)}" style="color:#2563eb">${escapeHtml(data.customerPhone)}</a></td></tr>
-      <tr><td style="padding:6px 0;color:#6b7280">Email</td><td style="padding:6px 0">${escapeHtml(data.customerEmail || 'не указан')}</td></tr>
       <tr><td colspan="2"><hr style="border:none;border-top:1px solid #f1f5f9;margin:8px 0"></td></tr>
       <tr><td style="padding:6px 0;color:#6b7280">Начало</td><td style="padding:6px 0;font-weight:600">${this.formatDate(data.startDate)}</td></tr>
       <tr><td style="padding:6px 0;color:#6b7280">Окончание</td><td style="padding:6px 0;font-weight:600">${this.formatDate(data.endDate)}</td></tr>

@@ -1,12 +1,11 @@
 import { calculateRentalDays, createBookingSchema, parseDateInput } from './bookingRules'
 
 describe('booking rules', () => {
-  it('accepts a valid booking payload with optional email and lead source fields', () => {
+  it('accepts a valid booking payload with lead source fields', () => {
     const parsed = createBookingSchema.parse({
       equipmentId: 'equipment-1',
       customerName: 'Максим',
       customerPhone: '+7 999 000-00-00',
-      customerEmail: '',
       startDate: '2026-09-12',
       endDate: '2026-09-13',
       preferredContact: 'telegram',
@@ -22,7 +21,6 @@ describe('booking rules', () => {
       },
     })
 
-    expect(parsed.customerEmail).toBe('')
     expect(parsed.utmSource).toBe('yandex')
     expect(parsed.legal?.offerAccepted).toBe(true)
   })

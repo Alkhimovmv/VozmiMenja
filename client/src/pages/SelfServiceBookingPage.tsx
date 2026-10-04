@@ -97,7 +97,6 @@ export default function SelfServiceBookingPage() {
     equipmentId: '',
     customerName: '',
     customerPhone: '',
-    customerEmail: '',
     startDate: today,
     endDate: tomorrow,
     startTime: '10:00',
@@ -174,7 +173,6 @@ export default function SelfServiceBookingPage() {
         equipmentId: selectedEquipment.id,
         customerName: formData.customerName,
         customerPhone: formData.customerPhone,
-        customerEmail: formData.customerEmail,
         startDate: formData.startDate,
         endDate: formData.endDate,
         preferredContact: formData.preferredContact,
@@ -205,7 +203,6 @@ export default function SelfServiceBookingPage() {
         equipmentId: '',
         customerName: '',
         customerPhone: '',
-        customerEmail: '',
         deliveryAddress: '',
         comment: '',
         offerAccepted: false,
@@ -346,19 +343,7 @@ export default function SelfServiceBookingPage() {
               </label>
             </div>
 
-            <div className="grid gap-4 sm:grid-cols-2">
-              <label className="block">
-                <span className="text-sm font-bold text-slate-700">Email</span>
-                <input
-                  type="email"
-                  name="customerEmail"
-                  value={formData.customerEmail}
-                  onChange={handleChange}
-                  autoComplete="email"
-                  placeholder="mail@example.ru"
-                  className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
-                />
-              </label>
+            <div>
               <label className="block">
                 <span className="text-sm font-bold text-slate-700">Как удобнее связаться</span>
                 <select

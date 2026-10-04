@@ -76,7 +76,7 @@ export interface Booking {
   equipment?: PublicEquipment
   customerName: string
   customerPhone: string
-  customerEmail: string
+  customerEmail?: string
   startDate: string
   endDate: string
   totalPrice: number
@@ -104,7 +104,6 @@ export interface BookingRequest {
   equipmentId: string
   customerName: string
   customerPhone: string
-  customerEmail: string
   startDate: string
   endDate: string
   comment?: string
