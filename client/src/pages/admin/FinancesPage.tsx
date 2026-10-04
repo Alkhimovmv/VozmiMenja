@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuthenticatedQuery } from '../../hooks/useAuthenticatedQuery';
 import { analyticsApi } from '../../api/admin/analytics';
@@ -11,6 +11,13 @@ import ConfirmDialog from '../../components/admin/ConfirmDialog';
 import { useOffice } from '../../hooks/useOffice';
 
 type CreateExpenseWithOfficeDto = CreateExpenseDto & { office_id: number };
+
+const monthNames = [
+  'Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь',
+  'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'
+];
+
+const monthKey = (year: number, month: number) => `${year}-${month.toString().padStart(2, '0')}`;
 
 const FinancesPage: React.FC = () => {
   const { currentOfficeId } = useOffice();
@@ -107,25 +114,73 @@ const FinancesPage: React.FC = () => {
     setIsExpenseModalOpen(true);
   };
 
-  // Генерируем опции месяцев на основе реальных данных
+  const lastTwelveMonths = useMemo(() => {
+    return Array.from({ length: 12 }, (_, index) => {
+      const date = new Date(currentYear, currentMonth - 1 - index, 1);
+      const year = date.getFullYear();
+      const month = date.getMonth() + 1;
+
+      return {
+        year,
+        month,
+        key: monthKey(year, month),
+        month_name: monthNames[month - 1],
+      };
+    });
+  }, [currentMonth, currentYear]);
+
+  const monthlyDynamics = useMemo(() => {
+    const revenueByMonth = new Map(
+      monthlyRevenue.map((item) => [monthKey(item.year, item.month), item])
+    );
+
+    const expensesByMonth = new Map<string, number>();
+    expenses.forEach((expense) => {
+      const expenseDate = new Date(expense.date);
+      const key = monthKey(expenseDate.getFullYear(), expenseDate.getMonth() + 1);
+      expensesByMonth.set(key, (expensesByMonth.get(key) || 0) + (expense.amount || 0));
+    });
+
+    return lastTwelveMonths.map(({ year, month, key, month_name }) => {
+      const revenueItem = revenueByMonth.get(key);
+      const expenseOnlyNetProfit = -(expensesByMonth.get(key) || 0);
+
+      return {
+        year,
+        month,
+        month_name: revenueItem?.month_name || month_name,
+        total_revenue: revenueItem?.total_revenue || 0,
+        net_profit: revenueItem ? (revenueItem.net_profit || 0) : expenseOnlyNetProfit,
+        rental_count: revenueItem?.rental_count || 0,
+      };
+    });
+  }, [expenses, lastTwelveMonths, monthlyRevenue]);
+
+  const yearlyNetProfit = monthlyDynamics.reduce((sum, item) => sum + (item.net_profit || 0), 0);
+
+  // Генерируем опции месяцев на основе реальных данных и полного последнего года
   const monthOptions = (() => {
     const monthsSet = new Set<string>();
 
+    lastTwelveMonths.forEach((item) => {
+      monthsSet.add(item.key);
+    });
+
     // Добавляем месяцы из доходов
     monthlyRevenue.forEach((item) => {
-      const value = `${item.year}-${item.month.toString().padStart(2, '0')}`;
+      const value = monthKey(item.year, item.month);
       monthsSet.add(value);
     });
 
     // Добавляем месяцы из расходов
     expenses.forEach((expense) => {
       const expenseDate = new Date(expense.date);
-      const value = `${expenseDate.getFullYear()}-${(expenseDate.getMonth() + 1).toString().padStart(2, '0')}`;
+      const value = monthKey(expenseDate.getFullYear(), expenseDate.getMonth() + 1);
       monthsSet.add(value);
     });
 
     // Всегда добавляем текущий месяц
-    const currentMonthValue = `${currentYear}-${currentMonth.toString().padStart(2, '0')}`;
+    const currentMonthValue = monthKey(currentYear, currentMonth);
     monthsSet.add(currentMonthValue);
 
     // Конвертируем в массив и сортируем
@@ -234,12 +289,20 @@ const FinancesPage: React.FC = () => {
 
       {/* Помесячная динамика */}
       <div className="bg-white shadow rounded-lg">
-        <div className="px-6 py-4 border-b border-gray-200">
-          <h3 className="text-lg font-medium text-gray-900">Помесячная динамика</h3>
+        <div className="flex flex-col gap-2 border-b border-gray-200 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+          <div>
+            <h3 className="text-lg font-medium text-gray-900">Помесячная динамика за год</h3>
+            <p className="mt-1 text-xs text-gray-500">Показаны все 12 месяцев, включая месяцы без аренд.</p>
+          </div>
+          <div className={`rounded-lg px-3 py-2 text-sm font-bold ${
+            yearlyNetProfit >= 0 ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'
+          }`}>
+            Годовая чистая прибыль: {yearlyNetProfit.toLocaleString()}₽
+          </div>
         </div>
-        <div className="p-6">
+        <div className="p-4 sm:p-6">
           <div className="space-y-4">
-            {monthlyRevenue.slice(0, 6).map((item) => (
+            {monthlyDynamics.map((item) => (
               <div key={`${item.year}-${item.month}`} className="flex items-center justify-between py-2">
                 <div className="flex items-center space-x-4">
                   <div className="text-sm font-medium text-gray-900">
@@ -255,11 +318,6 @@ const FinancesPage: React.FC = () => {
               </div>
             ))}
           </div>
-          {monthlyRevenue.length === 0 && (
-            <div className="text-center py-8 text-gray-500">
-              Нет данных о доходах
-            </div>
-          )}
         </div>
       </div>
 

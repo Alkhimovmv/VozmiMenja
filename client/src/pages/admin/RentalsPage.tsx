@@ -24,7 +24,7 @@ const Spinner = () => (
 type DateFilter = 'week' | 'month' | 'all' | 'ends_today' | 'ends_tomorrow' | 'specific_date';
 type AttentionTone = 'red' | 'amber' | 'blue' | 'emerald';
 type AttentionReason = { label: string; tone: AttentionTone };
-type TodayActionItem = {
+type OperationActionItem = {
   rental: Rental;
   label: string;
   tone: AttentionTone;
@@ -108,38 +108,10 @@ const RentalsPage: React.FC = () => {
       const endDate = startOfDay(new Date(rental.end_date));
       return isBefore(endDate, today) && !isClosedRental(rental);
     });
-    const dataIssues = rentals
-      .map((rental) => {
-        const reasons: AttentionReason[] = [];
-        const startDate = startOfDay(new Date(rental.start_date));
-        const endDate = startOfDay(new Date(rental.end_date));
-        const isRelevantToday = isSameDay(startDate, today) || isSameDay(endDate, today) || isBefore(endDate, today);
-
-        if (isClosedRental(rental) || !isRelevantToday) {
-          return null;
-        }
-
-        if (!rental.rental_price && rental.rental_price !== 0) {
-          reasons.push({ label: 'Нет цены аренды', tone: 'amber' });
-        }
-
-        if (rental.needs_delivery && !rental.delivery_address?.trim()) {
-          reasons.push({ label: 'Нет адреса доставки', tone: 'amber' });
-        }
-
-        if (reasons.length === 0) {
-          return null;
-        }
-
-        return { rental, reasons };
-      })
-      .filter((item): item is { rental: Rental; reasons: AttentionReason[] } => item !== null);
-
     return {
       issue: dayOperations.issue,
       returns: dayOperations.returns,
       overdue,
-      dataIssues,
     };
   }, [rentals]);
 
@@ -153,12 +125,11 @@ const RentalsPage: React.FC = () => {
     };
   }, [rentals]);
 
-  const todayOperationsTotal = todayOperations.issue.length + todayOperations.returns.length + todayOperations.overdue.length + todayOperations.dataIssues.length;
+  const todayOperationsTotal = todayOperations.issue.length + todayOperations.returns.length + todayOperations.overdue.length;
   const tomorrowOperationsTotal = tomorrowOperations.issue.length + tomorrowOperations.returns.length;
-  const todayDataIssuesByRentalId = useMemo(() => new Map(todayOperations.dataIssues.map((item) => [item.rental.id, item.reasons])), [todayOperations.dataIssues]);
-  const todayActionItems = useMemo<TodayActionItem[]>(() => {
+  const todayActionItems = useMemo<OperationActionItem[]>(() => {
     const usedRentalIds = new Set<number>();
-    const items: TodayActionItem[] = [];
+    const items: OperationActionItem[] = [];
 
     const addItem = (rental: Rental, label: string, tone: AttentionTone) => {
       if (usedRentalIds.has(rental.id)) {
@@ -170,17 +141,42 @@ const RentalsPage: React.FC = () => {
         rental,
         label,
         tone,
-        reasons: todayDataIssuesByRentalId.get(rental.id) ?? [],
+        reasons: [],
       });
     };
 
     todayOperations.overdue.forEach((rental) => addItem(rental, 'Просрочено', 'red'));
     todayOperations.returns.forEach((rental) => addItem(rental, 'Принять', 'emerald'));
     todayOperations.issue.forEach((rental) => addItem(rental, 'Выдать', 'blue'));
-    todayOperations.dataIssues.forEach((item) => addItem(item.rental, 'Проверить', 'amber'));
 
     return items;
-  }, [todayDataIssuesByRentalId, todayOperations]);
+  }, [todayOperations]);
+
+  const tomorrowActionItems = useMemo<OperationActionItem[]>(() => {
+    const usedRentalIds = new Set<number>();
+    const items: OperationActionItem[] = [];
+
+    const addItem = (rental: Rental, label: string, tone: AttentionTone) => {
+      if (usedRentalIds.has(rental.id)) {
+        return;
+      }
+
+      usedRentalIds.add(rental.id);
+      items.push({ rental, label, tone, reasons: [] });
+    };
+
+    tomorrowOperations.returns.forEach((rental) => addItem(rental, 'Принять', 'emerald'));
+    tomorrowOperations.issue.forEach((rental) => addItem(rental, 'Выдать', 'blue'));
+
+    return items;
+  }, [tomorrowOperations]);
+
+  const isTomorrowOperationsView = dateFilter === 'ends_tomorrow';
+  const activeOperationsTotal = isTomorrowOperationsView ? tomorrowOperationsTotal : todayOperationsTotal;
+  const activeActionItems = isTomorrowOperationsView ? tomorrowActionItems : todayActionItems;
+  const activeOperationsEmptyText = isTomorrowOperationsView
+    ? 'На завтра нет выдач и возвратов.'
+    : 'На сегодня нет выдач, возвратов и просрочек.';
 
   // Фильтрация и сортировка аренд
   const filteredRentals = useMemo(() => {
@@ -439,28 +435,36 @@ const RentalsPage: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setDateFilter('ends_today')}
-                className="rounded-lg border border-indigo-100 bg-indigo-50 px-3 py-2 text-xs font-bold text-indigo-700 hover:bg-indigo-100"
+                className={`rounded-lg border px-3 py-2 text-xs font-bold ${
+                  !isTomorrowOperationsView
+                    ? 'border-indigo-100 bg-indigo-50 text-indigo-700 hover:bg-indigo-100'
+                    : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
+                }`}
               >
-                Сегодня
+                Сегодня {todayOperationsTotal}
               </button>
               <button
                 type="button"
                 onClick={() => setDateFilter('ends_tomorrow')}
-                className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50"
+                className={`rounded-lg border px-3 py-2 text-xs font-bold ${
+                  isTomorrowOperationsView
+                    ? 'border-indigo-100 bg-indigo-50 text-indigo-700 hover:bg-indigo-100'
+                    : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
+                }`}
               >
                 Завтра {tomorrowOperationsTotal}
               </button>
             </div>
           </div>
 
-          {todayOperationsTotal === 0 ? (
+          {activeOperationsTotal === 0 ? (
             <div className="mt-2 rounded-lg bg-slate-50 px-3 py-2 text-sm text-slate-600">
-              На сегодня нет выдач, возвратов и просрочек.
+              {activeOperationsEmptyText}
             </div>
           ) : (
             <div className="mt-2 overflow-hidden rounded-lg border border-slate-100">
-              {todayActionItems.slice(0, 6).map(({ rental, label, tone, reasons }) => (
-                <div key={`today-action-${rental.id}`} className="flex flex-col gap-2 border-b border-slate-100 bg-slate-50 px-3 py-2 last:border-b-0 sm:flex-row sm:items-center sm:justify-between">
+              {activeActionItems.slice(0, 6).map(({ rental, label, tone, reasons }) => (
+                <div key={`operation-action-${isTomorrowOperationsView ? 'tomorrow' : 'today'}-${rental.id}`} className="flex flex-col gap-2 border-b border-slate-100 bg-slate-50 px-3 py-2 last:border-b-0 sm:flex-row sm:items-center sm:justify-between">
                   <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-1">
                     <span className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-bold ${attentionToneClasses[tone]}`}>
                       {label}
@@ -504,8 +508,8 @@ const RentalsPage: React.FC = () => {
                   </div>
                 </div>
               ))}
-              {todayActionItems.length > 6 && (
-                <p className="bg-white px-3 py-2 text-xs text-gray-500">Еще {todayActionItems.length - 6} в полном списке.</p>
+              {activeActionItems.length > 6 && (
+                <p className="bg-white px-3 py-2 text-xs text-gray-500">Еще {activeActionItems.length - 6} в полном списке.</p>
               )}
             </div>
           )}
@@ -543,7 +547,7 @@ const RentalsPage: React.FC = () => {
                 type="date"
                 value={specificDate}
                 onChange={(e) => setSpecificDate(e.target.value)}
-                className="w-full sm:w-auto px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full rounded-md border border-gray-300 py-2 pl-3 pr-14 focus:outline-none focus:ring-2 focus:ring-indigo-500 sm:w-auto sm:pr-10"
               />
             </div>
           )}

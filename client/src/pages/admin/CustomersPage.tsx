@@ -59,14 +59,14 @@ function RentalDetailsModal({ rental, onClose }: { rental: Rental | null; onClos
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+      className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 p-3 sm:items-center sm:p-4"
       onClick={onClose}
     >
       <div
-        className="w-full max-w-xl rounded-xl bg-white shadow-xl"
+        className="flex max-h-[calc(100dvh-1.5rem)] w-full max-w-xl flex-col overflow-hidden rounded-xl bg-white shadow-xl sm:max-h-[calc(100vh-2rem)]"
         onClick={(event) => event.stopPropagation()}
       >
-        <div className="flex items-start justify-between border-b border-gray-100 px-5 py-4">
+        <div className="flex shrink-0 items-start justify-between border-b border-gray-100 px-4 py-3 sm:px-5 sm:py-4">
           <div>
             <h3 className="text-lg font-semibold text-gray-900">Информация об аренде</h3>
             <p className="mt-1 text-sm text-gray-500">#{rental.id}</p>
@@ -80,7 +80,7 @@ function RentalDetailsModal({ rental, onClose }: { rental: Rental | null; onClos
           </button>
         </div>
 
-        <div className="space-y-4 px-5 py-4 text-sm">
+        <div className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain px-4 py-4 text-sm sm:px-5">
           <div className="flex flex-wrap items-center gap-2">
             <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${status.color}`}>
               {status.label}
