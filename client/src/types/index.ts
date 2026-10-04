@@ -106,6 +106,8 @@ export interface BookingRequest {
   customerPhone: string
   startDate: string
   endDate: string
+  startTime?: string
+  endTime?: string
   comment?: string
   preferredContact?: string
   deliveryMethod?: 'pickup' | 'delivery'

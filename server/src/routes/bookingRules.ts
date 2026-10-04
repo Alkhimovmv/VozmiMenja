@@ -10,6 +10,26 @@ export const calculateRentalDays = (startDate: Date, endDate: Date) => {
   return Math.max(1, diffDays)
 }
 
+export const parseDateTimeInput = (date: string, time = '10:00') => {
+  const [year, month, day] = date.split('-').map(Number)
+  const [hours, minutes] = time.split(':').map(Number)
+  return new Date(year, month - 1, day, hours || 0, minutes || 0)
+}
+
+export const calculateBillableRentalDays = (
+  startDate: string,
+  endDate: string,
+  startTime = '10:00',
+  endTime = '10:00'
+) => {
+  const start = parseDateTimeInput(startDate, startTime)
+  const end = parseDateTimeInput(endDate, endTime)
+  if (end <= start) return 0
+
+  const diffHours = (end.getTime() - start.getTime()) / (1000 * 60 * 60)
+  return Math.max(1, Math.ceil(diffHours / 24))
+}
+
 const optionalLeadField = (maxLength: number) =>
   z.string().optional().transform((value) => value?.slice(0, maxLength))
 
@@ -19,6 +39,8 @@ export const createBookingSchema = z.object({
   customerPhone: z.string().min(10, 'Некорректный номер телефона'),
   startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Некорректная дата начала'),
   endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Некорректная дата окончания'),
+  startTime: z.string().regex(/^\d{2}:\d{2}$/, 'Некорректное время начала').optional(),
+  endTime: z.string().regex(/^\d{2}:\d{2}$/, 'Некорректное время окончания').optional(),
   comment: z.string().max(1000).optional(),
   preferredContact: optionalLeadField(80),
   deliveryMethod: z.enum(['pickup', 'delivery']).optional(),

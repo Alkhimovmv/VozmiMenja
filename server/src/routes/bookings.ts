@@ -8,7 +8,7 @@ import { emailNotifyService } from '../services/emailNotify'
 import { vkNotifyService } from '../services/vkNotify'
 import { authMiddleware } from '../middleware/auth'
 import { calculateRentalTotal } from '../utils/pricing'
-import { calculateRentalDays, createBookingSchema, parseDateInput } from './bookingRules'
+import { calculateBillableRentalDays, createBookingSchema, parseDateInput } from './bookingRules'
 
 const router = Router()
 
@@ -97,7 +97,19 @@ router.post('/', async (req: Request, res: Response) => {
     }
 
     // Рассчитываем стоимость
-    const diffDays = calculateRentalDays(startDate, endDate)
+    const diffDays = calculateBillableRentalDays(
+      validatedData.startDate,
+      validatedData.endDate,
+      validatedData.startTime,
+      validatedData.endTime
+    )
+
+    if (diffDays === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Дата и время окончания должны быть позже начала аренды'
+      })
+    }
 
     const totalPrice = calculateRentalTotal(equipment.pricing, diffDays, equipment.pricePerDay)
 

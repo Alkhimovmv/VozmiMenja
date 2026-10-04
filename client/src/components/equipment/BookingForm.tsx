@@ -8,7 +8,7 @@ import { trackEvent } from '../../lib/analytics'
 import { getApiErrorMessage } from '../../lib/apiError'
 import { getTelegramUrl, getWhatsAppUrl } from '../../lib/contactLinks'
 import { getCommentPlaceholder, getScenarioPresets } from '../../lib/bookingFormGuidance'
-import { calculateRentalTotal, getEffectiveDailyPrice, getMinimumDailyPrice, getPricingRows } from '../../utils/pricing'
+import { calculateBillableRentalDays, calculateRentalTotal, getEffectiveDailyPrice, getMinimumDailyPrice, getPricingRows } from '../../utils/pricing'
 
 interface BookingFormProps {
   equipment: Equipment
@@ -44,26 +44,11 @@ export default function BookingForm({ equipment, onClose }: BookingFormProps) {
 
   const createBookingMutation = useCreateBooking()
 
-  const parseDateInput = (value: string) => {
-    const [year, month, day] = value.split('-').map(Number)
-    return new Date(year, month - 1, day)
-  }
-
   const getDateInputValue = (date: Date) => {
     const year = date.getFullYear()
     const month = String(date.getMonth() + 1).padStart(2, '0')
     const day = String(date.getDate()).padStart(2, '0')
     return `${year}-${month}-${day}`
-  }
-
-  const calculateRentalDays = (start: string, end: string) => {
-    const startDate = parseDateInput(start)
-    const endDate = parseDateInput(end)
-
-    if (endDate < startDate) return 0
-
-    const diffDays = Math.round((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24))
-    return Math.max(1, diffDays)
   }
 
   const calculatePrice = (start: string, end: string) => {
@@ -74,7 +59,7 @@ export default function BookingForm({ equipment, onClose }: BookingFormProps) {
       return
     }
 
-    const diffDays = calculateRentalDays(start, end)
+    const diffDays = calculateBillableRentalDays(start, end)
     if (diffDays === 0) {
       setTotalDays(0)
       setTotalPrice(0)
@@ -147,7 +132,7 @@ export default function BookingForm({ equipment, onClose }: BookingFormProps) {
     const submitEndDate = formData.endDate || formData.startDate || today
     const datesWereSelected = Boolean(formData.startDate && formData.endDate)
 
-    if (formData.startDate && formData.endDate && calculateRentalDays(formData.startDate, formData.endDate) === 0) {
+    if (formData.startDate && formData.endDate && calculateBillableRentalDays(formData.startDate, formData.endDate) === 0) {
       toast.error('Дата окончания не может быть раньше даты начала')
       return
     }
@@ -277,7 +262,7 @@ export default function BookingForm({ equipment, onClose }: BookingFormProps) {
             <div className="flex-1 min-w-0">
               <p className="text-xs text-[#2563EB] font-semibold mb-0.5">{equipment.category}</p>
               <h3 className="font-bold text-gray-900 text-sm leading-tight truncate">{equipment.name}</h3>
-              <p className="text-[#2563EB] font-bold text-sm mt-1">от {formatPrice(getMinPrice())}/сутки</p>
+              <p className="text-[#2563EB] font-bold text-sm mt-1">{formatPrice(getMinPrice())}/сутки</p>
             </div>
           </div>
 

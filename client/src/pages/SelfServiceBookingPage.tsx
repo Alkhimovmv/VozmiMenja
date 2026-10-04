@@ -4,7 +4,7 @@ import toast from 'react-hot-toast'
 import SEO from '../components/SEO'
 import { useCreateBooking, useEquipment } from '../hooks/useEquipment'
 import type { Equipment } from '../types'
-import { calculateRentalTotal } from '../utils/pricing'
+import { calculateBillableRentalDays, calculateRentalTotal } from '../utils/pricing'
 import { trackEvent } from '../lib/analytics'
 import { getApiErrorMessage } from '../lib/apiError'
 
@@ -15,22 +15,6 @@ const getDateInputValue = (date: Date) => {
   const month = String(date.getMonth() + 1).padStart(2, '0')
   const day = String(date.getDate()).padStart(2, '0')
   return `${year}-${month}-${day}`
-}
-
-const parseDateInput = (value: string) => {
-  const [year, month, day] = value.split('-').map(Number)
-  return new Date(year, month - 1, day)
-}
-
-const calculateRentalDays = (start: string, end: string) => {
-  if (!start || !end) return 0
-
-  const startDate = parseDateInput(start)
-  const endDate = parseDateInput(end)
-  if (endDate < startDate) return 0
-
-  const diffDays = Math.round((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24))
-  return Math.max(1, diffDays)
 }
 
 const formatPrice = (value: number) =>
@@ -79,7 +63,7 @@ const buildComment = (data: {
   comment: string
 }) => [
   'Самостоятельное оформление брони клиентом.',
-  `Время аренды: ${data.startTime || '10:00'} — ${data.endTime || '20:00'}`,
+  `Время аренды: ${data.startTime || '10:00'} — ${data.endTime || '10:00'}`,
   `Получение: ${data.deliveryMethod === 'delivery' ? 'доставка' : 'самовывоз'}`,
   data.deliveryMethod === 'delivery' && data.deliveryAddress.trim() ? `Адрес доставки: ${data.deliveryAddress.trim()}` : '',
   data.preferredContact ? `Предпочтительный канал связи: ${data.preferredContact}` : '',
@@ -100,7 +84,7 @@ export default function SelfServiceBookingPage() {
     startDate: today,
     endDate: tomorrow,
     startTime: '10:00',
-    endTime: '20:00',
+    endTime: '10:00',
     preferredContact: 'Telegram',
     deliveryMethod: 'pickup' as 'pickup' | 'delivery',
     deliveryAddress: '',
@@ -115,7 +99,12 @@ export default function SelfServiceBookingPage() {
     [equipment, formData.equipmentId],
   )
 
-  const rentalDays = calculateRentalDays(formData.startDate, formData.endDate)
+  const rentalDays = calculateBillableRentalDays(
+    formData.startDate,
+    formData.endDate,
+    formData.startTime,
+    formData.endTime,
+  )
   const totalPrice = selectedEquipment && rentalDays > 0
     ? calculateRentalTotal(selectedEquipment.pricing, rentalDays, selectedEquipment.pricePerDay)
     : 0
@@ -175,6 +164,8 @@ export default function SelfServiceBookingPage() {
         customerPhone: formData.customerPhone,
         startDate: formData.startDate,
         endDate: formData.endDate,
+        startTime: formData.startTime,
+        endTime: formData.endTime,
         preferredContact: formData.preferredContact,
         deliveryMethod: formData.deliveryMethod,
         deliveryAddress: formData.deliveryMethod === 'delivery' ? formData.deliveryAddress : '',
@@ -256,7 +247,7 @@ export default function SelfServiceBookingPage() {
                   <optgroup key={category} label={category}>
                     {items.map((item) => (
                       <option key={item.id} value={item.id}>
-                        {item.name} — от {formatPrice(item.pricePerDay)}
+                        {item.name} — {formatPrice(item.pricePerDay)}/сутки
                       </option>
                     ))}
                   </optgroup>
@@ -431,7 +422,7 @@ export default function SelfServiceBookingPage() {
             <div className="mt-4 space-y-3 text-sm text-slate-600">
               <div className="flex justify-between gap-4">
                 <span>Срок</span>
-                <strong className="text-slate-900">{rentalDays || 0} дн.</strong>
+                <strong className="text-slate-900">{rentalDays || 0} сут.</strong>
               </div>
               <div className="flex justify-between gap-4">
                 <span>Получение</span>

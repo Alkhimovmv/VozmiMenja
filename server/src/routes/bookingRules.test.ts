@@ -1,4 +1,4 @@
-import { calculateRentalDays, createBookingSchema, parseDateInput } from './bookingRules'
+import { calculateBillableRentalDays, calculateRentalDays, createBookingSchema, parseDateInput } from './bookingRules'
 
 describe('booking rules', () => {
   it('accepts a valid booking payload with lead source fields', () => {
@@ -8,6 +8,8 @@ describe('booking rules', () => {
       customerPhone: '+7 999 000-00-00',
       startDate: '2026-09-12',
       endDate: '2026-09-13',
+      startTime: '10:00',
+      endTime: '11:00',
       preferredContact: 'telegram',
       deliveryMethod: 'delivery',
       deliveryAddress: 'Москва, Тверская 1',
@@ -53,5 +55,12 @@ describe('booking rules', () => {
 
   it('calculates one-day rental for same calendar date', () => {
     expect(calculateRentalDays(parseDateInput('2026-09-12'), parseDateInput('2026-09-12'))).toBe(1)
+  })
+
+  it('calculates billable days by started 24-hour periods', () => {
+    expect(calculateBillableRentalDays('2026-09-12', '2026-09-13', '10:00', '10:00')).toBe(1)
+    expect(calculateBillableRentalDays('2026-09-12', '2026-09-13', '10:00', '11:00')).toBe(2)
+    expect(calculateBillableRentalDays('2026-09-12', '2026-09-12', '10:00', '20:00')).toBe(1)
+    expect(calculateBillableRentalDays('2026-09-12', '2026-09-12', '20:00', '10:00')).toBe(0)
   })
 })

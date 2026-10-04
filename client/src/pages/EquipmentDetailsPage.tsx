@@ -846,7 +846,7 @@ export default function EquipmentDetailsPage() {
               <div className="flex items-start justify-between mb-1">
                 <p className="text-[11px] font-bold text-muted uppercase tracking-widest">Цена за сутки</p>
                 <div className="text-right">
-                  <p className="text-[11px] font-semibold text-muted">ОТ</p>
+                  <p className="text-[11px] font-semibold text-muted">МИН.</p>
                   <p className="text-primary font-bold text-sm">{formatPrice(getMinPrice())}/сут</p>
                   <p className="text-[10px] text-muted">при аренде на месяц</p>
                 </div>

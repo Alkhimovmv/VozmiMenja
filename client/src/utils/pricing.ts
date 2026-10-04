@@ -68,3 +68,25 @@ export const getMinimumDailyPrice = (pricing: PricingTier | undefined, fallback:
 
 export const getPeriodPrice = (pricing: PricingTier | undefined, periodDays: number, fallback: number) =>
   calculateRentalTotal(pricing, periodDays, fallback);
+
+const parseDateTimeInput = (date: string, time = '10:00') => {
+  const [year, month, day] = date.split('-').map(Number);
+  const [hours, minutes] = time.split(':').map(Number);
+  return new Date(year, month - 1, day, hours || 0, minutes || 0);
+};
+
+export const calculateBillableRentalDays = (
+  startDate: string,
+  endDate: string,
+  startTime = '10:00',
+  endTime = '10:00',
+) => {
+  if (!startDate || !endDate) return 0;
+
+  const start = parseDateTimeInput(startDate, startTime);
+  const end = parseDateTimeInput(endDate, endTime);
+  if (end <= start) return 0;
+
+  const diffHours = (end.getTime() - start.getTime()) / (1000 * 60 * 60);
+  return Math.max(1, Math.ceil(diffHours / 24));
+};

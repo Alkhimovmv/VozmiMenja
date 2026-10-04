@@ -41,7 +41,7 @@ export default function EquipmentCard({ equipment, priority = false }: Equipment
               <p className="mt-1 line-clamp-1 text-xs text-gray-500">{equipment.description}</p>
             </Link>
             <div className="mt-2 text-xs text-gray-500">
-              от <strong className="text-sm text-gray-950">{formatPrice(dayPrice)}</strong> / сутки
+              <strong className="text-sm text-gray-950">{formatPrice(dayPrice)}</strong> / сутки
             </div>
             <div className="mt-2 flex flex-wrap gap-1.5">
               <span className="rounded-full bg-emerald-50 px-2 py-1 text-[10px] font-semibold text-emerald-700">Проверено</span>
@@ -83,7 +83,7 @@ export default function EquipmentCard({ equipment, priority = false }: Equipment
           </Link>
 
           <dl className="mt-4 border-y border-gray-100 py-3">
-            <dt className="text-[11px] text-gray-500">от, за сутки</dt>
+            <dt className="text-[11px] text-gray-500">за сутки</dt>
             <dd className="mt-0.5 text-base font-semibold text-gray-950">{formatPrice(dayPrice)}</dd>
           </dl>
 
