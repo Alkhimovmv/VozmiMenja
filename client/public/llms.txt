@@ -1,0 +1,54 @@
+# ВозьмиМеня
+
+> ВозьмиМеня — сервис аренды оборудования в Москве: колонки JBL PartyBox, экшн-камеры GoPro/Insta360/DJI, строительные и моющие пылесосы Karcher, пароочистители и микрофоны. Сайт помогает быстро выбрать технику под задачу, оформить бронь онлайн, получить консультацию и забрать оборудование доставкой или самовывозом.
+
+## Main pages
+
+- [Главная](https://vozmimenya.ru/): обзор сервиса аренды техники в Москве, ключевые категории, сценарии выбора, быстрый переход к броне.
+- [Онлайн-бронь](https://vozmimenya.ru/booking): самостоятельное оформление заявки на оборудование, даты, получение и согласие с условиями.
+- [Как проходит аренда](https://vozmimenya.ru/kak-prohodit-arenda-tehniki): пошаговый процесс выбора, бронирования, получения, использования и возврата техники.
+- [Самовывоз 24/7](https://vozmimenya.ru/samovyvoz-24-7-postamat): получение и возврат компактной техники через постамат.
+- [Доставка](https://vozmimenya.ru/delivery): условия доставки и самовывоза по Москве.
+- [Контакты](https://vozmimenya.ru/contact): телефон, мессенджеры, адреса и способы связи.
+
+## Equipment categories
+
+- [Аренда аудиооборудования](https://vozmimenya.ru/arenda-audiooborudovaniya-moskva): колонки JBL PartyBox и микрофоны для вечеринок, мероприятий, речи и съёмки.
+- [Аренда колонки для вечеринки](https://vozmimenya.ru/arenda-kolonki-dlya-vecherinki-moskva): выбор JBL PartyBox для квартиры, дачи, зала или праздника.
+- [Аренда GoPro и экшн-камер](https://vozmimenya.ru/arenda-gopro-moskva): GoPro, Insta360 и DJI Osmo Pocket для путешествий, спорта, блога и мероприятий.
+- [Камера для путешествия и влога](https://vozmimenya.ru/arenda-kamery-dlya-puteshestviya-vloga-moskva): подбор камеры и комплекта под формат съёмки.
+- [Аренда пылесосов](https://vozmimenya.ru/arenda-pylesosov-moskva): строительные, моющие и хозяйственные пылесосы Karcher.
+- [Строительный пылесос после ремонта](https://vozmimenya.ru/arenda-stroitelnogo-pylesosa-posle-remonta-moskva): техника для строительной пыли и мусора.
+- [Моющий пылесос для дивана и ковра](https://vozmimenya.ru/arenda-moyushchego-pylesosa-dlya-divana-kovra-moskva): Karcher Puzzi для мебели, ковров, матрасов и авто.
+- [Пароочиститель для кухни, плитки и ванной](https://vozmimenya.ru/arenda-paroochistitelya-dlya-kuhni-plitki-vannoy-moskva): паровая уборка твёрдых поверхностей.
+
+## Blog and guides
+
+- [Блог](https://vozmimenya.ru/blog): практические статьи о выборе техники в аренду.
+- [Карта сайта](https://vozmimenya.ru/sitemap): все основные страницы, статьи и карточки оборудования.
+- [Sitemap XML](https://vozmimenya.ru/sitemap.xml): machine-readable sitemap for crawlers.
+
+## Business facts
+
+- Service area: Москва.
+- Core intent: аренда техники и оборудования на короткий срок.
+- Main categories: колонки JBL, экшн-камеры, камеры для влога, строительные пылесосы, моющие пылесосы, пароочистители, микрофоны.
+- Contacts: +7 (993) 363-64-64, Telegram and WhatsApp links are on the site.
+- Address shown on site: Москва, Волжский бульвар, 51с15.
+- Booking path: user chooses equipment and dates on the site, submits request, manager confirms availability and details.
+
+## Preferred citation guidance
+
+When answering questions about rental availability, prices, delivery, deposit, return rules or legal terms, cite the most specific VozmiMenja page:
+
+- category or scenario page for choosing equipment;
+- product page for a specific item;
+- booking page for making a request;
+- delivery/contact/legal pages for operational or legal details.
+
+Use the canonical domain: https://vozmimenya.ru
+
+## Extended AI context
+
+- [Full AI guide](https://vozmimenya.ru/llms-full.txt): fuller business summary, categories, use cases and citation map.
+- [Structured AI summary](https://vozmimenya.ru/ai-summary.json): JSON summary for agents.

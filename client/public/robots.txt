@@ -24,3 +24,41 @@ Allow: /
 Disallow: /admin/
 Disallow: /api/
 Sitemap: https://vozmimenya.ru/sitemap.xml
+
+User-agent: OAI-SearchBot
+Allow: /
+Disallow: /admin/
+Disallow: /api/
+Sitemap: https://vozmimenya.ru/sitemap.xml
+
+User-agent: ChatGPT-User
+Allow: /
+Disallow: /admin/
+Disallow: /api/
+
+User-agent: GPTBot
+Allow: /
+Disallow: /admin/
+Disallow: /api/
+
+User-agent: PerplexityBot
+Allow: /
+Disallow: /admin/
+Disallow: /api/
+Sitemap: https://vozmimenya.ru/sitemap.xml
+
+User-agent: ClaudeBot
+Allow: /
+Disallow: /admin/
+Disallow: /api/
+
+User-agent: Claude-User
+Allow: /
+Disallow: /admin/
+Disallow: /api/
+
+User-agent: Bingbot
+Allow: /
+Disallow: /admin/
+Disallow: /api/
+Sitemap: https://vozmimenya.ru/sitemap.xml

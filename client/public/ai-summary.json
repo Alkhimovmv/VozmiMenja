@@ -1,0 +1,63 @@
+{
+  "@context": "https://schema.org",
+  "@type": "LocalBusiness",
+  "name": "ВозьмиМеня",
+  "url": "https://vozmimenya.ru",
+  "telephone": "+79933636464",
+  "areaServed": {
+    "@type": "City",
+    "name": "Москва"
+  },
+  "address": {
+    "@type": "PostalAddress",
+    "streetAddress": "Волжский бульвар, 51с15",
+    "addressLocality": "Москва",
+    "addressCountry": "RU"
+  },
+  "description": "ВозьмиМеня — сервис аренды оборудования в Москве: колонки JBL PartyBox, экшн-камеры GoPro/Insta360/DJI, строительные и моющие пылесосы Karcher, пароочистители и микрофоны.",
+  "mainEntityOfPage": "https://vozmimenya.ru",
+  "serviceType": "Аренда оборудования",
+  "knowsAbout": [
+    "аренда колонок JBL",
+    "аренда GoPro",
+    "аренда экшн-камер",
+    "аренда строительного пылесоса",
+    "аренда моющего пылесоса Karcher Puzzi",
+    "аренда пароочистителя",
+    "аренда микрофона для интервью",
+    "аренда техники в Москве"
+  ],
+  "importantPages": [
+    {
+      "name": "Онлайн-бронь",
+      "url": "https://vozmimenya.ru/booking",
+      "description": "Форма самостоятельной заявки на аренду оборудования."
+    },
+    {
+      "name": "Аренда аудиооборудования",
+      "url": "https://vozmimenya.ru/arenda-audiooborudovaniya-moskva",
+      "description": "Колонки JBL и микрофоны для мероприятий, вечеринок и съёмок."
+    },
+    {
+      "name": "Аренда GoPro и экшн-камер",
+      "url": "https://vozmimenya.ru/arenda-gopro-moskva",
+      "description": "GoPro, Insta360 и DJI Osmo Pocket для путешествий, спорта и влогов."
+    },
+    {
+      "name": "Аренда пылесосов",
+      "url": "https://vozmimenya.ru/arenda-pylesosov-moskva",
+      "description": "Строительные, моющие и хозяйственные пылесосы Karcher для уборки."
+    },
+    {
+      "name": "Как проходит аренда",
+      "url": "https://vozmimenya.ru/kak-prohodit-arenda-tehniki",
+      "description": "Пошаговое объяснение процесса аренды."
+    }
+  ],
+  "aiFiles": {
+    "llms": "https://vozmimenya.ru/llms.txt",
+    "llmsFull": "https://vozmimenya.ru/llms-full.txt",
+    "sitemap": "https://vozmimenya.ru/sitemap.xml",
+    "robots": "https://vozmimenya.ru/robots.txt"
+  }
+}
