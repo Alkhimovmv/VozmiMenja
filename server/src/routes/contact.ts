@@ -4,12 +4,13 @@ import { telegramService } from '../services/telegram'
 import { emailNotifyService } from '../services/emailNotify'
 import { vkNotifyService } from '../services/vkNotify'
 import { contactLeadModel } from '../models/ContactLead'
+import { normalizeAdminPhone } from './bookingRules'
 
 const router = Router()
 
 const contactMessageSchema = z.object({
   name: z.string().min(2, 'Имя должно содержать минимум 2 символа'),
-  phone: z.string().min(10, 'Некорректный номер телефона'),
+  phone: z.string().min(10, 'Некорректный номер телефона').transform(normalizeAdminPhone),
   email: z.string().email('Некорректный email').optional(),
   subject: z.string().min(1, 'Выберите тему'),
   message: z.string().min(10, 'Сообщение должно содержать минимум 10 символов'),

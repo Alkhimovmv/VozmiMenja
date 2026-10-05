@@ -1,4 +1,4 @@
-import { calculateBillableRentalDays, calculateRentalDays, createBookingSchema, parseDateInput } from './bookingRules'
+import { calculateBillableRentalDays, calculateRentalDays, createBookingSchema, normalizeAdminPhone, parseDateInput } from './bookingRules'
 
 describe('booking rules', () => {
   it('accepts a valid booking payload with lead source fields', () => {
@@ -25,6 +25,13 @@ describe('booking rules', () => {
 
     expect(parsed.utmSource).toBe('yandex')
     expect(parsed.legal?.offerAccepted).toBe(true)
+    expect(parsed.customerPhone).toBe('89990000000')
+  })
+
+  it('normalizes website phone numbers to admin format', () => {
+    expect(normalizeAdminPhone('+7 999 000-00-00')).toBe('89990000000')
+    expect(normalizeAdminPhone('8 (999) 000-00-00')).toBe('89990000000')
+    expect(normalizeAdminPhone('9990000000')).toBe('89990000000')
   })
 
   it('rejects partial legal acceptance', () => {

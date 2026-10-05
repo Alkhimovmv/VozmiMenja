@@ -3,6 +3,20 @@ import type { Booking, CreateRentalDto, Equipment } from '../types'
 export const normalizeEquipmentName = (name: string) =>
   name.toLowerCase().replace(/ё/g, 'е').replace(/[^a-zа-я0-9]+/g, '')
 
+export const normalizeAdminPhone = (phone: string) => {
+  const digits = phone.replace(/\D/g, '')
+
+  if (digits.startsWith('7')) {
+    return `8${digits.slice(1, 11)}`
+  }
+
+  if (digits.startsWith('8')) {
+    return digits.slice(0, 11)
+  }
+
+  return digits.length === 10 ? `8${digits}` : digits.slice(0, 11)
+}
+
 export const formatBookingDateTime = (date: string, time: '10:00' | '20:00') => `${date}T${time}`
 
 export const formatLeadSource = (lead: {
@@ -77,7 +91,7 @@ export const buildRentalFromBooking = (
     start_date: formatBookingDateTime(booking.startDate, '10:00'),
     end_date: formatBookingDateTime(booking.endDate, '20:00'),
     customer_name: booking.customerName,
-    customer_phone: booking.customerPhone,
+    customer_phone: normalizeAdminPhone(booking.customerPhone),
     needs_delivery: booking.deliveryMethod === 'delivery',
     delivery_address: booking.deliveryMethod === 'delivery' ? booking.deliveryAddress || '' : '',
     rental_price: booking.totalPrice,

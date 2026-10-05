@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import { buildRentalFromBooking, formatLeadSource, formatSourcePage, matchAdminEquipment } from './adminLeadConversion'
+import { buildRentalFromBooking, formatLeadSource, formatSourcePage, matchAdminEquipment, normalizeAdminPhone } from './adminLeadConversion'
 import type { Booking, Equipment } from '../types'
 
 const booking: Booking = {
@@ -52,6 +52,9 @@ const equipment: Equipment[] = [
 assert.equal(formatLeadSource(booking), 'telegram / post / partybox')
 assert.equal(formatSourcePage(booking.sourcePage), '/arenda-kolonki-dlya-vecherinki-moskva')
 assert.equal(matchAdminEquipment(booking, equipment)?.id, '42')
+assert.equal(normalizeAdminPhone('+7 999 000-00-00'), '89990000000')
+assert.equal(normalizeAdminPhone('8 (999) 000-00-00'), '89990000000')
+assert.equal(normalizeAdminPhone('9990000000'), '89990000000')
 
 const rental = buildRentalFromBooking(booking, equipment, 3)
 
@@ -61,7 +64,7 @@ assert.deepEqual(rental.equipment_instances, [{ equipment_id: 42, instance_numbe
 assert.equal(rental.start_date, '2026-09-12T10:00')
 assert.equal(rental.end_date, '2026-09-13T20:00')
 assert.equal(rental.customer_name, 'Максим')
-assert.equal(rental.customer_phone, '+7 999 000-00-00')
+assert.equal(rental.customer_phone, '89990000000')
 assert.equal(rental.rental_price, 2000)
 assert.equal(rental.source, 'сайт')
 assert.equal(rental.office_id, 3)

@@ -33,10 +33,24 @@ export const calculateBillableRentalDays = (
 const optionalLeadField = (maxLength: number) =>
   z.string().optional().transform((value) => value?.slice(0, maxLength))
 
+export function normalizeAdminPhone(phone: string): string {
+  const digits = phone.replace(/\D/g, '')
+
+  if (digits.startsWith('7')) {
+    return `8${digits.slice(1, 11)}`
+  }
+
+  if (digits.startsWith('8')) {
+    return digits.slice(0, 11)
+  }
+
+  return digits.length === 10 ? `8${digits}` : digits.slice(0, 11)
+}
+
 export const createBookingSchema = z.object({
   equipmentId: z.string().min(1, 'Не выбрано оборудование').max(120, 'Некорректный ID оборудования'),
   customerName: z.string().min(2, 'Имя должно содержать минимум 2 символа'),
-  customerPhone: z.string().min(10, 'Некорректный номер телефона'),
+  customerPhone: z.string().min(10, 'Некорректный номер телефона').transform(normalizeAdminPhone),
   startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Некорректная дата начала'),
   endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Некорректная дата окончания'),
   startTime: z.string().regex(/^\d{2}:\d{2}$/, 'Некорректное время начала').optional(),
