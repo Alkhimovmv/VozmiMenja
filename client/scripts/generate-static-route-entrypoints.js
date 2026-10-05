@@ -509,20 +509,23 @@ async function main() {
   await Promise.all(
     routes.map(async (route) => {
       const indexOutputPath = routeIndexOutputPath(route)
-      const htmlOutputPath = routeHtmlOutputPath(route)
       const routeHtml = renderRouteHtml(indexHtml, route, remoteData)
 
       await fs.mkdir(path.dirname(indexOutputPath), { recursive: true })
-      await fs.mkdir(path.dirname(htmlOutputPath), { recursive: true })
       await fs.writeFile(indexOutputPath, routeHtml, 'utf8')
-      await fs.writeFile(htmlOutputPath, routeHtml, 'utf8')
+
+      if (route !== '/') {
+        const htmlOutputPath = routeHtmlOutputPath(route)
+        await fs.mkdir(path.dirname(htmlOutputPath), { recursive: true })
+        await fs.writeFile(htmlOutputPath, routeHtml, 'utf8')
+      }
     }),
   )
 
   await fs.writeFile(distIndexPath, renderRouteHtml(indexHtml, '/', remoteData), 'utf8')
   await writeDistSitemap(routes)
 
-  console.log(`Static route entrypoints generated: ${routes.length} routes, ${routes.length * 2} files`)
+  console.log(`Static route entrypoints generated: ${routes.length} routes, ${routes.length * 2 - 1} files`)
   console.log(`Static SEO sitemap generated: ${routes.filter((route) => route !== '/equipment').length} URLs`)
 }
 
