@@ -70,7 +70,7 @@ export default function BookingForm({ equipment, onClose }: BookingFormProps) {
     const pricePerDay = getEffectiveDailyPrice(equipment.pricing, diffDays, equipment.pricePerDay)
 
     setTotalDays(diffDays)
-    setTotalPrice(calculateRentalTotal(equipment.pricing, diffDays, equipment.pricePerDay))
+    setTotalPrice(calculateRentalTotal(equipment.pricing, diffDays, equipment.pricePerDay, { startDate: start }))
     setDiscountedPricePerDay(Math.round(pricePerDay))
   }
 

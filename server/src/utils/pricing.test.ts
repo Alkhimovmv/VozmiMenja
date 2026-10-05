@@ -6,9 +6,11 @@ const pricing: PricingTier = {
   day1: 1000,
   days2: 900,
   days3: 2500,
+  days4: 800,
   days7: 6000,
   days14: 11000,
   days30: 20000,
+  weekendDay: 1500,
 }
 
 describe('calculateRentalTotal', () => {
@@ -22,5 +24,24 @@ describe('calculateRentalTotal', () => {
 
   it('treats tier values lower than day1 as daily discounted prices', () => {
     expect(calculateRentalTotal(pricing, 2, 1000)).toBe(1800)
+  })
+
+  it('applies weekend daily price to periods starting on Friday Saturday or Sunday', () => {
+    expect(calculateRentalTotal(pricing, 2, 1000, {
+      startDate: '2026-09-11',
+      startTime: '10:00',
+    })).toBe(3000)
+
+    expect(calculateRentalTotal(pricing, 2, 1000, {
+      startDate: '2026-09-14',
+      startTime: '10:00',
+    })).toBe(1800)
+  })
+
+  it('uses optional four day tier when present', () => {
+    expect(calculateRentalTotal(pricing, 4, 1000, {
+      startDate: '2026-09-14',
+      startTime: '10:00',
+    })).toBe(3200)
   })
 })

@@ -14,6 +14,18 @@ interface SpecificationEntry {
   value: string
 }
 
+const buildDefaultPricing = (price = 0): PricingTier => ({
+  day1_10to20: price,
+  day1: price,
+  days2: price,
+  days3: price,
+  days4: 0,
+  days7: price,
+  days14: price,
+  days30: price,
+  weekendDay: 0,
+})
+
 export default function EquipmentForm({ equipment, onClose }: EquipmentFormProps) {
   const [formData, setFormData] = useState({
     name: '',
@@ -23,15 +35,7 @@ export default function EquipmentForm({ equipment, onClose }: EquipmentFormProps
     availableQuantity: 1,
     images: [''],
     specifications: {} as Record<string, string>,
-    pricing: {
-      day1_10to20: 0,
-      day1: 0,
-      days2: 0,
-      days3: 0,
-      days7: 0,
-      days14: 0,
-      days30: 0,
-    } as PricingTier,
+    pricing: buildDefaultPricing(),
   })
 
   const [specificationsList, setSpecificationsList] = useState<SpecificationEntry[]>([])
@@ -48,15 +52,7 @@ export default function EquipmentForm({ equipment, onClose }: EquipmentFormProps
         availableQuantity: equipment.availableQuantity,
         images: equipment.images.length > 0 ? equipment.images : [''],
         specifications: equipment.specifications || {},
-        pricing: equipment.pricing || {
-          day1_10to20: equipment.pricePerDay,
-          day1: equipment.pricePerDay,
-          days2: equipment.pricePerDay,
-          days3: equipment.pricePerDay,
-          days7: equipment.pricePerDay,
-          days14: equipment.pricePerDay,
-          days30: equipment.pricePerDay,
-        },
+        pricing: { ...buildDefaultPricing(equipment.pricePerDay), ...(equipment.pricing || {}) },
       })
 
       // Конвертируем объект характеристик в массив
@@ -233,16 +229,15 @@ export default function EquipmentForm({ equipment, onClose }: EquipmentFormProps
           <div>
             <h3 className="text-lg font-semibold text-gray-900">Цены</h3>
             <p className="mt-1 mb-4 text-sm text-gray-500">
-              Для длинных сроков можно указать ставку за сутки или цену пакета целиком. Значение выше цены одних суток считается пакетной ценой.
+              Для длинных сроков можно указать ставку за сутки или цену пакета целиком. Значение выше цены одних суток считается пакетной ценой. 0 — не показывать и не учитывать.
             </p>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  1 день 10:00-20:00 (₽) *
+                  1 день 10:00-20:00 (₽)
                 </label>
                 <input
                   type="number"
-                  required
                   min="0"
                   step="1"
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
@@ -274,11 +269,10 @@ export default function EquipmentForm({ equipment, onClose }: EquipmentFormProps
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  2 суток (₽/сутки) *
+                  2 суток (₽/сутки)
                 </label>
                 <input
                   type="number"
-                  required
                   min="0"
                   step="1"
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
@@ -292,11 +286,10 @@ export default function EquipmentForm({ equipment, onClose }: EquipmentFormProps
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  3 суток (₽/сутки) *
+                  3 суток (₽/сутки)
                 </label>
                 <input
                   type="number"
-                  required
                   min="0"
                   step="1"
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
@@ -310,11 +303,27 @@ export default function EquipmentForm({ equipment, onClose }: EquipmentFormProps
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  7 суток (₽/сутки или пакет) *
+                  4+ суток (₽/сутки или пакет)
                 </label>
                 <input
                   type="number"
-                  required
+                  min="0"
+                  step="1"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  value={formData.pricing.days4 || 0}
+                  onChange={(e) => setFormData({
+                    ...formData,
+                    pricing: { ...formData.pricing, days4: Number(e.target.value) }
+                  })}
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  7 суток (₽/сутки или пакет)
+                </label>
+                <input
+                  type="number"
                   min="0"
                   step="1"
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
@@ -328,11 +337,10 @@ export default function EquipmentForm({ equipment, onClose }: EquipmentFormProps
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  14 суток (₽/сутки или пакет) *
+                  14 суток (₽/сутки или пакет)
                 </label>
                 <input
                   type="number"
-                  required
                   min="0"
                   step="1"
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
@@ -346,11 +354,10 @@ export default function EquipmentForm({ equipment, onClose }: EquipmentFormProps
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  30 суток (₽/сутки или пакет) *
+                  30 суток (₽/сутки или пакет)
                 </label>
                 <input
                   type="number"
-                  required
                   min="0"
                   step="1"
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
@@ -360,6 +367,24 @@ export default function EquipmentForm({ equipment, onClose }: EquipmentFormProps
                     pricing: { ...formData.pricing, days30: Number(e.target.value) }
                   })}
                 />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Пт-Сб-Вс (₽/сутки)
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  step="1"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  value={formData.pricing.weekendDay || 0}
+                  onChange={(e) => setFormData({
+                    ...formData,
+                    pricing: { ...formData.pricing, weekendDay: Number(e.target.value) }
+                  })}
+                />
+                <p className="mt-1 text-xs text-gray-500">Если заполнено, применяется к суточным периодам, начинающимся в пятницу, субботу или воскресенье.</p>
               </div>
             </div>
           </div>

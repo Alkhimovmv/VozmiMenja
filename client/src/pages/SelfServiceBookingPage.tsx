@@ -106,7 +106,10 @@ export default function SelfServiceBookingPage() {
     formData.endTime,
   )
   const totalPrice = selectedEquipment && rentalDays > 0
-    ? calculateRentalTotal(selectedEquipment.pricing, rentalDays, selectedEquipment.pricePerDay)
+    ? calculateRentalTotal(selectedEquipment.pricing, rentalDays, selectedEquipment.pricePerDay, {
+      startDate: formData.startDate,
+      startTime: formData.startTime,
+    })
     : 0
 
   const groupedEquipment = useMemo(() => {

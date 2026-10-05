@@ -34,9 +34,11 @@ export interface PricingTier {
   day1: number         // 1 сутки
   days2: number        // 2 суток
   days3: number        // 3 суток
+  days4?: number       // 4+ суток
   days7: number        // неделя
   days14: number       // 2 недели
   days30: number       // месяц
+  weekendDay?: number  // Пт-Сб-Вс за сутки
   days1_2?: number     // Старое поле для обратной совместимости
 }
 

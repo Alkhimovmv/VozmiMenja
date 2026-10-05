@@ -6,7 +6,8 @@ const isPackagePrice = (pricing: PricingTier, value: number, periodDays: number)
 export const calculateRentalTotal = (
   pricing: PricingTier | undefined,
   rentalDays: number,
-  fallbackDailyPrice: number
+  fallbackDailyPrice: number,
+  options?: { startDate?: string; startTime?: string }
 ) => {
   if (!pricing) return Math.round(rentalDays * fallbackDailyPrice)
 
@@ -16,6 +17,8 @@ export const calculateRentalTotal = (
     ? { value: pricing.days14, days: 14 }
     : rentalDays >= 7
     ? { value: pricing.days7, days: 7 }
+    : rentalDays >= 4 && pricing.days4
+    ? { value: pricing.days4, days: 4 }
     : rentalDays >= 3
     ? { value: pricing.days3, days: 3 }
     : rentalDays === 2
@@ -27,5 +30,16 @@ export const calculateRentalTotal = (
     ? tier.value / tier.days
     : tier.value
 
-  return Math.round(rentalDays * dailyPrice)
+  const weekendDay = Number(pricing.weekendDay) || 0
+  if (!weekendDay || !options?.startDate) {
+    return Math.round(rentalDays * dailyPrice)
+  }
+
+  return Math.round(Array.from({ length: rentalDays }).reduce<number>((sum, _, index) => {
+    const [year, month, day] = options.startDate!.split('-').map(Number)
+    const [hours, minutes] = (options.startTime || '10:00').split(':').map(Number)
+    const periodStart = new Date(year, month - 1, day + index, hours || 0, minutes || 0)
+    const isWeekend = [0, 5, 6].includes(periodStart.getDay())
+    return sum + (isWeekend ? weekendDay : dailyPrice)
+  }, 0))
 }
