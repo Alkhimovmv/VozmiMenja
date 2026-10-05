@@ -49,7 +49,7 @@ export const getPricingRows = (pricing?: PricingTier) => {
 
   const weekendDay = Number(pricing.weekendDay) || 0;
   if (weekendDay > 0) {
-    rows.push({
+    rows.unshift({
       key: 'weekendDay',
       days: 1,
       label: 'Пт-Сб-Вс',

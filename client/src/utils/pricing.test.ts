@@ -16,6 +16,7 @@ const pricing: PricingTier = {
 
 const rows = getPricingRows(pricing)
 
+assert.equal(rows[0]?.key, 'weekendDay')
 assert.equal(rows.some((row) => row.key === 'days2'), false)
 assert.equal(rows.some((row) => row.key === 'days3'), false)
 assert.equal(rows.some((row) => row.key === 'days4'), true)
