@@ -108,6 +108,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
 
   const bottomMenuItems = [
     { path: '/admin/equipment', label: 'Оборудование', icon: '🎥' },
+    { path: '/admin/site-prices', label: 'Цены на сайте', icon: '🏷️' },
     { path: '/admin/offices', label: 'Настройка офисов', icon: '🏢' },
     ...(isSuperAdmin ? [{ path: '/admin/users', label: 'Аккаунты', icon: '👤' }] : []),
   ];

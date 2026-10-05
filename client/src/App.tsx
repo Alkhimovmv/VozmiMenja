@@ -32,6 +32,7 @@ const RentAdminSiteBookingsPage = lazy(() => import('./pages/admin/SiteBookingsP
 const RentAdminCustomersPage = lazy(() => import('./pages/admin/CustomersPage'))
 const RentAdminFinancesPage = lazy(() => import('./pages/admin/FinancesPage'))
 const RentAdminEquipmentPage = lazy(() => import('./pages/admin/EquipmentPage'))
+const SitePricesPage = lazy(() => import('./pages/admin/SitePricesPage'))
 const AdminLayout = lazy(() => import('./components/admin/Layout'))
 
 // Посадочные страницы категорий
@@ -128,6 +129,7 @@ function App() {
           <Route path="/admin/bookings" element={<AdminLayout><RentAdminSiteBookingsPage /></AdminLayout>} />
           <Route path="/admin/customers" element={<AdminLayout><RentAdminCustomersPage /></AdminLayout>} />
           <Route path="/admin/equipment" element={<AdminLayout><RentAdminEquipmentPage /></AdminLayout>} />
+          <Route path="/admin/site-prices" element={<AdminLayout><SitePricesPage /></AdminLayout>} />
           <Route path="/admin/finances" element={<AdminLayout><RentAdminFinancesPage /></AdminLayout>} />
           <Route path="/admin/lockers" element={<AdminLayout><LockersPage /></AdminLayout>} />
           <Route path="/admin/offices" element={<AdminLayout><OfficesPage /></AdminLayout>} />

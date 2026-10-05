@@ -69,6 +69,21 @@ class ApiClient {
     return this.request(`/equipment/${id}`)
   }
 
+  async updatePublicEquipmentPricing(
+    id: string,
+    pricing: Equipment['pricing'],
+    pricePerDay: number
+  ): Promise<ApiResponse<Equipment>> {
+    const token = localStorage.getItem('authToken')
+    return this.request(`/equipment/${id}`, {
+      method: 'PUT',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify({ pricing, pricePerDay }),
+    })
+  }
+
   async getEquipmentStats(): Promise<ApiResponse<{ totalEquipment: number; totalCategories: number }>> {
     return this.request('/equipment/stats')
   }
