@@ -141,6 +141,7 @@ function App() {
             <Layout>
               <Routes>
                 <Route path="/" element={<HomePage />} />
+                <Route path="/equipment" element={<Navigate to="/" replace />} />
                 <Route path="/equipment/:id" element={<EquipmentDetailsPage />} />
 
                 {/* Посадочные страницы категорий */}
