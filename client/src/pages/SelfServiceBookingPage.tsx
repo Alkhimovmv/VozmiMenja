@@ -4,9 +4,10 @@ import toast from 'react-hot-toast'
 import SEO from '../components/SEO'
 import { useCreateBooking, useEquipment } from '../hooks/useEquipment'
 import type { Equipment } from '../types'
-import { calculateBillableRentalDays, calculateRentalTotal } from '../utils/pricing'
+import { calculateBillableRentalDays } from '../utils/pricing'
 import { trackEvent } from '../lib/analytics'
 import { getApiErrorMessage } from '../lib/apiError'
+import { buildSelectedEquipmentList, calculateMultiEquipmentTotal, getSelectedEquipment } from '../lib/selfServiceBooking'
 
 const LEGAL_TERMS_VERSION = 'offer-2026-05-09_agreement-2026-05-09_privacy-current'
 
@@ -61,8 +62,15 @@ const buildComment = (data: {
   deliveryAddress: string
   preferredContact: string
   comment: string
+  selectedEquipmentList: string
+  bookingGroupId: string
+  itemPosition: number
+  totalItems: number
 }) => [
   'Самостоятельное оформление брони клиентом.',
+  data.totalItems > 1 ? `Комплект брони: ${data.bookingGroupId}` : '',
+  data.totalItems > 1 ? `Позиция в комплекте: ${data.itemPosition} из ${data.totalItems}` : '',
+  data.selectedEquipmentList ? `Выбранное оборудование:\n${data.selectedEquipmentList}` : '',
   `Время аренды: ${data.startTime || '10:00'} — ${data.endTime || '10:00'}`,
   `Получение: ${data.deliveryMethod === 'delivery' ? 'доставка' : 'самовывоз'}`,
   data.deliveryMethod === 'delivery' && data.deliveryAddress.trim() ? `Адрес доставки: ${data.deliveryAddress.trim()}` : '',
@@ -78,7 +86,8 @@ export default function SelfServiceBookingPage() {
 
   const equipment = useMemo(() => equipmentResponse?.data || [], [equipmentResponse?.data])
   const [formData, setFormData] = useState({
-    equipmentId: '',
+    equipmentIds: [] as string[],
+    nextEquipmentId: '',
     customerName: '',
     customerPhone: '',
     startDate: today,
@@ -94,10 +103,12 @@ export default function SelfServiceBookingPage() {
     privacyAccepted: false,
   })
 
-  const selectedEquipment = useMemo(
-    () => equipment.find((item) => item.id === formData.equipmentId),
-    [equipment, formData.equipmentId],
+  const selectedEquipmentItems = useMemo(
+    () => getSelectedEquipment(equipment, formData.equipmentIds),
+    [equipment, formData.equipmentIds],
   )
+  const selectedEquipment = selectedEquipmentItems[0]
+  const selectedEquipmentList = buildSelectedEquipmentList(selectedEquipmentItems)
 
   const rentalDays = calculateBillableRentalDays(
     formData.startDate,
@@ -105,12 +116,12 @@ export default function SelfServiceBookingPage() {
     formData.startTime,
     formData.endTime,
   )
-  const totalPrice = selectedEquipment && rentalDays > 0
-    ? calculateRentalTotal(selectedEquipment.pricing, rentalDays, selectedEquipment.pricePerDay, {
-      startDate: formData.startDate,
-      startTime: formData.startTime,
-    })
-    : 0
+  const totalPrice = calculateMultiEquipmentTotal(
+    selectedEquipmentItems,
+    rentalDays,
+    formData.startDate,
+    formData.startTime,
+  )
 
   const groupedEquipment = useMemo(() => {
     return equipment.reduce<Record<string, Equipment[]>>((acc, item) => {
@@ -136,11 +147,31 @@ export default function SelfServiceBookingPage() {
     }))
   }
 
+  const handleAddEquipment = (event: React.ChangeEvent<HTMLSelectElement>) => {
+    const equipmentId = event.target.value
+    if (!equipmentId) return
+
+    setFormData((prev) => ({
+      ...prev,
+      equipmentIds: prev.equipmentIds.includes(equipmentId)
+        ? prev.equipmentIds
+        : [...prev.equipmentIds, equipmentId],
+      nextEquipmentId: '',
+    }))
+  }
+
+  const handleRemoveEquipment = (equipmentId: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      equipmentIds: prev.equipmentIds.filter((id) => id !== equipmentId),
+    }))
+  }
+
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault()
 
-    if (!selectedEquipment) {
-      toast.error('Выберите оборудование')
+    if (selectedEquipmentItems.length === 0) {
+      toast.error('Выберите хотя бы одно оборудование')
       return
     }
 
@@ -161,40 +192,58 @@ export default function SelfServiceBookingPage() {
 
     try {
       const leadContext = getLeadContext()
-      const response = await createBookingMutation.mutateAsync({
-        equipmentId: selectedEquipment.id,
-        customerName: formData.customerName,
-        customerPhone: formData.customerPhone,
-        startDate: formData.startDate,
-        endDate: formData.endDate,
-        startTime: formData.startTime,
-        endTime: formData.endTime,
-        preferredContact: formData.preferredContact,
-        deliveryMethod: formData.deliveryMethod,
-        deliveryAddress: formData.deliveryMethod === 'delivery' ? formData.deliveryAddress : '',
-        comment: buildComment(formData),
-        legal: {
-          offerAccepted: true,
-          agreementAccepted: true,
-          privacyAccepted: true,
-          termsVersion: LEGAL_TERMS_VERSION,
-        },
-        ...leadContext,
-      })
+      const bookingGroupId = `site-kit-${Date.now()}`
+      const responses = []
+
+      for (const [index, equipmentItem] of selectedEquipmentItems.entries()) {
+        const response = await createBookingMutation.mutateAsync({
+          equipmentId: equipmentItem.id,
+          customerName: formData.customerName,
+          customerPhone: formData.customerPhone,
+          startDate: formData.startDate,
+          endDate: formData.endDate,
+          startTime: formData.startTime,
+          endTime: formData.endTime,
+          preferredContact: formData.preferredContact,
+          deliveryMethod: formData.deliveryMethod,
+          deliveryAddress: formData.deliveryMethod === 'delivery' ? formData.deliveryAddress : '',
+          comment: buildComment({
+            ...formData,
+            selectedEquipmentList,
+            bookingGroupId,
+            itemPosition: index + 1,
+            totalItems: selectedEquipmentItems.length,
+          }),
+          legal: {
+            offerAccepted: true,
+            agreementAccepted: true,
+            privacyAccepted: true,
+            termsVersion: LEGAL_TERMS_VERSION,
+          },
+          ...leadContext,
+        })
+        responses.push(response)
+      }
 
       trackEvent('self_service_booking_submit', {
-        booking_id: response.data.id,
+        booking_id: responses[0]?.data.id,
+        booking_ids: responses.map((response) => response.data.id),
         equipment_id: selectedEquipment.id,
+        equipment_ids: selectedEquipmentItems.map((item) => item.id),
         equipment_name: selectedEquipment.name,
+        equipment_names: selectedEquipmentItems.map((item) => item.name),
         delivery_method: formData.deliveryMethod,
         total_price: totalPrice,
         total_days: rentalDays,
       })
 
-      toast.success('Бронь отправлена. Мы свяжемся для подтверждения выдачи.')
+      toast.success(selectedEquipmentItems.length > 1
+        ? `Отправили ${selectedEquipmentItems.length} заявки по комплекту. Мы свяжемся для подтверждения.`
+        : 'Бронь отправлена. Мы свяжемся для подтверждения выдачи.')
       setFormData((prev) => ({
         ...prev,
-        equipmentId: '',
+        equipmentIds: [],
+        nextEquipmentId: '',
         customerName: '',
         customerPhone: '',
         deliveryAddress: '',
@@ -236,27 +285,46 @@ export default function SelfServiceBookingPage() {
               <p className="mt-1 text-sm text-slate-500">Поля со звёздочкой обязательны.</p>
             </div>
 
-            <label className="block">
+            <div className="block">
               <span className="text-sm font-bold text-slate-700">Оборудование *</span>
               <select
-                name="equipmentId"
-                value={formData.equipmentId}
-                onChange={handleChange}
-                required
+                name="nextEquipmentId"
+                value={formData.nextEquipmentId}
+                onChange={handleAddEquipment}
                 className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
               >
-                <option value="">{isLoading ? 'Загружаем оборудование...' : 'Выберите оборудование'}</option>
+                <option value="">{isLoading ? 'Загружаем оборудование...' : 'Добавьте оборудование в комплект'}</option>
                 {Object.entries(groupedEquipment).map(([category, items]) => (
                   <optgroup key={category} label={category}>
                     {items.map((item) => (
-                      <option key={item.id} value={item.id}>
+                      <option key={item.id} value={item.id} disabled={formData.equipmentIds.includes(item.id)}>
                         {item.name} — {formatPrice(item.pricePerDay)}/сутки
                       </option>
                     ))}
                   </optgroup>
                 ))}
               </select>
-            </label>
+              {selectedEquipmentItems.length > 0 && (
+                <div className="mt-3 space-y-2">
+                  {selectedEquipmentItems.map((item) => (
+                    <div key={item.id} className="flex items-center justify-between gap-3 rounded-2xl border border-blue-100 bg-blue-50 px-4 py-3">
+                      <div>
+                        <div className="font-bold text-slate-900">{item.name}</div>
+                        <div className="text-xs text-slate-500">{item.category} · {formatPrice(item.pricePerDay)}/сутки</div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveEquipment(item.id)}
+                        className="rounded-xl bg-white px-3 py-2 text-xs font-bold text-slate-600 shadow-sm transition hover:text-red-600"
+                      >
+                        Убрать
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <p className="mt-2 text-xs text-slate-500">Можно добавить несколько позиций — например колонку и камеру одной заявкой-комплектом.</p>
+            </div>
 
             <div className="grid gap-4 sm:grid-cols-2">
               <label className="block">
@@ -421,8 +489,22 @@ export default function SelfServiceBookingPage() {
 
           <aside className="h-fit rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
             <p className="text-xs font-bold uppercase tracking-[0.2em] text-blue-600">Итог</p>
-            <h2 className="mt-2 text-xl font-black text-slate-900">{selectedEquipment?.name || 'Оборудование не выбрано'}</h2>
+            <h2 className="mt-2 text-xl font-black text-slate-900">
+              {selectedEquipmentItems.length > 0
+                ? `${selectedEquipmentItems.length} поз. в комплекте`
+                : 'Оборудование не выбрано'}
+            </h2>
             <div className="mt-4 space-y-3 text-sm text-slate-600">
+              {selectedEquipmentItems.length > 0 && (
+                <div className="rounded-2xl bg-slate-50 p-3">
+                  <span className="block text-xs font-bold uppercase tracking-wide text-slate-500">Состав</span>
+                  <ul className="mt-2 space-y-1 text-slate-700">
+                    {selectedEquipmentItems.map((item) => (
+                      <li key={item.id}>• {item.name}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
               <div className="flex justify-between gap-4">
                 <span>Срок</span>
                 <strong className="text-slate-900">{rentalDays || 0} сут.</strong>
