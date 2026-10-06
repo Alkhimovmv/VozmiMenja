@@ -4,7 +4,7 @@ describe('booking rules', () => {
   it('accepts a valid booking payload with lead source fields', () => {
     const parsed = createBookingSchema.parse({
       equipmentId: 'equipment-1',
-      customerName: 'Максим',
+      customerName: 'Иван Иванов',
       customerPhone: '+7 999 000-00-00',
       startDate: '2026-09-12',
       endDate: '2026-09-13',
@@ -37,7 +37,7 @@ describe('booking rules', () => {
   it('rejects partial legal acceptance', () => {
     expect(() => createBookingSchema.parse({
       equipmentId: 'equipment-1',
-      customerName: 'Максим',
+      customerName: 'Иван Иванов',
       customerPhone: '+7 999 000-00-00',
       startDate: '2026-09-12',
       endDate: '2026-09-13',
@@ -58,6 +58,24 @@ describe('booking rules', () => {
       startDate: '12.09.2026',
       endDate: '2026-09-13',
     })).toThrow()
+  })
+
+  it('requires full customer name for booking', () => {
+    expect(() => createBookingSchema.parse({
+      equipmentId: 'equipment-1',
+      customerName: 'Максим',
+      customerPhone: '+7 999 000-00-00',
+      startDate: '2026-09-12',
+      endDate: '2026-09-13',
+    })).toThrow(/фамилию и имя|ФИО/)
+
+    expect(createBookingSchema.parse({
+      equipmentId: 'equipment-1',
+      customerName: 'Иван Иванов',
+      customerPhone: '+7 999 000-00-00',
+      startDate: '2026-09-12',
+      endDate: '2026-09-13',
+    }).customerName).toBe('Иван Иванов')
   })
 
   it('calculates one-day rental for same calendar date', () => {

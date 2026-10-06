@@ -100,6 +100,12 @@ export default function BookingForm({ equipment, onClose }: BookingFormProps) {
   const capitalizeWords = (str: string) =>
     str.split(' ').map((w) => (w.length === 0 ? w : w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())).join(' ')
 
+  const isFullName = (value: string) => value
+    .trim()
+    .split(/\s+/)
+    .filter((part) => part.replace(/[-']/g, '').length >= 2)
+    .length >= 2
+
   const getLeadContext = () => {
     const params = new URLSearchParams(window.location.search)
     return {
@@ -134,6 +140,11 @@ export default function BookingForm({ equipment, onClose }: BookingFormProps) {
 
     if (formData.startDate && formData.endDate && calculateBillableRentalDays(formData.startDate, formData.endDate) === 0) {
       toast.error('Дата окончания не может быть раньше даты начала')
+      return
+    }
+
+    if (!isFullName(formData.customerName)) {
+      toast.error('Укажите ФИО: минимум фамилию и имя')
       return
     }
 
@@ -376,11 +387,11 @@ export default function BookingForm({ equipment, onClose }: BookingFormProps) {
                 <User className="w-4 h-4 text-[#2563EB]" /> Быстрая заявка
               </p>
               <p className="-mt-1 mb-3 text-xs text-gray-500">
-                Достаточно имени и телефона — даты, доставку и комплект уточним в звонке или мессенджере.
+                Укажите ФИО и телефон — даты, доставку и комплект уточним в звонке или мессенджере.
               </p>
               <div className="space-y-3">
                 <div>
-                  <label className="block text-xs text-gray-500 mb-1.5">Ваше имя *</label>
+                  <label className="block text-xs text-gray-500 mb-1.5">ФИО *</label>
                   <div className="relative">
                     <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                     <input
@@ -388,8 +399,9 @@ export default function BookingForm({ equipment, onClose }: BookingFormProps) {
                       name="customerName"
                       value={formData.customerName}
                       onChange={handleInputChange}
-                      placeholder="Имя Фамилия"
+                      placeholder="Иванов Иван"
                       required
+                      minLength={5}
                       className="w-full pl-9 pr-3 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#2563EB]/30 focus:border-[#2563EB] transition-colors"
                     />
                   </div>

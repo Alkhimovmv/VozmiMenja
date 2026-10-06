@@ -55,6 +55,12 @@ const getLeadContext = () => {
   }
 }
 
+const isFullName = (value: string) => value
+  .trim()
+  .split(/\s+/)
+  .filter((part) => part.replace(/[-']/g, '').length >= 2)
+  .length >= 2
+
 const buildComment = (data: {
   startTime: string
   endTime: string
@@ -174,6 +180,11 @@ export default function SelfServiceBookingPage() {
 
     if (selectedEquipmentItems.length === 0) {
       toast.error('Выберите хотя бы одно оборудование')
+      return
+    }
+
+    if (!isFullName(formData.customerName)) {
+      toast.error('Укажите ФИО: минимум фамилию и имя')
       return
     }
 
@@ -380,15 +391,15 @@ export default function SelfServiceBookingPage() {
 
             <div className="grid gap-4 sm:grid-cols-2">
               <label className="block">
-                <span className="text-sm font-bold text-slate-700">Имя *</span>
+                <span className="text-sm font-bold text-slate-700">ФИО *</span>
                 <input
                   name="customerName"
                   value={formData.customerName}
                   onChange={handleChange}
                   required
-                  minLength={2}
+                  minLength={5}
                   autoComplete="name"
-                  placeholder="Иван"
+                  placeholder="Иванов Иван"
                   className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
                 />
               </label>

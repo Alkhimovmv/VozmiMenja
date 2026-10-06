@@ -47,9 +47,18 @@ export function normalizeAdminPhone(phone: string): string {
   return digits.length === 10 ? `8${digits}` : digits.slice(0, 11)
 }
 
+const isFullName = (value: string) => value
+  .trim()
+  .split(/\s+/)
+  .filter((part) => part.replace(/[-']/g, '').length >= 2)
+  .length >= 2
+
 export const createBookingSchema = z.object({
   equipmentId: z.string().min(1, 'Не выбрано оборудование').max(120, 'Некорректный ID оборудования'),
-  customerName: z.string().min(2, 'Имя должно содержать минимум 2 символа'),
+  customerName: z.string()
+    .min(5, 'Укажите ФИО полностью')
+    .max(200, 'ФИО слишком длинное')
+    .refine(isFullName, 'Укажите минимум фамилию и имя'),
   customerPhone: z.string().min(10, 'Некорректный номер телефона').transform(normalizeAdminPhone),
   startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Некорректная дата начала'),
   endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Некорректная дата окончания'),
