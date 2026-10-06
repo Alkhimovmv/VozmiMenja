@@ -35,6 +35,7 @@ class TelegramService {
     startDate: string
     endDate: string
     totalPrice: number
+    officeName?: string
     comment?: string
     sourcePage?: string
     referrer?: string
@@ -63,6 +64,10 @@ class TelegramService {
 • Окончание: ${this.formatDate(data.endDate)}
 
 💰 <b>Стоимость:</b> ${data.totalPrice}₽`
+
+      if (data.officeName) {
+        message += `\n\n🏢 <b>Офис:</b> ${this.escapeHtml(data.officeName)}`
+      }
 
       if (data.comment) {
         message += `\n\n💬 <b>Комментарий:</b>\n${this.escapeHtml(data.comment)}`

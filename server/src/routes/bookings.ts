@@ -3,6 +3,7 @@ import { v4 as uuidv4 } from 'uuid'
 import { z } from 'zod'
 import { bookingModel } from '../models/Booking'
 import { equipmentModel } from '../models/Equipment'
+import { database } from '../models/database'
 import { telegramService } from '../services/telegram'
 import { emailNotifyService } from '../services/emailNotify'
 import { vkNotifyService } from '../services/vkNotify'
@@ -96,6 +97,15 @@ router.post('/', async (req: Request, res: Response) => {
       })
     }
 
+    const requestedOfficeId = validatedData.officeId || 1
+    const office = await database.get('SELECT id, name, address FROM offices WHERE id = ?', [requestedOfficeId])
+    if (!office) {
+      return res.status(400).json({
+        success: false,
+        message: 'Выбранный офис не найден'
+      })
+    }
+
     // Рассчитываем стоимость
     const diffDays = calculateBillableRentalDays(
       validatedData.startDate,
@@ -123,6 +133,8 @@ router.post('/', async (req: Request, res: Response) => {
     const booking = await bookingModel.create({
       id: bookingId,
       ...validatedData,
+      officeId: office.id,
+      officeName: office.name,
       totalPrice,
       legalAcceptanceIp: validatedData.legal ? getRequestIp(req) : undefined,
       legalAcceptanceUserAgent: validatedData.legal ? req.get('user-agent') || '' : undefined
@@ -138,6 +150,7 @@ router.post('/', async (req: Request, res: Response) => {
       startDate: validatedData.startDate,
       endDate: validatedData.endDate,
       totalPrice,
+      officeName: office.name,
       comment: validatedData.comment,
       sourcePage: validatedData.sourcePage,
       referrer: validatedData.referrer,

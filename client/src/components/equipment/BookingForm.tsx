@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import toast from 'react-hot-toast'
 import type { Equipment } from '../../types'
-import { useCreateBooking } from '../../hooks/useEquipment'
+import { useCreateBooking, usePublicOffices } from '../../hooks/useEquipment'
 import { X, Calendar, User, Phone, MessageSquare, ChevronRight } from 'lucide-react'
 import { getImageUrl } from '../../lib/utils'
 import { trackEvent } from '../../lib/analytics'
@@ -32,6 +32,7 @@ export default function BookingForm({ equipment, onClose }: BookingFormProps) {
   const [formData, setFormData] = useState({
     customerName: '',
     customerPhone: '',
+    officeId: '',
     startDate: '',
     endDate: '',
     comment: '',
@@ -43,6 +44,9 @@ export default function BookingForm({ equipment, onClose }: BookingFormProps) {
   const [selectedScenarioLabel, setSelectedScenarioLabel] = useState('')
 
   const createBookingMutation = useCreateBooking()
+  const { data: officesResponse, isLoading: isOfficesLoading } = usePublicOffices()
+  const offices = officesResponse?.data || []
+  const selectedOffice = offices.find((office) => String(office.id) === formData.officeId) || offices[0]
 
   const getDateInputValue = (date: Date) => {
     const year = date.getFullYear()
@@ -158,6 +162,8 @@ export default function BookingForm({ equipment, onClose }: BookingFormProps) {
       await createBookingMutation.mutateAsync({
         equipmentId: equipment.id,
         ...formData,
+        officeId: selectedOffice?.id || 1,
+        officeName: selectedOffice?.name,
         startDate: submitStartDate,
         endDate: submitEndDate,
         comment: commentWithContext,
@@ -169,6 +175,8 @@ export default function BookingForm({ equipment, onClose }: BookingFormProps) {
         total_price: totalPrice || null,
         total_days: totalDays || null,
         quick_request: !datesWereSelected,
+        office_id: selectedOffice?.id || 1,
+        office_name: selectedOffice?.name,
         source_page: leadContext.sourcePage,
         utm_source: leadContext.utmSource,
         utm_medium: leadContext.utmMedium,
@@ -420,6 +428,23 @@ export default function BookingForm({ equipment, onClose }: BookingFormProps) {
                       className="w-full pl-9 pr-3 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#2563EB]/30 focus:border-[#2563EB] transition-colors"
                     />
                   </div>
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1.5">Офис выдачи / возврата *</label>
+                  <select
+                    name="officeId"
+                    value={formData.officeId || String(selectedOffice?.id || '')}
+                    onChange={(event) => setFormData((prev) => ({ ...prev, officeId: event.target.value }))}
+                    required
+                    className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#2563EB]/30 focus:border-[#2563EB] transition-colors"
+                  >
+                    <option value="">{isOfficesLoading ? 'Загружаем офисы...' : 'Выберите офис'}</option>
+                    {offices.map((office) => (
+                      <option key={office.id} value={office.id}>
+                        {office.name}{office.address ? ` — ${office.address}` : ''}
+                      </option>
+                    ))}
+                  </select>
                 </div>
                 <div>
                   <label className="block text-xs text-gray-500 mb-1.5">Комментарий <span className="text-gray-400">(необязательно)</span></label>

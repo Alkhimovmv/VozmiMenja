@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import SEO from '../components/SEO'
-import { useCreateBooking, useEquipment } from '../hooks/useEquipment'
+import { useCreateBooking, useEquipment, usePublicOffices } from '../hooks/useEquipment'
 import type { Equipment } from '../types'
 import { calculateBillableRentalDays } from '../utils/pricing'
 import { trackEvent } from '../lib/analytics'
@@ -68,6 +68,7 @@ const buildComment = (data: {
   deliveryAddress: string
   preferredContact: string
   comment: string
+  officeName: string
   selectedEquipmentList: string
   bookingGroupId: string
   itemPosition: number
@@ -79,6 +80,7 @@ const buildComment = (data: {
   data.selectedEquipmentList ? `Выбранное оборудование:\n${data.selectedEquipmentList}` : '',
   `Время аренды: ${data.startTime || '10:00'} — ${data.endTime || '10:00'}`,
   `Получение: ${data.deliveryMethod === 'delivery' ? 'доставка' : 'самовывоз'}`,
+  data.officeName ? `Офис: ${data.officeName}` : '',
   data.deliveryMethod === 'delivery' && data.deliveryAddress.trim() ? `Адрес доставки: ${data.deliveryAddress.trim()}` : '',
   data.preferredContact ? `Предпочтительный канал связи: ${data.preferredContact}` : '',
   data.comment.trim() ? `Комментарий клиента: ${data.comment.trim()}` : '',
@@ -88,9 +90,11 @@ export default function SelfServiceBookingPage() {
   const today = getDateInputValue(new Date())
   const tomorrow = getDateInputValue(new Date(Date.now() + 24 * 60 * 60 * 1000))
   const { data: equipmentResponse, isLoading } = useEquipment({ limit: 100 })
+  const { data: officesResponse, isLoading: isOfficesLoading } = usePublicOffices()
   const createBookingMutation = useCreateBooking()
 
   const equipment = useMemo(() => equipmentResponse?.data || [], [equipmentResponse?.data])
+  const offices = useMemo(() => officesResponse?.data || [], [officesResponse?.data])
   const [formData, setFormData] = useState({
     equipmentIds: [] as string[],
     nextEquipmentId: '',
@@ -101,6 +105,7 @@ export default function SelfServiceBookingPage() {
     startTime: '10:00',
     endTime: '10:00',
     preferredContact: 'Telegram',
+    officeId: '',
     deliveryMethod: 'pickup' as 'pickup' | 'delivery',
     deliveryAddress: '',
     comment: '',
@@ -115,6 +120,7 @@ export default function SelfServiceBookingPage() {
   )
   const selectedEquipment = selectedEquipmentItems[0]
   const selectedEquipmentList = buildSelectedEquipmentList(selectedEquipmentItems)
+  const selectedOffice = offices.find((office) => String(office.id) === formData.officeId) || offices[0]
 
   const rentalDays = calculateBillableRentalDays(
     formData.startDate,
@@ -217,11 +223,14 @@ export default function SelfServiceBookingPage() {
           endDate: formData.endDate,
           startTime: formData.startTime,
           endTime: formData.endTime,
+          officeId: selectedOffice?.id || 1,
+          officeName: selectedOffice?.name,
           preferredContact: formData.preferredContact,
           deliveryMethod: formData.deliveryMethod,
           deliveryAddress: formData.deliveryMethod === 'delivery' ? formData.deliveryAddress : '',
           comment: buildComment({
             ...formData,
+            officeName: selectedOffice?.name || '',
             selectedEquipmentList,
             bookingGroupId,
             itemPosition: index + 1,
@@ -246,6 +255,8 @@ export default function SelfServiceBookingPage() {
         equipment_name: selectedEquipment.name,
         equipment_names: selectedEquipmentItems.map((item) => item.name),
         delivery_method: formData.deliveryMethod,
+        office_id: selectedOffice?.id || 1,
+        office_name: selectedOffice?.name,
         total_price: totalPrice,
         total_days: rentalDays,
       })
@@ -259,6 +270,7 @@ export default function SelfServiceBookingPage() {
         nextEquipmentId: '',
         customerName: '',
         customerPhone: '',
+        officeId: '',
         deliveryAddress: '',
         comment: '',
         offerAccepted: false,
@@ -447,6 +459,23 @@ export default function SelfServiceBookingPage() {
                   <span className="font-semibold text-slate-800">Доставка</span>
                 </label>
               </div>
+              <label className="mt-4 block">
+                <span className="text-sm font-bold text-slate-700">Офис выдачи / возврата *</span>
+                <select
+                  name="officeId"
+                  value={formData.officeId || String(selectedOffice?.id || '')}
+                  onChange={handleChange}
+                  required
+                  className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+                >
+                  <option value="">{isOfficesLoading ? 'Загружаем офисы...' : 'Выберите офис'}</option>
+                  {offices.map((office) => (
+                    <option key={office.id} value={office.id}>
+                      {office.name}{office.address ? ` — ${office.address}` : ''}
+                    </option>
+                  ))}
+                </select>
+              </label>
               {formData.deliveryMethod === 'delivery' && (
                 <textarea
                   name="deliveryAddress"
@@ -525,6 +554,10 @@ export default function SelfServiceBookingPage() {
               <div className="flex justify-between gap-4">
                 <span>Получение</span>
                 <strong className="text-right text-slate-900">{formData.deliveryMethod === 'delivery' ? 'Доставка' : 'Самовывоз'}</strong>
+              </div>
+              <div className="flex justify-between gap-4">
+                <span>Офис</span>
+                <strong className="text-right text-slate-900">{selectedOffice?.name || '—'}</strong>
               </div>
               <div className="border-t border-slate-100 pt-3">
                 <span className="block text-slate-500">Расчёт аренды</span>

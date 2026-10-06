@@ -12,6 +12,8 @@ export interface Booking {
   endDate: string
   startTime?: string
   endTime?: string
+  officeId?: number
+  officeName?: string
   totalPrice: number
   comment?: string
   preferredContact?: string
@@ -42,6 +44,8 @@ export interface CreateBookingData {
   endDate: string
   startTime?: string
   endTime?: string
+  officeId?: number
+  officeName?: string
   totalPrice: number
   comment?: string
   preferredContact?: string
@@ -114,13 +118,13 @@ export class BookingModel {
     await run(`
       INSERT INTO bookings (
         id, equipment_id, customer_name, customer_phone, customer_email,
-        start_date, end_date, start_time, end_time, total_price, comment, preferred_contact,
+        start_date, end_date, start_time, end_time, office_id, office_name, total_price, comment, preferred_contact,
         delivery_method, delivery_address, source_page, referrer,
         utm_source, utm_medium, utm_campaign, legal_offer_accepted_at,
         legal_agreement_accepted_at, legal_privacy_accepted_at,
         legal_terms_version, legal_acceptance_ip, legal_acceptance_user_agent,
         status
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')
     `, [
       data.id,
       data.equipmentId,
@@ -131,6 +135,8 @@ export class BookingModel {
       data.endDate,
       data.startTime || '10:00',
       data.endTime || '10:00',
+      data.officeId || null,
+      data.officeName || '',
       data.totalPrice,
       data.comment || '',
       data.preferredContact || '',
@@ -210,6 +216,8 @@ export class BookingModel {
       endDate: row.end_date,
       startTime: row.start_time || undefined,
       endTime: row.end_time || undefined,
+      officeId: row.office_id || undefined,
+      officeName: row.office_name || undefined,
       totalPrice: row.total_price,
       comment: row.comment || undefined,
       preferredContact: row.preferred_contact || undefined,

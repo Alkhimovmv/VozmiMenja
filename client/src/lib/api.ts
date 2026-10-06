@@ -1,4 +1,4 @@
-import type { Equipment, Booking, BookingRequest, ApiResponse, PaginatedResponse } from '../types'
+import type { Equipment, Booking, BookingRequest, ApiResponse, PaginatedResponse, PublicOffice } from '../types'
 
 const API_BASE_URL = import.meta.env.VITE_API_URL
   || (import.meta.env.MODE === 'production' ? '/api' : 'http://localhost:3002/api')
@@ -90,6 +90,10 @@ class ApiClient {
 
   async getCategoryCounts(): Promise<ApiResponse<Record<string, number>>> {
     return this.request('/equipment/categories/counts')
+  }
+
+  async getOffices(): Promise<ApiResponse<PublicOffice[]>> {
+    return this.request('/offices')
   }
 
   async createBooking(booking: BookingRequest): Promise<ApiResponse<Booking>> {

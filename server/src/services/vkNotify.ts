@@ -33,6 +33,7 @@ class VkNotifyService {
     startDate: string
     endDate: string
     totalPrice: number
+    officeName?: string
     comment?: string
     sourcePage?: string
     referrer?: string
@@ -50,6 +51,10 @@ class VkNotifyService {
       `📅 Начало: ${this.formatDate(data.startDate)}\n` +
       `📅 Окончание: ${this.formatDate(data.endDate)}\n\n` +
       `💰 Стоимость: ${data.totalPrice.toLocaleString('ru-RU')} ₽`
+
+    if (data.officeName) {
+      message += `\n🏢 Офис: ${data.officeName}`
+    }
 
     if (data.comment) {
       message += `\n\n💬 Комментарий: ${data.comment}`

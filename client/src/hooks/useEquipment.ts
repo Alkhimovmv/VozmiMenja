@@ -54,3 +54,10 @@ export const useCategoryCounts = () => {
     queryFn: () => apiClient.getCategoryCounts(),
   })
 }
+
+export const usePublicOffices = () => {
+  return useQuery({
+    queryKey: ['public-offices'],
+    queryFn: () => apiClient.getOffices(),
+  })
+}

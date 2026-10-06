@@ -66,6 +66,8 @@ class Database {
       ['comment', 'TEXT'],
       ['start_time', 'TEXT'],
       ['end_time', 'TEXT'],
+      ['office_id', 'INTEGER'],
+      ['office_name', 'TEXT'],
       ['preferred_contact', 'TEXT'],
       ['delivery_method', 'TEXT'],
       ['delivery_address', 'TEXT'],

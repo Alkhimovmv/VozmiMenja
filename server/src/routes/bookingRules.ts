@@ -64,6 +64,8 @@ export const createBookingSchema = z.object({
   endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Некорректная дата окончания'),
   startTime: z.string().regex(/^\d{2}:\d{2}$/, 'Некорректное время начала').optional(),
   endTime: z.string().regex(/^\d{2}:\d{2}$/, 'Некорректное время окончания').optional(),
+  officeId: z.coerce.number().int().positive('Выберите офис получения').optional(),
+  officeName: optionalLeadField(160),
   comment: z.string().max(1000).optional(),
   preferredContact: optionalLeadField(80),
   deliveryMethod: z.enum(['pickup', 'delivery']).optional(),

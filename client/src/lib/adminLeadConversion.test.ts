@@ -24,6 +24,8 @@ const booking: Booking = {
   endDate: '2026-09-13',
   startTime: '12:30',
   endTime: '14:00',
+  officeId: 2,
+  officeName: 'Офис 2',
   totalPrice: 2000,
   comment: 'Нужна колонка на дачу',
   sourcePage: 'https://vozmimenya.ru/arenda-kolonki-dlya-vecherinki-moskva?utm_source=test',
@@ -69,9 +71,10 @@ assert.equal(rental.customer_name, 'Максим')
 assert.equal(rental.customer_phone, '89990000000')
 assert.equal(rental.rental_price, 2000)
 assert.equal(rental.source, 'сайт')
-assert.equal(rental.office_id, 3)
+assert.equal(rental.office_id, 2)
 assert.match(rental.comment || '', /Заявка с сайта #booking-1/)
 assert.match(rental.comment || '', /Оборудование на сайте: JBL PartyBox 320/)
+assert.match(rental.comment || '', /Офис заявки: Офис 2/)
 
 assert.deepEqual(extractBookingRentalTimes({
   comment: 'Самостоятельное оформление брони клиентом.\nВремя аренды: 11:00 — 19:30',

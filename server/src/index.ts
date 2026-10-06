@@ -59,6 +59,25 @@ app.use('/uploads', (req, res, next) => {
 
 // API Routes
 app.use('/api/equipment', equipmentRoutes)
+app.get('/api/offices', async (_req, res) => {
+  try {
+    const offices = await database.all('SELECT id, name, address FROM offices ORDER BY id ASC')
+    res.json({
+      success: true,
+      data: offices.map((office) => ({
+        id: office.id,
+        name: office.name,
+        address: office.address || '',
+      })),
+    })
+  } catch (error) {
+    console.error('Error fetching public offices:', error)
+    res.status(500).json({
+      success: false,
+      message: 'Ошибка при получении офисов',
+    })
+  }
+})
 app.use('/api/bookings', bookingsRoutes)
 app.use('/api/contact', contactRoutes)
 app.use('/api/articles', articlesRoutes)

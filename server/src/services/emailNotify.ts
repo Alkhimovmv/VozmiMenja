@@ -45,6 +45,7 @@ class EmailNotifyService {
     startDate: string
     endDate: string
     totalPrice: number
+    officeName?: string
     comment?: string
     sourcePage?: string
     referrer?: string
@@ -82,6 +83,7 @@ class EmailNotifyService {
       <tr><td colspan="2"><hr style="border:none;border-top:1px solid #f1f5f9;margin:8px 0"></td></tr>
       <tr><td style="padding:6px 0;color:#6b7280">Начало</td><td style="padding:6px 0;font-weight:600">${this.formatDate(data.startDate)}</td></tr>
       <tr><td style="padding:6px 0;color:#6b7280">Окончание</td><td style="padding:6px 0;font-weight:600">${this.formatDate(data.endDate)}</td></tr>
+      ${data.officeName ? `<tr><td style="padding:6px 0;color:#6b7280">Офис</td><td style="padding:6px 0;font-weight:600">${escapeHtml(data.officeName)}</td></tr>` : ''}
       <tr><td colspan="2"><hr style="border:none;border-top:1px solid #f1f5f9;margin:8px 0"></td></tr>
       <tr><td style="padding:6px 0;color:#6b7280">Стоимость</td><td style="padding:6px 0;font-weight:700;font-size:18px;color:#16a34a">${data.totalPrice.toLocaleString('ru-RU')} ₽</td></tr>
       ${commentRow}

@@ -83,6 +83,8 @@ export interface Booking {
   endDate: string
   startTime?: string
   endTime?: string
+  officeId?: number
+  officeName?: string
   totalPrice: number
   comment?: string
   preferredContact?: string
@@ -112,6 +114,8 @@ export interface BookingRequest {
   endDate: string
   startTime?: string
   endTime?: string
+  officeId?: number
+  officeName?: string
   comment?: string
   preferredContact?: string
   deliveryMethod?: 'pickup' | 'delivery'
@@ -127,6 +131,12 @@ export interface BookingRequest {
     privacyAccepted: true
     termsVersion: string
   }
+}
+
+export interface PublicOffice {
+  id: number
+  name: string
+  address: string
 }
 
 export interface ContactLead {

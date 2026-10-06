@@ -293,6 +293,11 @@ export default function SiteBookingsPage() {
                         {booking.deliveryMethod === 'delivery' ? 'Доставка' : 'Самовывоз'}
                       </span>
                     )}
+                    {booking.officeName && (
+                      <span className="rounded-full bg-slate-100 px-2.5 py-1 font-semibold text-slate-700">
+                        Офис: {booking.officeName}
+                      </span>
+                    )}
                     {booking.legalOfferAcceptedAt && (
                       <span className="rounded-full bg-emerald-50 px-2.5 py-1 font-semibold text-emerald-700">
                         Документы приняты

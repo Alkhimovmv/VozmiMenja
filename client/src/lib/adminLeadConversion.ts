@@ -88,6 +88,7 @@ export const buildRentalFromBooking = (
     booking.equipment?.name ? `Оборудование на сайте: ${booking.equipment.name}` : '',
     booking.preferredContact ? `Предпочтительный канал связи: ${booking.preferredContact}` : '',
     booking.deliveryMethod ? `Получение: ${booking.deliveryMethod === 'delivery' ? 'доставка' : 'самовывоз'}` : '',
+    booking.officeName ? `Офис заявки: ${booking.officeName}` : '',
     booking.deliveryAddress ? `Адрес доставки: ${booking.deliveryAddress}` : '',
     booking.comment ? `Комментарий клиента: ${booking.comment}` : '',
     booking.legalOfferAcceptedAt
@@ -113,6 +114,6 @@ export const buildRentalFromBooking = (
     delivery_costs: null,
     source: 'сайт',
     comment: sourceText,
-    office_id: currentOfficeId,
+    office_id: booking.officeId || currentOfficeId,
   }
 }
