@@ -3,7 +3,7 @@ import { calculateRentalTotal, getPricingRows } from './pricing'
 import type { PricingTier } from '../types'
 
 const pricing: PricingTier = {
-  day1_10to20: 0,
+  day1_10to20: 600,
   day1: 1000,
   days2: 1000,
   days3: 1000,
@@ -31,5 +31,19 @@ assert.equal(calculateRentalTotal(pricing, 2, 1000, {
   startDate: '2026-09-14',
   startTime: '10:00',
 }), 2000)
+
+assert.equal(calculateRentalTotal(pricing, 1, 1000, {
+  startDate: '2026-09-14',
+  endDate: '2026-09-14',
+  startTime: '10:00',
+  endTime: '20:00',
+}), 600)
+
+assert.equal(calculateRentalTotal(pricing, 1, 1000, {
+  startDate: '2026-09-14',
+  endDate: '2026-09-14',
+  startTime: '09:00',
+  endTime: '20:00',
+}), 1000)
 
 console.log('pricing tests passed')

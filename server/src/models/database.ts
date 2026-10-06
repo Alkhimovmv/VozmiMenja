@@ -64,6 +64,8 @@ class Database {
 
     const bookingColumns = [
       ['comment', 'TEXT'],
+      ['start_time', 'TEXT'],
+      ['end_time', 'TEXT'],
       ['preferred_contact', 'TEXT'],
       ['delivery_method', 'TEXT'],
       ['delivery_address', 'TEXT'],

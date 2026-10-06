@@ -113,7 +113,9 @@ router.post('/', async (req: Request, res: Response) => {
 
     const totalPrice = calculateRentalTotal(equipment.pricing, diffDays, equipment.pricePerDay, {
       startDate: validatedData.startDate,
-      startTime: validatedData.startTime
+      endDate: validatedData.endDate,
+      startTime: validatedData.startTime,
+      endTime: validatedData.endTime
     })
 
     // Создаем бронирование

@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import { buildRentalFromBooking, formatLeadSource, formatSourcePage, matchAdminEquipment, normalizeAdminPhone } from './adminLeadConversion'
+import { buildRentalFromBooking, extractBookingRentalTimes, formatLeadSource, formatSourcePage, matchAdminEquipment, normalizeAdminPhone } from './adminLeadConversion'
 import type { Booking, Equipment } from '../types'
 
 const booking: Booking = {
@@ -22,6 +22,8 @@ const booking: Booking = {
   customerPhone: '+7 999 000-00-00',
   startDate: '2026-09-12',
   endDate: '2026-09-13',
+  startTime: '12:30',
+  endTime: '14:00',
   totalPrice: 2000,
   comment: 'Нужна колонка на дачу',
   sourcePage: 'https://vozmimenya.ru/arenda-kolonki-dlya-vecherinki-moskva?utm_source=test',
@@ -61,8 +63,8 @@ const rental = buildRentalFromBooking(booking, equipment, 3)
 assert.equal(rental.equipment_id, 42)
 assert.deepEqual(rental.equipment_ids, [42])
 assert.deepEqual(rental.equipment_instances, [{ equipment_id: 42, instance_number: 1 }])
-assert.equal(rental.start_date, '2026-09-12T10:00')
-assert.equal(rental.end_date, '2026-09-13T20:00')
+assert.equal(rental.start_date, '2026-09-12T12:30')
+assert.equal(rental.end_date, '2026-09-13T14:00')
 assert.equal(rental.customer_name, 'Максим')
 assert.equal(rental.customer_phone, '89990000000')
 assert.equal(rental.rental_price, 2000)
@@ -70,5 +72,9 @@ assert.equal(rental.source, 'сайт')
 assert.equal(rental.office_id, 3)
 assert.match(rental.comment || '', /Заявка с сайта #booking-1/)
 assert.match(rental.comment || '', /Оборудование на сайте: JBL PartyBox 320/)
+
+assert.deepEqual(extractBookingRentalTimes({
+  comment: 'Самостоятельное оформление брони клиентом.\nВремя аренды: 11:00 — 19:30',
+}), { startTime: '11:00', endTime: '19:30' })
 
 console.log('adminLeadConversion tests passed')

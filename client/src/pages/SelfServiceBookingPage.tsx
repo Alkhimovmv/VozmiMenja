@@ -120,7 +120,9 @@ export default function SelfServiceBookingPage() {
     selectedEquipmentItems,
     rentalDays,
     formData.startDate,
+    formData.endDate,
     formData.startTime,
+    formData.endTime,
   )
 
   const groupedEquipment = useMemo(() => {
@@ -298,7 +300,7 @@ export default function SelfServiceBookingPage() {
                   <optgroup key={category} label={category}>
                     {items.map((item) => (
                       <option key={item.id} value={item.id} disabled={formData.equipmentIds.includes(item.id)}>
-                        {item.name} — {formatPrice(item.pricePerDay)}/сутки
+                        {item.name}
                       </option>
                     ))}
                   </optgroup>
@@ -310,7 +312,7 @@ export default function SelfServiceBookingPage() {
                     <div key={item.id} className="flex items-center justify-between gap-3 rounded-2xl border border-blue-100 bg-blue-50 px-4 py-3">
                       <div>
                         <div className="font-bold text-slate-900">{item.name}</div>
-                        <div className="text-xs text-slate-500">{item.category} · {formatPrice(item.pricePerDay)}/сутки</div>
+                        <div className="text-xs text-slate-500">{item.category}</div>
                       </div>
                       <button
                         type="button"

@@ -17,7 +17,20 @@ export const normalizeAdminPhone = (phone: string) => {
   return digits.length === 10 ? `8${digits}` : digits.slice(0, 11)
 }
 
-export const formatBookingDateTime = (date: string, time: '10:00' | '20:00') => `${date}T${time}`
+export const formatBookingDateTime = (date: string, time: string) => `${date}T${time}`
+
+const normalizeTime = (time?: string) => {
+  const match = time?.match(/^(\d{2}):(\d{2})/)
+  return match ? `${match[1]}:${match[2]}` : undefined
+}
+
+export const extractBookingRentalTimes = (booking: Pick<Booking, 'startTime' | 'endTime' | 'comment'>) => {
+  const commentTimes = booking.comment?.match(/Время аренды:\s*(\d{2}:\d{2})\s*[—-]\s*(\d{2}:\d{2})/)
+  return {
+    startTime: normalizeTime(booking.startTime) || commentTimes?.[1] || '10:00',
+    endTime: normalizeTime(booking.endTime) || commentTimes?.[2] || '20:00',
+  }
+}
 
 export const formatLeadSource = (lead: {
   utmSource?: string
@@ -83,13 +96,14 @@ export const buildRentalFromBooking = (
     `Страница: ${formatSourcePage(booking.sourcePage, origin)}`,
     `Источник: ${formatLeadSource(booking)}`,
   ].filter(Boolean).join('\n')
+  const rentalTimes = extractBookingRentalTimes(booking)
 
   return {
     equipment_id: equipmentInstances[0]?.equipment_id || 0,
     equipment_ids: equipmentInstances.map(item => item.equipment_id),
     equipment_instances: equipmentInstances,
-    start_date: formatBookingDateTime(booking.startDate, '10:00'),
-    end_date: formatBookingDateTime(booking.endDate, '20:00'),
+    start_date: formatBookingDateTime(booking.startDate, rentalTimes.startTime),
+    end_date: formatBookingDateTime(booking.endDate, rentalTimes.endTime),
     customer_name: booking.customerName,
     customer_phone: normalizeAdminPhone(booking.customerPhone),
     needs_delivery: booking.deliveryMethod === 'delivery',

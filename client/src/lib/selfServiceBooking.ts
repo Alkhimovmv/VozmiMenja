@@ -15,12 +15,16 @@ export const calculateMultiEquipmentTotal = (
   items: Equipment[],
   rentalDays: number,
   startDate: string,
+  endDate: string,
   startTime: string,
+  endTime: string,
 ) => {
   if (rentalDays <= 0) return 0
 
   return items.reduce((sum, item) => sum + calculateRentalTotal(item.pricing, rentalDays, item.pricePerDay, {
     startDate,
+    endDate,
     startTime,
+    endTime,
   }), 0)
 }

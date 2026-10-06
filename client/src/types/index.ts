@@ -81,6 +81,8 @@ export interface Booking {
   customerEmail?: string
   startDate: string
   endDate: string
+  startTime?: string
+  endTime?: string
   totalPrice: number
   comment?: string
   preferredContact?: string

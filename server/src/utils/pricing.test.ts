@@ -44,4 +44,20 @@ describe('calculateRentalTotal', () => {
       startTime: '10:00',
     })).toBe(3200)
   })
+
+  it('uses same-day 10 to 20 price when the rental stays inside that window', () => {
+    expect(calculateRentalTotal(pricing, 1, 1000, {
+      startDate: '2026-09-14',
+      endDate: '2026-09-14',
+      startTime: '10:00',
+      endTime: '20:00',
+    })).toBe(900)
+
+    expect(calculateRentalTotal(pricing, 1, 1000, {
+      startDate: '2026-09-14',
+      endDate: '2026-09-14',
+      startTime: '09:00',
+      endTime: '20:00',
+    })).toBe(1000)
+  })
 })

@@ -93,12 +93,38 @@ const getRentalPeriodStart = (startDate: string, startTime = '10:00', offsetDays
   return new Date(year, month - 1, day + offsetDays, hours || 0, minutes || 0);
 };
 
+const parseTimeInMinutes = (time = '10:00') => {
+  const [hours, minutes] = time.split(':').map(Number);
+  return (hours || 0) * 60 + (minutes || 0);
+};
+
+const isSameDayTenToTwentyRental = (options?: {
+  startDate?: string;
+  endDate?: string;
+  startTime?: string;
+  endTime?: string;
+}) => {
+  if (!options?.startDate || !options.endDate || options.startDate !== options.endDate) return false;
+
+  const startMinutes = parseTimeInMinutes(options.startTime);
+  const endMinutes = parseTimeInMinutes(options.endTime);
+  const dayStart = parseTimeInMinutes('10:00');
+  const dayEnd = parseTimeInMinutes('20:00');
+
+  return startMinutes >= dayStart && endMinutes <= dayEnd && endMinutes > startMinutes;
+};
+
 export const calculateRentalTotal = (
   pricing: PricingTier | undefined,
   rentalDays: number,
   fallback: number,
-  options?: { startDate?: string; startTime?: string },
+  options?: { startDate?: string; endDate?: string; startTime?: string; endTime?: string },
 ) => {
+  const dayRentalPrice = Number(pricing?.day1_10to20) || 0;
+  if (rentalDays === 1 && dayRentalPrice > 0 && isSameDayTenToTwentyRental(options)) {
+    return Math.round(dayRentalPrice);
+  }
+
   const effectiveDailyPrice = getEffectiveDailyPrice(pricing, rentalDays, fallback);
   const weekendDay = Number(pricing?.weekendDay) || 0;
 
