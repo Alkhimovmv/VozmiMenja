@@ -41,12 +41,34 @@ const extractBookingContext = (comment?: string) => {
 };
 
 const formatBookingAge = (createdAt: string) => {
-  const minutes = Math.max(0, Math.floor((Date.now() - new Date(createdAt).getTime()) / 60000));
+  const normalizedCreatedAt = /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(createdAt)
+    ? `${createdAt.replace(' ', 'T')}Z`
+    : createdAt;
+  const minutes = Math.max(0, Math.floor((Date.now() - new Date(normalizedCreatedAt).getTime()) / 60000));
   if (minutes < 1) return 'только что';
   if (minutes < 60) return `${minutes} мин назад`;
   const hours = Math.floor(minutes / 60);
   if (hours < 24) return `${hours} ч назад`;
   return `${Math.floor(hours / 24)} дн назад`;
+};
+
+const getBookingSortTime = (createdAt: string) => {
+  const normalizedCreatedAt = /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(createdAt)
+    ? `${createdAt.replace(' ', 'T')}Z`
+    : createdAt;
+  return new Date(normalizedCreatedAt).getTime();
+};
+
+const formatBookingDate = (date: string) => {
+  const match = date.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (!match) return date;
+  return `${match[3]}.${match[2]}.${match[1]}`;
+};
+
+const formatBookingPeriod = (booking: Booking) => {
+  const start = `${formatBookingDate(booking.startDate)} ${booking.startTime || '10:00'}`;
+  const end = `${formatBookingDate(booking.endDate)} ${booking.endTime || '10:00'}`;
+  return `${start} — ${end}`;
 };
 
 const getPhoneDigits = (phone: string) => {
@@ -114,7 +136,7 @@ export default function SiteBookingsPage() {
       .sort((a, b) => {
         if (a.status === 'pending' && b.status !== 'pending') return -1;
         if (a.status !== 'pending' && b.status === 'pending') return 1;
-        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+        return getBookingSortTime(b.createdAt) - getBookingSortTime(a.createdAt);
       }),
     [bookings]
   );
@@ -127,7 +149,7 @@ export default function SiteBookingsPage() {
       .sort((a, b) => {
         if (a.status === 'pending' && b.status !== 'pending') return -1;
         if (a.status !== 'pending' && b.status === 'pending') return 1;
-        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+        return getBookingSortTime(b.createdAt) - getBookingSortTime(a.createdAt);
       }),
     [contactLeads]
   );
@@ -273,7 +295,7 @@ export default function SiteBookingsPage() {
                   <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-gray-600">
                     <span>Клиент: {booking.customerName}</span>
                     <a href={`tel:${booking.customerPhone}`} className="font-semibold text-indigo-600 hover:underline">{booking.customerPhone}</a>
-                    <span>{formatDate(booking.startDate)} - {formatDate(booking.endDate)}</span>
+                    <span>{formatBookingPeriod(booking)}</span>
                     <span className="font-semibold text-gray-900">{booking.totalPrice}₽</span>
                   </div>
                   <div className="mt-2 flex flex-wrap gap-2 text-xs">
@@ -519,7 +541,7 @@ export default function SiteBookingsPage() {
           setInitialRentalData(null);
           setConvertingBookingId(null);
         }}
-        onSubmit={(data) => createRentalMutation.mutate({ ...data, office_id: currentOfficeId } as CreateRentalDto)}
+        onSubmit={(data) => createRentalMutation.mutate(data as CreateRentalDto)}
         rental={null}
         initialData={initialRentalData}
         equipment={equipment}

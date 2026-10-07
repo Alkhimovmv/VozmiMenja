@@ -71,6 +71,7 @@ const RentalModal: React.FC<RentalModalProps> = ({
   const [isOfficeModalOpen, setIsOfficeModalOpen] = useState(false);
   const [selectedOfficeId, setSelectedOfficeId] = useState(defaultOfficeId);
   const [officeEquipment, setOfficeEquipment] = useState<Equipment[]>([]);
+  const [officeEquipmentOfficeId, setOfficeEquipmentOfficeId] = useState<number | null>(null);
   const [officeSelectedInstances, setOfficeSelectedInstances] = useState<Set<string>>(new Set());
   const [isOfficeEquipmentLoading, setIsOfficeEquipmentLoading] = useState(false);
   const [officeEquipmentError, setOfficeEquipmentError] = useState<string | null>(null);
@@ -107,7 +108,8 @@ const RentalModal: React.FC<RentalModalProps> = ({
   }, [isOpen]);
 
   useEffect(() => {
-    if (!isOfficeModalOpen || !selectedOfficeId) return;
+    const shouldLoadOfficeEquipment = isOfficeModalOpen || (!rental && isOpen);
+    if (!shouldLoadOfficeEquipment || !selectedOfficeId) return;
 
     let cancelled = false;
     setIsOfficeEquipmentLoading(true);
@@ -117,6 +119,7 @@ const RentalModal: React.FC<RentalModalProps> = ({
       .then((items) => {
         if (cancelled) return;
         setOfficeEquipment(items);
+        setOfficeEquipmentOfficeId(selectedOfficeId);
         setOfficeSelectedInstances(new Set());
       })
       .catch(() => {
@@ -132,7 +135,11 @@ const RentalModal: React.FC<RentalModalProps> = ({
     return () => {
       cancelled = true;
     };
-  }, [isOfficeModalOpen, selectedOfficeId]);
+  }, [isOfficeModalOpen, selectedOfficeId, rental, isOpen]);
+
+  const displayedEquipment = !rental && officeEquipmentOfficeId === selectedOfficeId
+    ? officeEquipment
+    : equipment;
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -337,6 +344,17 @@ const RentalModal: React.FC<RentalModalProps> = ({
     onSubmit(formData);
   };
 
+  const handleCreateOfficeChange = (officeId: number) => {
+    setSelectedOfficeId(officeId);
+    setSelectedInstances(new Set());
+    updateFormData({
+      office_id: officeId,
+      equipment_id: 0,
+      equipment_ids: [],
+      equipment_instances: [],
+    });
+  };
+
   const handleOfficeChangeSubmit = () => {
     if (!rental) return;
     const equipmentInstances = Array.from(officeSelectedInstances).map((instance) => {
@@ -396,6 +414,25 @@ const RentalModal: React.FC<RentalModalProps> = ({
           <form onSubmit={handleSubmit} className="flex-1 flex flex-col">
             <div className="flex-1 space-y-0">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                {!rental && offices.length > 0 && (
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Офис аренды</label>
+                    <select
+                      value={selectedOfficeId}
+                      onChange={(e) => handleCreateOfficeChange(Number(e.target.value))}
+                      className="block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                    >
+                      {offices.map((office) => (
+                        <option key={office.id} value={office.id}>
+                          {office.name}{office.address ? ` — ${office.address}` : ''}
+                        </option>
+                      ))}
+                    </select>
+                    {isOfficeEquipmentLoading && (
+                      <div className="mt-1 text-xs text-gray-500">Загружаем оборудование офиса...</div>
+                    )}
+                  </div>
+                )}
 
                 {/* Оборудование */}
                 <div className="md:col-span-2">
@@ -403,7 +440,7 @@ const RentalModal: React.FC<RentalModalProps> = ({
                     Оборудование (можно выбрать несколько)
                   </label>
                   <div className="space-y-2 max-h-48 overflow-y-auto border border-gray-300 rounded-md p-3">
-                    {equipment.flatMap((item) =>
+                    {displayedEquipment.flatMap((item) =>
                       Array.from({ length: item.quantity }, (_, index) => {
                         const instanceNumber = index + 1;
                         const instanceKey = `${item.id}-${instanceNumber}`;
