@@ -24,6 +24,14 @@ const isSameDayTenToTwentyRental = (options?: {
   return startMinutes >= dayStart && endMinutes <= dayEnd && endMinutes > startMinutes
 }
 
+const isWeekendRentalDay = (date: Date) => [0, 5, 6].includes(date.getDay())
+
+const getRentalPeriodStart = (startDate: string, startTime = '10:00', offsetDays = 0) => {
+  const [year, month, day] = startDate.split('-').map(Number)
+  const [hours, minutes] = startTime.split(':').map(Number)
+  return new Date(year, month - 1, day + offsetDays, hours || 0, minutes || 0)
+}
+
 export const calculateRentalTotal = (
   pricing: PricingTier | undefined,
   rentalDays: number,
@@ -31,6 +39,17 @@ export const calculateRentalTotal = (
   options?: { startDate?: string; endDate?: string; startTime?: string; endTime?: string }
 ) => {
   if (!pricing) return Math.round(rentalDays * fallbackDailyPrice)
+
+  const weekendDay10to20 = Number(pricing.weekendDay10to20) || 0
+  if (
+    rentalDays === 1 &&
+    weekendDay10to20 > 0 &&
+    options?.startDate &&
+    isSameDayTenToTwentyRental(options) &&
+    isWeekendRentalDay(getRentalPeriodStart(options.startDate, options.startTime))
+  ) {
+    return Math.round(weekendDay10to20)
+  }
 
   const dayRentalPrice = Number(pricing.day1_10to20) || 0
   if (rentalDays === 1 && dayRentalPrice > 0 && isSameDayTenToTwentyRental(options)) {
@@ -62,10 +81,7 @@ export const calculateRentalTotal = (
   }
 
   return Math.round(Array.from({ length: rentalDays }).reduce<number>((sum, _, index) => {
-    const [year, month, day] = options.startDate!.split('-').map(Number)
-    const [hours, minutes] = (options.startTime || '10:00').split(':').map(Number)
-    const periodStart = new Date(year, month - 1, day + index, hours || 0, minutes || 0)
-    const isWeekend = [0, 5, 6].includes(periodStart.getDay())
-    return sum + (isWeekend ? weekendDay : dailyPrice)
+    const periodStart = getRentalPeriodStart(options.startDate!, options.startTime, index)
+    return sum + (isWeekendRentalDay(periodStart) ? weekendDay : dailyPrice)
   }, 0))
 }

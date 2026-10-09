@@ -11,6 +11,7 @@ const pricing: PricingTier = {
   days14: 11000,
   days30: 20000,
   weekendDay: 1500,
+  weekendDay10to20: 1400,
 }
 
 describe('calculateRentalTotal', () => {
@@ -59,5 +60,14 @@ describe('calculateRentalTotal', () => {
       startTime: '09:00',
       endTime: '20:00',
     })).toBe(1000)
+  })
+
+  it('uses weekend same-day 10 to 20 price before the weekday 10 to 20 price', () => {
+    expect(calculateRentalTotal(pricing, 1, 1000, {
+      startDate: '2026-09-11',
+      endDate: '2026-09-11',
+      startTime: '10:00',
+      endTime: '20:00',
+    })).toBe(1400)
   })
 })

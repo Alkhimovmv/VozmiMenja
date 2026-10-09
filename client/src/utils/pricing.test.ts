@@ -12,11 +12,13 @@ const pricing: PricingTier = {
   days14: 700,
   days30: 600,
   weekendDay: 1500,
+  weekendDay10to20: 1400,
 }
 
 const rows = getPricingRows(pricing)
 
-assert.equal(rows[0]?.key, 'weekendDay')
+assert.equal(rows[0]?.key, 'weekendDay10to20')
+assert.equal(rows[1]?.key, 'weekendDay')
 assert.equal(rows.some((row) => row.key === 'days2'), false)
 assert.equal(rows.some((row) => row.key === 'days3'), false)
 assert.equal(rows.some((row) => row.key === 'days4'), true)
@@ -38,6 +40,13 @@ assert.equal(calculateRentalTotal(pricing, 1, 1000, {
   startTime: '10:00',
   endTime: '20:00',
 }), 600)
+
+assert.equal(calculateRentalTotal(pricing, 1, 1000, {
+  startDate: '2026-09-11',
+  endDate: '2026-09-11',
+  startTime: '10:00',
+  endTime: '20:00',
+}), 1400)
 
 assert.equal(calculateRentalTotal(pricing, 1, 1000, {
   startDate: '2026-09-14',

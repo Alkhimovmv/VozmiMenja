@@ -19,6 +19,7 @@ const priceFields: Array<{
   { key: 'days14', label: '14 суток', help: 'Ставка или пакет' },
   { key: 'days30', label: '30 суток', help: 'Ставка или пакет' },
   { key: 'weekendDay', label: 'Пт-Сб-Вс' },
+  { key: 'weekendDay10to20', label: 'Пт-Сб-Вс 10:00-20:00' },
 ]
 
 const buildPricing = (equipment: Equipment): PricingTier => {
@@ -34,6 +35,7 @@ const buildPricing = (equipment: Equipment): PricingTier => {
     days14: equipment.pricing?.days14 ?? fallback,
     days30: equipment.pricing?.days30 ?? fallback,
     weekendDay: equipment.pricing?.weekendDay ?? 0,
+    weekendDay10to20: equipment.pricing?.weekendDay10to20 ?? 0,
   }
 }
 

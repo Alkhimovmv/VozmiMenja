@@ -24,6 +24,7 @@ const buildDefaultPricing = (price = 0): PricingTier => ({
   days14: price,
   days30: price,
   weekendDay: 0,
+  weekendDay10to20: 0,
 })
 
 export default function EquipmentForm({ equipment, onClose }: EquipmentFormProps) {
@@ -385,6 +386,24 @@ export default function EquipmentForm({ equipment, onClose }: EquipmentFormProps
                   })}
                 />
                 <p className="mt-1 text-xs text-gray-500">Если заполнено, применяется к суточным периодам, начинающимся в пятницу, субботу или воскресенье.</p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Пт-Сб-Вс 10:00-20:00 (₽)
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  step="1"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  value={formData.pricing.weekendDay10to20 || 0}
+                  onChange={(e) => setFormData({
+                    ...formData,
+                    pricing: { ...formData.pricing, weekendDay10to20: Number(e.target.value) }
+                  })}
+                />
+                <p className="mt-1 text-xs text-gray-500">Для аренды в пятницу, субботу или воскресенье в пределах 10:00-20:00.</p>
               </div>
             </div>
           </div>

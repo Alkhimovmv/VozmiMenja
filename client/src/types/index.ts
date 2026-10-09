@@ -39,6 +39,7 @@ export interface PricingTier {
   days14: number       // 2 недели
   days30: number       // месяц
   weekendDay?: number  // Пт-Сб-Вс за сутки
+  weekendDay10to20?: number // Пт-Сб-Вс с 10:00 до 20:00
   days1_2?: number     // Старое поле для обратной совместимости
 }
 

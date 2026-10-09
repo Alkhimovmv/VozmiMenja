@@ -47,9 +47,23 @@ export const getPricingRows = (pricing?: PricingTier) => {
       return !previousComparable || previousComparable.effectiveDailyPrice !== tier.effectiveDailyPrice;
     });
 
+  const weekendDay10to20 = Number(pricing.weekendDay10to20) || 0;
+  if (weekendDay10to20 > 0) {
+    rows.unshift({
+      key: 'weekendDay10to20',
+      days: 1,
+      label: 'Пт-Сб-Вс 10:00-20:00',
+      optional: true,
+      value: weekendDay10to20,
+      isPackage: false,
+      effectiveDailyPrice: weekendDay10to20,
+      suffix: '',
+    });
+  }
+
   const weekendDay = Number(pricing.weekendDay) || 0;
   if (weekendDay > 0) {
-    rows.unshift({
+    rows.splice(weekendDay10to20 > 0 ? 1 : 0, 0, {
       key: 'weekendDay',
       days: 1,
       label: 'Пт-Сб-Вс',
@@ -120,6 +134,17 @@ export const calculateRentalTotal = (
   fallback: number,
   options?: { startDate?: string; endDate?: string; startTime?: string; endTime?: string },
 ) => {
+  const weekendDay10to20 = Number(pricing?.weekendDay10to20) || 0;
+  if (
+    rentalDays === 1 &&
+    weekendDay10to20 > 0 &&
+    options?.startDate &&
+    isSameDayTenToTwentyRental(options) &&
+    isWeekendRentalDay(getRentalPeriodStart(options.startDate, options.startTime, 0))
+  ) {
+    return Math.round(weekendDay10to20);
+  }
+
   const dayRentalPrice = Number(pricing?.day1_10to20) || 0;
   if (rentalDays === 1 && dayRentalPrice > 0 && isSameDayTenToTwentyRental(options)) {
     return Math.round(dayRentalPrice);

@@ -10,6 +10,7 @@ export interface PricingTier {
   days14: number
   days30: number
   weekendDay?: number
+  weekendDay10to20?: number
 }
 
 export interface Equipment {
