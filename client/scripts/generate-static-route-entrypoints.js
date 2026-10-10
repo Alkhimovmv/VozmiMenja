@@ -23,6 +23,7 @@ const staticRoutes = [
   '/contact',
   '/delivery',
   '/booking',
+  '/booking/success',
   '/kak-prohodit-arenda-tehniki',
   '/samovyvoz-24-7-postamat',
   '/arenda-tehniki-dlya-meropriyatiya-moskva',
@@ -106,6 +107,11 @@ const staticSeo = {
   '/booking': {
     title: 'Оформить бронь оборудования онлайн | ВозьмиМеня',
     description: 'Самостоятельно оформите бронь техники в аренду: выберите оборудование, даты, способ получения и подтвердите условия.',
+  },
+  '/booking/success': {
+    title: 'Заявка на бронь принята | ВозьмиМеня',
+    description: 'Мы получили вашу заявку на бронь оборудования. Менеджер проверит наличие, комплект и способ получения, затем свяжется для подтверждения.',
+    robots: 'noindex, nofollow',
   },
   '/kak-prohodit-arenda-tehniki': {
     title: 'Как проходит аренда техники | ВозьмиМеня',
@@ -470,13 +476,14 @@ function buildSeoTags(route, meta) {
   const description = escapeHtml(meta.description)
   const image = escapeHtml(meta.image || `${SITE_ORIGIN}/og-image.jpg`)
   const type = meta.type === 'article' ? 'article' : meta.type === 'product' ? 'product' : 'website'
+  const robots = escapeHtml(meta.robots || 'index, follow')
   const jsonLd = meta.jsonLd
     ? `\n    <script type="application/ld+json" data-static-seo="true">${JSON.stringify(meta.jsonLd).replace(/</g, '\\u003c')}</script>`
     : ''
 
   return `    <title data-rh="true">${title}</title>
     <meta name="description" content="${description}" data-rh="true" />
-    <meta name="robots" content="index, follow" data-rh="true" />
+    <meta name="robots" content="${robots}" data-rh="true" />
     <link rel="canonical" href="${escapeHtml(canonical)}" data-rh="true" />
     <meta property="og:type" content="${type}" data-rh="true" />
     <meta property="og:title" content="${title}" data-rh="true" />
@@ -678,7 +685,17 @@ function sitemapMeta(route) {
 
 async function writeDistSitemap(routes) {
   const today = new Date().toISOString().split('T')[0]
-  const sitemapRoutes = routes.filter((route) => route !== '/equipment')
+  const sitemapRoutes = routes.filter((route) => {
+    if (route === '/equipment') return false
+    const meta = getSeoMeta(route, {
+      equipmentBySlug: new Map(),
+      equipmentById: new Map(),
+      articleBySlug: new Map(),
+      equipment: [],
+      articles: [],
+    })
+    return !String(meta.robots || '').toLowerCase().includes('noindex')
+  })
   const urls = sitemapRoutes.map((route) => {
     const { changefreq, priority } = sitemapMeta(route)
     const loc = route === '/' ? `${SITE_ORIGIN}/` : `${SITE_ORIGIN}${route}`
@@ -735,7 +752,11 @@ async function main() {
 
   console.log(`Static route entrypoints generated: ${routes.length} routes, ${routes.length * 2 - 1} files`)
   console.log(`Legacy equipment aliases generated: ${getLegacyEquipmentRoutes(remoteData).length} routes`)
-  console.log(`Static SEO sitemap generated: ${routes.filter((route) => route !== '/equipment').length} URLs`)
+  console.log(`Static SEO sitemap generated: ${routes.filter((route) => {
+    if (route === '/equipment') return false
+    const meta = getSeoMeta(route, remoteData)
+    return !String(meta.robots || '').toLowerCase().includes('noindex')
+  }).length} URLs`)
 }
 
 main().catch((error) => {
