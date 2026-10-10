@@ -440,6 +440,13 @@ function normalizeJsonLd(jsonLd) {
   return Array.isArray(jsonLd) ? jsonLd.filter(Boolean) : [jsonLd]
 }
 
+function cleanTitle(value) {
+  return String(value || 'Страница ВозьмиМеня')
+    .replace(/\s+\|\s+(?:Блог\s+)?ВозьмиМеня.*$/i, '')
+    .replace(/\s+—\s+ВозьмиМеня.*$/i, '')
+    .trim()
+}
+
 function routeLabel(route, meta) {
   const labels = {
     '/': 'Главная',
@@ -452,7 +459,7 @@ function routeLabel(route, meta) {
     '/arenda-audiooborudovaniya-moskva': 'Аренда аудиооборудования',
   }
 
-  return labels[route] || String(meta?.title || 'Страница ВозьмиМеня').replace(/\s+\|\s+ВозьмиМеня.*$/i, '')
+  return labels[route] || cleanTitle(meta?.title)
 }
 
 function buildBreadcrumbJsonLd(route, meta) {
@@ -531,9 +538,27 @@ function buildItemListJsonLd(route, remoteData) {
   }
 }
 
+function buildWebPageJsonLd(route, meta) {
+  if (route.startsWith('/equipment/') || route.startsWith('/blog/')) return null
+
+  return {
+    '@context': 'https://schema.org',
+    '@type': route === '/blog' ? 'Blog' : route.startsWith('/arenda-') ? 'CollectionPage' : 'WebPage',
+    name: cleanTitle(meta.title),
+    description: meta.description,
+    url: routeCanonical(meta, route),
+    isPartOf: {
+      '@type': 'WebSite',
+      name: 'ВозьмиМеня',
+      url: SITE_ORIGIN,
+    },
+  }
+}
+
 function enrichSeoMeta(route, meta, remoteData) {
   const jsonLd = [
     ...normalizeJsonLd(meta.jsonLd),
+    buildWebPageJsonLd(route, meta),
     buildBreadcrumbJsonLd(route, meta),
     route === '/' ? buildLocalBusinessJsonLd() : null,
     buildItemListJsonLd(route, remoteData),
@@ -542,6 +567,90 @@ function enrichSeoMeta(route, meta, remoteData) {
   return {
     ...meta,
     jsonLd: jsonLd.length ? jsonLd : undefined,
+  }
+}
+
+function productFaq(item) {
+  const name = item?.name || 'это оборудование'
+  const category = String(item?.category || '')
+
+  if (category.includes('Пылесос') || category.includes('клининг')) {
+    return [
+      {
+        question: `Для каких задач подходит ${name}?`,
+        answer: `${name} подходит для уборки, чистки или сушки в зависимости от модели. Если задача нестандартная, менеджер подскажет комплект перед подтверждением брони.`,
+      },
+      {
+        question: 'Можно ли забрать оборудование самовывозом?',
+        answer: 'Да, для части техники доступен самовывоз или постамат 24/7. Точный офис и способ получения подтверждает менеджер после заявки.',
+      },
+      {
+        question: 'Что входит в комплект аренды?',
+        answer: 'Комплект проверяется перед выдачей. В заявке и при подтверждении менеджер уточняет насадки, расходники и аксессуары под вашу задачу.',
+      },
+    ]
+  }
+
+  if (category.includes('Камер')) {
+    return [
+      {
+        question: `Подойдет ли ${name} для поездки или съемки контента?`,
+        answer: 'Да, камеры и аксессуары подбираются под формат съемки: путешествие, блог, мероприятие, спорт или короткий проект.',
+      },
+      {
+        question: 'Можно ли взять камеру на один день?',
+        answer: 'Да, можно оставить заявку на короткую аренду. Менеджер проверит доступность на выбранные даты и время.',
+      },
+      {
+        question: 'Поможете подобрать аксессуары?',
+        answer: 'Да, подскажем карту памяти, крепления, аккумуляторы и другие аксессуары под сценарий съемки.',
+      },
+    ]
+  }
+
+  if (category.includes('Аудио')) {
+    return [
+      {
+        question: `Хватит ли ${name} для мероприятия?`,
+        answer: 'Зависит от помещения, количества гостей и задачи: фон, речь или танцы. В заявке можно описать сценарий, и менеджер подскажет комплект.',
+      },
+      {
+        question: 'Можно ли подключить телефон?',
+        answer: 'Для большинства колонок и аудиокомплектов подключение возможно. Конкретный способ зависит от модели и подтверждается перед выдачей.',
+      },
+      {
+        question: 'Можно ли арендовать на выходные?',
+        answer: 'Да, можно выбрать даты аренды на пятницу, субботу или воскресенье. Если для позиции есть отдельный weekend-тариф, он участвует в расчете.',
+      },
+    ]
+  }
+
+  return [
+    {
+      question: `Можно ли арендовать ${name} на один день?`,
+      answer: 'Да, можно оставить заявку на короткую аренду. Менеджер проверит наличие и подтвердит условия получения.',
+    },
+    {
+      question: 'Как быстро подтверждается бронь?',
+      answer: 'После отправки заявки менеджер проверяет наличие, комплект и офис или доставку, затем связывается для подтверждения.',
+    },
+  ]
+}
+
+function buildFaqJsonLd(items) {
+  if (!items?.length) return null
+
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: items.map((item) => ({
+      '@type': 'Question',
+      name: item.question,
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: item.answer,
+      },
+    })),
   }
 }
 
@@ -563,41 +672,45 @@ function buildProductSeo(route, item) {
   const productImages = Array.isArray(item.images) && item.images.length > 0
     ? item.images.map(absoluteUrl)
     : image ? [image] : undefined
+  const faq = productFaq(item)
 
   return {
     title,
     description,
     image,
     type: 'product',
-    jsonLd: {
-      '@context': 'https://schema.org',
-      '@type': 'Product',
-      name: item.name,
-      description,
-      image: productImages,
-      category: item.category,
-      offers: {
-        '@type': 'Offer',
-        url: `${SITE_ORIGIN}${canonicalRoute}`,
-        priceCurrency: 'RUB',
-        price: price || undefined,
-        priceValidUntil: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-        availability: 'https://schema.org/InStock',
-        areaServed: { '@type': 'City', name: 'Москва' },
-        seller: {
-          '@type': 'LocalBusiness',
-          name: 'ВозьмиМеня',
-          telephone: '+79933636464',
-          areaServed: { '@type': 'City', name: 'Москва' },
-        },
-        priceSpecification: price ? {
-          '@type': 'UnitPriceSpecification',
-          price,
+    jsonLd: [
+      {
+        '@context': 'https://schema.org',
+        '@type': 'Product',
+        name: item.name,
+        description,
+        image: productImages,
+        category: item.category,
+        offers: {
+          '@type': 'Offer',
+          url: `${SITE_ORIGIN}${canonicalRoute}`,
           priceCurrency: 'RUB',
-          unitText: 'сутки',
-        } : undefined,
+          price: price || undefined,
+          priceValidUntil: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+          availability: 'https://schema.org/InStock',
+          areaServed: { '@type': 'City', name: 'Москва' },
+          seller: {
+            '@type': 'LocalBusiness',
+            name: 'ВозьмиМеня',
+            telephone: '+79933636464',
+            areaServed: { '@type': 'City', name: 'Москва' },
+          },
+          priceSpecification: price ? {
+            '@type': 'UnitPriceSpecification',
+            price,
+            priceCurrency: 'RUB',
+            unitText: 'сутки',
+          } : undefined,
+        },
       },
-    },
+      buildFaqJsonLd(faq),
+    ],
   }
 }
 
@@ -705,7 +818,7 @@ function linkList(items) {
 
 function pageShell(title, description, sections = []) {
   const body = [
-    `<h1>${escapeHtml(title)}</h1>`,
+    `<h1>${escapeHtml(cleanTitle(title))}</h1>`,
     `<p>${escapeHtml(description)}</p>`,
     ...sections,
     `<nav aria-label="Важные разделы">${linkList([
@@ -726,6 +839,23 @@ function productLinks(remoteData, predicate = () => true, limit = 8) {
     .filter(predicate)
     .slice(0, limit)
     .map((item) => ({ href: equipmentRoute(item), label: item.name }))
+}
+
+function routeProductLinks(route, remoteData, limit = 8) {
+  const predicates = {
+    '/arenda-pylesosov-moskva': (item) => String(item.category || '').includes('Пылесос') || String(item.category || '').includes('клининг'),
+    '/arenda-stroitelnogo-pylesosa-posle-remonta-moskva': (item) => String(item.name || '').toLowerCase().includes('wd') || String(item.category || '').includes('Пылесос'),
+    '/arenda-moyushchego-pylesosa-dlya-divana-kovra-moskva': (item) => String(item.name || '').toLowerCase().includes('puzzi'),
+    '/arenda-paroochistitelya-dlya-kuhni-plitki-vannoy-moskva': (item) => String(item.name || '').toLowerCase().includes('sc4') || String(item.name || '').toLowerCase().includes('пар'),
+    '/arenda-gopro-moskva': (item) => String(item.category || '').includes('Камер'),
+    '/arenda-kamery-dlya-puteshestviya-vloga-moskva': (item) => String(item.category || '').includes('Камер'),
+    '/arenda-audiooborudovaniya-moskva': (item) => String(item.category || '').includes('Аудио'),
+    '/arenda-kolonki-dlya-vecherinki-moskva': (item) => String(item.name || '').toLowerCase().includes('jbl') || String(item.category || '').includes('Аудио'),
+    '/arenda-mikrofona-dlya-intervyu-moskva': (item) => String(item.name || '').toLowerCase().includes('mic') || String(item.name || '').toLowerCase().includes('микрофон'),
+    '/arenda-tehniki-dlya-meropriyatiya-moskva': (item) => String(item.category || '').includes('Аудио') || String(item.category || '').includes('Камер'),
+  }
+
+  return productLinks(remoteData, predicates[route] || (() => true), limit)
 }
 
 function articleLinks(remoteData, limit = 8) {
@@ -769,11 +899,13 @@ function buildProductBody(item, remoteData) {
     ? Object.entries(item.specifications).filter(([, value]) => value).slice(0, 8)
     : []
   const related = productLinks(remoteData, (other) => other.id !== item.id && other.category === item.category, 6)
+  const faq = productFaq(item)
   const sections = [
     `<p>${escapeHtml(item.description || 'Проверенное оборудование для аренды в Москве.')}</p>`,
     price > 0 ? `<p>Минимальная цена аренды: ${escapeHtml(formatPrice(price))} ₽ за сутки. Доступны доставка, самовывоз и онлайн-бронь.</p>` : '',
     rows.length ? `<h2>Тарифы аренды</h2><ul>${rows.map((row) => `<li>${escapeHtml(row.label)} — ${escapeHtml(formatPrice(row.value))} ₽${escapeHtml(row.suffix)}</li>`).join('')}</ul>` : '',
     specs.length ? `<h2>Характеристики</h2><dl>${specs.map(([key, value]) => `<dt>${escapeHtml(key)}</dt><dd>${escapeHtml(value)}</dd>`).join('')}</dl>` : '',
+    faq.length ? `<h2>Частые вопросы</h2>${faq.map((item) => `<h3>${escapeHtml(item.question)}</h3><p>${escapeHtml(item.answer)}</p>`).join('')}` : '',
     related.length ? `<h2>Похожие позиции</h2>${linkList(related)}` : '',
     `<h2>Как арендовать</h2><p>Выберите даты, оставьте заявку или напишите менеджеру. Мы подтвердим наличие, офис получения, доставку и комплект перед выдачей.</p>`,
   ].filter(Boolean)
@@ -817,6 +949,7 @@ function buildStaticRouteBody(route, meta, remoteData) {
   const cameras = productLinks(remoteData, (item) => String(item.category || '').includes('Камер'), 8)
   const audio = productLinks(remoteData, (item) => String(item.category || '').includes('Аудио'), 8)
   const articles = articleLinks(remoteData, 10)
+  const routeProducts = routeProductLinks(route, remoteData, 8)
   const routeSections = {
     '/': [
       `<h2>Популярное оборудование</h2>${linkList(allProducts)}`,
@@ -831,13 +964,41 @@ function buildStaticRouteBody(route, meta, remoteData) {
       `<h2>Пылесосы и клининг</h2>${linkList(cleaning)}`,
       `<p>Для строительной пыли подходит WD5, для диванов и ковров — Karcher Puzzi, для плитки и кухни — пароочиститель SC4.</p>`,
     ],
+    '/arenda-stroitelnogo-pylesosa-posle-remonta-moskva': [
+      routeProducts.length ? `<h2>Техника для уборки после ремонта</h2>${linkList(routeProducts)}` : '',
+      `<p>Строительный пылесос нужен для сухой пыли, мусора и финишной уборки после ремонта. Перед бронью уточняем площадь, тип загрязнения и подходящий комплект.</p>`,
+    ],
+    '/arenda-moyushchego-pylesosa-dlya-divana-kovra-moskva': [
+      routeProducts.length ? `<h2>Моющие пылесосы для текстиля</h2>${linkList(routeProducts)}` : '',
+      `<p>Karcher Puzzi помогает чистить диваны, ковры, матрасы и салон авто: подает раствор и сразу вытягивает влагу с грязью.</p>`,
+    ],
+    '/arenda-paroochistitelya-dlya-kuhni-plitki-vannoy-moskva': [
+      routeProducts.length ? `<h2>Пароочистители и клининг</h2>${linkList(routeProducts)}` : '',
+      `<p>Пароочиститель подходит для плитки, швов, кухни, ванной и финальной уборки без покупки техники ради одной задачи.</p>`,
+    ],
     '/arenda-gopro-moskva': [
       `<h2>Камеры в аренду</h2>${linkList(cameras)}`,
       `<p>GoPro удобна для спорта и воды, Insta360 — для 360-ракурсов, DJI Osmo Pocket — для влогов и плавной съемки с рук.</p>`,
     ],
+    '/arenda-kamery-dlya-puteshestviya-vloga-moskva': [
+      routeProducts.length ? `<h2>Камеры для поездки и влога</h2>${linkList(routeProducts)}` : '',
+      `<p>Для путешествия важны компактность, стабилизация, автономность и быстрый старт съемки. Подберем камеру и аксессуары под маршрут и формат контента.</p>`,
+    ],
     '/arenda-audiooborudovaniya-moskva': [
       `<h2>Аудиооборудование</h2>${linkList(audio)}`,
       `<p>Колонки JBL PartyBox подходят для квартиры, дачи, праздника и небольшого мероприятия. Микрофоны помогают записать речь и интервью.</p>`,
+    ],
+    '/arenda-kolonki-dlya-vecherinki-moskva': [
+      routeProducts.length ? `<h2>Колонки для вечеринки</h2>${linkList(routeProducts)}` : '',
+      `<p>Для вечеринки важны мощность, автономность, бас и удобное подключение телефона. Менеджер поможет выбрать колонку под помещение и количество гостей.</p>`,
+    ],
+    '/arenda-mikrofona-dlya-intervyu-moskva': [
+      routeProducts.length ? `<h2>Микрофоны для интервью и съемки</h2>${linkList(routeProducts)}` : '',
+      `<p>Беспроводной микрофон помогает записать чистую речь для интервью, подкаста, Reels, YouTube и мероприятий с ведущим.</p>`,
+    ],
+    '/arenda-tehniki-dlya-meropriyatiya-moskva': [
+      routeProducts.length ? `<h2>Техника для мероприятия</h2>${linkList(routeProducts)}` : '',
+      `<p>Для мероприятий чаще всего нужны колонки, микрофоны и камеры. Поможем собрать комплект под помещение, гостей и сценарий.</p>`,
     ],
     '/blog': [
       articles.length ? `<h2>Статьи</h2>${linkList(articles)}` : '',
