@@ -73,6 +73,14 @@ export const matchAdminEquipment = (booking: Booking, equipment: Equipment[]) =>
   })
 }
 
+const getFirstAvailableInstance = (item: Equipment) => {
+  const availableQuantity = Number(
+    item.availableQuantity ?? (item as unknown as { available_quantity?: number }).available_quantity ?? item.quantity
+  ) || 0
+
+  return availableQuantity > 0 && item.quantity > 0 ? 1 : undefined
+}
+
 export const buildRentalFromBooking = (
   booking: Booking,
   equipment: Equipment[],
@@ -80,8 +88,9 @@ export const buildRentalFromBooking = (
   origin = 'https://vozmimenya.ru',
 ): Partial<CreateRentalDto> => {
   const matchedEquipment = matchAdminEquipment(booking, equipment)
-  const equipmentInstances = matchedEquipment
-    ? [{ equipment_id: Number(matchedEquipment.id), instance_number: 1 }]
+  const matchedInstanceNumber = matchedEquipment ? getFirstAvailableInstance(matchedEquipment) : undefined
+  const equipmentInstances = matchedEquipment && matchedInstanceNumber
+    ? [{ equipment_id: Number(matchedEquipment.id), instance_number: matchedInstanceNumber }]
     : []
   const sourceText = [
     `Заявка с сайта #${booking.id}`,

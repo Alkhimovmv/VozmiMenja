@@ -43,6 +43,17 @@ const createLockerCommandSchema = z.object({
   lockerId: z.number().int().positive(),
 })
 
+const formatLockerCommand = (command: Awaited<ReturnType<typeof lockerCommandsService.createCommand>>) => ({
+  id: command.id,
+  office_id: command.officeId,
+  locker_id: command.lockerId,
+  status: command.status,
+  created_at: command.createdAt,
+  taken_at: command.takenAt,
+  finished_at: command.finishedAt,
+  error: command.error,
+})
+
 // GET /api/admin/offices/:id/lockers-codes - без авторизации, по секрету
 router.get('/:id/lockers-codes', async (req: Request, res: Response) => {
   const secret = process.env.LOCKERS_SECRET
@@ -153,16 +164,7 @@ router.get('/:officeId/locker-commands', authMiddleware, async (req: Request, re
     }
 
     const commands = await lockerCommandsService.getCommandsHistory(officeId)
-    res.json(commands.map((command) => ({
-      id: command.id,
-      office_id: command.officeId,
-      locker_id: command.lockerId,
-      status: command.status,
-      created_at: command.createdAt,
-      taken_at: command.takenAt,
-      finished_at: command.finishedAt,
-      error: command.error,
-    })))
+    res.json(commands.map(formatLockerCommand))
   } catch (error) {
     console.error('Error getting locker commands:', error)
     res.status(500).json({ error: 'Ошибка получения истории команд' })
@@ -188,16 +190,7 @@ router.post('/:officeId/locker-commands', authMiddleware, async (req: Request, r
     }
 
     const command = await lockerCommandsService.createCommand(officeId, parsed.data.lockerId)
-    res.status(201).json({
-      id: command.id,
-      office_id: command.officeId,
-      locker_id: command.lockerId,
-      status: command.status,
-      created_at: command.createdAt,
-      taken_at: command.takenAt,
-      finished_at: command.finishedAt,
-      error: command.error,
-    })
+    res.status(201).json(formatLockerCommand(command))
   } catch (error: any) {
     if (error.message === 'LOCKER_NOT_FOUND') {
       return res.status(404).json({ error: 'Ячейка не найдена' })
@@ -210,6 +203,30 @@ router.post('/:officeId/locker-commands', authMiddleware, async (req: Request, r
     }
     console.error('Error creating locker command:', error)
     res.status(500).json({ error: 'Ошибка создания команды открытия' })
+  }
+})
+
+// POST /api/admin/offices/:officeId/locker-commands/open-unchecked
+router.post('/:officeId/locker-commands/open-unchecked', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const officeId = Number(req.params.officeId)
+    if (!Number.isInteger(officeId) || officeId <= 0) {
+      return res.status(400).json({ error: 'Некорректный officeId' })
+    }
+
+    const userOfficeIds = await getUserOfficeIds(req)
+    if (userOfficeIds !== null && !userOfficeIds.includes(officeId)) {
+      return res.status(403).json({ error: 'Нет доступа к этому офису' })
+    }
+
+    const commands = await lockerCommandsService.createCommandsForUncheckedLockers(officeId)
+    res.status(201).json({
+      created: commands.length,
+      commands: commands.map(formatLockerCommand),
+    })
+  } catch (error) {
+    console.error('Error creating commands for unchecked lockers:', error)
+    res.status(500).json({ error: 'Ошибка массового открытия непроверенных ячеек' })
   }
 })
 

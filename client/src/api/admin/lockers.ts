@@ -42,6 +42,11 @@ export const lockersApi = {
     return response.data;
   },
 
+  async markAllChecked(officeId: number): Promise<{ updated: number }> {
+    const response = await apiClient.post('/lockers/mark-checked-all', { office_id: officeId });
+    return response.data;
+  },
+
   async markNeedsCheck(id: number): Promise<Locker> {
     const response = await apiClient.post(`/lockers/${id}/needs-check`);
     return response.data;

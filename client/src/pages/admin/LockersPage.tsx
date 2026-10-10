@@ -51,6 +51,7 @@ const LockersPage: React.FC = () => {
   const [selectedInstances, setSelectedInstances] = useState<Set<InstanceKey>>(new Set());
   const [newItem, setNewItem] = useState('');
   const [openConfirmLocker, setOpenConfirmLocker] = useState<Locker | null>(null);
+  const [openUncheckedConfirm, setOpenUncheckedConfirm] = useState(false);
   const queryClient = useQueryClient();
 
   const { data: lockers = [] } = useAuthenticatedQuery<Locker[]>(
@@ -84,6 +85,7 @@ const LockersPage: React.FC = () => {
     }
     return map;
   }, new Map<number, LockerCommand>());
+  const uncheckedLockers = lockers.filter((locker) => locker.needs_check);
 
   // Конвертация Set<"id:instance"> в массив для API
   const instancesToApiItems = (instances: Set<InstanceKey>) =>
@@ -171,6 +173,28 @@ const LockersPage: React.FC = () => {
     },
     onError: (error: unknown) => {
       toast.error(getApiErrorMessage(error, 'Не удалось обновить ячейку'));
+    },
+  });
+
+  const markAllCheckedMutation = useMutation({
+    mutationFn: () => lockersApi.markAllChecked(currentOfficeId),
+    onSuccess: (result) => {
+      queryClient.invalidateQueries({ queryKey: ['lockers'] });
+      toast.success(result.updated > 0 ? `Проверено ячеек: ${result.updated}` : 'Непроверенных ячеек нет');
+    },
+    onError: (error: unknown) => {
+      toast.error(getApiErrorMessage(error, 'Не удалось проверить все ячейки'));
+    },
+  });
+
+  const openUncheckedMutation = useMutation({
+    mutationFn: () => officesApi.openUncheckedLockers(currentOfficeId),
+    onSuccess: (result) => {
+      queryClient.invalidateQueries({ queryKey: ['locker-commands'], exact: false });
+      toast.success(result.created > 0 ? `Команд открытия создано: ${result.created}` : 'Непроверенных ячеек для открытия нет');
+    },
+    onError: (error: unknown) => {
+      toast.error(getApiErrorMessage(error, 'Не удалось открыть непроверенные ячейки'));
     },
   });
 
@@ -273,7 +297,23 @@ const LockersPage: React.FC = () => {
             )}
           </div>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap justify-end gap-2">
+          <button
+            onClick={() => markAllCheckedMutation.mutate()}
+            disabled={markAllCheckedMutation.isPending || uncheckedLockers.length === 0}
+            className="bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-md font-medium disabled:opacity-50 inline-flex items-center gap-2"
+          >
+            {markAllCheckedMutation.isPending ? <Spinner /> : null}
+            Проверить все{uncheckedLockers.length > 0 ? ` (${uncheckedLockers.length})` : ''}
+          </button>
+          <button
+            onClick={() => setOpenUncheckedConfirm(true)}
+            disabled={openUncheckedMutation.isPending || uncheckedLockers.length === 0}
+            className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md font-medium disabled:opacity-50 inline-flex items-center gap-2"
+          >
+            {openUncheckedMutation.isPending ? <Spinner /> : null}
+            Открыть непроверенные{uncheckedLockers.length > 0 ? ` (${uncheckedLockers.length})` : ''}
+          </button>
           {lockers.length < totalLockersCount && (
             <button
               onClick={handleInitialize}
@@ -707,6 +747,20 @@ const LockersPage: React.FC = () => {
           setOpenConfirmLocker(null);
         }}
         onCancel={() => setOpenConfirmLocker(null)}
+      />
+
+      <ConfirmDialog
+        isOpen={openUncheckedConfirm}
+        title="Открытие непроверенных ячеек"
+        message={`Поставить команды открытия на все непроверенные ячейки текущего офиса (${uncheckedLockers.length})?`}
+        confirmText="Открыть все"
+        cancelText="Отмена"
+        type="warning"
+        onConfirm={() => {
+          openUncheckedMutation.mutate();
+          setOpenUncheckedConfirm(false);
+        }}
+        onCancel={() => setOpenUncheckedConfirm(false)}
       />
     </div>
   );

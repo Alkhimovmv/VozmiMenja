@@ -98,6 +98,27 @@ export const lockerCommandsService = {
     return mapCommand(row)
   },
 
+  async createCommandsForUncheckedLockers(officeId: number): Promise<LockerCommand[]> {
+    await this.markStaleProcessingCommands()
+
+    const rows = await database.all(
+      `SELECT id
+       FROM lockers
+       WHERE office_id = ?
+         AND needs_check = 1
+         AND is_active = 1
+         AND CAST(locker_number AS INTEGER) BETWEEN 1 AND 16
+       ORDER BY CAST(locker_number AS INTEGER) ASC`,
+      [officeId]
+    )
+
+    const commands: LockerCommand[] = []
+    for (const row of rows as Array<{ id: number }>) {
+      commands.push(await this.createCommand(officeId, row.id))
+    }
+    return commands
+  },
+
   async getCommandsHistory(officeId: number, limit = 50): Promise<LockerCommand[]> {
     await this.markStaleProcessingCommands()
     const rows = await database.all(

@@ -10,7 +10,6 @@ import RentalModal from '../../components/admin/RentalModal';
 import { useAuthenticatedQuery } from '../../hooks/useAuthenticatedQuery';
 import { useOffice } from '../../hooks/useOffice';
 import type { Booking, ContactLead, CreateRentalDto, Equipment } from '../../types';
-import { formatDate } from '../../utils/dateUtils';
 import { getApiErrorMessage } from '../../lib/apiError';
 import { buildRentalFromBooking, formatLeadSource, formatSourcePage } from '../../lib/adminLeadConversion';
 
@@ -71,15 +70,6 @@ const formatBookingPeriod = (booking: Booking) => {
   return `${start} — ${end}`;
 };
 
-const getPhoneDigits = (phone: string) => {
-  const digits = phone.replace(/\D/g, '');
-  if (digits.length === 11 && digits.startsWith('8')) return `7${digits.slice(1)}`;
-  if (digits.length === 10) return `7${digits}`;
-  return digits;
-};
-
-const getWhatsAppCustomerUrl = (phone: string) => `https://wa.me/${getPhoneDigits(phone)}`;
-
 const copyTextToClipboard = async (text: string) => {
   if (navigator.clipboard?.writeText) {
     await navigator.clipboard.writeText(text);
@@ -106,6 +96,7 @@ export default function SiteBookingsPage() {
   const [isRentalModalOpen, setIsRentalModalOpen] = useState(false);
   const [initialRentalData, setInitialRentalData] = useState<Partial<CreateRentalDto> | null>(null);
   const [convertingBookingId, setConvertingBookingId] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<'active' | 'archive'>('active');
 
   const {
     data: bookings = [],
@@ -140,6 +131,12 @@ export default function SiteBookingsPage() {
       }),
     [bookings]
   );
+  const archivedBookings = useMemo(
+    () => bookings
+      .filter((booking) => booking.status === 'completed' || booking.status === 'cancelled')
+      .sort((a, b) => getBookingSortTime(b.createdAt) - getBookingSortTime(a.createdAt)),
+    [bookings]
+  );
 
   const processedCount = bookings.filter((booking) => booking.status === 'completed').length;
   const cancelledCount = bookings.filter((booking) => booking.status === 'cancelled').length;
@@ -153,10 +150,19 @@ export default function SiteBookingsPage() {
       }),
     [contactLeads]
   );
+  const archivedContactLeads = useMemo(
+    () => contactLeads
+      .filter((lead) => lead.status === 'completed' || lead.status === 'cancelled')
+      .sort((a, b) => getBookingSortTime(b.createdAt) - getBookingSortTime(a.createdAt)),
+    [contactLeads]
+  );
   const activeCount = openBookings.length + openContactLeads.length;
   const totalCount = bookings.length + contactLeads.length;
   const totalProcessedCount = processedCount + contactLeads.filter((lead) => lead.status === 'completed').length;
   const totalCancelledCount = cancelledCount + contactLeads.filter((lead) => lead.status === 'cancelled').length;
+  const visibleBookings = viewMode === 'active' ? openBookings : archivedBookings;
+  const visibleContactLeads = viewMode === 'active' ? openContactLeads : archivedContactLeads;
+  const visibleCount = visibleBookings.length + visibleContactLeads.length;
 
   const createRentalMutation = useMutation({
     mutationFn: rentalsApi.create,
@@ -205,10 +211,20 @@ export default function SiteBookingsPage() {
     },
   });
 
-  const handleCreateRentalFromBooking = (booking: Booking) => {
+  const handleCreateRentalFromBooking = async (booking: Booking) => {
     setConvertingBookingId(booking.id);
-    setInitialRentalData(buildRentalFromBooking(booking, equipment, currentOfficeId, window.location.origin));
-    setIsRentalModalOpen(true);
+    const targetOfficeId = booking.officeId || currentOfficeId;
+    try {
+      const officeEquipment = targetOfficeId === currentOfficeId
+        ? equipment
+        : await equipmentApi.getForRental(targetOfficeId);
+      setInitialRentalData(buildRentalFromBooking(booking, officeEquipment as Equipment[], targetOfficeId, window.location.origin));
+      setIsRentalModalOpen(true);
+    } catch {
+      setInitialRentalData(buildRentalFromBooking(booking, [], targetOfficeId, window.location.origin));
+      setIsRentalModalOpen(true);
+      toast.error('Не удалось загрузить оборудование офиса заявки — открыл без автоподбора');
+    }
   };
 
   const handleCopyReply = async (text: string) => {
@@ -267,14 +283,36 @@ export default function SiteBookingsPage() {
             {activeCount} активных из {totalCount}{isContactLeadsLoading ? ' · обращения загружаются' : ''}
           </div>
         </div>
+        <div className="mt-4 flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => setViewMode('active')}
+            className={`rounded-xl px-4 py-2 text-sm font-bold transition ${
+              viewMode === 'active' ? 'bg-gray-900 text-white' : 'bg-white text-gray-700 ring-1 ring-amber-100 hover:bg-amber-50'
+            }`}
+          >
+            Активные ({activeCount})
+          </button>
+          <button
+            type="button"
+            onClick={() => setViewMode('archive')}
+            className={`rounded-xl px-4 py-2 text-sm font-bold transition ${
+              viewMode === 'archive' ? 'bg-gray-900 text-white' : 'bg-white text-gray-700 ring-1 ring-amber-100 hover:bg-amber-50'
+            }`}
+          >
+            Обработанные и отменённые ({totalProcessedCount + totalCancelledCount})
+          </button>
+        </div>
 
         <div className="mt-4 grid gap-3">
-          {openBookings.length === 0 && openContactLeads.length === 0 && (
+          {visibleCount === 0 && (
             <div className="rounded-2xl bg-white p-5 text-sm text-gray-500 shadow-sm ring-1 ring-amber-100">
-              Активных заявок с сайта сейчас нет. Новые заявки появятся здесь и в верхнем индикаторе админки.
+              {viewMode === 'active'
+                ? 'Активных заявок с сайта сейчас нет. Новые заявки появятся здесь и в верхнем индикаторе админки.'
+                : 'Обработанных или отменённых заявок пока нет.'}
             </div>
           )}
-          {openBookings.map((booking) => (
+          {visibleBookings.map((booking) => (
             <div key={booking.id} className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-amber-100">
               {(() => {
                 const bookingContext = extractBookingContext(booking.comment);
@@ -283,10 +321,20 @@ export default function SiteBookingsPage() {
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
                     <span className={`rounded-full px-2.5 py-1 text-xs font-bold ${
-                      booking.status === 'pending' ? 'bg-blue-50 text-blue-700' : 'bg-emerald-50 text-emerald-700'
-                    }`}>
-                      {booking.status === 'pending' ? 'Новая' : 'В работе'}
-                    </span>
+	                      booking.status === 'pending'
+                          ? 'bg-blue-50 text-blue-700'
+                          : booking.status === 'cancelled'
+                          ? 'bg-gray-100 text-gray-700'
+                          : 'bg-emerald-50 text-emerald-700'
+	                    }`}>
+	                      {booking.status === 'pending'
+                          ? 'Новая'
+                          : booking.status === 'confirmed'
+                          ? 'В работе'
+                          : booking.status === 'completed'
+                          ? 'Обработана'
+                          : 'Отменена'}
+	                    </span>
                     <span className="rounded-full bg-amber-50 px-2.5 py-1 text-xs font-bold text-amber-700">
                       {formatBookingAge(booking.createdAt)}
                     </span>
@@ -320,26 +368,13 @@ export default function SiteBookingsPage() {
                         Офис: {booking.officeName}
                       </span>
                     )}
-                    {booking.legalOfferAcceptedAt && (
-                      <span className="rounded-full bg-emerald-50 px-2.5 py-1 font-semibold text-emerald-700">
-                        Документы приняты
-                      </span>
-                    )}
                   </div>
-                  {(booking.deliveryAddress || booking.legalOfferAcceptedAt) && (
+                  {booking.deliveryAddress && (
                     <div className="mt-3 grid gap-2 md:grid-cols-2">
                       {booking.deliveryAddress && (
                         <div className="rounded-xl bg-violet-50 px-3 py-2 text-sm text-violet-900 ring-1 ring-violet-100">
                           <span className="block text-xs font-bold uppercase tracking-wide text-violet-600">Адрес доставки</span>
                           {booking.deliveryAddress}
-                        </div>
-                      )}
-                      {booking.legalOfferAcceptedAt && (
-                        <div className="rounded-xl bg-emerald-50 px-3 py-2 text-sm text-emerald-900 ring-1 ring-emerald-100">
-                          <span className="block text-xs font-bold uppercase tracking-wide text-emerald-600">Юридическая фиксация</span>
-                          <span className="block">Оферта, договор и ПДн: {formatDate(booking.legalOfferAcceptedAt)}</span>
-                          {booking.legalTermsVersion && <span className="block text-xs">Версия: {booking.legalTermsVersion}</span>}
-                          {booking.legalAcceptanceIp && <span className="block text-xs">IP: {booking.legalAcceptanceIp}</span>}
                         </div>
                       )}
                     </div>
@@ -372,14 +407,6 @@ export default function SiteBookingsPage() {
                     >
                       Позвонить
                     </a>
-                    <a
-                      href={getWhatsAppCustomerUrl(booking.customerPhone)}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="rounded-lg bg-emerald-600 px-3 py-2 text-xs font-bold text-white hover:bg-emerald-700"
-                    >
-                      WhatsApp
-                    </a>
                     <button
                       type="button"
                       onClick={() => handleCopyReply(booking.customerPhone)}
@@ -391,14 +418,16 @@ export default function SiteBookingsPage() {
                 </div>
 
                 <div className="flex flex-col gap-2 sm:flex-row">
-                  <button
-                    type="button"
-                    onClick={() => handleCreateRentalFromBooking(booking)}
-                    disabled={createRentalMutation.isPending || bookingStatusMutation.isPending}
-                    className="rounded-xl bg-gray-900 px-4 py-2 text-sm font-semibold text-white hover:bg-gray-800 disabled:opacity-50"
-                  >
-                    Создать аренду
-                  </button>
+                  {viewMode === 'active' && (
+                    <button
+                      type="button"
+                      onClick={() => void handleCreateRentalFromBooking(booking)}
+                      disabled={createRentalMutation.isPending || bookingStatusMutation.isPending}
+                      className="rounded-xl bg-gray-900 px-4 py-2 text-sm font-semibold text-white hover:bg-gray-800 disabled:opacity-50"
+                    >
+                      Создать аренду
+                    </button>
+                  )}
                   {booking.status === 'pending' && (
                     <button
                       type="button"
@@ -419,14 +448,16 @@ export default function SiteBookingsPage() {
                       Обработана
                     </button>
                   )}
-                  <button
-                    type="button"
-                    onClick={() => bookingStatusMutation.mutate({ id: booking.id, status: 'cancelled' })}
-                    disabled={bookingStatusMutation.isPending}
-                    className="rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-50"
-                  >
-                    Отменить
-                  </button>
+                  {viewMode === 'active' && (
+                    <button
+                      type="button"
+                      onClick={() => bookingStatusMutation.mutate({ id: booking.id, status: 'cancelled' })}
+                      disabled={bookingStatusMutation.isPending}
+                      className="rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+                    >
+                      Отменить
+                    </button>
+                  )}
                 </div>
               </div>
                 );
@@ -434,16 +465,26 @@ export default function SiteBookingsPage() {
             </div>
           ))}
 
-          {openContactLeads.map((lead) => (
+          {visibleContactLeads.map((lead) => (
             <div key={`contact-${lead.id}`} className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-amber-100">
               <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
                     <span className={`rounded-full px-2.5 py-1 text-xs font-bold ${
-                      lead.status === 'pending' ? 'bg-blue-50 text-blue-700' : 'bg-emerald-50 text-emerald-700'
-                    }`}>
-                      {lead.status === 'pending' ? 'Новое обращение' : 'В работе'}
-                    </span>
+	                      lead.status === 'pending'
+                          ? 'bg-blue-50 text-blue-700'
+                          : lead.status === 'cancelled'
+                          ? 'bg-gray-100 text-gray-700'
+                          : 'bg-emerald-50 text-emerald-700'
+	                    }`}>
+	                      {lead.status === 'pending'
+                          ? 'Новое обращение'
+                          : lead.status === 'confirmed'
+                          ? 'В работе'
+                          : lead.status === 'completed'
+                          ? 'Обработано'
+                          : 'Отменено'}
+	                    </span>
                     <span className="rounded-full bg-amber-50 px-2.5 py-1 text-xs font-bold text-amber-700">
                       {formatBookingAge(lead.createdAt)}
                     </span>
@@ -471,14 +512,6 @@ export default function SiteBookingsPage() {
                       className="rounded-lg bg-gray-900 px-3 py-2 text-xs font-bold text-white hover:bg-gray-800"
                     >
                       Позвонить
-                    </a>
-                    <a
-                      href={getWhatsAppCustomerUrl(lead.phone)}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="rounded-lg bg-emerald-600 px-3 py-2 text-xs font-bold text-white hover:bg-emerald-700"
-                    >
-                      WhatsApp
                     </a>
                     <button
                       type="button"
@@ -519,14 +552,16 @@ export default function SiteBookingsPage() {
                       Обработана
                     </button>
                   )}
-                  <button
-                    type="button"
-                    onClick={() => contactLeadStatusMutation.mutate({ id: lead.id, status: 'cancelled' })}
-                    disabled={contactLeadStatusMutation.isPending}
-                    className="rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-50"
-                  >
-                    Отменить
-                  </button>
+                  {viewMode === 'active' && (
+                    <button
+                      type="button"
+                      onClick={() => contactLeadStatusMutation.mutate({ id: lead.id, status: 'cancelled' })}
+                      disabled={contactLeadStatusMutation.isPending}
+                      className="rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+                    >
+                      Отменить
+                    </button>
+                  )}
                 </div>
               </div>
             </div>

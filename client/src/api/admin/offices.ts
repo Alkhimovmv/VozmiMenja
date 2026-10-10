@@ -48,6 +48,11 @@ export const officesApi = {
     return response.data;
   },
 
+  openUncheckedLockers: async (officeId: number): Promise<{ created: number; commands: LockerCommand[] }> => {
+    const response = await apiClient.post(`/offices/${officeId}/locker-commands/open-unchecked`);
+    return response.data;
+  },
+
   getLockerCommands: async (officeId: number): Promise<LockerCommand[]> => {
     const response = await apiClient.get(`/offices/${officeId}/locker-commands`);
     return response.data;

@@ -53,6 +53,14 @@ const equipment: Equipment[] = [
   },
 ]
 
+const unavailableOfficeEquipment: Equipment[] = [
+  {
+    ...equipment[0],
+    quantity: 0,
+    availableQuantity: 0,
+  },
+]
+
 assert.equal(formatLeadSource(booking), 'telegram / post / partybox')
 assert.equal(formatSourcePage(booking.sourcePage), '/arenda-kolonki-dlya-vecherinki-moskva')
 assert.equal(matchAdminEquipment(booking, equipment)?.id, '42')
@@ -75,6 +83,11 @@ assert.equal(rental.office_id, 2)
 assert.match(rental.comment || '', /Заявка с сайта #booking-1/)
 assert.match(rental.comment || '', /Оборудование на сайте: JBL PartyBox 320/)
 assert.match(rental.comment || '', /Офис заявки: Офис 2/)
+
+const rentalWithoutOfficeEquipment = buildRentalFromBooking(booking, unavailableOfficeEquipment, 3)
+assert.equal(rentalWithoutOfficeEquipment.equipment_id, 0)
+assert.deepEqual(rentalWithoutOfficeEquipment.equipment_ids, [])
+assert.deepEqual(rentalWithoutOfficeEquipment.equipment_instances, [])
 
 assert.deepEqual(extractBookingRentalTimes({
   comment: 'Самостоятельное оформление брони клиентом.\nВремя аренды: 11:00 — 19:30',

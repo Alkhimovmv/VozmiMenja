@@ -21,6 +21,11 @@ const getDateInputValue = (date: Date) => {
 const formatPrice = (value: number) =>
   new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', minimumFractionDigits: 0 }).format(value)
 
+const formatOfficeLabel = (office?: { name: string; address?: string }) => {
+  if (!office) return '—'
+  return office.address?.trim() ? `${office.name} — ${office.address}` : office.name
+}
+
 const formatPhoneNumber = (value: string) => {
   const digits = value.replace(/\D/g, '')
   if (!digits) return ''
@@ -471,7 +476,7 @@ export default function SelfServiceBookingPage() {
                   <option value="">{isOfficesLoading ? 'Загружаем офисы...' : 'Выберите офис'}</option>
                   {offices.map((office) => (
                     <option key={office.id} value={office.id}>
-                      {office.name}{office.address ? ` — ${office.address}` : ''}
+                      {formatOfficeLabel(office)}
                     </option>
                   ))}
                 </select>
@@ -557,7 +562,7 @@ export default function SelfServiceBookingPage() {
               </div>
               <div className="flex justify-between gap-4">
                 <span>Офис</span>
-                <strong className="text-right text-slate-900">{selectedOffice?.name || '—'}</strong>
+                <strong className="text-right text-slate-900">{formatOfficeLabel(selectedOffice)}</strong>
               </div>
               <div className="border-t border-slate-100 pt-3">
                 <span className="block text-slate-500">Расчёт аренды</span>

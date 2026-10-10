@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express'
 import { z } from 'zod'
 import { lockerModel, CreateLockerData } from '../models/Locker'
+import { database } from '../models/database'
 import { authMiddleware } from '../middleware/auth'
 import { getUserOfficeIds } from '../middleware/userFilter'
 import { initializeLockers } from '../scripts/initializeLockers'
@@ -74,6 +75,30 @@ router.post('/initialize', authMiddleware, async (req: Request, res: Response) =
   } catch (error) {
     console.error('Error initializing lockers:', error)
     res.status(500).json({ error: 'Ошибка инициализации ячеек' })
+  }
+})
+
+// POST /api/admin/lockers/mark-checked-all - Отметить все непроверенные ячейки офиса как проверенные
+router.post('/mark-checked-all', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const officeId = req.body.office_id ? parseInt(req.body.office_id) : undefined
+    if (!officeId || !Number.isInteger(officeId) || officeId <= 0) {
+      return res.status(400).json({ error: 'Некорректный office_id' })
+    }
+
+    const userOfficeIds = await getUserOfficeIds(req)
+    if (userOfficeIds !== null && !userOfficeIds.includes(officeId)) {
+      return res.status(403).json({ error: 'Нет доступа к этому офису' })
+    }
+
+    const result = await database.run(
+      'UPDATE lockers SET needs_check = 0, updated_at = CURRENT_TIMESTAMP WHERE office_id = ? AND needs_check = 1',
+      [officeId]
+    )
+    res.json({ updated: result.changes || 0 })
+  } catch (error) {
+    console.error('Error marking all lockers checked:', error)
+    res.status(500).json({ error: 'Ошибка массовой проверки ячеек' })
   }
 })
 
