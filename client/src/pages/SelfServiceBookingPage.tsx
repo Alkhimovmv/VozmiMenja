@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import SEO from '../components/SEO'
 import { useCreateBooking, useEquipment, usePublicOffices } from '../hooks/useEquipment'
@@ -92,6 +92,7 @@ const buildComment = (data: {
 ].filter(Boolean).join('\n')
 
 export default function SelfServiceBookingPage() {
+  const navigate = useNavigate()
   const today = getDateInputValue(new Date())
   const tomorrow = getDateInputValue(new Date(Date.now() + 24 * 60 * 60 * 1000))
   const { data: equipmentResponse, isLoading } = useEquipment({ limit: 100 })
@@ -266,9 +267,21 @@ export default function SelfServiceBookingPage() {
         total_days: rentalDays,
       })
 
-      toast.success(selectedEquipmentItems.length > 1
-        ? `Отправили ${selectedEquipmentItems.length} заявки по комплекту. Мы свяжемся для подтверждения.`
-        : 'Бронь отправлена. Мы свяжемся для подтверждения выдачи.')
+      toast.success('Заявка на бронь отправлена')
+      const bookingIds = responses.map((response) => response.data.id).filter(Boolean)
+      navigate(`/booking/success${bookingIds.length ? `?ids=${bookingIds.join(',')}` : ''}`, {
+        state: {
+          bookingIds,
+          equipmentNames: selectedEquipmentItems.map((item) => item.name),
+          customerName: formData.customerName,
+          startDate: formData.startDate,
+          endDate: formData.endDate,
+          deliveryMethod: formData.deliveryMethod,
+          officeName: selectedOffice?.name,
+          totalPrice,
+          source: 'self_service',
+        },
+      })
       setFormData((prev) => ({
         ...prev,
         equipmentIds: [],
@@ -574,9 +587,9 @@ export default function SelfServiceBookingPage() {
             <div className="mt-5 rounded-2xl bg-slate-50 p-4 text-sm text-slate-600">
               <p className="font-bold text-slate-900">Что будет после отправки</p>
               <ol className="mt-2 list-decimal space-y-1 pl-5">
-                <li>Заявка появится в админке.</li>
-                <li>Менеджер проверит наличие и комплект.</li>
-                <li>После подтверждения бронь станет арендой.</li>
+                <li>Заявка появится у менеджера.</li>
+                <li>Мы проверим наличие, комплект и офис выдачи.</li>
+                <li>Менеджер свяжется с вами и подтвердит бронь.</li>
               </ol>
             </div>
           </aside>

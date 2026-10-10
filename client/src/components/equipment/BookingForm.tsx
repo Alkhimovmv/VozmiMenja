@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import type { Equipment } from '../../types'
 import { useCreateBooking, usePublicOffices } from '../../hooks/useEquipment'
@@ -16,6 +17,8 @@ interface BookingFormProps {
 }
 
 export default function BookingForm({ equipment, onClose }: BookingFormProps) {
+  const navigate = useNavigate()
+
   useEffect(() => {
     document.body.style.overflow = 'hidden'
     if (window.innerWidth < 768) {
@@ -159,7 +162,7 @@ export default function BookingForm({ equipment, onClose }: BookingFormProps) {
 
     try {
       const leadContext = getLeadContext()
-      await createBookingMutation.mutateAsync({
+      const response = await createBookingMutation.mutateAsync({
         equipmentId: equipment.id,
         ...formData,
         officeId: selectedOffice?.id || 1,
@@ -182,8 +185,21 @@ export default function BookingForm({ equipment, onClose }: BookingFormProps) {
         utm_medium: leadContext.utmMedium,
         utm_campaign: leadContext.utmCampaign,
       })
-      toast.success('Заявка отправлена! Мы свяжемся с вами для подтверждения.')
+      toast.success('Заявка на бронь отправлена')
       onClose()
+      navigate(`/booking/success${response.data?.id ? `?ids=${response.data.id}` : ''}`, {
+        state: {
+          bookingIds: response.data?.id ? [response.data.id] : [],
+          equipmentNames: [equipment.name],
+          customerName: formData.customerName,
+          startDate: submitStartDate,
+          endDate: submitEndDate,
+          deliveryMethod: 'pickup',
+          officeName: selectedOffice?.name,
+          totalPrice: totalPrice || undefined,
+          source: 'equipment_modal',
+        },
+      })
     } catch (error) {
       toast.error(getApiErrorMessage(error, 'Произошла ошибка при создании бронирования'))
     }

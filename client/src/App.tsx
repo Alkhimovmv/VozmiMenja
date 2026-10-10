@@ -24,6 +24,7 @@ const RentalProcessPage = lazy(() => import('./pages/RentalProcessPage'))
 const SelfPickupPostamatPage = lazy(() => import('./pages/SelfPickupPostamatPage'))
 const EventEquipmentRentalPage = lazy(() => import('./pages/EventEquipmentRentalPage'))
 const SelfServiceBookingPage = lazy(() => import('./pages/SelfServiceBookingPage'))
+const BookingSuccessPage = lazy(() => import('./pages/BookingSuccessPage'))
 // RentAdmin pages
 const RentAdminLoginPage = lazy(() => import('./pages/admin/LoginPage'))
 const RentAdminSchedulePage = lazy(() => import('./pages/admin/SchedulePage'))
@@ -163,6 +164,7 @@ function App() {
                 <Route path="/contact" element={<ContactPage />} />
                 <Route path="/delivery" element={<DeliveryPage />} />
                 <Route path="/booking" element={<SelfServiceBookingPage />} />
+                <Route path="/booking/success" element={<BookingSuccessPage />} />
                 <Route path="/kak-prohodit-arenda-tehniki" element={<RentalProcessPage />} />
                 <Route path="/samovyvoz-24-7-postamat" element={<SelfPickupPostamatPage />} />
                 <Route path="/arenda-tehniki-dlya-meropriyatiya-moskva" element={<EventEquipmentRentalPage />} />
