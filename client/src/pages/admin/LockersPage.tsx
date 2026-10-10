@@ -37,6 +37,14 @@ const COMMAND_STATUS_STYLES: Record<LockerCommand['status'], string> = {
   failed: 'bg-red-100 text-red-800',
 };
 
+const formatCommandDateTime = (value: string | null) => {
+  if (!value) return '';
+  const normalizedValue = /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(value)
+    ? `${value.replace(' ', 'T')}Z`
+    : value;
+  return new Date(normalizedValue).toLocaleString('ru-RU');
+};
+
 const LockersPage: React.FC = () => {
   const { currentOfficeId, currentOffice } = useOffice();
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -298,22 +306,6 @@ const LockersPage: React.FC = () => {
           </div>
         </div>
         <div className="flex flex-wrap justify-end gap-2">
-          <button
-            onClick={() => markAllCheckedMutation.mutate()}
-            disabled={markAllCheckedMutation.isPending || uncheckedLockers.length === 0}
-            className="bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-md font-medium disabled:opacity-50 inline-flex items-center gap-2"
-          >
-            {markAllCheckedMutation.isPending ? <Spinner /> : null}
-            Проверить все{uncheckedLockers.length > 0 ? ` (${uncheckedLockers.length})` : ''}
-          </button>
-          <button
-            onClick={() => setOpenUncheckedConfirm(true)}
-            disabled={openUncheckedMutation.isPending || uncheckedLockers.length === 0}
-            className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md font-medium disabled:opacity-50 inline-flex items-center gap-2"
-          >
-            {openUncheckedMutation.isPending ? <Spinner /> : null}
-            Открыть непроверенные{uncheckedLockers.length > 0 ? ` (${uncheckedLockers.length})` : ''}
-          </button>
           {lockers.length < totalLockersCount && (
             <button
               onClick={handleInitialize}
@@ -340,6 +332,35 @@ const LockersPage: React.FC = () => {
           lockerRows={currentOffice?.locker_rows}
         />
       )}
+
+      <div className="rounded-lg border border-amber-100 bg-amber-50/70 p-3 shadow-sm">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <div className="text-sm font-semibold text-amber-900">Массовая проверка ячеек</div>
+            <div className="text-xs text-amber-800">
+              Непроверенных сейчас: {uncheckedLockers.length}
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={() => markAllCheckedMutation.mutate()}
+              disabled={markAllCheckedMutation.isPending || uncheckedLockers.length === 0}
+              className="bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-md font-medium disabled:opacity-50 inline-flex items-center gap-2"
+            >
+              {markAllCheckedMutation.isPending ? <Spinner /> : null}
+              Проверить все
+            </button>
+            <button
+              onClick={() => setOpenUncheckedConfirm(true)}
+              disabled={openUncheckedMutation.isPending || uncheckedLockers.length === 0}
+              className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md font-medium disabled:opacity-50 inline-flex items-center gap-2"
+            >
+              {openUncheckedMutation.isPending ? <Spinner /> : null}
+              Открыть непроверенные
+            </button>
+          </div>
+        </div>
+      </div>
 
       {/* Список ячеек */}
       <div className="bg-white shadow rounded-lg overflow-hidden overflow-x-auto">
@@ -504,9 +525,9 @@ const LockersPage: React.FC = () => {
                     </span>
                   </div>
                   <div className="mt-1 text-xs text-gray-500">
-                    Создана: {new Date(command.created_at).toLocaleString('ru-RU')}
-                    {command.taken_at && ` • Взята: ${new Date(command.taken_at).toLocaleString('ru-RU')}`}
-                    {command.finished_at && ` • Завершена: ${new Date(command.finished_at).toLocaleString('ru-RU')}`}
+                    Создана: {formatCommandDateTime(command.created_at)}
+                    {command.taken_at && ` • Взята: ${formatCommandDateTime(command.taken_at)}`}
+                    {command.finished_at && ` • Завершена: ${formatCommandDateTime(command.finished_at)}`}
                   </div>
                   {command.error && (
                     <div className="mt-1 text-xs text-red-600">Ошибка: {command.error}</div>
