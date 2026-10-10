@@ -288,8 +288,10 @@ function truncate(value, maxLength) {
 
 function absoluteUrl(raw) {
   if (!raw) return `${SITE_ORIGIN}/og-image.jpg`
-  if (String(raw).startsWith('http')) return raw
-  return `${SITE_ORIGIN}${String(raw).startsWith('/') ? '' : '/'}${raw}`
+  const value = String(raw)
+  const withoutLocalhost = value.replace(/^https?:\/\/localhost:\d+/i, '')
+  if (/^https?:\/\//i.test(withoutLocalhost)) return withoutLocalhost
+  return `${SITE_ORIGIN}${withoutLocalhost.startsWith('/') ? '' : '/'}${withoutLocalhost}`
 }
 
 function routeCanonical(meta, route) {

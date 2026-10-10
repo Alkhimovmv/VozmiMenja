@@ -97,7 +97,7 @@ export class EquipmentModel {
 
     const rows = await all(dataQuery, [...params, limit, offset]) as any[]
 
-    const data = rows.map(this.mapRow)
+    const data = rows.map(row => this.mapRow(row))
 
     return {
       data,
