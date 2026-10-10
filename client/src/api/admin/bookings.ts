@@ -27,4 +27,8 @@ export const bookingsApi = {
     const response = await apiClient.patch<Booking | BookingResponse>(`/bookings/${id}/status`, { status });
     return unwrapBooking(response.data);
   },
+
+  delete: async (id: string): Promise<void> => {
+    await apiClient.delete(`/bookings/${id}`);
+  },
 };

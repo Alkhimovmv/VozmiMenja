@@ -27,4 +27,8 @@ export const contactLeadsApi = {
     const response = await apiClient.patch<ContactLead | ContactLeadResponse>(`/contact-leads/${id}/status`, { status });
     return unwrapContactLead(response.data);
   },
+
+  delete: async (id: number): Promise<void> => {
+    await apiClient.delete(`/contact-leads/${id}`);
+  },
 };

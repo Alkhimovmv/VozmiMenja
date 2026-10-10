@@ -211,6 +211,28 @@ export default function SiteBookingsPage() {
     },
   });
 
+  const deleteBookingMutation = useMutation({
+    mutationFn: bookingsApi.delete,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-bookings'] });
+      toast.success('Заявка удалена');
+    },
+    onError: (error: unknown) => {
+      toast.error(getApiErrorMessage(error, 'Не удалось удалить заявку'));
+    },
+  });
+
+  const deleteContactLeadMutation = useMutation({
+    mutationFn: contactLeadsApi.delete,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-contact-leads'] });
+      toast.success('Обращение удалено');
+    },
+    onError: (error: unknown) => {
+      toast.error(getApiErrorMessage(error, 'Не удалось удалить обращение'));
+    },
+  });
+
   const handleCreateRentalFromBooking = async (booking: Booking) => {
     setConvertingBookingId(booking.id);
     const targetOfficeId = booking.officeId || currentOfficeId;
@@ -234,6 +256,16 @@ export default function SiteBookingsPage() {
     } catch {
       toast.error('Не удалось скопировать номер');
     }
+  };
+
+  const handleDeleteBooking = (booking: Booking) => {
+    if (!window.confirm(`Удалить заявку ${booking.customerName}? Это действие нельзя отменить.`)) return;
+    deleteBookingMutation.mutate(booking.id);
+  };
+
+  const handleDeleteContactLead = (lead: ContactLead) => {
+    if (!window.confirm(`Удалить обращение ${lead.name}? Это действие нельзя отменить.`)) return;
+    deleteContactLeadMutation.mutate(lead.id);
   };
 
   if (isLoading) {
@@ -458,6 +490,16 @@ export default function SiteBookingsPage() {
                       Отменить
                     </button>
                   )}
+                  {viewMode === 'archive' && (
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteBooking(booking)}
+                      disabled={deleteBookingMutation.isPending}
+                      className="rounded-xl border border-red-200 bg-white px-4 py-2 text-sm font-semibold text-red-700 hover:bg-red-50 disabled:opacity-50"
+                    >
+                      Удалить
+                    </button>
+                  )}
                 </div>
               </div>
                 );
@@ -560,6 +602,16 @@ export default function SiteBookingsPage() {
                       className="rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-50"
                     >
                       Отменить
+                    </button>
+                  )}
+                  {viewMode === 'archive' && (
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteContactLead(lead)}
+                      disabled={deleteContactLeadMutation.isPending}
+                      className="rounded-xl border border-red-200 bg-white px-4 py-2 text-sm font-semibold text-red-700 hover:bg-red-50 disabled:opacity-50"
+                    >
+                      Удалить
                     </button>
                   )}
                 </div>

@@ -86,6 +86,10 @@ export class ContactLeadModel {
     `, [status, id])
   }
 
+  async delete(id: number): Promise<void> {
+    await run('DELETE FROM contact_leads WHERE id = ?', [id])
+  }
+
   private mapRow(row: any): ContactLead {
     return {
       id: row.id,

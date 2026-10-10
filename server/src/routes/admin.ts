@@ -86,6 +86,21 @@ router.patch('/bookings/:id/status', authMiddleware, async (req: Request, res: R
   }
 })
 
+router.delete('/bookings/:id', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const booking = await bookingModel.findById(req.params.id)
+    if (!booking) {
+      return res.status(404).json({ error: 'Заявка не найдена' })
+    }
+
+    await bookingModel.delete(req.params.id)
+    res.status(204).send()
+  } catch (error) {
+    console.error('Admin booking delete error:', error)
+    res.status(500).json({ error: 'Ошибка удаления заявки' })
+  }
+})
+
 router.get('/contact-leads', authMiddleware, async (_req: Request, res: Response) => {
   try {
     const leads = await contactLeadModel.findAll()
@@ -121,6 +136,26 @@ router.patch('/contact-leads/:id/status', authMiddleware, async (req: Request, r
   } catch (error) {
     console.error('Admin contact lead status update error:', error)
     res.status(500).json({ error: 'Ошибка обновления обращения' })
+  }
+})
+
+router.delete('/contact-leads/:id', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const id = Number(req.params.id)
+    if (!Number.isInteger(id) || id <= 0) {
+      return res.status(400).json({ error: 'Некорректный номер обращения' })
+    }
+
+    const lead = await contactLeadModel.findById(id)
+    if (!lead) {
+      return res.status(404).json({ error: 'Обращение не найдено' })
+    }
+
+    await contactLeadModel.delete(id)
+    res.status(204).send()
+  } catch (error) {
+    console.error('Admin contact lead delete error:', error)
+    res.status(500).json({ error: 'Ошибка удаления обращения' })
   }
 })
 

@@ -171,6 +171,10 @@ export class BookingModel {
     `, [status, id])
   }
 
+  async delete(id: string): Promise<void> {
+    await run('DELETE FROM bookings WHERE id = ?', [id])
+  }
+
   async findConflictingBookings(
     equipmentId: string,
     startDate: string,
