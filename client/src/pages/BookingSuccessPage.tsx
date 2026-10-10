@@ -26,7 +26,15 @@ const formatPrice = (value?: number) => {
   return new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', minimumFractionDigits: 0 }).format(value)
 }
 
-const shortId = (id: string) => id.length > 8 ? id.slice(0, 8) : id
+const numericBookingNumber = (id: string) => {
+  let hash = 0
+
+  for (const char of id) {
+    hash = (hash * 31 + char.charCodeAt(0)) >>> 0
+  }
+
+  return String(hash % 100000000).padStart(8, '0')
+}
 
 export default function BookingSuccessPage() {
   const location = useLocation()
@@ -54,7 +62,9 @@ export default function BookingSuccessPage() {
               ✓
             </div>
             <p className="mb-3 text-xs font-black uppercase tracking-[0.28em] text-emerald-200">Заявка отправлена</p>
-            <h1 className="text-4xl font-black md:text-5xl">Мы получили вашу бронь</h1>
+            <h1 className="text-4xl font-black text-white drop-shadow-[0_2px_18px_rgba(0,0,0,0.35)] md:text-5xl">
+              Мы получили вашу бронь
+            </h1>
             <p className="mt-5 text-lg leading-8 text-blue-100">
               Это заявка на бронь оборудования. Менеджер проверит наличие, комплект, офис или доставку и свяжется с вами для финального подтверждения.
             </p>
@@ -74,7 +84,7 @@ export default function BookingSuccessPage() {
                     Номер заявки
                   </span>
                   <strong className="mt-1 block text-slate-950">
-                    {bookingIds.map(shortId).join(', ')}
+                    {bookingIds.map((id) => `№ ${numericBookingNumber(id)}`).join(', ')}
                   </strong>
                 </div>
               )}

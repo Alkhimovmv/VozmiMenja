@@ -1,9 +1,12 @@
 import fs from 'node:fs/promises'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { execFile } from 'node:child_process'
+import { promisify } from 'node:util'
 
 const SITE_ORIGIN = 'https://vozmimenya.ru'
 const API_ORIGIN = (process.env.STATIC_SEO_API_URL || process.env.VITE_API_URL || 'https://api.vozmimenya.ru/api').replace(/\/$/, '')
+const execFileAsync = promisify(execFile)
 
 const staticRoutes = [
   '/',
@@ -307,12 +310,21 @@ function routeCanonical(meta, route) {
 
 async function fetchJson(url) {
   const controller = new AbortController()
-  const timeout = setTimeout(() => controller.abort(), 7000)
+  const timeout = setTimeout(() => controller.abort(), 18000)
 
   try {
     const response = await fetch(url, { signal: controller.signal })
     if (!response.ok) throw new Error(`${url} returned ${response.status}`)
     return await response.json()
+  } catch (error) {
+    try {
+      const { stdout } = await execFileAsync('curl', ['-fsSL', '--max-time', '25', url], {
+        maxBuffer: 20 * 1024 * 1024,
+      })
+      return JSON.parse(stdout)
+    } catch {
+      throw error
+    }
   } finally {
     clearTimeout(timeout)
   }
@@ -339,7 +351,12 @@ async function loadRemoteSeoData() {
   }
 
   try {
-    const articleItems = await fetchJson(`${API_ORIGIN}/articles`)
+    let articleItems = []
+    try {
+      articleItems = await fetchJson(`${API_ORIGIN}/articles/recent?limit=100`)
+    } catch {
+      articleItems = await fetchJson(`${API_ORIGIN}/articles`)
+    }
     for (const article of articleItems || []) {
       if (article?.slug) articleBySlug.set(String(article.slug), article)
     }
@@ -351,7 +368,7 @@ async function loadRemoteSeoData() {
 }
 
 function getMinimumPrice(item) {
-  const pricing = item?.pricing || {}
+  const pricing = normalizePricing(item?.pricing)
   const prices = Object.values(pricing).map(Number).filter((price) => price > 0)
   if (prices.length > 0) return Math.min(...prices)
   return Number(item?.pricePerDay || item?.price_per_day || 0)
@@ -359,6 +376,173 @@ function getMinimumPrice(item) {
 
 function formatPrice(price) {
   return new Intl.NumberFormat('ru-RU').format(Math.round(price))
+}
+
+function normalizePricing(raw) {
+  if (!raw) return {}
+  if (typeof raw === 'string') {
+    try {
+      return JSON.parse(raw)
+    } catch {
+      return {}
+    }
+  }
+  return typeof raw === 'object' ? raw : {}
+}
+
+const pricingTierDefinitions = [
+  { key: 'weekendDay10to20', days: 1, label: 'Пт-Сб-Вс 10:00-20:00', suffix: '' },
+  { key: 'weekendDay', days: 1, label: 'Пт-Сб-Вс', suffix: '/сутки' },
+  { key: 'day1_10to20', days: 1, label: '1 день 10:00-20:00', suffix: '' },
+  { key: 'day1', days: 1, label: '1 сутки', suffix: '/сутки' },
+  { key: 'days2', days: 2, label: '2 суток', suffix: '/сутки' },
+  { key: 'days3', days: 3, label: '3 суток', suffix: '/сутки' },
+  { key: 'days4', days: 4, label: '4+ суток', suffix: '/сутки' },
+  { key: 'days7', days: 7, label: '7 суток', suffix: '/сутки' },
+  { key: 'days14', days: 14, label: '14 суток', suffix: '/сутки' },
+  { key: 'days30', days: 30, label: '30 суток', suffix: '/сутки' },
+]
+
+function isPackagePrice(pricing, value, periodDays) {
+  return periodDays > 1 && Number(pricing.day1) > 0 && value > Number(pricing.day1)
+}
+
+function pricingRows(item) {
+  const pricing = normalizePricing(item?.pricing)
+  const rows = pricingTierDefinitions
+    .map((tier) => {
+      const value = Number(pricing[tier.key]) || 0
+      const isPackage = isPackagePrice(pricing, value, tier.days)
+      return {
+        ...tier,
+        value,
+        isPackage,
+        effectiveDailyPrice: isPackage ? value / tier.days : value,
+        suffix: isPackage ? ' за весь срок' : tier.suffix,
+      }
+    })
+    .filter((tier) => tier.value > 0)
+
+  return rows.filter((tier, index) => {
+    if (tier.key === 'weekendDay10to20' || tier.key === 'weekendDay' || tier.key === 'day1_10to20') return true
+
+    const previousComparable = rows
+      .slice(0, index)
+      .filter((item) => !['weekendDay10to20', 'weekendDay', 'day1_10to20'].includes(item.key))
+      .at(-1)
+
+    return !previousComparable || previousComparable.effectiveDailyPrice !== tier.effectiveDailyPrice
+  })
+}
+
+function normalizeJsonLd(jsonLd) {
+  if (!jsonLd) return []
+  return Array.isArray(jsonLd) ? jsonLd.filter(Boolean) : [jsonLd]
+}
+
+function routeLabel(route, meta) {
+  const labels = {
+    '/': 'Главная',
+    '/blog': 'Блог',
+    '/booking': 'Бронь онлайн',
+    '/contact': 'Контакты',
+    '/delivery': 'Доставка',
+    '/arenda-pylesosov-moskva': 'Аренда пылесосов',
+    '/arenda-gopro-moskva': 'Аренда GoPro и камер',
+    '/arenda-audiooborudovaniya-moskva': 'Аренда аудиооборудования',
+  }
+
+  return labels[route] || String(meta?.title || 'Страница ВозьмиМеня').replace(/\s+\|\s+ВозьмиМеня.*$/i, '')
+}
+
+function buildBreadcrumbJsonLd(route, meta) {
+  if (route === '/') return null
+
+  const items = [
+    {
+      '@type': 'ListItem',
+      position: 1,
+      name: 'ВозьмиМеня',
+      item: `${SITE_ORIGIN}/`,
+    },
+  ]
+
+  if (route.startsWith('/blog/')) {
+    items.push({
+      '@type': 'ListItem',
+      position: 2,
+      name: 'Блог',
+      item: `${SITE_ORIGIN}/blog`,
+    })
+  }
+
+  items.push({
+    '@type': 'ListItem',
+    position: items.length + 1,
+    name: routeLabel(route, meta),
+    item: routeCanonical(meta, route),
+  })
+
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: items,
+  }
+}
+
+function buildLocalBusinessJsonLd() {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'LocalBusiness',
+    name: 'ВозьмиМеня',
+    url: SITE_ORIGIN,
+    telephone: '+79933636464',
+    areaServed: { '@type': 'City', name: 'Москва' },
+    address: {
+      '@type': 'PostalAddress',
+      addressLocality: 'Москва',
+      addressCountry: 'RU',
+    },
+  }
+}
+
+function buildItemListJsonLd(route, remoteData) {
+  const predicates = {
+    '/arenda-pylesosov-moskva': (item) => String(item.category || '').includes('Пылесос') || String(item.category || '').includes('клининг'),
+    '/arenda-gopro-moskva': (item) => String(item.category || '').includes('Камер'),
+    '/arenda-audiooborudovaniya-moskva': (item) => String(item.category || '').includes('Аудио'),
+    '/': () => true,
+  }
+  const predicate = predicates[route]
+  if (!predicate) return null
+
+  const products = [...remoteData.equipmentBySlug.values()].filter(predicate).slice(0, 12)
+  if (!products.length) return null
+
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'ItemList',
+    itemListElement: products.map((item, index) => ({
+      '@type': 'ListItem',
+      position: index + 1,
+      name: item.name,
+      url: `${SITE_ORIGIN}${equipmentRoute(item)}`,
+    })),
+  }
+}
+
+function enrichSeoMeta(route, meta, remoteData) {
+  const jsonLd = [
+    ...normalizeJsonLd(meta.jsonLd),
+    buildBreadcrumbJsonLd(route, meta),
+    route === '/' ? buildLocalBusinessJsonLd() : null,
+    buildItemListJsonLd(route, remoteData),
+  ].filter(Boolean)
+
+  return {
+    ...meta,
+    jsonLd: jsonLd.length ? jsonLd : undefined,
+  }
 }
 
 function buildProductSeo(route, item) {
@@ -376,6 +560,9 @@ function buildProductSeo(route, item) {
   const title = `Аренда ${item.name} в Москве${priceText} | ВозьмиМеня`
   const description = truncate(`Аренда ${item.name} в Москве${priceText}. ${item.description || 'Проверенное оборудование, консультация, доставка и самовывоз.'}`, 165)
   const image = Array.isArray(item.images) && item.images.length > 0 ? absoluteUrl(item.images[0]) : undefined
+  const productImages = Array.isArray(item.images) && item.images.length > 0
+    ? item.images.map(absoluteUrl)
+    : image ? [image] : undefined
 
   return {
     title,
@@ -387,14 +574,28 @@ function buildProductSeo(route, item) {
       '@type': 'Product',
       name: item.name,
       description,
-      image,
+      image: productImages,
+      category: item.category,
       offers: {
         '@type': 'Offer',
         url: `${SITE_ORIGIN}${canonicalRoute}`,
         priceCurrency: 'RUB',
         price: price || undefined,
+        priceValidUntil: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
         availability: 'https://schema.org/InStock',
         areaServed: { '@type': 'City', name: 'Москва' },
+        seller: {
+          '@type': 'LocalBusiness',
+          name: 'ВозьмиМеня',
+          telephone: '+79933636464',
+          areaServed: { '@type': 'City', name: 'Москва' },
+        },
+        priceSpecification: price ? {
+          '@type': 'UnitPriceSpecification',
+          price,
+          priceCurrency: 'RUB',
+          unitText: 'сутки',
+        } : undefined,
       },
     },
   }
@@ -563,6 +764,7 @@ function buildProductBody(item, remoteData) {
   }
 
   const price = getMinimumPrice(item)
+  const rows = pricingRows(item)
   const specs = item.specifications && typeof item.specifications === 'object'
     ? Object.entries(item.specifications).filter(([, value]) => value).slice(0, 8)
     : []
@@ -570,6 +772,7 @@ function buildProductBody(item, remoteData) {
   const sections = [
     `<p>${escapeHtml(item.description || 'Проверенное оборудование для аренды в Москве.')}</p>`,
     price > 0 ? `<p>Минимальная цена аренды: ${escapeHtml(formatPrice(price))} ₽ за сутки. Доступны доставка, самовывоз и онлайн-бронь.</p>` : '',
+    rows.length ? `<h2>Тарифы аренды</h2><ul>${rows.map((row) => `<li>${escapeHtml(row.label)} — ${escapeHtml(formatPrice(row.value))} ₽${escapeHtml(row.suffix)}</li>`).join('')}</ul>` : '',
     specs.length ? `<h2>Характеристики</h2><dl>${specs.map(([key, value]) => `<dt>${escapeHtml(key)}</dt><dd>${escapeHtml(value)}</dd>`).join('')}</dl>` : '',
     related.length ? `<h2>Похожие позиции</h2>${linkList(related)}` : '',
     `<h2>Как арендовать</h2><p>Выберите даты, оставьте заявку или напишите менеджеру. Мы подтвердим наличие, офис получения, доставку и комплект перед выдачей.</p>`,
@@ -651,7 +854,7 @@ function buildStaticRouteBody(route, meta, remoteData) {
 }
 
 function renderRouteHtml(indexHtml, route, remoteData) {
-  const meta = getSeoMeta(route, remoteData)
+  const meta = enrichSeoMeta(route, getSeoMeta(route, remoteData), remoteData)
   const cleaned = cleanManagedSeoTags(indexHtml)
   const tags = buildSeoTags(route, meta)
   const staticBody = buildStaticRouteBody(route, meta, remoteData)
@@ -683,22 +886,24 @@ function sitemapMeta(route) {
   return { changefreq: 'monthly', priority: '0.7' }
 }
 
-async function writeDistSitemap(routes) {
+async function writeDistSitemap(routes, remoteData) {
   const today = new Date().toISOString().split('T')[0]
-  const sitemapRoutes = routes.filter((route) => {
-    if (route === '/equipment') return false
-    const meta = getSeoMeta(route, {
-      equipmentBySlug: new Map(),
-      equipmentById: new Map(),
-      articleBySlug: new Map(),
-      equipment: [],
-      articles: [],
-    })
-    return !String(meta.robots || '').toLowerCase().includes('noindex')
-  })
-  const urls = sitemapRoutes.map((route) => {
+  const sitemapRoutes = []
+  const seenLocs = new Set()
+
+  for (const route of routes) {
+    if (route === '/equipment') continue
+    const meta = getSeoMeta(route, remoteData)
+    if (String(meta.robots || '').toLowerCase().includes('noindex')) continue
+
+    const loc = routeCanonical(meta, route)
+    if (seenLocs.has(loc)) continue
+    seenLocs.add(loc)
+    sitemapRoutes.push({ route, loc })
+  }
+
+  const urls = sitemapRoutes.map(({ route, loc }) => {
     const { changefreq, priority } = sitemapMeta(route)
-    const loc = route === '/' ? `${SITE_ORIGIN}/` : `${SITE_ORIGIN}${route}`
     return `  <url>
     <loc>${xmlEscape(loc)}</loc>
     <lastmod>${today}</lastmod>
@@ -748,7 +953,7 @@ async function main() {
   )
 
   await fs.writeFile(distIndexPath, renderRouteHtml(indexHtml, '/', remoteData), 'utf8')
-  await writeDistSitemap(routes)
+  await writeDistSitemap(routes, remoteData)
 
   console.log(`Static route entrypoints generated: ${routes.length} routes, ${routes.length * 2 - 1} files`)
   console.log(`Legacy equipment aliases generated: ${getLegacyEquipmentRoutes(remoteData).length} routes`)
