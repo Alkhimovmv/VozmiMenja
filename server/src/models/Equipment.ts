@@ -15,6 +15,7 @@ export interface PricingTier {
 
 export interface Equipment {
   id: string
+  slug?: string
   name: string
   category: string
   pricePerDay: number
@@ -41,6 +42,25 @@ export interface CreateEquipmentData {
 
 export class EquipmentModel {
   private db = database.instance
+
+  private slugify(name: string): string {
+    const translit: Record<string, string> = {
+      а: 'a', б: 'b', в: 'v', г: 'g', д: 'd', е: 'e', ё: 'e', ж: 'zh', з: 'z', и: 'i', й: 'j',
+      к: 'k', л: 'l', м: 'm', н: 'n', о: 'o', п: 'p', р: 'r', с: 's', т: 't', у: 'u', ф: 'f',
+      х: 'h', ц: 'c', ч: 'ch', ш: 'sh', щ: 'sch', ъ: '', ы: 'y', ь: '', э: 'e', ю: 'yu', я: 'ya',
+    }
+
+    return name
+      .trim()
+      .toLowerCase()
+      .split('')
+      .map((char) => translit[char] ?? char)
+      .join('')
+      .replace(/&/g, ' and ')
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .replace(/-{2,}/g, '-')
+  }
 
   async findAll(options: {
     page?: number
@@ -87,6 +107,16 @@ export class EquipmentModel {
 
   async findById(id: string): Promise<Equipment | null> {
     const row = await get('SELECT * FROM equipment WHERE id = ?', [id]) as any
+
+    return row ? this.mapRow(row) : null
+  }
+
+  async findByIdOrSlug(idOrSlug: string): Promise<Equipment | null> {
+    const byId = await this.findById(idOrSlug)
+    if (byId) return byId
+
+    const rows = await all('SELECT * FROM equipment') as any[]
+    const row = rows.find((item) => this.slugify(item.name) === idOrSlug)
 
     return row ? this.mapRow(row) : null
   }
@@ -222,6 +252,7 @@ export class EquipmentModel {
   private mapRow(row: any): Equipment {
     return {
       id: row.id,
+      slug: this.slugify(row.name),
       name: row.name,
       category: row.category,
       pricePerDay: row.price_per_day,

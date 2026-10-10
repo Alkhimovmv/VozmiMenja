@@ -4,6 +4,7 @@ import { articlesApi } from '../api/articles'
 import { apiClient } from '../lib/api'
 import SEO from '../components/SEO'
 import type { Article, Equipment } from '../types'
+import { equipmentPath } from '../lib/equipmentUrls'
 
 const staticPages = [
   { href: '/', label: 'Главная' },
@@ -140,7 +141,7 @@ export default function SitemapPage() {
                     </h3>
                     <div className="space-y-2">
                       {items.map((item) => (
-                        <Link key={item.id} to={`/equipment/${item.id}`} className="block text-gray-600 hover:text-[#2563EB] text-sm">
+                        <Link key={item.id} to={equipmentPath(item)} className="block text-gray-600 hover:text-[#2563EB] text-sm">
                           {item.name}
                         </Link>
                       ))}

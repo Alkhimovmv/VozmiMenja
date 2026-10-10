@@ -68,7 +68,7 @@ export default function CategoryAudioPage() {
     {
       title: 'Записать интервью или видео',
       description: 'Для чистой речи в кадре нужен внешний микрофон: особенно если вокруг шум, улица или большое помещение.',
-      equipmentHref: '/equipment/1232f00f-dc96-46df-b1e4-2d724ede3ef8',
+      equipmentHref: '/equipment/dji-mic-2',
       equipmentLabel: 'DJI Mic 2',
       guideHref: '/arenda-mikrofona-dlya-intervyu-moskva',
       guideLabel: 'Микрофон для интервью',
@@ -76,7 +76,7 @@ export default function CategoryAudioPage() {
     {
       title: 'Музыка для домашней вечеринки',
       description: 'Для квартиры, небольшой дачи или камерной встречи подойдет мощная портативная колонка.',
-      equipmentHref: '/equipment/fd15952980910f1f05be88fa6853e1fd',
+      equipmentHref: '/equipment/jbl-partybox-320',
       equipmentLabel: 'JBL PartyBox 320',
       guideHref: '/arenda-kolonki-dlya-vecherinki-moskva',
       guideLabel: 'Колонка для вечеринки',
@@ -84,7 +84,7 @@ export default function CategoryAudioPage() {
     {
       title: 'Сделать звук для большого события',
       description: 'Для зала, танцев и громкой музыки лучше брать акустику с запасом мощности.',
-      equipmentHref: '/equipment/e609e0bec87c0653a070088843f2df8c',
+      equipmentHref: '/equipment/jbl-partybox-710',
       equipmentLabel: 'JBL PartyBox 710',
       guideHref: '/arenda-kolonki-dlya-vecherinki-moskva',
       guideLabel: 'Колонка для вечеринки',
@@ -202,10 +202,10 @@ export default function CategoryAudioPage() {
             </div>
 
             <div className="mt-5 flex flex-wrap gap-2">
-              <Link to="/equipment/fd15952980910f1f05be88fa6853e1fd" className="px-4 py-2 bg-[#2563EB] text-white rounded-xl text-sm font-semibold hover:bg-[#1D4ED8] transition-colors">
+              <Link to="/equipment/jbl-partybox-320" className="px-4 py-2 bg-[#2563EB] text-white rounded-xl text-sm font-semibold hover:bg-[#1D4ED8] transition-colors">
                 Смотреть PartyBox 320
               </Link>
-              <Link to="/equipment/e609e0bec87c0653a070088843f2df8c" className="px-4 py-2 bg-gray-900 text-white rounded-xl text-sm font-semibold hover:bg-gray-800 transition-colors">
+              <Link to="/equipment/jbl-partybox-710" className="px-4 py-2 bg-gray-900 text-white rounded-xl text-sm font-semibold hover:bg-gray-800 transition-colors">
                 Смотреть PartyBox 710
               </Link>
               <Link to="/blog/kolonka-dlya-vecherinki-kakuyu-jbl-partybox-vzyat-v-arendu" className="px-4 py-2 bg-[#F8FAFC] text-gray-700 rounded-xl text-sm font-semibold border border-gray-100 hover:text-[#2563EB] transition-colors">

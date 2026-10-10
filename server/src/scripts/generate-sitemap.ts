@@ -16,6 +16,7 @@ interface SitemapUrl {
 
 interface EquipmentRow {
   id: string
+  name: string
   updated_at?: string
   created_at?: string
 }
@@ -60,6 +61,25 @@ function today() {
   return new Date().toISOString().slice(0, 10)
 }
 
+const translit: Record<string, string> = {
+  а: 'a', б: 'b', в: 'v', г: 'g', д: 'd', е: 'e', ё: 'e', ж: 'zh', з: 'z', и: 'i', й: 'j',
+  к: 'k', л: 'l', м: 'm', н: 'n', о: 'o', п: 'p', р: 'r', с: 's', т: 't', у: 'u', ф: 'f',
+  х: 'h', ц: 'c', ч: 'ch', ш: 'sh', щ: 'sch', ъ: '', ы: 'y', ь: '', э: 'e', ю: 'yu', я: 'ya',
+}
+
+function equipmentSlug(name: string) {
+  return name
+    .trim()
+    .toLowerCase()
+    .split('')
+    .map((char) => translit[char] ?? char)
+    .join('')
+    .replace(/&/g, ' and ')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .replace(/-{2,}/g, '-')
+}
+
 function toDateOnly(value?: string) {
   if (!value) return today()
   const date = new Date(value)
@@ -99,7 +119,7 @@ async function generateSitemap() {
 
   try {
     const equipmentRows = await all(`
-      SELECT id, updated_at, created_at
+      SELECT id, name, updated_at, created_at
       FROM equipment
       ORDER BY updated_at DESC, created_at DESC
     `) as EquipmentRow[]
@@ -113,7 +133,7 @@ async function generateSitemap() {
 
     const dynamicUrls: SitemapUrl[] = [
       ...equipmentRows.map((item) => ({
-        loc: `/equipment/${item.id}`,
+        loc: `/equipment/${equipmentSlug(item.name || item.id)}`,
         lastmod: toDateOnly(item.updated_at || item.created_at),
         changefreq: 'weekly' as const,
         priority: '0.8',

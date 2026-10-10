@@ -6,9 +6,9 @@ import { getTelegramUrl } from '../lib/contactLinks'
 import ScenarioRentalInfo from '../components/ui/ScenarioRentalInfo'
 
 const pageUrl = 'https://vozmimenya.ru/arenda-stroitelnogo-pylesosa-posle-remonta-moskva'
-const wd5Href = '/equipment/0519e3d0-e02f-4f8e-b77d-0c80fe58a9cc'
-const puzzi8Href = '/equipment/51022efa-99b7-4c93-a5ad-0f19851f6c1a'
-const puzzi10Href = '/equipment/f2260efd-d0e7-4622-91b0-c90a2cbc64ad'
+const wd5Href = '/equipment/karcher-wd5'
+const puzzi8Href = '/equipment/karcher-puzzi-8-1'
+const puzzi10Href = '/equipment/karcher-puzzi-10-1'
 const leadMessage = 'Нужен пылесос после ремонта. Площадь: __ м2. Пыль/мусор: __. Нужна чистка мебели/ковра: да/нет. Даты аренды: __. Район Москвы: __.'
 
 const faqItems = [

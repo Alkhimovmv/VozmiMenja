@@ -70,7 +70,7 @@ router.get('/', async (req: Request, res: Response) => {
 router.get('/:id', async (req: Request, res: Response) => {
   try {
     const { id } = req.params
-    const equipment = await equipmentModel.findById(id)
+    const equipment = await equipmentModel.findByIdOrSlug(id)
 
     if (!equipment) {
       return res.status(404).json({

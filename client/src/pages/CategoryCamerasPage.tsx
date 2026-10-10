@@ -68,7 +68,7 @@ export default function CategoryCamerasPage() {
     {
       title: 'Снять активный отдых',
       description: 'Для спорта, воды, креплений и динамики лучше подойдет GoPro с широким углом и стабилизацией.',
-      equipmentHref: '/equipment/64e19704-b0dc-4879-9b90-6adc4eddd923',
+      equipmentHref: '/equipment/gopro-13',
       equipmentLabel: 'GoPro 13',
       guideHref: '/blog/gopro-dlya-nachinayushchih-polnoe-rukovodstvo',
       guideLabel: 'Гайд по GoPro',
@@ -76,7 +76,7 @@ export default function CategoryCamerasPage() {
     {
       title: 'Снять путешествие или влог',
       description: 'Для прогулок, разговорных видео и Reels удобно взять компактную камеру со стабилизацией.',
-      equipmentHref: '/equipment/5e1bd056-e6e8-4e92-ae17-519a56f564ad',
+      equipmentHref: '/equipment/dji-osmo-pocket-3-creator-combo',
       equipmentLabel: 'DJI Osmo Pocket 3',
       guideHref: '/arenda-kamery-dlya-puteshestviya-vloga-moskva',
       guideLabel: 'Камера для поездки',
@@ -84,7 +84,7 @@ export default function CategoryCamerasPage() {
     {
       title: 'Получить необычные ракурсы',
       description: 'Для 360-видео, съемки одному и эффектных проходок подойдет Insta360.',
-      equipmentHref: '/equipment/98794938-b0c8-4a7d-b182-b6645ba8039b',
+      equipmentHref: '/equipment/insta360-x5',
       equipmentLabel: 'Insta360 X5',
       guideHref: '/blog/top-3-kamery-dlya-svadeb-2025',
       guideLabel: 'Камеры для мероприятий',
@@ -199,13 +199,13 @@ export default function CategoryCamerasPage() {
             </div>
 
             <div className="mt-5 flex flex-wrap gap-2">
-              <Link to="/equipment/64e19704-b0dc-4879-9b90-6adc4eddd923" className="px-4 py-2 bg-[#2563EB] text-white rounded-xl text-sm font-semibold hover:bg-[#1D4ED8] transition-colors">
+              <Link to="/equipment/gopro-13" className="px-4 py-2 bg-[#2563EB] text-white rounded-xl text-sm font-semibold hover:bg-[#1D4ED8] transition-colors">
                 GoPro 13
               </Link>
-              <Link to="/equipment/5e1bd056-e6e8-4e92-ae17-519a56f564ad" className="px-4 py-2 bg-gray-900 text-white rounded-xl text-sm font-semibold hover:bg-gray-800 transition-colors">
+              <Link to="/equipment/dji-osmo-pocket-3-creator-combo" className="px-4 py-2 bg-gray-900 text-white rounded-xl text-sm font-semibold hover:bg-gray-800 transition-colors">
                 DJI Osmo Pocket 3
               </Link>
-              <Link to="/equipment/98794938-b0c8-4a7d-b182-b6645ba8039b" className="px-4 py-2 bg-[#F8FAFC] text-gray-700 rounded-xl text-sm font-semibold border border-gray-100 hover:text-[#2563EB] transition-colors">
+              <Link to="/equipment/insta360-x5" className="px-4 py-2 bg-[#F8FAFC] text-gray-700 rounded-xl text-sm font-semibold border border-gray-100 hover:text-[#2563EB] transition-colors">
                 Insta360 X5
               </Link>
             </div>

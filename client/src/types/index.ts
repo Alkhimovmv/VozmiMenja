@@ -45,6 +45,7 @@ export interface PricingTier {
 
 export interface PublicEquipment {
   id: string
+  slug?: string
   name: string
   category: string
   pricePerDay: number

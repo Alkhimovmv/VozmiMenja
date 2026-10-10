@@ -3,6 +3,7 @@ import { ChevronRight } from 'lucide-react'
 import type { Equipment } from '../../types'
 import { getImageUrl } from '../../lib/utils'
 import { getMinimumDailyPrice, getPeriodPrice } from '../../utils/pricing'
+import { equipmentPath } from '../../lib/equipmentUrls'
 
 interface RelatedCardProps {
   equipment: Equipment
@@ -17,7 +18,7 @@ export default function RelatedCard({ equipment }: RelatedCardProps) {
 
   return (
     <Link
-      to={`/equipment/${equipment.id}`}
+      to={equipmentPath(equipment)}
       className="group bg-white rounded-2xl border border-gray-100 hover:shadow-md transition-all duration-200 overflow-hidden block"
     >
       {/* Image */}

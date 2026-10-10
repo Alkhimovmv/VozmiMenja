@@ -6,9 +6,9 @@ import { getTelegramUrl } from '../lib/contactLinks'
 import ScenarioRentalInfo from '../components/ui/ScenarioRentalInfo'
 
 const pageUrl = 'https://vozmimenya.ru/arenda-kamery-dlya-puteshestviya-vloga-moskva'
-const goproHref = '/equipment/64e19704-b0dc-4879-9b90-6adc4eddd923'
-const osmoHref = '/equipment/5e1bd056-e6e8-4e92-ae17-519a56f564ad'
-const insta360Href = '/equipment/98794938-b0c8-4a7d-b182-b6645ba8039b'
+const goproHref = '/equipment/gopro-13'
+const osmoHref = '/equipment/dji-osmo-pocket-3-creator-combo'
+const insta360Href = '/equipment/insta360-x5'
 const leadMessage = 'Нужна камера для поездки/влога. Что снимаем: путешествие/спорт/Reels/360. Срок: __ дней. Нужны крепления/аккумуляторы: __. Район Москвы: __.'
 
 const faqItems = [

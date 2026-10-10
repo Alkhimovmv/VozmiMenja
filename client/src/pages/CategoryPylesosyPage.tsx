@@ -83,7 +83,7 @@ export default function CategoryPylesosyPage() {
     {
       title: 'Почистить диван или ковер',
       description: 'Для глубокой влажной чистки мебели и ковров лучше смотреть моющие пылесосы Puzzi.',
-      equipmentHref: '/equipment/51022efa-99b7-4c93-a5ad-0f19851f6c1a',
+      equipmentHref: '/equipment/karcher-puzzi-8-1',
       equipmentLabel: 'Karcher Puzzi 8/1',
       guideHref: '/arenda-moyushchego-pylesosa-dlya-divana-kovra-moskva',
       guideLabel: 'Моющий пылесос для дивана',
@@ -91,7 +91,7 @@ export default function CategoryPylesosyPage() {
     {
       title: 'Убрать после ремонта',
       description: 'Для строительной пыли, мусора и влажной уборки нужен пылесос с запасом мощности и баком.',
-      equipmentHref: '/equipment/0519e3d0-e02f-4f8e-b77d-0c80fe58a9cc',
+      equipmentHref: '/equipment/karcher-wd5',
       equipmentLabel: 'Karcher WD5',
       guideHref: '/arenda-stroitelnogo-pylesosa-posle-remonta-moskva',
       guideLabel: 'Пылесос после ремонта',
@@ -99,7 +99,7 @@ export default function CategoryPylesosyPage() {
     {
       title: 'Очистить кухню, плитку или ванную',
       description: 'Для твердых поверхностей, швов и сантехники лучше смотреть пароочиститель, а не Puzzi.',
-      equipmentHref: '/equipment/d4cc7709-1ee5-4dcb-81a2-c0dadb538dc5',
+      equipmentHref: '/equipment/karcher-sc4',
       equipmentLabel: 'Karcher SC4',
       guideHref: '/arenda-paroochistitelya-dlya-kuhni-plitki-vannoy-moskva',
       guideLabel: 'Пароочиститель для кухни',
@@ -222,13 +222,13 @@ export default function CategoryPylesosyPage() {
             </div>
 
             <div className="mt-5 flex flex-wrap gap-2">
-              <Link to="/equipment/0519e3d0-e02f-4f8e-b77d-0c80fe58a9cc" className="px-4 py-2 bg-[#2563EB] text-white rounded-xl text-sm font-semibold hover:bg-[#1D4ED8] transition-colors">
+              <Link to="/equipment/karcher-wd5" className="px-4 py-2 bg-[#2563EB] text-white rounded-xl text-sm font-semibold hover:bg-[#1D4ED8] transition-colors">
                 Karcher WD5
               </Link>
-              <Link to="/equipment/51022efa-99b7-4c93-a5ad-0f19851f6c1a" className="px-4 py-2 bg-gray-900 text-white rounded-xl text-sm font-semibold hover:bg-gray-800 transition-colors">
+              <Link to="/equipment/karcher-puzzi-8-1" className="px-4 py-2 bg-gray-900 text-white rounded-xl text-sm font-semibold hover:bg-gray-800 transition-colors">
                 Puzzi 8/1
               </Link>
-              <Link to="/equipment/d4cc7709-1ee5-4dcb-81a2-c0dadb538dc5" className="px-4 py-2 bg-[#F8FAFC] text-gray-700 rounded-xl text-sm font-semibold border border-gray-100 hover:text-[#2563EB] transition-colors">
+              <Link to="/equipment/karcher-sc4" className="px-4 py-2 bg-[#F8FAFC] text-gray-700 rounded-xl text-sm font-semibold border border-gray-100 hover:text-[#2563EB] transition-colors">
                 Karcher SC4
               </Link>
             </div>

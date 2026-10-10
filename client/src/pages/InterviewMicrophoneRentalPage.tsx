@@ -5,7 +5,7 @@ import { trackEvent } from '../lib/analytics'
 import { CONTACT_PHONE, CONTACT_PHONE_LABEL, getTelegramUrl } from '../lib/contactLinks'
 
 const pageUrl = 'https://vozmimenya.ru/arenda-mikrofona-dlya-intervyu-moskva'
-const djiMicHref = '/equipment/1232f00f-dc96-46df-b1e4-2d724ede3ef8'
+const djiMicHref = '/equipment/dji-mic-2'
 const camerasHref = '/arenda-gopro-moskva'
 const leadMessage = 'Нужен микрофон для интервью. Формат: один/два героя, помещение/улица: __. Камера/телефон: __. Даты аренды: __. Район Москвы: __.'
 

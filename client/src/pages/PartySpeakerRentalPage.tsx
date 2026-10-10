@@ -6,8 +6,8 @@ import { getTelegramUrl } from '../lib/contactLinks'
 import ScenarioRentalInfo from '../components/ui/ScenarioRentalInfo'
 
 const pageUrl = 'https://vozmimenya.ru/arenda-kolonki-dlya-vecherinki-moskva'
-const partyBox320Href = '/equipment/fd15952980910f1f05be88fa6853e1fd'
-const partyBox710Href = '/equipment/e609e0bec87c0653a070088843f2df8c'
+const partyBox320Href = '/equipment/jbl-partybox-320'
+const partyBox710Href = '/equipment/jbl-partybox-710'
 const leadMessage = 'Нужна колонка для вечеринки. Где будет: квартира/дача/зал/улица. Гостей: __. Формат: фон/речь/танцы. Даты аренды: __. Район Москвы: __.'
 
 const faqItems = [

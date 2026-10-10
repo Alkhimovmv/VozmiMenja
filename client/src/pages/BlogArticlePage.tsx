@@ -17,9 +17,9 @@ const rentalCtas = {
     primaryHref: '/arenda-pylesosov-moskva',
     primaryLabel: 'Смотреть пылесосы',
     links: [
-      { href: '/equipment/51022efa-99b7-4c93-a5ad-0f19851f6c1a', label: 'Karcher Puzzi 8/1' },
-      { href: '/equipment/f2260efd-d0e7-4622-91b0-c90a2cbc64ad', label: 'Karcher Puzzi 10/1' },
-      { href: '/equipment/0519e3d0-e02f-4f8e-b77d-0c80fe58a9cc', label: 'Karcher WD5' },
+      { href: '/equipment/karcher-puzzi-8-1', label: 'Karcher Puzzi 8/1' },
+      { href: '/equipment/karcher-puzzi-10-1', label: 'Karcher Puzzi 10/1' },
+      { href: '/equipment/karcher-wd5', label: 'Karcher WD5' },
     ],
   },
   cameras: {
@@ -29,9 +29,9 @@ const rentalCtas = {
     primaryHref: '/arenda-gopro-moskva',
     primaryLabel: 'Смотреть камеры',
     links: [
-      { href: '/equipment/64e19704-b0dc-4879-9b90-6adc4eddd923', label: 'GoPro 13' },
-      { href: '/equipment/5e1bd056-e6e8-4e92-ae17-519a56f564ad', label: 'DJI Osmo Pocket 3' },
-      { href: '/equipment/98794938-b0c8-4a7d-b182-b6645ba8039b', label: 'Insta360 X5' },
+      { href: '/equipment/gopro-13', label: 'GoPro 13' },
+      { href: '/equipment/dji-osmo-pocket-3-creator-combo', label: 'DJI Osmo Pocket 3' },
+      { href: '/equipment/insta360-x5', label: 'Insta360 X5' },
     ],
   },
   audio: {
@@ -41,9 +41,9 @@ const rentalCtas = {
     primaryHref: '/arenda-audiooborudovaniya-moskva',
     primaryLabel: 'Смотреть аудио',
     links: [
-      { href: '/equipment/1232f00f-dc96-46df-b1e4-2d724ede3ef8', label: 'DJI Mic 2' },
-      { href: '/equipment/fd15952980910f1f05be88fa6853e1fd', label: 'JBL PartyBox 320' },
-      { href: '/equipment/e609e0bec87c0653a070088843f2df8c', label: 'JBL PartyBox 710' },
+      { href: '/equipment/dji-mic-2', label: 'DJI Mic 2' },
+      { href: '/equipment/jbl-partybox-320', label: 'JBL PartyBox 320' },
+      { href: '/equipment/jbl-partybox-710', label: 'JBL PartyBox 710' },
     ],
   },
   default: {

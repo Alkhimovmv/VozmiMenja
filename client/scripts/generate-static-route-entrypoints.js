@@ -22,6 +22,7 @@ const staticRoutes = [
   '/about',
   '/contact',
   '/delivery',
+  '/booking',
   '/kak-prohodit-arenda-tehniki',
   '/samovyvoz-24-7-postamat',
   '/arenda-tehniki-dlya-meropriyatiya-moskva',
@@ -158,6 +159,29 @@ const distDir = path.resolve(clientDir, 'dist')
 const distIndexPath = path.join(distDir, 'index.html')
 const distSitemapPath = path.join(distDir, 'sitemap.xml')
 
+const translit = {
+  а: 'a', б: 'b', в: 'v', г: 'g', д: 'd', е: 'e', ё: 'e', ж: 'zh', з: 'z', и: 'i', й: 'j',
+  к: 'k', л: 'l', м: 'm', н: 'n', о: 'o', п: 'p', р: 'r', с: 's', т: 't', у: 'u', ф: 'f',
+  х: 'h', ц: 'c', ч: 'ch', ш: 'sh', щ: 'sch', ъ: '', ы: 'y', ь: '', э: 'e', ю: 'yu', я: 'ya',
+}
+
+function equipmentSlug(name) {
+  return String(name ?? '')
+    .trim()
+    .toLowerCase()
+    .split('')
+    .map((char) => translit[char] ?? char)
+    .join('')
+    .replace(/&/g, ' and ')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .replace(/-{2,}/g, '-')
+}
+
+function equipmentRoute(item) {
+  return `/equipment/${equipmentSlug(item?.name || item?.id || 'equipment')}`
+}
+
 function normalizeRoute(rawPathname) {
   if (!rawPathname || rawPathname === '/') return null
 
@@ -198,9 +222,15 @@ function routeHtmlOutputPath(route) {
 
 function getRemoteRoutes(remoteData) {
   return [
-    ...[...remoteData.equipmentById.keys()].map((id) => `/equipment/${id}`),
+    ...[...remoteData.equipmentBySlug.keys()].map((slug) => `/equipment/${slug}`),
     ...[...remoteData.articleBySlug.keys()].map((slug) => `/blog/${slug}`),
   ]
+}
+
+function getLegacyEquipmentRoutes(remoteData) {
+  return [...remoteData.equipmentById.keys()]
+    .filter((id) => !remoteData.equipmentBySlug.has(id))
+    .map((id) => `/equipment/${id}`)
 }
 
 async function getRoutesFromSitemap(remoteData) {
@@ -282,13 +312,19 @@ async function fetchJson(url) {
 
 async function loadRemoteSeoData() {
   const equipmentById = new Map()
+  const equipmentBySlug = new Map()
   const articleBySlug = new Map()
 
   try {
     const equipmentResponse = await fetchJson(`${API_ORIGIN}/equipment?limit=200`)
     const equipmentItems = Array.isArray(equipmentResponse) ? equipmentResponse : equipmentResponse.data
     for (const item of equipmentItems || []) {
-      if (item?.id) equipmentById.set(String(item.id), item)
+      if (item?.id) {
+        const slug = equipmentSlug(item.name || item.id)
+        item.slug = slug
+        equipmentById.set(String(item.id), item)
+        equipmentBySlug.set(slug, item)
+      }
     }
   } catch (error) {
     console.warn(`Static SEO: equipment API unavailable, using fallbacks (${error.message})`)
@@ -303,7 +339,7 @@ async function loadRemoteSeoData() {
     console.warn(`Static SEO: articles API unavailable, using fallbacks (${error.message})`)
   }
 
-  return { equipmentById, articleBySlug }
+  return { equipmentById, equipmentBySlug, articleBySlug }
 }
 
 function getMinimumPrice(item) {
@@ -328,6 +364,7 @@ function buildProductSeo(route, item) {
 
   const price = getMinimumPrice(item)
   const priceText = price > 0 ? ` от ${formatPrice(price)} ₽/сутки` : ''
+  const canonicalRoute = equipmentRoute(item)
   const title = `Аренда ${item.name} в Москве${priceText} | ВозьмиМеня`
   const description = truncate(`Аренда ${item.name} в Москве${priceText}. ${item.description || 'Проверенное оборудование, консультация, доставка и самовывоз.'}`, 165)
   const image = Array.isArray(item.images) && item.images.length > 0 ? absoluteUrl(item.images[0]) : undefined
@@ -345,7 +382,7 @@ function buildProductSeo(route, item) {
       image,
       offers: {
         '@type': 'Offer',
-        url: `${SITE_ORIGIN}${route}`,
+        url: `${SITE_ORIGIN}${canonicalRoute}`,
         priceCurrency: 'RUB',
         price: price || undefined,
         availability: 'https://schema.org/InStock',
@@ -402,8 +439,11 @@ function fallbackSeo(route) {
 
 function getSeoMeta(route, remoteData) {
   if (route.startsWith('/equipment/')) {
-    const id = route.split('/').filter(Boolean)[1]
-    return buildProductSeo(route, remoteData.equipmentById.get(id))
+    const identifier = route.split('/').filter(Boolean)[1]
+    const item = remoteData.equipmentBySlug.get(identifier) || remoteData.equipmentById.get(identifier)
+    const meta = buildProductSeo(route, item)
+    if (item) meta.canonicalPath = equipmentRoute(item)
+    return meta
   }
 
   if (route.startsWith('/blog/') && route !== '/blog') {
@@ -449,12 +489,166 @@ function buildSeoTags(route, meta) {
     <meta name="twitter:image" content="${image}" data-rh="true" />${jsonLd}`
 }
 
+function linkList(items) {
+  return `<ul>${items.map((item) => `<li><a href="${escapeHtml(item.href)}">${escapeHtml(item.label)}</a></li>`).join('')}</ul>`
+}
+
+function pageShell(title, description, sections = []) {
+  const body = [
+    `<h1>${escapeHtml(title)}</h1>`,
+    `<p>${escapeHtml(description)}</p>`,
+    ...sections,
+    `<nav aria-label="Важные разделы">${linkList([
+      { href: '/arenda-pylesosov-moskva', label: 'Аренда пылесосов и клининговой техники' },
+      { href: '/arenda-gopro-moskva', label: 'Аренда GoPro и камер' },
+      { href: '/arenda-audiooborudovaniya-moskva', label: 'Аренда колонок и аудиооборудования' },
+      { href: '/booking', label: 'Оформить бронь онлайн' },
+      { href: '/blog', label: 'Блог и гайды по аренде техники' },
+      { href: '/contact', label: 'Контакты и самовывоз' },
+    ])}</nav>`,
+  ].join('\n')
+
+  return `<main class="static-seo-content" data-static-seo="body">${body}</main>`
+}
+
+function productLinks(remoteData, predicate = () => true, limit = 8) {
+  return [...remoteData.equipmentBySlug.values()]
+    .filter(predicate)
+    .slice(0, limit)
+    .map((item) => ({ href: equipmentRoute(item), label: item.name }))
+}
+
+function articleLinks(remoteData, limit = 8) {
+  return [...remoteData.articleBySlug.values()]
+    .filter((article) => article?.slug)
+    .slice(0, limit)
+    .map((article) => ({ href: `/blog/${article.slug}`, label: article.title }))
+}
+
+function markdownToPlainSections(content) {
+  const clean = stripHtml(content || '')
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+    .replace(/```[\s\S]*?```/g, ' ')
+    .replace(/[#*_`>|-]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+
+  if (!clean) return []
+
+  const paragraphs = clean
+    .split(/(?<=\.)\s+/)
+    .reduce((acc, sentence) => {
+      const current = acc[acc.length - 1] || ''
+      if (!current || current.length > 420) acc.push(sentence)
+      else acc[acc.length - 1] = `${current} ${sentence}`
+      return acc
+    }, [])
+    .slice(0, 6)
+
+  return paragraphs.map((paragraph) => `<p>${escapeHtml(paragraph)}</p>`)
+}
+
+function buildProductBody(item, remoteData) {
+  if (!item) {
+    return pageShell('Аренда оборудования в Москве', 'Карточка оборудования ВозьмиМеня: описание, тарифы, условия аренды, доставка и онлайн-бронирование техники в Москве.')
+  }
+
+  const price = getMinimumPrice(item)
+  const specs = item.specifications && typeof item.specifications === 'object'
+    ? Object.entries(item.specifications).filter(([, value]) => value).slice(0, 8)
+    : []
+  const related = productLinks(remoteData, (other) => other.id !== item.id && other.category === item.category, 6)
+  const sections = [
+    `<p>${escapeHtml(item.description || 'Проверенное оборудование для аренды в Москве.')}</p>`,
+    price > 0 ? `<p>Минимальная цена аренды: ${escapeHtml(formatPrice(price))} ₽ за сутки. Доступны доставка, самовывоз и онлайн-бронь.</p>` : '',
+    specs.length ? `<h2>Характеристики</h2><dl>${specs.map(([key, value]) => `<dt>${escapeHtml(key)}</dt><dd>${escapeHtml(value)}</dd>`).join('')}</dl>` : '',
+    related.length ? `<h2>Похожие позиции</h2>${linkList(related)}` : '',
+    `<h2>Как арендовать</h2><p>Выберите даты, оставьте заявку или напишите менеджеру. Мы подтвердим наличие, офис получения, доставку и комплект перед выдачей.</p>`,
+  ].filter(Boolean)
+
+  return pageShell(`Аренда ${item.name} в Москве`, `Карточка оборудования: ${item.name}. ${item.description || 'Прокат техники с доставкой и самовывозом.'}`, sections)
+}
+
+function buildArticleBody(article, remoteData) {
+  if (!article) {
+    return pageShell('Статья об аренде техники', 'Практический материал блога ВозьмиМеня о выборе и аренде оборудования.')
+  }
+
+  const sections = [
+    `<p>${escapeHtml(article.excerpt || '')}</p>`,
+    ...markdownToPlainSections(article.content),
+    `<h2>Полезные ссылки</h2>${linkList([
+      { href: '/arenda-pylesosov-moskva', label: 'Пылесосы и клининг в аренду' },
+      { href: '/arenda-gopro-moskva', label: 'Камеры и GoPro в аренду' },
+      { href: '/arenda-audiooborudovaniya-moskva', label: 'Колонки и аудиооборудование' },
+      { href: '/booking', label: 'Оформить бронь' },
+    ])}`,
+    articleLinks(remoteData, 5).length ? `<h2>Другие статьи</h2>${linkList(articleLinks(remoteData, 5).filter((link) => link.href !== `/blog/${article.slug}`))}` : '',
+  ].filter(Boolean)
+
+  return pageShell(article.title, article.excerpt || 'Статья блога ВозьмиМеня.', sections)
+}
+
+function buildStaticRouteBody(route, meta, remoteData) {
+  if (route.startsWith('/equipment/')) {
+    const identifier = route.split('/').filter(Boolean)[1]
+    return buildProductBody(remoteData.equipmentBySlug.get(identifier) || remoteData.equipmentById.get(identifier), remoteData)
+  }
+
+  if (route.startsWith('/blog/') && route !== '/blog') {
+    const slug = route.split('/').filter(Boolean)[1]
+    return buildArticleBody(remoteData.articleBySlug.get(slug), remoteData)
+  }
+
+  const allProducts = productLinks(remoteData, () => true, 12)
+  const cleaning = productLinks(remoteData, (item) => String(item.category || '').includes('Пылесос') || String(item.category || '').includes('клининг'), 8)
+  const cameras = productLinks(remoteData, (item) => String(item.category || '').includes('Камер'), 8)
+  const audio = productLinks(remoteData, (item) => String(item.category || '').includes('Аудио'), 8)
+  const articles = articleLinks(remoteData, 10)
+  const routeSections = {
+    '/': [
+      `<h2>Популярное оборудование</h2>${linkList(allProducts)}`,
+      `<h2>Категории</h2>${linkList([
+        { href: '/arenda-pylesosov-moskva', label: 'Пылесосы, Puzzi, WD5 и пароочистители' },
+        { href: '/arenda-gopro-moskva', label: 'GoPro, Insta360 и DJI Osmo Pocket' },
+        { href: '/arenda-audiooborudovaniya-moskva', label: 'JBL PartyBox и микрофоны' },
+      ])}`,
+      articles.length ? `<h2>Гайды по выбору</h2>${linkList(articles)}` : '',
+    ],
+    '/arenda-pylesosov-moskva': [
+      `<h2>Пылесосы и клининг</h2>${linkList(cleaning)}`,
+      `<p>Для строительной пыли подходит WD5, для диванов и ковров — Karcher Puzzi, для плитки и кухни — пароочиститель SC4.</p>`,
+    ],
+    '/arenda-gopro-moskva': [
+      `<h2>Камеры в аренду</h2>${linkList(cameras)}`,
+      `<p>GoPro удобна для спорта и воды, Insta360 — для 360-ракурсов, DJI Osmo Pocket — для влогов и плавной съемки с рук.</p>`,
+    ],
+    '/arenda-audiooborudovaniya-moskva': [
+      `<h2>Аудиооборудование</h2>${linkList(audio)}`,
+      `<p>Колонки JBL PartyBox подходят для квартиры, дачи, праздника и небольшого мероприятия. Микрофоны помогают записать речь и интервью.</p>`,
+    ],
+    '/blog': [
+      articles.length ? `<h2>Статьи</h2>${linkList(articles)}` : '',
+    ],
+    '/sitemap': [
+      `<h2>Разделы сайта</h2>${linkList([
+        ...allProducts,
+        ...articles,
+      ].slice(0, 30))}`,
+    ],
+  }
+
+  return pageShell(meta.title, meta.description, routeSections[route] || [])
+}
+
 function renderRouteHtml(indexHtml, route, remoteData) {
   const meta = getSeoMeta(route, remoteData)
   const cleaned = cleanManagedSeoTags(indexHtml)
   const tags = buildSeoTags(route, meta)
+  const staticBody = buildStaticRouteBody(route, meta, remoteData)
+  const withStaticRoot = cleaned.replace(/<div id="root"><\/div>/i, `<div id="root">\n${staticBody}\n    </div>`)
 
-  return cleaned.replace(/\s*<\/head>/i, `\n${tags}\n  </head>`)
+  return withStaticRoot.replace(/\s*<\/head>/i, `\n${tags}\n  </head>`)
 }
 
 function xmlEscape(value) {
@@ -522,10 +716,23 @@ async function main() {
     }),
   )
 
+  await Promise.all(
+    getLegacyEquipmentRoutes(remoteData).map(async (route) => {
+      const routeHtml = renderRouteHtml(indexHtml, route, remoteData)
+      const indexOutputPath = routeIndexOutputPath(route)
+      const htmlOutputPath = routeHtmlOutputPath(route)
+
+      await fs.mkdir(path.dirname(indexOutputPath), { recursive: true })
+      await fs.writeFile(indexOutputPath, routeHtml, 'utf8')
+      await fs.writeFile(htmlOutputPath, routeHtml, 'utf8')
+    }),
+  )
+
   await fs.writeFile(distIndexPath, renderRouteHtml(indexHtml, '/', remoteData), 'utf8')
   await writeDistSitemap(routes)
 
   console.log(`Static route entrypoints generated: ${routes.length} routes, ${routes.length * 2 - 1} files`)
+  console.log(`Legacy equipment aliases generated: ${getLegacyEquipmentRoutes(remoteData).length} routes`)
   console.log(`Static SEO sitemap generated: ${routes.filter((route) => route !== '/equipment').length} URLs`)
 }
 

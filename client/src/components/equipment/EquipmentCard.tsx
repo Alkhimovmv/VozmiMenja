@@ -4,6 +4,7 @@ import type { Equipment } from '../../types'
 import { getImageUrl } from '../../lib/utils'
 import { trackEvent } from '../../lib/analytics'
 import BookingForm from './BookingForm'
+import { equipmentPath } from '../../lib/equipmentUrls'
 
 interface EquipmentCardProps {
   equipment: Equipment
@@ -13,6 +14,7 @@ interface EquipmentCardProps {
 export default function EquipmentCard({ equipment, priority = false }: EquipmentCardProps) {
   const [showBookingForm, setShowBookingForm] = useState(false)
   const dayPrice = equipment.pricing?.day1 || equipment.pricePerDay
+  const detailsHref = equipmentPath(equipment)
 
   const formatPrice = (price: number) =>
     new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', minimumFractionDigits: 0 }).format(price)
@@ -26,7 +28,7 @@ export default function EquipmentCard({ equipment, priority = false }: Equipment
     <>
       <article className="md:hidden overflow-hidden rounded-xl border border-gray-200 bg-white">
         <div className="flex gap-3 p-3">
-          <Link to={`/equipment/${equipment.id}`} className="h-24 w-24 flex-shrink-0 overflow-hidden rounded-lg bg-white">
+          <Link to={detailsHref} className="h-24 w-24 flex-shrink-0 overflow-hidden rounded-lg bg-white">
             <img
               src={getImageUrl(equipment.images[0])}
               alt={`Аренда ${equipment.name}`}
@@ -36,7 +38,7 @@ export default function EquipmentCard({ equipment, priority = false }: Equipment
             />
           </Link>
           <div className="flex min-w-0 flex-1 flex-col">
-            <Link to={`/equipment/${equipment.id}`} className="min-w-0">
+            <Link to={detailsHref} className="min-w-0">
               <h3 className="line-clamp-1 text-sm font-semibold text-gray-950">{equipment.name}</h3>
               <p className="mt-1 line-clamp-1 text-xs text-gray-500">{equipment.description}</p>
             </Link>
@@ -55,7 +57,7 @@ export default function EquipmentCard({ equipment, priority = false }: Equipment
               >
                 Забронировать
               </button>
-              <Link to={`/equipment/${equipment.id}`} className="text-xs font-medium text-gray-600 hover:text-primary">
+              <Link to={detailsHref} className="text-xs font-medium text-gray-600 hover:text-primary">
                 Подробнее
               </Link>
             </div>
@@ -64,7 +66,7 @@ export default function EquipmentCard({ equipment, priority = false }: Equipment
       </article>
 
       <article className="group hidden overflow-hidden rounded-xl border border-gray-200 bg-white transition-shadow hover:shadow-md md:block">
-        <Link to={`/equipment/${equipment.id}`} className="block aspect-[4/3] overflow-hidden border-b border-gray-100 bg-white">
+        <Link to={detailsHref} className="block aspect-[4/3] overflow-hidden border-b border-gray-100 bg-white">
           <img
             src={getImageUrl(equipment.images[0])}
             alt={`Аренда ${equipment.name}`}
@@ -75,7 +77,7 @@ export default function EquipmentCard({ equipment, priority = false }: Equipment
           />
         </Link>
         <div className="p-4">
-          <Link to={`/equipment/${equipment.id}`}>
+          <Link to={detailsHref}>
             <h3 className="line-clamp-1 text-base font-semibold text-gray-950 transition-colors group-hover:text-primary">
               {equipment.name}
             </h3>
@@ -93,7 +95,7 @@ export default function EquipmentCard({ equipment, priority = false }: Equipment
           </div>
 
           <div className="mt-4 flex items-center justify-between gap-3">
-            <Link to={`/equipment/${equipment.id}`} className="text-sm font-medium text-gray-600 hover:text-primary">
+            <Link to={detailsHref} className="text-sm font-medium text-gray-600 hover:text-primary">
               Подробнее
             </Link>
             <button

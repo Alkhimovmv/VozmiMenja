@@ -10,6 +10,7 @@ import { getImageUrl } from '../lib/utils'
 import { trackEvent } from '../lib/analytics'
 import { getMinimumDailyPrice, getPricingRows } from '../utils/pricing'
 import { CONTACT_PHONE, CONTACT_PHONE_LABEL, getTelegramUrl, getWhatsAppUrl } from '../lib/contactLinks'
+import { equipmentPath } from '../lib/equipmentUrls'
 
 function getEquipmentModelFaq(name: string) {
   const normalizedName = name.toLowerCase()
@@ -692,6 +693,9 @@ export default function EquipmentDetailsPage() {
 
   const getMinPrice = () => getMinimumDailyPrice(equipment.pricing, equipment.pricePerDay)
   const pricingTiers = getPricingRows(equipment.pricing)
+  const minPrice = getMinPrice()
+  const canonicalPath = equipmentPath(equipment)
+  const canonicalUrl = `https://vozmimenya.ru${canonicalPath}`
 
   const productStructuredData = {
     '@context': 'https://schema.org',
@@ -704,9 +708,9 @@ export default function EquipmentDetailsPage() {
     itemCondition: 'https://schema.org/UsedCondition',
     offers: {
       '@type': 'Offer',
-      url: `https://vozmimenya.ru/equipment/${equipment.id}`,
+      url: canonicalUrl,
       priceCurrency: 'RUB',
-      price: getMinPrice(),
+      price: minPrice,
       priceValidUntil: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
       availability: equipment.availableQuantity > 0
         ? 'https://schema.org/InStock'
@@ -721,7 +725,7 @@ export default function EquipmentDetailsPage() {
       areaServed: { '@type': 'City', name: 'Москва' },
       priceSpecification: {
         '@type': 'UnitPriceSpecification',
-        price: getMinPrice(),
+        price: minPrice,
         priceCurrency: 'RUB',
         unitText: 'сутки',
       },
@@ -729,7 +733,6 @@ export default function EquipmentDetailsPage() {
     aggregateRating: { '@type': 'AggregateRating', ratingValue: '4.9', reviewCount: '412' },
   }
 
-  const minPrice = getMinPrice()
   const guidance = getEquipmentGuidance(equipment.category, equipment.name)
   const companionOffers = getCompanionOffers(equipment.category, equipment.name)
   const rentalConditions = getRentalConditions(equipment.category, equipment.name)
@@ -743,7 +746,7 @@ export default function EquipmentDetailsPage() {
     'Сценарий: подскажите, что лучше указать под мою задачу.',
     'Даты: уточню в переписке.',
     'Комплект: нужна подсказка по доставке, залогу и допам.',
-    `Страница: https://vozmimenya.ru/equipment/${equipment.id}`,
+    `Страница: ${canonicalUrl}`,
   ].join('\n')
   const copyQuickMessage = () => {
     if (!navigator.clipboard) return
@@ -772,7 +775,7 @@ export default function EquipmentDetailsPage() {
         description={seoDescription}
         keywords={seoKeywords}
         image={equipment.images[0] ? `https://vozmimenya.ru${getImageUrl(equipment.images[0])}` : undefined}
-        url={`https://vozmimenya.ru/equipment/${equipment.id}`}
+        url={canonicalUrl}
         type="product"
         structuredData={[productStructuredData, faqStructuredData]}
       />
