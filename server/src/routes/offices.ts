@@ -201,6 +201,9 @@ router.post('/:officeId/locker-commands', authMiddleware, async (req: Request, r
     if (error.message === 'LOCKER_OUT_OF_RANGE') {
       return res.status(400).json({ error: 'Разрешено открывать только ячейки с номерами от 1 до 16' })
     }
+    if (error.message === 'POSTOMAT_OFFLINE') {
+      return res.status(409).json({ error: 'Постомат офлайн: команда открытия не поставлена в очередь' })
+    }
     console.error('Error creating locker command:', error)
     res.status(500).json({ error: 'Ошибка создания команды открытия' })
   }
@@ -224,7 +227,10 @@ router.post('/:officeId/locker-commands/open-unchecked', authMiddleware, async (
       created: commands.length,
       commands: commands.map(formatLockerCommand),
     })
-  } catch (error) {
+  } catch (error: any) {
+    if (error.message === 'POSTOMAT_OFFLINE') {
+      return res.status(409).json({ error: 'Постомат офлайн: команды открытия не поставлены в очередь' })
+    }
     console.error('Error creating commands for unchecked lockers:', error)
     res.status(500).json({ error: 'Ошибка массового открытия непроверенных ячеек' })
   }

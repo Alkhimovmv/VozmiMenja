@@ -45,6 +45,11 @@ const formatCommandDateTime = (value: string | null) => {
   return new Date(normalizedValue).toLocaleString('ru-RU');
 };
 
+const formatPostomatLastSeen = (value?: string | null) => {
+  if (!value) return '';
+  return formatCommandDateTime(value);
+};
+
 const LockersPage: React.FC = () => {
   const { currentOfficeId, currentOffice } = useOffice();
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -302,6 +307,11 @@ const LockersPage: React.FC = () => {
             )}
             {currentOfficeState?.postomat_status?.version && (
               <span className="text-gray-500">Версия: {currentOfficeState.postomat_status.version}</span>
+            )}
+            {currentOfficeState?.postomat_status?.lastSeen && (
+              <span className="text-gray-500">
+                Последняя связь: {formatPostomatLastSeen(currentOfficeState.postomat_status.lastSeen)}
+              </span>
             )}
           </div>
         </div>

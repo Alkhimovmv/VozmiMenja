@@ -22,7 +22,8 @@ export interface PostomatStatus {
   hostname: string | null
 }
 
-const STALE_COMMAND_SECONDS = 60
+const STALE_PROCESSING_COMMAND_SECONDS = 60
+const STALE_PENDING_COMMAND_SECONDS = 5 * 60
 
 function mapCommand(row: any): LockerCommand {
   return {
@@ -49,8 +50,8 @@ function mapPostomatStatus(row: any): PostomatStatus {
 }
 
 export const lockerCommandsService = {
-  async markStaleProcessingCommands(): Promise<number> {
-    const result = await database.run(
+  async markStaleCommands(): Promise<number> {
+    const processingResult = await database.run(
       `UPDATE locker_commands
        SET status = 'failed',
            error = COALESCE(error, 'Timed out waiting for postomat confirmation'),
@@ -58,18 +59,42 @@ export const lockerCommandsService = {
        WHERE status = 'processing'
          AND taken_at IS NOT NULL
          AND datetime(taken_at) <= datetime('now', ?)`,
-      [`-${STALE_COMMAND_SECONDS} seconds`]
+      [`-${STALE_PROCESSING_COMMAND_SECONDS} seconds`]
     )
 
-    if ((result.changes || 0) > 0) {
-      console.warn(`[postomat] auto-failed stale commands: ${result.changes}`)
+    const pendingResult = await database.run(
+      `UPDATE locker_commands
+       SET status = 'failed',
+           error = COALESCE(error, 'Timed out waiting for postomat pickup'),
+           finished_at = COALESCE(finished_at, CURRENT_TIMESTAMP)
+       WHERE status = 'pending'
+         AND datetime(created_at) <= datetime('now', ?)`,
+      [`-${STALE_PENDING_COMMAND_SECONDS} seconds`]
+    )
+
+    const totalChanges = (processingResult.changes || 0) + (pendingResult.changes || 0)
+    if (totalChanges > 0) {
+      console.warn(`[postomat] auto-failed stale commands: ${totalChanges}`)
     }
 
-    return result.changes || 0
+    return totalChanges
+  },
+
+  async markStaleProcessingCommands(): Promise<number> {
+    return this.markStaleCommands()
+  },
+
+  async ensurePostomatOnline(officeId: number): Promise<PostomatStatus> {
+    const status = await this.getPostomatStatus(officeId)
+    if (!status || !status.online) {
+      throw new Error('POSTOMAT_OFFLINE')
+    }
+    return status
   },
 
   async createCommand(officeId: number, lockerId: number): Promise<LockerCommand> {
-    await this.markStaleProcessingCommands()
+    await this.markStaleCommands()
+    await this.ensurePostomatOnline(officeId)
 
     const existingLocker = await database.get(
       'SELECT id, locker_number, office_id FROM lockers WHERE id = ?',
@@ -99,7 +124,8 @@ export const lockerCommandsService = {
   },
 
   async createCommandsForUncheckedLockers(officeId: number): Promise<LockerCommand[]> {
-    await this.markStaleProcessingCommands()
+    await this.markStaleCommands()
+    await this.ensurePostomatOnline(officeId)
 
     const rows = await database.all(
       `SELECT id
@@ -120,7 +146,7 @@ export const lockerCommandsService = {
   },
 
   async getCommandsHistory(officeId: number, limit = 50): Promise<LockerCommand[]> {
-    await this.markStaleProcessingCommands()
+    await this.markStaleCommands()
     const rows = await database.all(
       `SELECT *
        FROM locker_commands
@@ -133,7 +159,7 @@ export const lockerCommandsService = {
   },
 
   async takeNextCommand(officeId: number): Promise<LockerCommand | null> {
-    await this.markStaleProcessingCommands()
+    await this.markStaleCommands()
 
     await database.run('BEGIN IMMEDIATE TRANSACTION')
     try {
