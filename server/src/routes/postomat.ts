@@ -47,6 +47,7 @@ router.get('/offices/:officeId/commands/next', async (req: Request, res: Respons
       return res.status(404).json({ error: 'Офис не найден' })
     }
 
+    await lockerCommandsService.touchPostomatActivity(officeId)
     const command = await lockerCommandsService.takeNextCommand(officeId)
     if (!command) return res.json(null)
 
@@ -87,6 +88,11 @@ router.post('/commands/:commandId/done', async (req: Request, res: Response) => 
     const parsed = commandDoneSchema.safeParse(req.body)
     if (!parsed.success) {
       return res.status(400).json({ error: parsed.error.errors.map((e) => e.message).join(', ') })
+    }
+
+    const existing = await database.get('SELECT office_id FROM locker_commands WHERE id = ?', [commandId])
+    if (existing) {
+      await lockerCommandsService.touchPostomatActivity(existing.office_id)
     }
 
     const updated = await lockerCommandsService.completeCommand(commandId, parsed.data.success, parsed.data.error ?? null)

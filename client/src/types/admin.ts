@@ -19,8 +19,12 @@ export interface LockerCommand {
 
 export interface PostomatStatus {
   office_id: number;
+  officeId?: number;
   online: boolean;
   last_seen: string | null;
+  lastSeen?: string | null;
+  seconds_since_last_seen?: number | null;
+  secondsSinceLastSeen?: number | null;
   version: string | null;
   uptime: number | null;
   hostname: string | null;

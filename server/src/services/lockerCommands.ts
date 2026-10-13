@@ -17,13 +17,15 @@ export interface PostomatStatus {
   officeId: number
   lastSeen: string | null
   online: boolean
+  secondsSinceLastSeen: number | null
   version: string | null
   uptime: number | null
   hostname: string | null
 }
 
 const STALE_PROCESSING_COMMAND_SECONDS = 60
-const STALE_PENDING_COMMAND_SECONDS = 5 * 60
+const STALE_PENDING_COMMAND_SECONDS = 2 * 60
+const POSTOMAT_ONLINE_GRACE_SECONDS = 90
 
 function mapCommand(row: any): LockerCommand {
   return {
@@ -43,6 +45,7 @@ function mapPostomatStatus(row: any): PostomatStatus {
     officeId: row.office_id,
     lastSeen: row.last_seen || null,
     online: row.online === 1,
+    secondsSinceLastSeen: row.seconds_since_last_seen ?? null,
     version: row.version || null,
     uptime: row.uptime ?? null,
     hostname: row.hostname || null,
@@ -239,7 +242,23 @@ export const lockerCommandsService = {
     )
 
     const row = await database.get('SELECT * FROM postomat_devices WHERE office_id = ?', [officeId])
-    return mapPostomatStatus(row)
+    return mapPostomatStatus({
+      ...row,
+      online: 1,
+      seconds_since_last_seen: 0,
+    })
+  },
+
+  async touchPostomatActivity(officeId: number): Promise<void> {
+    await database.run(
+      `INSERT INTO postomat_devices (office_id, last_seen, online, updated_at)
+       VALUES (?, CURRENT_TIMESTAMP, 1, CURRENT_TIMESTAMP)
+       ON CONFLICT(office_id) DO UPDATE SET
+         last_seen = CURRENT_TIMESTAMP,
+         online = 1,
+         updated_at = CURRENT_TIMESTAMP`,
+      [officeId]
+    )
   },
 
   async getPostomatStatus(officeId: number): Promise<PostomatStatus | null> {
@@ -248,15 +267,19 @@ export const lockerCommandsService = {
          office_id,
          last_seen,
          CASE
-           WHEN last_seen IS NOT NULL AND datetime(last_seen) >= datetime('now', '-10 seconds') THEN 1
+           WHEN last_seen IS NOT NULL AND datetime(last_seen) >= datetime('now', ?) THEN 1
            ELSE 0
          END AS online,
+         CASE
+           WHEN last_seen IS NOT NULL THEN CAST(strftime('%s', 'now') - strftime('%s', last_seen) AS INTEGER)
+           ELSE NULL
+         END AS seconds_since_last_seen,
          version,
          uptime,
          hostname
        FROM postomat_devices
        WHERE office_id = ?`,
-      [officeId]
+      [`-${POSTOMAT_ONLINE_GRACE_SECONDS} seconds`, officeId]
     )
     return row ? mapPostomatStatus(row) : null
   },

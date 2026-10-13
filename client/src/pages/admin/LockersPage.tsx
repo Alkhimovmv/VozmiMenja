@@ -50,6 +50,15 @@ const formatPostomatLastSeen = (value?: string | null) => {
   return formatCommandDateTime(value);
 };
 
+const formatLastSeenAge = (seconds?: number | null) => {
+  if (seconds == null || seconds < 0) return '';
+  if (seconds < 60) return `${seconds} сек. назад`;
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes} мин. назад`;
+  const hours = Math.floor(minutes / 60);
+  return `${hours} ч. назад`;
+};
+
 const LockersPage: React.FC = () => {
   const { currentOfficeId, currentOffice } = useOffice();
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -92,6 +101,11 @@ const LockersPage: React.FC = () => {
   });
 
   const currentOfficeState = officeStates.find((office) => office.id === currentOfficeId);
+  const postomatStatus = currentOfficeState?.postomat_status;
+  const postomatLastSeen = postomatStatus?.lastSeen ?? postomatStatus?.last_seen ?? null;
+  const postomatLastSeenAge = formatLastSeenAge(
+    postomatStatus?.secondsSinceLastSeen ?? postomatStatus?.seconds_since_last_seen
+  );
   const latestCommandByLocker = lockerCommands.reduce((map, command) => {
     if (!map.has(command.locker_id)) {
       map.set(command.locker_id, command);
@@ -298,19 +312,20 @@ const LockersPage: React.FC = () => {
           <h1 className="text-3xl font-bold text-gray-900">Ячейки постомата</h1>
           <div className="mt-2 flex flex-wrap items-center gap-2 text-sm">
             <span className={`inline-flex items-center rounded-full px-2.5 py-1 font-medium ${
-              currentOfficeState?.postomat_status?.online ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'
+              postomatStatus?.online ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'
             }`}>
-              {currentOfficeState?.postomat_status?.online ? 'Постомат онлайн' : 'Постомат офлайн'}
+              {postomatStatus?.online ? 'Постомат онлайн' : 'Постомат офлайн'}
             </span>
-            {currentOfficeState?.postomat_status?.hostname && (
-              <span className="text-gray-500">Хост: {currentOfficeState.postomat_status.hostname}</span>
+            {postomatStatus?.hostname && (
+              <span className="text-gray-500">Хост: {postomatStatus.hostname}</span>
             )}
-            {currentOfficeState?.postomat_status?.version && (
-              <span className="text-gray-500">Версия: {currentOfficeState.postomat_status.version}</span>
+            {postomatStatus?.version && (
+              <span className="text-gray-500">Версия: {postomatStatus.version}</span>
             )}
-            {currentOfficeState?.postomat_status?.lastSeen && (
+            {postomatLastSeen && (
               <span className="text-gray-500">
-                Последняя связь: {formatPostomatLastSeen(currentOfficeState.postomat_status.lastSeen)}
+                Последняя связь: {formatPostomatLastSeen(postomatLastSeen)}
+                {postomatLastSeenAge ? ` (${postomatLastSeenAge})` : ''}
               </span>
             )}
           </div>
