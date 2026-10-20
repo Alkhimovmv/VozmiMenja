@@ -189,28 +189,6 @@ export default function SiteBookingsPage() {
     },
   });
 
-  const bookingStatusMutation = useMutation({
-    mutationFn: ({ id, status }: { id: string; status: Booking['status'] }) => bookingsApi.updateStatus(id, status),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin-bookings'] });
-      toast.success('Статус заявки обновлен');
-    },
-    onError: (error: unknown) => {
-      toast.error(getApiErrorMessage(error, 'Не удалось обновить заявку'));
-    },
-  });
-
-  const contactLeadStatusMutation = useMutation({
-    mutationFn: ({ id, status }: { id: number; status: ContactLead['status'] }) => contactLeadsApi.updateStatus(id, status),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin-contact-leads'] });
-      toast.success('Статус обращения обновлен');
-    },
-    onError: (error: unknown) => {
-      toast.error(getApiErrorMessage(error, 'Не удалось обновить обращение'));
-    },
-  });
-
   const deleteBookingMutation = useMutation({
     mutationFn: bookingsApi.delete,
     onSuccess: () => {
@@ -457,42 +435,20 @@ export default function SiteBookingsPage() {
                     <button
                       type="button"
                       onClick={() => void handleCreateRentalFromBooking(booking)}
-                      disabled={createRentalMutation.isPending || bookingStatusMutation.isPending}
+                      disabled={createRentalMutation.isPending}
                       className="rounded-xl bg-gray-900 px-4 py-2 text-sm font-semibold text-white hover:bg-gray-800 disabled:opacity-50"
                     >
                       Создать аренду
                     </button>
                   )}
-                  {(booking.status === 'pending' || booking.status === 'confirmed') && (
-                    <button
-                      type="button"
-                      onClick={() => bookingStatusMutation.mutate({ id: booking.id, status: 'completed' })}
-                      disabled={bookingStatusMutation.isPending}
-                      className="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-50"
-                    >
-                      Обработана
-                    </button>
-                  )}
-                  {viewMode === 'active' && (
-                    <button
-                      type="button"
-                      onClick={() => bookingStatusMutation.mutate({ id: booking.id, status: 'cancelled' })}
-                      disabled={bookingStatusMutation.isPending}
-                      className="rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-50"
-                    >
-                      Отменить
-                    </button>
-                  )}
-                  {viewMode === 'archive' && (
-                    <button
-                      type="button"
-                      onClick={() => handleDeleteBooking(booking)}
-                      disabled={deleteBookingMutation.isPending}
-                      className="rounded-xl border border-red-200 bg-white px-4 py-2 text-sm font-semibold text-red-700 hover:bg-red-50 disabled:opacity-50"
-                    >
-                      Удалить
-                    </button>
-                  )}
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteBooking(booking)}
+                    disabled={deleteBookingMutation.isPending}
+                    className="rounded-xl border border-red-200 bg-white px-4 py-2 text-sm font-semibold text-red-700 hover:bg-red-50 disabled:opacity-50"
+                  >
+                    Удалить
+                  </button>
                 </div>
               </div>
                 );
@@ -567,36 +523,14 @@ export default function SiteBookingsPage() {
                 </div>
 
                 <div className="flex flex-col gap-2 sm:flex-row">
-                  {(lead.status === 'pending' || lead.status === 'confirmed') && (
-                    <button
-                      type="button"
-                      onClick={() => contactLeadStatusMutation.mutate({ id: lead.id, status: 'completed' })}
-                      disabled={contactLeadStatusMutation.isPending}
-                      className="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-50"
-                    >
-                      Обработана
-                    </button>
-                  )}
-                  {viewMode === 'active' && (
-                    <button
-                      type="button"
-                      onClick={() => contactLeadStatusMutation.mutate({ id: lead.id, status: 'cancelled' })}
-                      disabled={contactLeadStatusMutation.isPending}
-                      className="rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-50"
-                    >
-                      Отменить
-                    </button>
-                  )}
-                  {viewMode === 'archive' && (
-                    <button
-                      type="button"
-                      onClick={() => handleDeleteContactLead(lead)}
-                      disabled={deleteContactLeadMutation.isPending}
-                      className="rounded-xl border border-red-200 bg-white px-4 py-2 text-sm font-semibold text-red-700 hover:bg-red-50 disabled:opacity-50"
-                    >
-                      Удалить
-                    </button>
-                  )}
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteContactLead(lead)}
+                    disabled={deleteContactLeadMutation.isPending}
+                    className="rounded-xl border border-red-200 bg-white px-4 py-2 text-sm font-semibold text-red-700 hover:bg-red-50 disabled:opacity-50"
+                  >
+                    Удалить
+                  </button>
                 </div>
               </div>
             </div>
