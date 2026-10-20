@@ -9,7 +9,7 @@ import { trackEvent } from '../../lib/analytics'
 import { getApiErrorMessage } from '../../lib/apiError'
 import { getTelegramUrl, getWhatsAppUrl } from '../../lib/contactLinks'
 import { getCommentPlaceholder, getScenarioPresets } from '../../lib/bookingFormGuidance'
-import { calculateBillableRentalDays, calculateRentalTotal, getEffectiveDailyPrice, getMinimumDailyPrice, getPricingRows } from '../../utils/pricing'
+import { calculateBillableRentalDays, getMinimumDailyPrice, getPricingRows, getRentalPriceSummary } from '../../utils/pricing'
 
 interface BookingFormProps {
   equipment: Equipment
@@ -43,6 +43,7 @@ export default function BookingForm({ equipment, onClose }: BookingFormProps) {
   const [totalPrice, setTotalPrice] = useState(0)
   const [totalDays, setTotalDays] = useState(0)
   const [discountedPricePerDay, setDiscountedPricePerDay] = useState(0)
+  const [dailyPriceLabel, setDailyPriceLabel] = useState('Цена за сутки')
   const [consent, setConsent] = useState(false)
   const [selectedScenarioLabel, setSelectedScenarioLabel] = useState('')
 
@@ -66,7 +67,10 @@ export default function BookingForm({ equipment, onClose }: BookingFormProps) {
       return
     }
 
-    const diffDays = calculateBillableRentalDays(start, end)
+    const sameDay = start === end
+    const startTime = '10:00'
+    const endTime = sameDay ? '20:00' : '10:00'
+    const diffDays = calculateBillableRentalDays(start, end, startTime, endTime)
     if (diffDays === 0) {
       setTotalDays(0)
       setTotalPrice(0)
@@ -74,11 +78,17 @@ export default function BookingForm({ equipment, onClose }: BookingFormProps) {
       return
     }
 
-    const pricePerDay = getEffectiveDailyPrice(equipment.pricing, diffDays, equipment.pricePerDay)
+    const summary = getRentalPriceSummary(equipment.pricing, diffDays, equipment.pricePerDay, {
+      startDate: start,
+      endDate: end,
+      startTime,
+      endTime,
+    })
 
     setTotalDays(diffDays)
-    setTotalPrice(calculateRentalTotal(equipment.pricing, diffDays, equipment.pricePerDay, { startDate: start }))
-    setDiscountedPricePerDay(Math.round(pricePerDay))
+    setTotalPrice(summary.totalPrice)
+    setDiscountedPricePerDay(summary.displayedDailyPrice)
+    setDailyPriceLabel(summary.dailyPriceLabel)
   }
 
   const formatPhoneNumber = (value: string) => {
@@ -145,7 +155,15 @@ export default function BookingForm({ equipment, onClose }: BookingFormProps) {
     const submitEndDate = formData.endDate || formData.startDate || today
     const datesWereSelected = Boolean(formData.startDate && formData.endDate)
 
-    if (formData.startDate && formData.endDate && calculateBillableRentalDays(formData.startDate, formData.endDate) === 0) {
+    const submitStartTime = submitStartDate === submitEndDate ? '10:00' : undefined
+    const submitEndTime = submitStartDate === submitEndDate ? '20:00' : undefined
+
+    if (formData.startDate && formData.endDate && calculateBillableRentalDays(
+      formData.startDate,
+      formData.endDate,
+      submitStartTime,
+      submitEndTime,
+    ) === 0) {
       toast.error('Дата окончания не может быть раньше даты начала')
       return
     }
@@ -169,6 +187,8 @@ export default function BookingForm({ equipment, onClose }: BookingFormProps) {
         officeName: selectedOffice?.name,
         startDate: submitStartDate,
         endDate: submitEndDate,
+        startTime: submitStartTime,
+        endTime: submitEndTime,
         comment: commentWithContext,
         ...leadContext,
       })
@@ -358,7 +378,7 @@ export default function BookingForm({ equipment, onClose }: BookingFormProps) {
                   <span className="font-semibold">{totalDays} {totalDays === 1 ? 'день' : totalDays < 5 ? 'дня' : 'дней'}</span>
                 </div>
                 <div className="flex justify-between text-sm text-blue-700 mb-2">
-                  <span>Цена за сутки</span>
+                  <span>{dailyPriceLabel}</span>
                   <span className="font-semibold">{formatPrice(discountedPricePerDay)}</span>
                 </div>
                 <div className="flex justify-between text-base font-bold text-gray-900 pt-2 border-t border-blue-200">

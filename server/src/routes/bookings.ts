@@ -9,7 +9,7 @@ import { emailNotifyService } from '../services/emailNotify'
 import { vkNotifyService } from '../services/vkNotify'
 import { authMiddleware } from '../middleware/auth'
 import { calculateRentalTotal } from '../utils/pricing'
-import { calculateBillableRentalDays, createBookingSchema, parseDateInput } from './bookingRules'
+import { calculateBillableRentalDays, createBookingSchema, getBookingEquipmentIds, parseDateInput } from './bookingRules'
 
 const router = Router()
 
@@ -67,10 +67,11 @@ router.get('/:id', authMiddleware, async (req: Request, res: Response) => {
 router.post('/', async (req: Request, res: Response) => {
   try {
     const validatedData = createBookingSchema.parse(req.body)
+    const equipmentIds = getBookingEquipmentIds(validatedData)
 
-    // Проверяем существование оборудования
-    const equipment = await equipmentModel.findById(validatedData.equipmentId)
-    if (!equipment) {
+    // Проверяем существование всего оборудования одним запросом.
+    const equipmentItems = await equipmentModel.findByIds(equipmentIds)
+    if (equipmentItems.length !== equipmentIds.length) {
       return res.status(404).json({
         success: false,
         message: 'Оборудование не найдено'
@@ -121,18 +122,25 @@ router.post('/', async (req: Request, res: Response) => {
       })
     }
 
-    const totalPrice = calculateRentalTotal(equipment.pricing, diffDays, equipment.pricePerDay, {
-      startDate: validatedData.startDate,
-      endDate: validatedData.endDate,
-      startTime: validatedData.startTime,
-      endTime: validatedData.endTime
-    })
+    const totalPrice = equipmentItems.reduce((total, equipment) => total + calculateRentalTotal(
+      equipment.pricing,
+      diffDays,
+      equipment.pricePerDay,
+      {
+        startDate: validatedData.startDate,
+        endDate: validatedData.endDate,
+        startTime: validatedData.startTime,
+        endTime: validatedData.endTime
+      }
+    ), 0)
 
     // Создаем бронирование
     const bookingId = uuidv4()
     const booking = await bookingModel.create({
       id: bookingId,
       ...validatedData,
+      equipmentId: equipmentIds[0],
+      equipmentIds,
       officeId: office.id,
       officeName: office.name,
       totalPrice,
@@ -144,7 +152,7 @@ router.post('/', async (req: Request, res: Response) => {
     console.log('📤 Отправка уведомления в Telegram...')
 
     const notifyData = {
-      equipmentName: equipment.name,
+      equipmentName: equipmentItems.map((equipment) => equipment.name).join(', '),
       customerName: validatedData.customerName,
       customerPhone: validatedData.customerPhone,
       startDate: validatedData.startDate,

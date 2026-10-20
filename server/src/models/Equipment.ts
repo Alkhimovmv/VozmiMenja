@@ -111,6 +111,19 @@ export class EquipmentModel {
     return row ? this.mapRow(row) : null
   }
 
+  async findByIds(ids: string[]): Promise<Equipment[]> {
+    if (ids.length === 0) return []
+
+    const uniqueIds = [...new Set(ids)]
+    const placeholders = uniqueIds.map(() => '?').join(', ')
+    const rows = await all(`SELECT * FROM equipment WHERE id IN (${placeholders})`, uniqueIds) as any[]
+    const equipmentById = new Map(rows.map((row) => [row.id, this.mapRow(row)]))
+
+    return uniqueIds
+      .map((id) => equipmentById.get(id))
+      .filter((item): item is Equipment => Boolean(item))
+  }
+
   async findByIdOrSlug(idOrSlug: string): Promise<Equipment | null> {
     const byId = await this.findById(idOrSlug)
     if (byId) return byId

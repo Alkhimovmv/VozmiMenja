@@ -1,5 +1,10 @@
 import assert from 'node:assert/strict'
-import { buildSelectedEquipmentList, calculateMultiEquipmentTotal, getSelectedEquipment } from './selfServiceBooking'
+import {
+  buildSelectedEquipmentList,
+  buildSingleBookingEquipmentPayload,
+  calculateMultiEquipmentTotal,
+  getSelectedEquipment,
+} from './selfServiceBooking'
 import type { Equipment } from '../types'
 
 const equipment: Equipment[] = [
@@ -36,6 +41,10 @@ const selected = getSelectedEquipment(equipment, ['camera', 'missing', 'speaker'
 assert.deepEqual(selected.map((item) => item.id), ['camera', 'speaker'])
 assert.match(buildSelectedEquipmentList(selected), /1\. GoPro Hero \(Камеры\)/)
 assert.match(buildSelectedEquipmentList(selected), /2\. JBL PartyBox 710 \(Аудиооборудование\)/)
+assert.deepEqual(buildSingleBookingEquipmentPayload(selected), {
+  equipmentId: 'camera',
+  equipmentIds: ['camera', 'speaker'],
+})
 assert.equal(calculateMultiEquipmentTotal(selected, 2, '2026-10-09', '2026-10-11', '10:00', '10:00'), 7000)
 
 console.log('selfServiceBooking tests passed')

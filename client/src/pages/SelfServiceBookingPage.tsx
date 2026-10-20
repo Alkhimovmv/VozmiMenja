@@ -7,7 +7,12 @@ import type { Equipment } from '../types'
 import { calculateBillableRentalDays } from '../utils/pricing'
 import { trackEvent } from '../lib/analytics'
 import { getApiErrorMessage } from '../lib/apiError'
-import { buildSelectedEquipmentList, calculateMultiEquipmentTotal, getSelectedEquipment } from '../lib/selfServiceBooking'
+import {
+  buildSelectedEquipmentList,
+  buildSingleBookingEquipmentPayload,
+  calculateMultiEquipmentTotal,
+  getSelectedEquipment,
+} from '../lib/selfServiceBooking'
 
 const LEGAL_TERMS_VERSION = 'offer-2026-05-09_agreement-2026-05-09_privacy-current'
 
@@ -75,13 +80,8 @@ const buildComment = (data: {
   comment: string
   officeName: string
   selectedEquipmentList: string
-  bookingGroupId: string
-  itemPosition: number
-  totalItems: number
 }) => [
   'Самостоятельное оформление брони клиентом.',
-  data.totalItems > 1 ? `Комплект брони: ${data.bookingGroupId}` : '',
-  data.totalItems > 1 ? `Позиция в комплекте: ${data.itemPosition} из ${data.totalItems}` : '',
   data.selectedEquipmentList ? `Выбранное оборудование:\n${data.selectedEquipmentList}` : '',
   `Время аренды: ${data.startTime || '10:00'} — ${data.endTime || '10:00'}`,
   `Получение: ${data.deliveryMethod === 'delivery' ? 'доставка' : 'самовывоз'}`,
@@ -217,45 +217,40 @@ export default function SelfServiceBookingPage() {
 
     try {
       const leadContext = getLeadContext()
-      const bookingGroupId = `site-kit-${Date.now()}`
-      const responses = []
-
-      for (const [index, equipmentItem] of selectedEquipmentItems.entries()) {
-        const response = await createBookingMutation.mutateAsync({
-          equipmentId: equipmentItem.id,
-          customerName: formData.customerName,
-          customerPhone: formData.customerPhone,
-          startDate: formData.startDate,
-          endDate: formData.endDate,
-          startTime: formData.startTime,
-          endTime: formData.endTime,
-          officeId: selectedOffice?.id || 1,
-          officeName: selectedOffice?.name,
-          preferredContact: formData.preferredContact,
-          deliveryMethod: formData.deliveryMethod,
-          deliveryAddress: formData.deliveryMethod === 'delivery' ? formData.deliveryAddress : '',
-          comment: buildComment({
-            ...formData,
-            officeName: selectedOffice?.name || '',
-            selectedEquipmentList,
-            bookingGroupId,
-            itemPosition: index + 1,
-            totalItems: selectedEquipmentItems.length,
-          }),
-          legal: {
-            offerAccepted: true,
-            agreementAccepted: true,
-            privacyAccepted: true,
-            termsVersion: LEGAL_TERMS_VERSION,
-          },
-          ...leadContext,
-        })
-        responses.push(response)
+      const equipmentPayload = buildSingleBookingEquipmentPayload(selectedEquipmentItems)
+      if (!equipmentPayload) {
+        toast.error('Выберите хотя бы одно оборудование')
+        return
       }
+      const response = await createBookingMutation.mutateAsync({
+        ...equipmentPayload,
+        customerName: formData.customerName,
+        customerPhone: formData.customerPhone,
+        startDate: formData.startDate,
+        endDate: formData.endDate,
+        startTime: formData.startTime,
+        endTime: formData.endTime,
+        officeId: selectedOffice?.id || 1,
+        officeName: selectedOffice?.name,
+        preferredContact: formData.preferredContact,
+        deliveryMethod: formData.deliveryMethod,
+        deliveryAddress: formData.deliveryMethod === 'delivery' ? formData.deliveryAddress : '',
+        comment: buildComment({
+          ...formData,
+          officeName: selectedOffice?.name || '',
+          selectedEquipmentList,
+        }),
+        legal: {
+          offerAccepted: true,
+          agreementAccepted: true,
+          privacyAccepted: true,
+          termsVersion: LEGAL_TERMS_VERSION,
+        },
+        ...leadContext,
+      })
 
       trackEvent('self_service_booking_submit', {
-        booking_id: responses[0]?.data.id,
-        booking_ids: responses.map((response) => response.data.id),
+        booking_id: response.data.id,
         equipment_id: selectedEquipment.id,
         equipment_ids: selectedEquipmentItems.map((item) => item.id),
         equipment_name: selectedEquipment.name,
@@ -268,7 +263,7 @@ export default function SelfServiceBookingPage() {
       })
 
       toast.success('Заявка на бронь отправлена')
-      const bookingIds = responses.map((response) => response.data.id).filter(Boolean)
+      const bookingIds = response.data.id ? [response.data.id] : []
       navigate(`/booking/success${bookingIds.length ? `?ids=${bookingIds.join(',')}` : ''}`, {
         state: {
           bookingIds,

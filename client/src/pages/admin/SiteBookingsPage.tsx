@@ -11,7 +11,7 @@ import { useAuthenticatedQuery } from '../../hooks/useAuthenticatedQuery';
 import { useOffice } from '../../hooks/useOffice';
 import type { Booking, ContactLead, CreateRentalDto, Equipment } from '../../types';
 import { getApiErrorMessage } from '../../lib/apiError';
-import { buildRentalFromBooking, formatLeadSource, formatSourcePage } from '../../lib/adminLeadConversion';
+import { buildRentalFromBooking, formatLeadSource, formatSourcePage, getBookingEquipmentNames } from '../../lib/adminLeadConversion';
 
 const formatContactSubject = (subject: string) => {
   const labels: Record<string, string> = {
@@ -348,6 +348,7 @@ export default function SiteBookingsPage() {
             <div key={booking.id} className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-amber-100">
               {(() => {
                 const bookingContext = extractBookingContext(booking.comment);
+                const equipmentNames = getBookingEquipmentNames(booking);
                 return (
               <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                 <div className="min-w-0">
@@ -370,7 +371,9 @@ export default function SiteBookingsPage() {
                     <span className="rounded-full bg-amber-50 px-2.5 py-1 text-xs font-bold text-amber-700">
                       {formatBookingAge(booking.createdAt)}
                     </span>
-                    <span className="text-sm font-bold text-gray-900">{booking.equipment?.name || booking.equipmentId}</span>
+                    <span className="text-sm font-bold text-gray-900">
+                      {equipmentNames.length > 0 ? equipmentNames.join(', ') : booking.equipmentId}
+                    </span>
                   </div>
                   <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-gray-600">
                     <span>Клиент: {booking.customerName}</span>
@@ -460,17 +463,7 @@ export default function SiteBookingsPage() {
                       Создать аренду
                     </button>
                   )}
-                  {booking.status === 'pending' && (
-                    <button
-                      type="button"
-                      onClick={() => bookingStatusMutation.mutate({ id: booking.id, status: 'confirmed' })}
-                      disabled={bookingStatusMutation.isPending}
-                      className="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-50"
-                    >
-                      В работу
-                    </button>
-                  )}
-                  {booking.status === 'confirmed' && (
+                  {(booking.status === 'pending' || booking.status === 'confirmed') && (
                     <button
                       type="button"
                       onClick={() => bookingStatusMutation.mutate({ id: booking.id, status: 'completed' })}
@@ -574,17 +567,7 @@ export default function SiteBookingsPage() {
                 </div>
 
                 <div className="flex flex-col gap-2 sm:flex-row">
-                  {lead.status === 'pending' && (
-                    <button
-                      type="button"
-                      onClick={() => contactLeadStatusMutation.mutate({ id: lead.id, status: 'confirmed' })}
-                      disabled={contactLeadStatusMutation.isPending}
-                      className="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-50"
-                    >
-                      В работу
-                    </button>
-                  )}
-                  {lead.status === 'confirmed' && (
+                  {(lead.status === 'pending' || lead.status === 'confirmed') && (
                     <button
                       type="button"
                       onClick={() => contactLeadStatusMutation.mutate({ id: lead.id, status: 'completed' })}

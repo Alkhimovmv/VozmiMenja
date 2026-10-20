@@ -11,6 +11,14 @@ export const getSelectedEquipment = (equipment: Equipment[], equipmentIds: strin
 export const buildSelectedEquipmentList = (items: Equipment[]) =>
   items.map((item, index) => `${index + 1}. ${item.name} (${item.category})`).join('\n')
 
+export const buildSingleBookingEquipmentPayload = (items: Equipment[]) => {
+  if (items.length === 0) return null
+  return {
+    equipmentId: items[0].id,
+    equipmentIds: items.map((item) => item.id),
+  }
+}
+
 export const calculateMultiEquipmentTotal = (
   items: Equipment[],
   rentalDays: number,

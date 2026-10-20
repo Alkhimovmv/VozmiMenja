@@ -163,6 +163,20 @@ export const calculateRentalTotal = (
   }, 0));
 };
 
+export const getRentalPriceSummary = (
+  pricing: PricingTier | undefined,
+  rentalDays: number,
+  fallback: number,
+  options?: { startDate?: string; endDate?: string; startTime?: string; endTime?: string },
+) => {
+  const totalPrice = calculateRentalTotal(pricing, rentalDays, fallback, options);
+  return {
+    totalPrice,
+    displayedDailyPrice: rentalDays > 0 ? Math.round(totalPrice / rentalDays) : 0,
+    dailyPriceLabel: rentalDays > 1 ? 'Средняя цена за сутки' : 'Цена за сутки',
+  };
+};
+
 export const getMinimumDailyPrice = (pricing: PricingTier | undefined, fallback: number) => {
   if (!pricing) return fallback;
   const prices = getPricingRows(pricing).map((tier) =>

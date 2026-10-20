@@ -70,10 +70,11 @@ export const calculateRentalTotal = (
     ? { value: pricing.days2, days: 2 }
     : { value: pricing.day1, days: 1 }
 
-  if (!tier.value || tier.value <= 0) return Math.round(rentalDays * fallbackDailyPrice)
-  const dailyPrice = isPackagePrice(pricing, tier.value, tier.days)
-    ? tier.value / tier.days
-    : tier.value
+  const dailyPrice = !tier.value || tier.value <= 0
+    ? fallbackDailyPrice
+    : isPackagePrice(pricing, tier.value, tier.days)
+      ? tier.value / tier.days
+      : tier.value
 
   const weekendDay = Number(pricing.weekendDay) || 0
   if (!weekendDay || !options?.startDate) {

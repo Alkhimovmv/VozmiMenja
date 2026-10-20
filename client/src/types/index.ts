@@ -77,7 +77,9 @@ export interface CreateEquipmentDto {
 export interface Booking {
   id: string
   equipmentId: string
+  equipmentIds?: string[]
   equipment?: PublicEquipment
+  equipmentItems?: PublicEquipment[]
   customerName: string
   customerPhone: string
   customerEmail?: string
@@ -110,6 +112,7 @@ export interface Booking {
 
 export interface BookingRequest {
   equipmentId: string
+  equipmentIds?: string[]
   customerName: string
   customerPhone: string
   startDate: string

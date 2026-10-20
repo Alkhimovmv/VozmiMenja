@@ -1,4 +1,11 @@
-import { calculateBillableRentalDays, calculateRentalDays, createBookingSchema, normalizeAdminPhone, parseDateInput } from './bookingRules'
+import {
+  calculateBillableRentalDays,
+  calculateRentalDays,
+  createBookingSchema,
+  getBookingEquipmentIds,
+  normalizeAdminPhone,
+  parseDateInput,
+} from './bookingRules'
 
 describe('booking rules', () => {
   it('accepts a valid booking payload with lead source fields', () => {
@@ -26,6 +33,49 @@ describe('booking rules', () => {
     expect(parsed.utmSource).toBe('yandex')
     expect(parsed.legal?.offerAccepted).toBe(true)
     expect(parsed.customerPhone).toBe('89990000000')
+  })
+
+  it('accepts one booking with multiple unique equipment ids', () => {
+    const parsed = createBookingSchema.parse({
+      equipmentIds: ['equipment-1', 'equipment-2'],
+      customerName: 'Иван Иванов',
+      customerPhone: '+7 999 000-00-00',
+      startDate: '2026-09-12',
+      endDate: '2026-09-13',
+    })
+
+    expect(getBookingEquipmentIds(parsed)).toEqual(['equipment-1', 'equipment-2'])
+  })
+
+  it('keeps legacy single-equipment booking requests compatible', () => {
+    const parsed = createBookingSchema.parse({
+      equipmentId: 'equipment-1',
+      customerName: 'Иван Иванов',
+      customerPhone: '+7 999 000-00-00',
+      startDate: '2026-09-12',
+      endDate: '2026-09-13',
+    })
+
+    expect(getBookingEquipmentIds(parsed)).toEqual(['equipment-1'])
+  })
+
+  it('rejects duplicate or more than twenty equipment ids', () => {
+    const basePayload = {
+      customerName: 'Иван Иванов',
+      customerPhone: '+7 999 000-00-00',
+      startDate: '2026-09-12',
+      endDate: '2026-09-13',
+    }
+
+    expect(() => createBookingSchema.parse({
+      ...basePayload,
+      equipmentIds: ['equipment-1', 'equipment-1'],
+    })).toThrow()
+
+    expect(() => createBookingSchema.parse({
+      ...basePayload,
+      equipmentIds: Array.from({ length: 21 }, (_, index) => `equipment-${index + 1}`),
+    })).toThrow()
   })
 
   it('normalizes website phone numbers to admin format', () => {
@@ -58,6 +108,36 @@ describe('booking rules', () => {
       startDate: '12.09.2026',
       endDate: '2026-09-13',
     })).toThrow()
+  })
+
+  it('rejects phones without a valid Russian number', () => {
+    expect(() => createBookingSchema.parse({
+      equipmentId: 'equipment-1',
+      customerName: 'Иван Иванов',
+      customerPhone: 'abcdefghijk',
+      startDate: '2026-09-12',
+      endDate: '2026-09-13',
+    })).toThrow(/телефона/)
+  })
+
+  it('rejects impossible calendar dates and times', () => {
+    const basePayload = {
+      equipmentId: 'equipment-1',
+      customerName: 'Иван Иванов',
+      customerPhone: '+7 999 000-00-00',
+      endDate: '2026-03-01',
+    }
+
+    expect(() => createBookingSchema.parse({
+      ...basePayload,
+      startDate: '2026-02-31',
+    })).toThrow(/дата/)
+
+    expect(() => createBookingSchema.parse({
+      ...basePayload,
+      startDate: '2026-02-28',
+      startTime: '25:99',
+    })).toThrow(/время/)
   })
 
   it('requires full customer name for booking', () => {

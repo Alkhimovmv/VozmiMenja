@@ -39,6 +39,18 @@ describe('calculateRentalTotal', () => {
     })).toBe(1800)
   })
 
+  it('applies weekend daily price when the selected duration tier falls back to pricePerDay', () => {
+    const pricingWithMissingTwoDayTier: PricingTier = {
+      ...pricing,
+      days2: 0,
+    }
+
+    expect(calculateRentalTotal(pricingWithMissingTwoDayTier, 2, 1000, {
+      startDate: '2026-09-11',
+      startTime: '10:00',
+    })).toBe(3000)
+  })
+
   it('uses optional four day tier when present', () => {
     expect(calculateRentalTotal(pricing, 4, 1000, {
       startDate: '2026-09-14',

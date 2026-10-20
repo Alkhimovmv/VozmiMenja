@@ -73,6 +73,31 @@ export const matchAdminEquipment = (booking: Booking, equipment: Equipment[]) =>
   })
 }
 
+const getBookingEquipmentItems = (booking: Booking) =>
+  booking.equipmentItems?.length
+    ? booking.equipmentItems
+    : booking.equipment
+    ? [booking.equipment]
+    : []
+
+export const getBookingEquipmentNames = (booking: Booking) =>
+  getBookingEquipmentItems(booking).map((item) => item.name)
+
+export const matchAdminEquipmentItems = (booking: Booking, equipment: Equipment[]) => {
+  const matchedIds = new Set<string>()
+  return getBookingEquipmentItems(booking).flatMap((bookingItem) => {
+    const bookingName = normalizeEquipmentName(bookingItem.name)
+    const matched = equipment.find((item) => {
+      if (matchedIds.has(String(item.id))) return false
+      const adminName = normalizeEquipmentName(item.name)
+      return adminName === bookingName || adminName.includes(bookingName) || bookingName.includes(adminName)
+    })
+    if (!matched) return []
+    matchedIds.add(String(matched.id))
+    return [matched]
+  })
+}
+
 const getFirstAvailableInstance = (item: Equipment) => {
   const availableQuantity = Number(
     item.availableQuantity ?? (item as unknown as { available_quantity?: number }).available_quantity ?? item.quantity
@@ -87,14 +112,16 @@ export const buildRentalFromBooking = (
   currentOfficeId: number,
   origin = 'https://vozmimenya.ru',
 ): Partial<CreateRentalDto> => {
-  const matchedEquipment = matchAdminEquipment(booking, equipment)
-  const matchedInstanceNumber = matchedEquipment ? getFirstAvailableInstance(matchedEquipment) : undefined
-  const equipmentInstances = matchedEquipment && matchedInstanceNumber
-    ? [{ equipment_id: Number(matchedEquipment.id), instance_number: matchedInstanceNumber }]
-    : []
+  const bookingEquipmentNames = getBookingEquipmentNames(booking)
+  const equipmentInstances = matchAdminEquipmentItems(booking, equipment).flatMap((matchedEquipment) => {
+    const matchedInstanceNumber = getFirstAvailableInstance(matchedEquipment)
+    return matchedInstanceNumber
+      ? [{ equipment_id: Number(matchedEquipment.id), instance_number: matchedInstanceNumber }]
+      : []
+  })
   const sourceText = [
     `Заявка с сайта #${booking.id}`,
-    booking.equipment?.name ? `Оборудование на сайте: ${booking.equipment.name}` : '',
+    bookingEquipmentNames.length ? `Оборудование на сайте: ${bookingEquipmentNames.join(', ')}` : '',
     booking.preferredContact ? `Предпочтительный канал связи: ${booking.preferredContact}` : '',
     booking.deliveryMethod ? `Получение: ${booking.deliveryMethod === 'delivery' ? 'доставка' : 'самовывоз'}` : '',
     booking.officeName ? `Офис заявки: ${booking.officeName}` : '',

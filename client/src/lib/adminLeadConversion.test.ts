@@ -61,6 +61,23 @@ const unavailableOfficeEquipment: Equipment[] = [
   },
 ]
 
+const camera: Equipment = {
+  ...equipment[0],
+  id: '43',
+  name: 'GoPro 13',
+  category: 'Камеры',
+}
+
+const multiEquipmentBooking: Booking = {
+  ...booking,
+  equipmentIds: ['public-1', 'public-2'],
+  equipmentItems: [
+    booking.equipment!,
+    { ...booking.equipment!, id: 'public-2', name: 'GoPro 13', category: 'Камеры' },
+  ],
+  totalPrice: 3200,
+}
+
 assert.equal(formatLeadSource(booking), 'telegram / post / partybox')
 assert.equal(formatSourcePage(booking.sourcePage), '/arenda-kolonki-dlya-vecherinki-moskva')
 assert.equal(matchAdminEquipment(booking, equipment)?.id, '42')
@@ -88,6 +105,14 @@ const rentalWithoutOfficeEquipment = buildRentalFromBooking(booking, unavailable
 assert.equal(rentalWithoutOfficeEquipment.equipment_id, 0)
 assert.deepEqual(rentalWithoutOfficeEquipment.equipment_ids, [])
 assert.deepEqual(rentalWithoutOfficeEquipment.equipment_instances, [])
+
+const multiEquipmentRental = buildRentalFromBooking(multiEquipmentBooking, [...equipment, camera], 3)
+assert.deepEqual(multiEquipmentRental.equipment_ids, [42, 43])
+assert.deepEqual(multiEquipmentRental.equipment_instances, [
+  { equipment_id: 42, instance_number: 1 },
+  { equipment_id: 43, instance_number: 1 },
+])
+assert.match(multiEquipmentRental.comment || '', /Оборудование на сайте: JBL PartyBox 320, GoPro 13/)
 
 assert.deepEqual(extractBookingRentalTimes({
   comment: 'Самостоятельное оформление брони клиентом.\nВремя аренды: 11:00 — 19:30',

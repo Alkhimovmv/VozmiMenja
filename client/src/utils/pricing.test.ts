@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import { calculateRentalTotal, getPricingRows } from './pricing'
+import { calculateRentalTotal, getPricingRows, getRentalPriceSummary } from './pricing'
 import type { PricingTier } from '../types'
 
 const pricing: PricingTier = {
@@ -47,6 +47,28 @@ assert.equal(calculateRentalTotal(pricing, 1, 1000, {
   startTime: '10:00',
   endTime: '20:00',
 }), 1400)
+
+assert.deepEqual(getRentalPriceSummary(pricing, 1, 1000, {
+  startDate: '2026-09-12',
+  endDate: '2026-09-13',
+  startTime: '10:00',
+  endTime: '10:00',
+}), {
+  totalPrice: 1500,
+  displayedDailyPrice: 1500,
+  dailyPriceLabel: 'Цена за сутки',
+})
+
+assert.deepEqual(getRentalPriceSummary(pricing, 2, 1000, {
+  startDate: '2026-09-10',
+  endDate: '2026-09-12',
+  startTime: '10:00',
+  endTime: '10:00',
+}), {
+  totalPrice: 2500,
+  displayedDailyPrice: 1250,
+  dailyPriceLabel: 'Средняя цена за сутки',
+})
 
 assert.equal(calculateRentalTotal(pricing, 1, 1000, {
   startDate: '2026-09-14',

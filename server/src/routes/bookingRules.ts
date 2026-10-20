@@ -53,17 +53,44 @@ const isFullName = (value: string) => value
   .filter((part) => part.replace(/[-']/g, '').length >= 2)
   .length >= 2
 
+const equipmentIdSchema = z.string()
+  .trim()
+  .min(1, 'Не выбрано оборудование')
+  .max(120, 'Некорректный ID оборудования')
+
+const dateInputSchema = (label: string) => z.string()
+  .regex(/^\d{4}-\d{2}-\d{2}$/, `Некорректная дата ${label}`)
+  .refine((value) => {
+    const [year, month, day] = value.split('-').map(Number)
+    const date = new Date(year, month - 1, day)
+    return date.getFullYear() === year
+      && date.getMonth() === month - 1
+      && date.getDate() === day
+  }, `Некорректная дата ${label}`)
+
+const timeInputSchema = (label: string) => z.string()
+  .regex(/^([01]\d|2[0-3]):[0-5]\d$/, `Некорректное время ${label}`)
+
+const phoneSchema = z.string()
+  .transform(normalizeAdminPhone)
+  .refine((value) => /^8\d{10}$/.test(value), 'Некорректный номер телефона')
+
 export const createBookingSchema = z.object({
-  equipmentId: z.string().min(1, 'Не выбрано оборудование').max(120, 'Некорректный ID оборудования'),
+  equipmentId: equipmentIdSchema.optional(),
+  equipmentIds: z.array(equipmentIdSchema)
+    .min(1, 'Не выбрано оборудование')
+    .max(20, 'В одной заявке можно выбрать не более 20 позиций')
+    .refine((ids) => new Set(ids).size === ids.length, 'Оборудование не должно повторяться')
+    .optional(),
   customerName: z.string()
     .min(5, 'Укажите ФИО полностью')
     .max(200, 'ФИО слишком длинное')
     .refine(isFullName, 'Укажите минимум фамилию и имя'),
-  customerPhone: z.string().min(10, 'Некорректный номер телефона').transform(normalizeAdminPhone),
-  startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Некорректная дата начала'),
-  endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Некорректная дата окончания'),
-  startTime: z.string().regex(/^\d{2}:\d{2}$/, 'Некорректное время начала').optional(),
-  endTime: z.string().regex(/^\d{2}:\d{2}$/, 'Некорректное время окончания').optional(),
+  customerPhone: phoneSchema,
+  startDate: dateInputSchema('начала'),
+  endDate: dateInputSchema('окончания'),
+  startTime: timeInputSchema('начала').optional(),
+  endTime: timeInputSchema('окончания').optional(),
   officeId: z.coerce.number().int().positive('Выберите офис получения').optional(),
   officeName: optionalLeadField(160),
   comment: z.string().max(1000).optional(),
@@ -81,6 +108,12 @@ export const createBookingSchema = z.object({
     privacyAccepted: z.literal(true),
     termsVersion: z.string().min(3).max(120),
   }).optional(),
+}).refine((data) => Boolean(data.equipmentIds?.length || data.equipmentId), {
+  message: 'Не выбрано оборудование',
+  path: ['equipmentIds'],
 })
 
 export type CreateBookingInput = z.infer<typeof createBookingSchema>
+
+export const getBookingEquipmentIds = (data: Pick<CreateBookingInput, 'equipmentId' | 'equipmentIds'>) =>
+  data.equipmentIds?.length ? data.equipmentIds : [data.equipmentId!]

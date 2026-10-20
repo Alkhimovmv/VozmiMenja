@@ -64,6 +64,7 @@ class Database {
 
     const bookingColumns = [
       ['comment', 'TEXT'],
+      ['equipment_ids', 'TEXT'],
       ['start_time', 'TEXT'],
       ['end_time', 'TEXT'],
       ['office_id', 'INTEGER'],

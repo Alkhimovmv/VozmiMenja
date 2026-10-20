@@ -1,10 +1,12 @@
 import { database, run, get, all } from './database'
-import { Equipment } from './Equipment'
+import { equipmentModel, type Equipment } from './Equipment'
 
 export interface Booking {
   id: string
   equipmentId: string
+  equipmentIds: string[]
   equipment?: Equipment
+  equipmentItems: Equipment[]
   customerName: string
   customerPhone: string
   customerEmail?: string
@@ -37,6 +39,7 @@ export interface Booking {
 
 export interface CreateBookingData {
   equipmentId: string
+  equipmentIds?: string[]
   customerName: string
   customerPhone: string
   customerEmail?: string
@@ -69,65 +72,48 @@ export interface CreateBookingData {
 export class BookingModel {
   private db = database.instance
 
-  private parseImages(value: unknown): string[] {
-    if (typeof value !== 'string' || !value.trim()) return []
-
-    try {
-      const parsed = JSON.parse(value)
-      return Array.isArray(parsed) ? parsed.filter((item): item is string => typeof item === 'string') : []
-    } catch {
-      return []
-    }
-  }
-
   async findAll(): Promise<Booking[]> {
     const rows = await all(`
-      SELECT
-        b.*,
-        e.name as equipment_name,
-        e.category as equipment_category,
-        e.price_per_day as equipment_price_per_day,
-        e.images as equipment_images
+      SELECT b.*
       FROM bookings b
-      LEFT JOIN equipment e ON b.equipment_id = e.id
       ORDER BY b.created_at DESC
     `) as any[]
 
-    return rows.map((row) => this.mapRowWithEquipment(row))
+    const bookings = rows.map((row) => this.mapRow(row))
+    return this.attachEquipmentItems(bookings)
   }
 
   async findById(id: string): Promise<Booking | null> {
     const row = await get(`
-      SELECT
-        b.*,
-        e.name as equipment_name,
-        e.category as equipment_category,
-        e.price_per_day as equipment_price_per_day,
-        e.images as equipment_images
+      SELECT b.*
       FROM bookings b
-      LEFT JOIN equipment e ON b.equipment_id = e.id
       WHERE b.id = ?
     `, [id]) as any
 
-    return row ? this.mapRowWithEquipment(row) : null
+    if (!row) return null
+
+    const [booking] = await this.attachEquipmentItems([this.mapRow(row)])
+    return booking
   }
 
   async create(data: CreateBookingData & { id: string }): Promise<Booking> {
     const legalAcceptedAt = data.legal ? new Date().toISOString() : null
+    const equipmentIds = data.equipmentIds?.length ? [...new Set(data.equipmentIds)] : [data.equipmentId]
 
     await run(`
       INSERT INTO bookings (
-        id, equipment_id, customer_name, customer_phone, customer_email,
+        id, equipment_id, equipment_ids, customer_name, customer_phone, customer_email,
         start_date, end_date, start_time, end_time, office_id, office_name, total_price, comment, preferred_contact,
         delivery_method, delivery_address, source_page, referrer,
         utm_source, utm_medium, utm_campaign, legal_offer_accepted_at,
         legal_agreement_accepted_at, legal_privacy_accepted_at,
         legal_terms_version, legal_acceptance_ip, legal_acceptance_user_agent,
         status
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')
     `, [
       data.id,
       data.equipmentId,
+      JSON.stringify(equipmentIds),
       data.customerName,
       data.customerPhone,
       data.customerEmail || '',
@@ -184,7 +170,16 @@ export class BookingModel {
 
     let query = `
       SELECT * FROM bookings
-      WHERE equipment_id = ?
+      WHERE (
+          equipment_id = ?
+          OR EXISTS (
+            SELECT 1
+            FROM json_each(
+              CASE WHEN json_valid(equipment_ids) THEN equipment_ids ELSE '[]' END
+            )
+            WHERE json_each.value = ?
+          )
+        )
         AND status IN ('confirmed', 'active')
         AND (
           (start_date <= ? AND end_date >= ?) OR
@@ -194,7 +189,7 @@ export class BookingModel {
     `
 
     const params = [
-      equipmentId,
+      equipmentId, equipmentId,
       startDate, startDate,
       endDate, endDate,
       startDate, endDate
@@ -213,6 +208,8 @@ export class BookingModel {
     return {
       id: row.id,
       equipmentId: row.equipment_id,
+      equipmentIds: this.parseEquipmentIds(row.equipment_ids, row.equipment_id),
+      equipmentItems: [],
       customerName: row.customer_name,
       customerPhone: row.customer_phone,
       customerEmail: row.customer_email || undefined,
@@ -244,26 +241,38 @@ export class BookingModel {
     }
   }
 
-  private mapRowWithEquipment(row: any): Booking {
-    const booking = this.mapRow(row)
-
-    if (row.equipment_name) {
-      booking.equipment = {
-        id: booking.equipmentId,
-        name: row.equipment_name,
-        category: row.equipment_category,
-        pricePerDay: row.equipment_price_per_day,
-        images: this.parseImages(row.equipment_images),
-        quantity: 0,
-        availableQuantity: 0,
-        description: '',
-        specifications: {},
-        createdAt: '',
-        updatedAt: ''
+  private parseEquipmentIds(value: unknown, fallbackId: string): string[] {
+    if (typeof value === 'string' && value.trim()) {
+      try {
+        const parsed = JSON.parse(value)
+        if (Array.isArray(parsed)) {
+          const ids = parsed.filter((id): id is string => typeof id === 'string' && Boolean(id.trim()))
+          if (ids.length) return [...new Set(ids)]
+        }
+      } catch {
+        // Legacy rows fall back to equipment_id.
       }
     }
 
-    return booking
+    return fallbackId ? [fallbackId] : []
+  }
+
+  private async attachEquipmentItems(bookings: Booking[]): Promise<Booking[]> {
+    const ids = [...new Set(bookings.flatMap((booking) => booking.equipmentIds))]
+    const equipment = await equipmentModel.findByIds(ids)
+    const equipmentById = new Map(equipment.map((item) => [item.id, item]))
+
+    return bookings.map((booking) => {
+      const equipmentItems = booking.equipmentIds
+        .map((id) => equipmentById.get(id))
+        .filter((item): item is Equipment => Boolean(item))
+
+      return {
+        ...booking,
+        equipment: equipmentItems[0],
+        equipmentItems,
+      }
+    })
   }
 }
 
