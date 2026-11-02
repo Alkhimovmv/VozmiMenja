@@ -3,6 +3,7 @@ import { database, get, run, all } from '../models/database'
 const PRODUCT_ID = 'jbl-partybox-wireless-microphones'
 const PRODUCT_NAME = 'Микрофоны JBL'
 const LEGACY_PRODUCT_NAME = 'Набор беспроводных микрофонов JBL PartyBox'
+const PURCHASE_PRICE = 10_000
 
 const pricing = {
   day1_10to20: 0,
@@ -35,6 +36,7 @@ async function seedCatalogAdditions() {
 
     await run(`UPDATE equipment SET name = ? WHERE id = ?`, [PRODUCT_NAME, PRODUCT_ID])
     await run(`UPDATE rental_equipment SET name = ? WHERE name = ?`, [PRODUCT_NAME, LEGACY_PRODUCT_NAME])
+    await run(`UPDATE rental_equipment SET base_price = ? WHERE name = ?`, [PURCHASE_PRICE, PRODUCT_NAME])
 
     await run(`
       INSERT OR IGNORE INTO equipment (
@@ -68,11 +70,11 @@ async function seedCatalogAdditions() {
     for (const office of offices) {
       await run(`
         INSERT INTO rental_equipment (name, quantity, description, base_price, office_id)
-        SELECT ?, 2, ?, 0, ?
+        SELECT ?, 2, ?, ?, ?
         WHERE NOT EXISTS (
           SELECT 1 FROM rental_equipment WHERE name = ? AND office_id = ?
         )
-      `, [PRODUCT_NAME, description, office.id, PRODUCT_NAME, office.id])
+      `, [PRODUCT_NAME, description, PURCHASE_PRICE, office.id, PRODUCT_NAME, office.id])
 
       const adminEquipment = await get(`
         SELECT id FROM rental_equipment WHERE name = ? AND office_id = ? LIMIT 1
