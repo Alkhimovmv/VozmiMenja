@@ -155,10 +155,7 @@ export interface FinancialSummary {
   total_costs: number;
   delivery_costs: number;
   operational_expenses: number;
-  capital_expenditures: number;
   net_profit: number;
-  operating_profit: number;
-  cash_result: number;
   total_rentals: number;
 }
 
@@ -168,9 +165,6 @@ export interface MonthlyRevenue {
   month_name: string;
   total_revenue: number;
   net_profit: number;
-  operating_profit: number;
-  capital_expenditures: number;
-  cash_result: number;
   rental_count: number;
 }
 

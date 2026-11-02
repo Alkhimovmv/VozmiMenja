@@ -1,7 +1,8 @@
 import { database, get, run, all } from '../models/database'
 
 const PRODUCT_ID = 'jbl-partybox-wireless-microphones'
-const PRODUCT_NAME = 'Набор беспроводных микрофонов JBL PartyBox'
+const PRODUCT_NAME = 'Микрофоны JBL'
+const LEGACY_PRODUCT_NAME = 'Набор беспроводных микрофонов JBL PartyBox'
 
 const pricing = {
   day1_10to20: 0,
@@ -31,6 +32,9 @@ const specifications = {
 async function seedCatalogAdditions() {
   try {
     await database.init()
+
+    await run(`UPDATE equipment SET name = ? WHERE id = ?`, [PRODUCT_NAME, PRODUCT_ID])
+    await run(`UPDATE rental_equipment SET name = ? WHERE name = ?`, [PRODUCT_NAME, LEGACY_PRODUCT_NAME])
 
     await run(`
       INSERT OR IGNORE INTO equipment (

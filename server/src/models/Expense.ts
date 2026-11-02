@@ -192,11 +192,10 @@ export class ExpenseModel {
 
   async getMonthlyExpensesDetails(year: number, month: number, officeIds?: number[]): Promise<{
     operational_expenses: number
-    capital_expenditures: number
     by_category: Record<string, number>
   }> {
     if (officeIds !== undefined && officeIds.length === 0) {
-      return { operational_expenses: 0, capital_expenditures: 0, by_category: {} }
+      return { operational_expenses: 0, by_category: {} }
     }
     const monthStr = month.toString().padStart(2, '0')
     const officeFilter = officeIds !== undefined
@@ -205,9 +204,7 @@ export class ExpenseModel {
     const officeParams = officeIds ?? []
 
     const totalRow = await get(`
-      SELECT
-        COALESCE(SUM(CASE WHEN expense_type = 'operational' THEN amount ELSE 0 END), 0) as operational_total,
-        COALESCE(SUM(CASE WHEN expense_type = 'capital' THEN amount ELSE 0 END), 0) as capital_total
+      SELECT COALESCE(SUM(amount), 0) as total
       FROM expenses
       WHERE strftime('%Y', date) = ?
         AND strftime('%m', date) = ?
@@ -230,8 +227,7 @@ export class ExpenseModel {
     })
 
     return {
-      operational_expenses: totalRow?.operational_total || 0,
-      capital_expenditures: totalRow?.capital_total || 0,
+      operational_expenses: totalRow?.total || 0,
       by_category: byCategory
     }
   }
