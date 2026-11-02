@@ -3,6 +3,7 @@ import { CalendarClock, CheckCircle, ClipboardCheck, MessageCircle, PackageCheck
 import SEO from '../components/SEO'
 import { trackEvent } from '../lib/analytics'
 import { CONTACT_PHONE, CONTACT_PHONE_LABEL, getTelegramUrl } from '../lib/contactLinks'
+import faqContent from '../content/faq.json'
 
 const processSteps = [
   {
@@ -59,24 +60,7 @@ const categoryLinks = [
   { href: '/arenda-paroochistitelya-dlya-kuhni-plitki-vannoy-moskva', title: 'Пароочиститель для кухни', text: 'SC4 для плитки, швов, санузла и твердых поверхностей.' },
 ]
 
-const faq = [
-  {
-    question: 'Когда аренда выгоднее покупки?',
-    answer: 'Когда техника нужна на один день, выходные, поездку, уборку после ремонта или тест перед покупкой. Особенно это заметно на колонках, камерах и Karcher.',
-  },
-  {
-    question: 'Можно ли продлить аренду?',
-    answer: 'Да, если оборудование свободно на следующие даты. Лучше написать заранее до окончания срока, чтобы менеджер успел подтвердить продление.',
-  },
-  {
-    question: 'Как понять, нужен ли залог?',
-    answer: 'Условия зависят от модели, срока, способа получения и истории клиента. Мы подтверждаем залог до выдачи, чтобы не было сюрпризов на месте.',
-  },
-  {
-    question: 'Что написать менеджеру, чтобы быстрее подтвердить бронь?',
-    answer: 'Укажите модель, даты, задачу, адрес/самовывоз и допы: микрофон, крепления, батареи, карту памяти, насадки, мешки, фильтры или химию.',
-  },
-]
+const faq = faqContent['/kak-prohodit-arenda-tehniki']
 
 const faqStructuredData = {
   '@context': 'https://schema.org',
@@ -103,7 +87,7 @@ export default function RentalProcessPage() {
         <div className="container mx-auto px-4">
           <div className="max-w-3xl">
             <span className="inline-block text-xs font-semibold uppercase tracking-widest text-blue-200 mb-3">Аренда без лишней суеты</span>
-            <h1 className="text-4xl md:text-5xl font-extrabold mb-4 leading-tight">
+            <h1 className="text-white text-4xl md:text-5xl font-extrabold mb-4 leading-tight">
               Как проходит аренда техники
             </h1>
             <p className="text-blue-100 text-lg max-w-2xl mb-8">
@@ -237,7 +221,7 @@ export default function RentalProcessPage() {
       <section className="py-14">
         <div className="container mx-auto px-4">
           <div className="rounded-2xl bg-gradient-to-br from-[#1D4ED8] to-[#0F172A] p-8 text-center text-white md:p-10">
-            <h2 className="mb-3 text-2xl font-extrabold">Не уверены, что выбрать?</h2>
+            <h2 className="mb-3 text-2xl font-extrabold text-white">Не уверены, что выбрать?</h2>
             <p className="mx-auto mb-6 max-w-xl text-sm text-blue-100">
               Напишите задачу: что делаете, на какие даты, нужен ли комплект и доставка. Подберем вариант без покупки лишней техники.
             </p>

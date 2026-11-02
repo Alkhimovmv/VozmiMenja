@@ -78,6 +78,22 @@ export class ContactLeadModel {
     return lead
   }
 
+  async findRecentDuplicate(data: CreateContactLeadData, windowMinutes = 10): Promise<ContactLead | null> {
+    const row = await get(`
+      SELECT *
+      FROM contact_leads
+      WHERE phone = ?
+        AND subject = ?
+        AND message = ?
+        AND status != 'cancelled'
+        AND created_at >= datetime('now', ?)
+      ORDER BY created_at DESC
+      LIMIT 1
+    `, [data.phone, data.subject, data.message, `-${windowMinutes} minutes`]) as any
+
+    return row ? this.mapRow(row) : null
+  }
+
   async updateStatus(id: number, status: ContactLead['status']): Promise<void> {
     await run(`
       UPDATE contact_leads

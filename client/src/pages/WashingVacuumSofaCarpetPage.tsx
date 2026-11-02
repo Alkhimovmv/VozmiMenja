@@ -4,6 +4,7 @@ import { ArrowRight, CheckCircle2, Clock, HelpCircle, MessageCircle, Sofa, Spark
 import { trackEvent } from '../lib/analytics'
 import { getTelegramUrl } from '../lib/contactLinks'
 import ScenarioRentalInfo from '../components/ui/ScenarioRentalInfo'
+import faqContent from '../content/faq.json'
 
 const pageUrl = 'https://vozmimenya.ru/arenda-moyushchego-pylesosa-dlya-divana-kovra-moskva'
 const puzzi8Href = '/equipment/karcher-puzzi-8-1'
@@ -11,32 +12,7 @@ const puzzi10Href = '/equipment/karcher-puzzi-10-1'
 const sc4Href = '/equipment/karcher-sc4'
 const leadMessage = 'Нужен моющий пылесос для чистки. Что чистим: диван/ковер/матрас/авто. Размер/количество: __. Пятна: __. Даты аренды: __. Район Москвы: __.'
 
-const faqItems = [
-  {
-    question: 'Какой моющий пылесос взять для дивана?',
-    answer: 'Для домашней химчистки дивана чаще смотрят Karcher Puzzi 8/1: он компактнее и понятнее для одной квартиры. Если объем больше, есть ковры или несколько предметов мебели, можно сравнить с Puzzi 10/1.',
-  },
-  {
-    question: 'Можно ли моющим пылесосом чистить ковер?',
-    answer: 'Да, моющие пылесосы используют для влажной чистки ковров и текстиля. Перед чисткой проверьте материал, стойкость красителя и рекомендации производителя покрытия.',
-  },
-  {
-    question: 'Что лучше: Puzzi 8/1 или Puzzi 10/1?',
-    answer: 'Puzzi 8/1 удобен для квартиры, дивана, матраса и салона авто. Puzzi 10/1 уместнее, когда уборка больше по площади или нужно пройти несколько ковров и предметов мебели.',
-  },
-  {
-    question: 'Нужно ли покупать химию отдельно?',
-    answer: 'Условия по расходникам лучше уточнить при заявке: они зависят от задачи, дат и комплекта выбранной модели.',
-  },
-  {
-    question: 'На сколько дней брать моющий пылесос?',
-    answer: 'Для одного дивана или салона авто часто хватает 1 дня. Для квартиры с коврами и несколькими предметами мебели удобнее закладывать 2 дня.',
-  },
-  {
-    question: 'Есть ли доставка по Москве?',
-    answer: 'Актуальные условия доставки зависят от адреса и времени. Посмотрите страницу доставки или напишите в Telegram, чтобы согласовать вариант.',
-  },
-]
+const faqItems = faqContent['/arenda-moyushchego-pylesosa-dlya-divana-kovra-moskva']
 
 const faqStructuredData = {
   '@context': 'https://schema.org',

@@ -16,6 +16,8 @@ import EquipmentModal, { type EquipmentInstanceOfficeChange } from '../../compon
 import ConfirmDialog from '../../components/admin/ConfirmDialog';
 import { useOffice } from '../../hooks/useOffice';
 import { getApiErrorMessage } from '../../lib/apiError';
+import { analyticsApi } from '../../api/admin/analytics';
+import type { EquipmentUtilization } from '../../types/admin';
 
 const EquipmentPage: React.FC = () => {
   const { currentOfficeId } = useOffice();
@@ -26,6 +28,11 @@ const EquipmentPage: React.FC = () => {
 
   const { data: equipment = [], isLoading } = useAuthenticatedQuery<RentalEquipment[]>(['equipment', currentOfficeId], () => equipmentApi.getAll(currentOfficeId));
   const { data: offices = [] } = useAuthenticatedQuery<Office[]>(['offices'], officesApi.getAll);
+  const { data: equipmentPerformance = [], isLoading: isPerformanceLoading } = useAuthenticatedQuery<EquipmentUtilization[]>(
+    ['analytics', 'equipment-utilization', currentOfficeId, 365],
+    () => analyticsApi.getEquipmentUtilization(currentOfficeId, 365),
+    { staleTime: 60_000 }
+  );
 
   const createMutation = useMutation({
     mutationFn: equipmentApi.create,
@@ -146,6 +153,61 @@ const EquipmentPage: React.FC = () => {
           <div className="text-sm text-gray-600">Общая стоимость</div>
         </div>
       </div>
+
+      <section className="rounded-lg bg-white p-4 shadow sm:p-6">
+        <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <h2 className="text-lg font-bold text-gray-900">Доходность оборудования</h2>
+            <p className="text-sm text-gray-500">По завершённым арендам за последние 365 дней</p>
+          </div>
+          <p className="text-xs text-gray-500">Окупаемость считается по валовой выручке без общих расходов</p>
+        </div>
+
+        {isPerformanceLoading ? (
+          <div className="mt-4 text-sm text-gray-500">Считаем загрузку…</div>
+        ) : equipmentPerformance.length === 0 ? (
+          <div className="mt-4 text-sm text-gray-500">Пока недостаточно данных для расчёта.</div>
+        ) : (
+          <div className="mt-4 overflow-x-auto">
+            <table className="min-w-full text-left text-sm">
+              <thead className="border-b border-gray-200 text-xs uppercase text-gray-500">
+                <tr>
+                  <th className="px-3 py-2">Оборудование</th>
+                  <th className="px-3 py-2">Аренды</th>
+                  <th className="px-3 py-2">Загрузка</th>
+                  <th className="px-3 py-2">Выручка</th>
+                  <th className="px-3 py-2">Окупаемость</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {equipmentPerformance.map((item) => (
+                  <tr key={item.id} className="align-top">
+                    <td className="px-3 py-3">
+                      <div className="font-semibold text-gray-900">{item.name}</div>
+                      <div className="text-xs text-gray-500">{item.quantity} шт. · {item.rented_days} занятых суток</div>
+                    </td>
+                    <td className="px-3 py-3 text-gray-700">
+                      {item.total_rentals}
+                      <div className="text-xs text-gray-500">средняя {item.average_revenue.toLocaleString()}₽</div>
+                    </td>
+                    <td className="px-3 py-3 font-semibold text-gray-900">{item.utilization_percent}%</td>
+                    <td className="px-3 py-3 font-semibold text-gray-900">{item.total_revenue.toLocaleString()}₽</td>
+                    <td className="px-3 py-3">
+                      {item.gross_return_percent === null ? (
+                        <span className="text-gray-400">Укажите стоимость</span>
+                      ) : (
+                        <span className={item.gross_return_percent >= 100 ? 'font-semibold text-green-700' : 'font-semibold text-amber-700'}>
+                          {item.gross_return_percent}%
+                        </span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
 
       {/* Список оборудования */}
       <div className="bg-white shadow overflow-hidden sm:rounded-lg">

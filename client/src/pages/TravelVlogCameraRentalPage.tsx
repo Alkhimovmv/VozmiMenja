@@ -4,6 +4,7 @@ import { ArrowRight, BatteryCharging, CheckCircle2, Compass, Film, MapPinned, Me
 import { trackEvent } from '../lib/analytics'
 import { getTelegramUrl } from '../lib/contactLinks'
 import ScenarioRentalInfo from '../components/ui/ScenarioRentalInfo'
+import faqContent from '../content/faq.json'
 
 const pageUrl = 'https://vozmimenya.ru/arenda-kamery-dlya-puteshestviya-vloga-moskva'
 const goproHref = '/equipment/gopro-13'
@@ -11,32 +12,7 @@ const osmoHref = '/equipment/dji-osmo-pocket-3-creator-combo'
 const insta360Href = '/equipment/insta360-x5'
 const leadMessage = 'Нужна камера для поездки/влога. Что снимаем: путешествие/спорт/Reels/360. Срок: __ дней. Нужны крепления/аккумуляторы: __. Район Москвы: __.'
 
-const faqItems = [
-  {
-    question: 'Какую камеру взять в путешествие?',
-    answer: 'Для активной поездки, воды и креплений чаще смотрят GoPro. Для прогулок, разговорных видео и влога удобен DJI Osmo Pocket. Для необычных ракурсов и съемки одному — Insta360.',
-  },
-  {
-    question: 'Что взять для Reels и Shorts?',
-    answer: 'Если нужны прогулочные видео, лицо в кадре и быстрый монтаж, начните с Osmo Pocket. Если планируется спорт, вода или крепления — смотрите GoPro. Для вау-ракурсов — Insta360.',
-  },
-  {
-    question: 'Можно ли взять камеру на выходные?',
-    answer: 'Да, камеру можно взять на один день, выходные или поездку. Если есть дорога, сборы и возврат после поездки, удобнее закладывать запас по сроку.',
-  },
-  {
-    question: 'Нужны ли дополнительные аккумуляторы?',
-    answer: 'Для поездки или съемочного дня лучше заранее уточнить длительность съемки. Часто удобнее взять запас питания и не зависеть от розетки.',
-  },
-  {
-    question: 'Можно ли взять крепления вместе с камерой?',
-    answer: 'Комплект зависит от задачи и модели. Напишите, где будете крепить камеру: рюкзак, шлем, авто, велосипед, рука или штатив — подскажем варианты.',
-  },
-  {
-    question: 'GoPro или Insta360 — что выбрать?',
-    answer: 'GoPro проще, когда точно понятен кадр и нужна экшн-съемка. Insta360 полезна, когда вы снимаете один, хотите выбрать ракурс потом или получить 360-эффекты.',
-  },
-]
+const faqItems = faqContent['/arenda-kamery-dlya-puteshestviya-vloga-moskva']
 
 const faqStructuredData = {
   '@context': 'https://schema.org',

@@ -8,6 +8,8 @@
 - [Онлайн-бронь](https://vozmimenya.ru/booking): самостоятельное оформление заявки на оборудование, даты, получение и согласие с условиями.
 - [Как проходит аренда](https://vozmimenya.ru/kak-prohodit-arenda-tehniki): пошаговый процесс выбора, бронирования, получения, использования и возврата техники.
 - [Самовывоз 24/7](https://vozmimenya.ru/samovyvoz-24-7-postamat): получение и возврат компактной техники через постамат.
+- [Аренда техники у м. Волжская / Кузьминки](https://vozmimenya.ru/arenda-tehniki-u-metro-volzhskaya-kuzminki): офис и постамат 24/7 на Волжском бульваре, 51с15; рейтинг 5,0 на Яндекс Картах.
+- [Аренда техники у м. Динамо](https://vozmimenya.ru/arenda-tehniki-u-metro-dinamo): офис и постамат 24/7 на ул. Расковой, 1.
 - [Доставка](https://vozmimenya.ru/delivery): условия доставки и самовывоза по Москве.
 - [Контакты](https://vozmimenya.ru/contact): телефон, мессенджеры, адреса и способы связи.
 
@@ -34,8 +36,18 @@
 - Core intent: аренда техники и оборудования на короткий срок.
 - Main categories: колонки JBL, экшн-камеры, камеры для влога, строительные пылесосы, моющие пылесосы, пароочистители, микрофоны.
 - Contacts: +7 (993) 363-64-64, Telegram and WhatsApp links are on the site.
-- Address shown on site: Москва, Волжский бульвар, 51с15.
+- Pickup points (office + 24/7 locker): м. Волжская — Москва, Волжский бульвар, 51с15 (район Кузьминки); м. Динамо — Москва, ул. Расковой, 1 (район Беговой).
+- Hours: pickup and return through the locker 24/7; delivery across Moscow by Yandex Go courier.
 - Booking path: user chooses equipment and dates on the site, submits request, manager confirms availability and details.
+
+## Rental terms (summary, source: https://vozmimenya.ru/faq)
+
+- Deposit: not required with permanent registration in Moscow or Moscow Oblast; otherwise 50% of equipment value, returned on return.
+- Documents: passport photo pages (main page and registration).
+- Cancellation: free up to 24 hours before rental start; later — 50% of rental cost.
+- Payment: cash, bank transfer, card by link; cashless payment for companies.
+- Long rentals: special rates for 7+ days.
+- Prices: from 400 ₽ per day depending on model; exact prices are on product pages.
 
 ## Preferred citation guidance
 

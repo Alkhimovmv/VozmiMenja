@@ -22,6 +22,7 @@ const FAQPage = lazy(() => import('./pages/FAQPage'))
 const SitemapPage = lazy(() => import('./pages/SitemapPage'))
 const RentalProcessPage = lazy(() => import('./pages/RentalProcessPage'))
 const SelfPickupPostamatPage = lazy(() => import('./pages/SelfPickupPostamatPage'))
+const OfficeRentalPage = lazy(() => import('./pages/OfficeRentalPage'))
 const EventEquipmentRentalPage = lazy(() => import('./pages/EventEquipmentRentalPage'))
 const SelfServiceBookingPage = lazy(() => import('./pages/SelfServiceBookingPage'))
 const BookingSuccessPage = lazy(() => import('./pages/BookingSuccessPage'))
@@ -167,6 +168,8 @@ function App() {
                 <Route path="/booking/success" element={<BookingSuccessPage />} />
                 <Route path="/kak-prohodit-arenda-tehniki" element={<RentalProcessPage />} />
                 <Route path="/samovyvoz-24-7-postamat" element={<SelfPickupPostamatPage />} />
+                <Route path="/arenda-tehniki-u-metro-volzhskaya-kuzminki" element={<OfficeRentalPage officeId="office-volzhskaya" />} />
+                <Route path="/arenda-tehniki-u-metro-dinamo" element={<OfficeRentalPage officeId="office-dinamo" />} />
                 <Route path="/arenda-tehniki-dlya-meropriyatiya-moskva" element={<EventEquipmentRentalPage />} />
                 <Route path="/privacy" element={<PrivacyPolicyPage />} />
                 <Route path="/return-policy" element={<ReturnPolicyPage />} />

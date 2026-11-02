@@ -95,7 +95,7 @@ export default function BlogPage() {
         <section className="bg-gradient-to-br from-[#1D4ED8] to-[#0F172A] text-white py-16 md:py-20">
           <div className="container mx-auto px-4">
             <span className="inline-block text-xs font-semibold uppercase tracking-widest text-blue-200 mb-3">Полезное</span>
-            <h1 className="text-4xl md:text-5xl font-extrabold mb-4">Блог ВозьмиМеня</h1>
+            <h1 className="text-white text-4xl md:text-5xl font-extrabold mb-4">Блог ВозьмиМеня</h1>
             <p className="text-blue-100 text-lg max-w-2xl">
               Полезные статьи и гайды по выбору оборудования для съемки, уборки и записи звука.
               Профессиональные советы от экспертов проката.

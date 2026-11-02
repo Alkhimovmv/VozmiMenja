@@ -7,6 +7,7 @@ import HowItWorks from '../components/HowItWorks'
 import { Check, Star, Clock, Shield, Truck } from 'lucide-react'
 import { trackEvent } from '../lib/analytics'
 import { CONTACT_PHONE, CONTACT_PHONE_LABEL, getTelegramUrl } from '../lib/contactLinks'
+import faqContent from '../content/faq.json'
 
 export default function CategoryPylesosyPage() {
   const [page] = useState(1)
@@ -45,13 +46,7 @@ export default function CategoryPylesosyPage() {
   const faqStructuredData = {
     '@context': 'https://schema.org',
     '@type': 'FAQPage',
-    mainEntity: [
-      { '@type': 'Question', name: 'Сколько стоит аренда пылесоса в Москве?', acceptedAnswer: { '@type': 'Answer', text: 'Стоимость аренды пылесосов начинается от 400₽ в день. Цена зависит от модели и срока аренды. При аренде на 7+ дней действуют выгодные скидки до 30%.' } },
-      { '@type': 'Question', name: 'Какие пылесосы можно взять в аренду?', acceptedAnswer: { '@type': 'Answer', text: 'Мы предлагаем строительные пылесосы для уборки после ремонта, промышленные пылесосы для крупных объектов, моющие пылесосы для химчистки, и профессиональную клининговую технику.' } },
-      { '@type': 'Question', name: 'Как быстро можно получить пылесос?', acceptedAnswer: { '@type': 'Answer', text: 'Мы доставляем оборудование по Москве в течение 2-4 часов после оформления заказа. Работаем 24/7 без выходных. Также доступен самовывоз от нашего офиса.' } },
-      { '@type': 'Question', name: 'Нужен ли залог при аренде?', acceptedAnswer: { '@type': 'Answer', text: 'Если у вас постоянная прописка в Москве или МО залог не требуется, в остальных случаях залог может потребоваться для дорогостоящей техники и составляет 20-50% от стоимости оборудования. Залог возвращается при возврате техники в исправном состоянии.' } },
-      { '@type': 'Question', name: 'Что входит в комплект?', acceptedAnswer: { '@type': 'Answer', text: 'В комплект входит пылесос, набор насадок для разных поверхностей, шланги, инструкция по эксплуатации. Дополнительные фильтры и мешки для пыли предоставляются бесплатно.' } },
-    ],
+    mainEntity: faqContent['/arenda-pylesosov-moskva'].map((faq) => ({ '@type': 'Question', name: faq.question, acceptedAnswer: { '@type': 'Answer', text: faq.answer } })),
   }
 
   const advantages = [
@@ -131,7 +126,7 @@ export default function CategoryPylesosyPage() {
             <span className="mx-2">/</span>
             <span>Аренда пылесосов</span>
           </div>
-          <h1 className="text-4xl md:text-5xl font-extrabold mb-4 leading-tight">
+          <h1 className="text-white text-4xl md:text-5xl font-extrabold mb-4 leading-tight">
             Аренда пылесосов в Москве
           </h1>
           <p className="text-blue-100 text-lg max-w-2xl mb-8">
@@ -301,7 +296,7 @@ export default function CategoryPylesosyPage() {
       <section className="py-14">
         <div className="container mx-auto px-4">
           <div className="bg-gradient-to-br from-[#1D4ED8] to-[#0F172A] rounded-2xl p-10 text-center text-white">
-            <h2 className="text-2xl font-extrabold mb-3">Готовы арендовать пылесос?</h2>
+            <h2 className="text-2xl font-extrabold mb-3 text-white">Готовы арендовать пылесос?</h2>
             <p className="text-blue-100 mb-6 max-w-xl mx-auto text-sm">Напишите в Telegram — подберем модель, срок и доставку без лишней переписки.</p>
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
               <a href={getTelegramUrl()} target="_blank" rel="noopener noreferrer" onClick={() => trackEvent('telegram_click', { source: 'category_pylesosy_bottom_cta' })} className="btn bg-white text-primary hover:bg-blue-50">

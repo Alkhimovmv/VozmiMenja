@@ -1,0 +1,62 @@
+{
+  "name": "ВозьмиМеня",
+  "alternateName": "VozmiMenja",
+  "url": "https://vozmimenya.ru",
+  "logo": "https://vozmimenya.ru/favicon-512x512.png",
+  "image": "https://vozmimenya.ru/og-image.jpg",
+  "telephone": "+79933636464",
+  "telephoneLabel": "+7 (993) 363-64-64",
+  "email": "alkhimovmv@yandex.ru",
+  "description": "Аренда техники в Москве на короткий срок: колонки JBL PartyBox, экшн-камеры GoPro, Insta360 и DJI Osmo Pocket, строительные и моющие пылесосы Karcher, пароочистители и беспроводные микрофоны. Самовывоз через постамат 24/7 у м. Волжская и м. Динамо или доставка по Москве.",
+  "priceRange": "от 400 ₽ в сутки",
+  "hours": "Круглосуточно, 24/7 (выдача и возврат через постамат)",
+  "sameAs": [
+    "https://t.me/VozmiMenyaRent",
+    "https://wa.me/79933636464",
+    "https://www.avito.ru/brands/bec2558749c417a5576049cbce277ace/all"
+  ],
+  "offices": [
+    {
+      "id": "office-volzhskaya",
+      "label": "Офис и постамат у м. Волжская",
+      "metro": "Волжская",
+      "district": "Кузьминки",
+      "streetAddress": "Волжский бульвар, 51с15",
+      "postalCode": "109462",
+      "latitude": 55.693848,
+      "longitude": 37.759571,
+      "yandexMaps": {
+        "orgId": "206350428739",
+        "url": "https://yandex.ru/maps/org/vozmi_menya/206350428739/",
+        "ratingValue": 5,
+        "reviewCount": 35,
+        "ratingCount": 36,
+        "checkedAt": "2026-10-21"
+      },
+      "slug": "/arenda-tehniki-u-metro-volzhskaya-kuzminki",
+      "nearby": [
+        "Кузьминки",
+        "Текстильщики",
+        "Печатники",
+        "Люблино"
+      ]
+    },
+    {
+      "id": "office-dinamo",
+      "label": "Офис и постамат у м. Динамо",
+      "metro": "Динамо",
+      "district": "Беговой",
+      "streetAddress": "ул. Расковой, 1",
+      "postalCode": "125040",
+      "latitude": 55.786143,
+      "longitude": 37.57,
+      "slug": "/arenda-tehniki-u-metro-dinamo",
+      "nearby": [
+        "Беговой",
+        "Аэропорт",
+        "Савёловский",
+        "Хорошёвский"
+      ]
+    }
+  ]
+}

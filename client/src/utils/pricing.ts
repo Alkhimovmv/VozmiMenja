@@ -157,7 +157,7 @@ export const calculateRentalTotal = (
     return Math.round(effectiveDailyPrice * rentalDays);
   }
 
-  return Math.round(Array.from({ length: rentalDays }).reduce((sum, _, index) => {
+  return Math.round(Array.from({ length: rentalDays }).reduce<number>((sum, _, index) => {
     const periodStart = getRentalPeriodStart(options.startDate || '', options.startTime, index);
     return sum + (isWeekendRentalDay(periodStart) ? weekendDay : effectiveDailyPrice);
   }, 0));

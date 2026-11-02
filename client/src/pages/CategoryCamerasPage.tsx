@@ -6,6 +6,7 @@ import SEO from '../components/SEO'
 import { Check, Clock, Camera, Video, Zap } from 'lucide-react'
 import { trackEvent } from '../lib/analytics'
 import { CONTACT_PHONE, CONTACT_PHONE_LABEL, getTelegramUrl } from '../lib/contactLinks'
+import faqContent from '../content/faq.json'
 
 export default function CategoryCamerasPage() {
   const [page] = useState(1)
@@ -31,12 +32,7 @@ export default function CategoryCamerasPage() {
   const faqStructuredData = {
     '@context': 'https://schema.org',
     '@type': 'FAQPage',
-    mainEntity: [
-      { '@type': 'Question', name: 'Какую камеру лучше взять для путешествия?', acceptedAnswer: { '@type': 'Answer', text: 'Для активного отдыха и креплений подойдет GoPro, для влогов и прогулок - DJI Osmo Pocket 3, для необычных 360-градусных ракурсов - Insta360.' } },
-      { '@type': 'Question', name: 'Что входит в комплект при аренде камеры?', acceptedAnswer: { '@type': 'Answer', text: 'Комплект зависит от модели, но обычно можно подобрать камеру, крепления, зарядку, аккумуляторы и карту памяти под конкретную съемку.' } },
-      { '@type': 'Question', name: 'Можно ли взять камеру на один день?', acceptedAnswer: { '@type': 'Answer', text: 'Да, камеру можно арендовать на один календарный день, выходные, поездку или более долгий срок.' } },
-      { '@type': 'Question', name: 'Поможете выбрать камеру под задачу?', acceptedAnswer: { '@type': 'Answer', text: 'Да, расскажите формат съемки, локацию и длительность, а мы подскажем подходящую камеру и комплект аксессуаров.' } },
-    ],
+    mainEntity: faqContent['/arenda-gopro-moskva'].map((faq) => ({ '@type': 'Question', name: faq.question, acceptedAnswer: { '@type': 'Answer', text: faq.answer } })),
   }
 
   const advantages = [
@@ -116,7 +112,7 @@ export default function CategoryCamerasPage() {
             <span className="mx-2">/</span>
             <span>Аренда камер</span>
           </div>
-          <h1 className="text-4xl md:text-5xl font-extrabold mb-4 leading-tight">
+          <h1 className="text-white text-4xl md:text-5xl font-extrabold mb-4 leading-tight">
             Аренда GoPro и экшн-камер в Москве
           </h1>
           <p className="text-blue-100 text-lg max-w-2xl mb-8">
@@ -261,7 +257,7 @@ export default function CategoryCamerasPage() {
       <section className="py-14">
         <div className="container mx-auto px-4">
           <div className="bg-gradient-to-br from-[#1D4ED8] to-[#0F172A] rounded-2xl p-10 text-center text-white">
-            <h2 className="text-2xl font-extrabold mb-3">Готовы снимать крутые видео?</h2>
+            <h2 className="text-2xl font-extrabold mb-3 text-white">Готовы снимать крутые видео?</h2>
             <p className="text-blue-100 mb-6 max-w-xl mx-auto text-sm">Напишите в Telegram — подберем камеру, крепления и срок аренды под вашу съемку.</p>
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
               <a href={getTelegramUrl()} target="_blank" rel="noopener noreferrer" onClick={() => trackEvent('telegram_click', { source: 'category_cameras_bottom_cta' })} className="btn bg-white text-primary hover:bg-blue-50">

@@ -74,9 +74,9 @@ export default function AboutPage() {
             </div>
             <div className="grid md:grid-cols-3 gap-5">
               {[
-                { Icon: Camera, title: 'Камеры и фото', desc: 'Профессиональные камеры, объективы, экшн-камеры для создания качественного контента', bg: 'bg-blue-50', iconBg: 'bg-blue-500' },
-                { Icon: SprayCan, title: 'Клининговое оборудование', desc: 'Пылесосы, пароочистители, моющие аппараты для профессиональной уборки', bg: 'bg-slate-50', iconBg: 'bg-slate-700' },
-                { Icon: Mic2, title: 'Аудиооборудование', desc: 'Микрофоны, звуковое оборудование для записи и трансляций', bg: 'bg-sky-50', iconBg: 'bg-sky-600' },
+                { Icon: Camera, title: 'Камеры и фото', desc: 'Экшн-камеры GoPro 13, Insta360 X5 и DJI Osmo Pocket 3 для поездок, спорта и влогов', bg: 'bg-blue-50', iconBg: 'bg-blue-500' },
+                { Icon: SprayCan, title: 'Клининговое оборудование', desc: 'Karcher WD5 после ремонта, Puzzi для диванов и ковров, пароочиститель SC4 для кухни и плитки', bg: 'bg-slate-50', iconBg: 'bg-slate-700' },
+                { Icon: Mic2, title: 'Аудиооборудование', desc: 'Колонки JBL PartyBox 320 и 710, беспроводные микрофоны DJI Mic 2', bg: 'bg-sky-50', iconBg: 'bg-sky-600' },
               ].map((cat) => (
                 <div key={cat.title} className={`${cat.bg} rounded-2xl p-8 text-center`}>
                   <div className={`w-16 h-16 ${cat.iconBg} rounded-2xl flex items-center justify-center mx-auto mb-4`}>

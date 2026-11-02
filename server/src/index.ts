@@ -27,6 +27,9 @@ dotenv.config({ path: path.join(__dirname, '../../.env') }) // корень пр
 const app = express()
 const PORT = process.env.PORT || 3001
 
+// Доверяем X-Forwarded-For только от локального Nginx, а не от прямых клиентов.
+app.set('trust proxy', 'loopback')
+
 // Middleware
 app.use(helmet({
   crossOriginResourcePolicy: { policy: "cross-origin" }
@@ -37,8 +40,8 @@ app.use(cors({
     : ['http://localhost:3000', 'http://localhost:5173', 'http://localhost:5174', 'http://localhost:5175', 'http://192.168.1.44:5173', 'http://192.168.0.32:5175'],
   credentials: true
 }))
-app.use(express.json({ limit: '10mb' }))
-app.use(express.urlencoded({ extended: true }))
+app.use(express.json({ limit: '512kb' }))
+app.use(express.urlencoded({ extended: true, limit: '512kb' }))
 
 // Логирование запросов (только в development)
 if (process.env.NODE_ENV !== 'production') {

@@ -30,67 +30,24 @@ export default defineConfig({
         pure_funcs: ['console.log', 'console.info', 'console.debug'],
       },
     },
-    rollupOptions: {
+    rolldownOptions: {
       output: {
-        // Разделение кода на чанки для лучшей загрузки
-        manualChunks: (id) => {
-          if (id.includes('node_modules')) {
-            if (
-              id.includes('@react-pdf/font') ||
-              id.includes('fontkit') ||
-              id.includes('unicode-properties')
-            ) {
-              return 'pdf-font-vendor'
-            }
-            if (
-              id.includes('@react-pdf/layout') ||
-              id.includes('@react-pdf/textkit') ||
-              id.includes('linebreak') ||
-              id.includes('hyphen')
-            ) {
-              return 'pdf-layout-vendor'
-            }
-            if (
-              id.includes('@react-pdf/pdfkit') ||
-              id.includes('pdfkit') ||
-              id.includes('png-js') ||
-              id.includes('jpeg-exif')
-            ) {
-              return 'pdf-core-vendor'
-            }
-            if (
-              id.includes('@react-pdf') ||
-              id.includes('restructure') ||
-              id.includes('yoga-layout')
-            ) {
-              return 'pdf-vendor'
-            }
-            if (id.includes('lucide-react') || id.includes('lucide')) {
-              return 'icons-vendor'
-            }
-            if (id.includes('react-markdown') || id.includes('remark') || id.includes('micromark') || id.includes('unified')) {
-              return 'markdown-vendor'
-            }
-            if (id.includes('@tanstack/react-query')) {
-              return 'query-vendor'
-            }
-            if (id.includes('axios')) {
-              return 'api-vendor'
-            }
-            if (id.includes('date-fns') || id.includes('react-datepicker')) {
-              return 'date-vendor'
-            }
-            if (id.includes('react-router')) {
-              return 'router-vendor'
-            }
-            if (id.includes('/react/') || id.includes('/react-dom/')) {
-              return 'react-vendor'
-            }
-            if (id.includes('lucide-react')) {
-              return 'ui-vendor'
-            }
-            return 'vendor'
-          }
+        // Разделение кода на чанки. Явные приоритеты обязательны: группа забирает и зависимости
+        // своих модулей, и без приоритета react/jsx-runtime оседал в markdown- или pdf-чанке,
+        // из-за чего они грузились на каждой странице.
+        codeSplitting: {
+          groups: [
+            { name: 'react-vendor', test: /[\\/]node_modules[\\/](react|react-dom|scheduler)[\\/]/, priority: 100 },
+            { name: 'router-vendor', test: /[\\/]node_modules[\\/](react-router|react-router-dom|@remix-run)[\\/]/, priority: 90 },
+            { name: 'query-vendor', test: /[\\/]node_modules[\\/]@tanstack[\\/]/, priority: 90 },
+            { name: 'api-vendor', test: /[\\/]node_modules[\\/]axios[\\/]/, priority: 90 },
+            { name: 'icons-vendor', test: /[\\/]node_modules[\\/]lucide-react[\\/]/, priority: 90 },
+            { name: 'date-vendor', test: /[\\/]node_modules[\\/](date-fns|react-datepicker)[\\/]/, priority: 80 },
+            { name: 'pdf-font-vendor', test: /[\\/]node_modules[\\/](@react-pdf[\\/]font|fontkit|unicode-properties)/, priority: 70 },
+            { name: 'pdf-layout-vendor', test: /[\\/]node_modules[\\/](@react-pdf[\\/](layout|textkit)|linebreak|hyphen)/, priority: 70 },
+            { name: 'pdf-core-vendor', test: /[\\/]node_modules[\\/](@react-pdf[\\/]pdfkit|pdfkit|png-js|jpeg-exif)/, priority: 70 },
+            { name: 'pdf-vendor', test: /[\\/]node_modules[\\/](@react-pdf|restructure|yoga-layout)/, priority: 60 },
+          ],
         },
         // Оптимизация имен файлов для кэширования
         entryFileNames: 'assets/[name].[hash].js',

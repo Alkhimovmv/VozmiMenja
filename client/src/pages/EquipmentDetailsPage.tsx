@@ -715,13 +715,7 @@ export default function EquipmentDetailsPage() {
       availability: equipment.availableQuantity > 0
         ? 'https://schema.org/InStock'
         : 'https://schema.org/LimitedAvailability',
-      seller: {
-        '@type': 'LocalBusiness',
-        name: 'ВозьмиМеня',
-        telephone: '+79933636464',
-        address: { '@type': 'PostalAddress', addressLocality: 'Москва', addressCountry: 'RU' },
-        url: 'https://vozmimenya.ru',
-      },
+      seller: { '@id': 'https://vozmimenya.ru/#organization' },
       areaServed: { '@type': 'City', name: 'Москва' },
       priceSpecification: {
         '@type': 'UnitPriceSpecification',
@@ -730,7 +724,6 @@ export default function EquipmentDetailsPage() {
         unitText: 'сутки',
       },
     },
-    aggregateRating: { '@type': 'AggregateRating', ratingValue: '4.9', reviewCount: '412' },
   }
 
   const guidance = getEquipmentGuidance(equipment.category, equipment.name)

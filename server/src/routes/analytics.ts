@@ -17,6 +17,11 @@ const leadSourcesQuerySchema = z.object({
   path: ['to']
 })
 
+const equipmentPerformanceQuerySchema = z.object({
+  days: z.coerce.number().int().min(30).max(3650).default(365),
+  officeId: z.coerce.number().int().positive().optional(),
+})
+
 type LeadSourceReportRow = {
   source_page: string
   referrer: string
@@ -63,6 +68,130 @@ router.get('/monthly-revenue', authMiddleware, async (req: Request, res: Respons
   } catch (error) {
     console.error('Error getting monthly revenue:', error)
     res.status(500).json({ error: 'Ошибка получения месячной выручки' })
+  }
+})
+
+// GET /api/admin/analytics/equipment-utilization - Загрузка и валовая окупаемость парка
+router.get('/equipment-utilization', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const parsedQuery = equipmentPerformanceQuerySchema.safeParse(req.query)
+    if (!parsedQuery.success) {
+      return res.status(400).json({ error: 'Некорректные параметры отчета' })
+    }
+
+    const userOfficeIds = await getUserOfficeIds(req)
+    if (userOfficeIds !== null && userOfficeIds.length === 0) {
+      return res.json([])
+    }
+    const officeIds = resolveOfficeIds(
+      userOfficeIds,
+      parsedQuery.data.officeId ? String(parsedQuery.data.officeId) : undefined
+    )
+    const officeFilter = officeIds?.length
+      ? `WHERE e.office_id IN (${officeIds.map(() => '?').join(',')})`
+      : ''
+    const rentalOfficeFilter = officeIds?.length
+      ? `AND r.office_id IN (${officeIds.map(() => '?').join(',')})`
+      : ''
+    const daysModifier = `-${parsedQuery.data.days} days`
+
+    const rows = await all(`
+      WITH completed_rentals AS (
+        SELECT r.*
+        FROM rentals r
+        WHERE r.status = 'completed'
+          AND date(r.end_date) >= date('now', ?)
+          ${rentalOfficeFilter}
+      ),
+      rental_items AS (
+        SELECT
+          r.id AS rental_id,
+          r.start_date,
+          r.end_date,
+          COALESCE(r.rental_price, 0) AS rental_price,
+          rei.equipment_id
+        FROM completed_rentals r
+        JOIN rental_equipment_items rei ON rei.rental_id = r.id
+
+        UNION ALL
+
+        SELECT
+          r.id AS rental_id,
+          r.start_date,
+          r.end_date,
+          COALESCE(r.rental_price, 0) AS rental_price,
+          r.equipment_id
+        FROM completed_rentals r
+        WHERE NOT EXISTS (
+          SELECT 1 FROM rental_equipment_items rei WHERE rei.rental_id = r.id
+        )
+      ),
+      weighted_items AS (
+        SELECT
+          ri.*,
+          CASE WHEN COALESCE(re.base_price, 0) > 0 THEN re.base_price ELSE 1 END AS item_weight,
+          SUM(CASE WHEN COALESCE(re.base_price, 0) > 0 THEN re.base_price ELSE 1 END)
+            OVER (PARTITION BY ri.rental_id) AS rental_weight
+        FROM rental_items ri
+        JOIN rental_equipment re ON re.id = ri.equipment_id
+      )
+      SELECT
+        e.id,
+        e.name,
+        e.quantity,
+        e.office_id,
+        COALESCE(e.base_price, 0) AS base_price,
+        COUNT(DISTINCT wi.rental_id) AS total_rentals,
+        COALESCE(SUM(
+          MAX(1, CAST((julianday(wi.end_date) - julianday(wi.start_date)) + 0.999999 AS INTEGER))
+        ), 0) AS rented_days,
+        ROUND(COALESCE(SUM(
+          wi.rental_price * wi.item_weight / NULLIF(wi.rental_weight, 0)
+        ), 0), 2) AS total_revenue
+      FROM rental_equipment e
+      LEFT JOIN weighted_items wi ON wi.equipment_id = e.id
+      ${officeFilter}
+      GROUP BY e.id, e.name, e.quantity, e.office_id, e.base_price
+      ORDER BY total_revenue DESC, total_rentals DESC, e.name ASC
+    `, [daysModifier, ...(officeIds || []), ...(officeIds || [])]) as Array<{
+      id: number
+      name: string
+      quantity: number
+      office_id: number | null
+      base_price: number
+      total_rentals: number
+      rented_days: number
+      total_revenue: number
+    }>
+
+    const data = rows.map((row) => {
+      const quantity = Math.max(1, Number(row.quantity) || 1)
+      const totalRevenue = Number(row.total_revenue) || 0
+      const totalRentals = Number(row.total_rentals) || 0
+      const rentedDays = Number(row.rented_days) || 0
+      const investmentValue = (Number(row.base_price) || 0) * quantity
+
+      return {
+        id: row.id,
+        name: row.name,
+        quantity,
+        office_id: row.office_id,
+        total_rentals: totalRentals,
+        rented_days: rentedDays,
+        total_revenue: totalRevenue,
+        average_revenue: totalRentals > 0 ? Math.round(totalRevenue / totalRentals) : 0,
+        utilization_percent: Math.round((rentedDays / (parsedQuery.data.days * quantity)) * 1000) / 10,
+        investment_value: investmentValue,
+        gross_return_percent: investmentValue > 0
+          ? Math.round((totalRevenue / investmentValue) * 1000) / 10
+          : null,
+      }
+    })
+
+    res.json(data)
+  } catch (error) {
+    console.error('Error getting equipment utilization:', error)
+    res.status(500).json({ error: 'Ошибка получения доходности оборудования' })
   }
 })
 

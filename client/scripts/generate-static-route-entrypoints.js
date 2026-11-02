@@ -29,6 +29,8 @@ const staticRoutes = [
   '/booking/success',
   '/kak-prohodit-arenda-tehniki',
   '/samovyvoz-24-7-postamat',
+  '/arenda-tehniki-u-metro-volzhskaya-kuzminki',
+  '/arenda-tehniki-u-metro-dinamo',
   '/arenda-tehniki-dlya-meropriyatiya-moskva',
   '/faq',
   '/privacy',
@@ -124,6 +126,14 @@ const staticSeo = {
     title: 'Самовывоз 24/7 через постамат | ВозьмиМеня',
     description: 'Как забрать и вернуть оборудование через постамат 24/7: удобно для камер, микрофонов и компактной техники.',
   },
+  '/arenda-tehniki-u-metro-volzhskaya-kuzminki': {
+    title: 'Аренда техники у м. Волжская и в Кузьминках — постамат 24/7 | ВозьмиМеня',
+    description: 'Аренда колонок JBL, GoPro, Insta360, пылесосов Karcher и пароочистителей у м. Волжская: Волжский бульвар, 51с15. Постамат 24/7, доставка по Москве.',
+  },
+  '/arenda-tehniki-u-metro-dinamo': {
+    title: 'Аренда техники у м. Динамо — постамат 24/7 на ул. Расковой | ВозьмиМеня',
+    description: 'Аренда колонок JBL, GoPro, Insta360, пылесосов Karcher и пароочистителей у м. Динамо: ул. Расковой, 1. Постамат 24/7, доставка по Москве.',
+  },
   '/arenda-tehniki-dlya-meropriyatiya-moskva': {
     title: 'Аренда техники для мероприятия в Москве',
     description: 'Подбор техники для мероприятий: колонки JBL, микрофоны, камеры и комплекты для праздника, выступления или съёмки.',
@@ -167,6 +177,10 @@ const clientDir = path.resolve(scriptDir, '..')
 const distDir = path.resolve(clientDir, 'dist')
 const distIndexPath = path.join(distDir, 'index.html')
 const distSitemapPath = path.join(distDir, 'sitemap.xml')
+const business = JSON.parse(await fs.readFile(path.join(clientDir, 'src/content/business.json'), 'utf8'))
+const faqContent = JSON.parse(await fs.readFile(path.join(clientDir, 'src/content/faq.json'), 'utf8'))
+const ORGANIZATION_ID = `${SITE_ORIGIN}/#organization`
+const WEBSITE_ID = `${SITE_ORIGIN}/#website`
 
 const translit = {
   а: 'a', б: 'b', в: 'v', г: 'g', д: 'd', е: 'e', ё: 'e', ж: 'zh', з: 'z', и: 'i', й: 'j',
@@ -497,19 +511,113 @@ function buildBreadcrumbJsonLd(route, meta) {
   }
 }
 
-function buildLocalBusinessJsonLd() {
+// Обновляет рейтинг офиса из публичного виджета отзывов Яндекс Карт; при ошибке остаются значения из business.json.
+async function refreshYandexRatings() {
+  for (const office of business.offices) {
+    const yandex = office.yandexMaps
+    if (!yandex?.orgId) continue
+    try {
+      const { stdout } = await execFileAsync('curl', ['-fsSL', '--max-time', '15', '-A', 'Mozilla/5.0', `https://yandex.ru/maps-reviews-widget/${yandex.orgId}?comments`], {
+        maxBuffer: 5 * 1024 * 1024,
+      })
+      const rating = stdout.match(/mini-badge__stars-count">\s*([\d,.]+)/)
+      const counts = stdout.match(/(\d+)\s+отзыв[а-я]*\s*•\s*(\d+)\s+оцен/)
+      if (!rating || !counts) throw new Error('rating markup not found')
+      yandex.ratingValue = Number(rating[1].replace(',', '.'))
+      yandex.reviewCount = Number(counts[1])
+      yandex.ratingCount = Number(counts[2])
+    } catch (error) {
+      console.warn(`Static SEO: Yandex rating for ${office.id} not refreshed, using business.json (${error.message})`)
+    }
+  }
+}
+
+function officeRatingJsonLd(office) {
+  const yandex = office.yandexMaps
+  if (!yandex?.ratingValue || !yandex?.ratingCount) return undefined
   return {
-    '@context': 'https://schema.org',
+    '@type': 'AggregateRating',
+    ratingValue: yandex.ratingValue,
+    bestRating: 5,
+    worstRating: 1,
+    ratingCount: yandex.ratingCount,
+    reviewCount: yandex.reviewCount,
+  }
+}
+
+function officeJsonLd(office) {
+  return {
     '@type': 'LocalBusiness',
-    name: 'ВозьмиМеня',
-    url: SITE_ORIGIN,
-    telephone: '+79933636464',
+    '@id': `${SITE_ORIGIN}/#${office.id}`,
+    name: `${business.name} — м. ${office.metro}`,
+    description: `${office.label}: выдача и возврат арендованной техники, постамат 24/7.`,
+    url: `${SITE_ORIGIN}${office.slug || '/contact'}`,
+    image: business.image,
+    telephone: business.telephone,
+    priceRange: business.priceRange,
+    parentOrganization: { '@id': ORGANIZATION_ID },
     areaServed: { '@type': 'City', name: 'Москва' },
     address: {
       '@type': 'PostalAddress',
+      streetAddress: office.streetAddress,
       addressLocality: 'Москва',
+      addressRegion: 'Москва',
+      postalCode: office.postalCode,
       addressCountry: 'RU',
     },
+    geo: {
+      '@type': 'GeoCoordinates',
+      latitude: office.latitude,
+      longitude: office.longitude,
+    },
+    hasMap: office.yandexMaps?.url || `https://yandex.ru/maps/?pt=${office.longitude},${office.latitude}&z=17&l=map`,
+    sameAs: office.yandexMaps?.url ? [office.yandexMaps.url] : undefined,
+    aggregateRating: officeRatingJsonLd(office),
+    openingHoursSpecification: {
+      '@type': 'OpeningHoursSpecification',
+      dayOfWeek: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],
+      opens: '00:00',
+      closes: '23:59',
+    },
+  }
+}
+
+function buildBusinessJsonLd() {
+  return {
+    '@context': 'https://schema.org',
+    '@graph': [
+      {
+        '@type': 'Organization',
+        '@id': ORGANIZATION_ID,
+        name: business.name,
+        alternateName: business.alternateName,
+        url: SITE_ORIGIN,
+        logo: business.logo,
+        image: business.image,
+        description: business.description,
+        telephone: business.telephone,
+        email: business.email,
+        sameAs: business.sameAs,
+        areaServed: { '@type': 'City', name: 'Москва' },
+        contactPoint: {
+          '@type': 'ContactPoint',
+          telephone: business.telephone,
+          contactType: 'customer service',
+          areaServed: 'RU',
+          availableLanguage: 'Russian',
+        },
+        department: business.offices.map((office) => ({ '@id': `${SITE_ORIGIN}/#${office.id}` })),
+      },
+      ...business.offices.map(officeJsonLd),
+      {
+        '@type': 'WebSite',
+        '@id': WEBSITE_ID,
+        name: business.name,
+        url: SITE_ORIGIN,
+        inLanguage: 'ru-RU',
+        publisher: { '@id': ORGANIZATION_ID },
+      },
+    ],
   }
 }
 
@@ -547,11 +655,9 @@ function buildWebPageJsonLd(route, meta) {
     name: cleanTitle(meta.title),
     description: meta.description,
     url: routeCanonical(meta, route),
-    isPartOf: {
-      '@type': 'WebSite',
-      name: 'ВозьмиМеня',
-      url: SITE_ORIGIN,
-    },
+    inLanguage: 'ru-RU',
+    isPartOf: { '@id': WEBSITE_ID },
+    about: { '@id': ORGANIZATION_ID },
   }
 }
 
@@ -560,7 +666,7 @@ function enrichSeoMeta(route, meta, remoteData) {
     ...normalizeJsonLd(meta.jsonLd),
     buildWebPageJsonLd(route, meta),
     buildBreadcrumbJsonLd(route, meta),
-    route === '/' ? buildLocalBusinessJsonLd() : null,
+    buildBusinessJsonLd(),
     buildItemListJsonLd(route, remoteData),
   ].filter(Boolean)
 
@@ -695,12 +801,7 @@ function buildProductSeo(route, item) {
           priceValidUntil: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
           availability: 'https://schema.org/InStock',
           areaServed: { '@type': 'City', name: 'Москва' },
-          seller: {
-            '@type': 'LocalBusiness',
-            name: 'ВозьмиМеня',
-            telephone: '+79933636464',
-            areaServed: { '@type': 'City', name: 'Москва' },
-          },
+          seller: { '@id': ORGANIZATION_ID },
           priceSpecification: price ? {
             '@type': 'UnitPriceSpecification',
             price,
@@ -739,7 +840,7 @@ function buildArticleSeo(route, article) {
       description,
       image,
       author: { '@type': 'Organization', name: article.author || 'ВозьмиМеня' },
-      publisher: { '@type': 'Organization', name: 'ВозьмиМеня' },
+      publisher: { '@id': ORGANIZATION_ID },
       mainEntityOfPage: `${SITE_ORIGIN}${route}`,
       datePublished: article.created_at,
       dateModified: article.updated_at,
@@ -816,11 +917,25 @@ function linkList(items) {
   return `<ul>${items.map((item) => `<li><a href="${escapeHtml(item.href)}">${escapeHtml(item.label)}</a></li>`).join('')}</ul>`
 }
 
+function faqSection(items) {
+  if (!items?.length) return ''
+  return `<h2>Частые вопросы</h2>${items.map((item) => `<h3>${escapeHtml(item.question)}</h3><p>${escapeHtml(item.answer)}</p>`).join('')}`
+}
+
+function businessContactsSection() {
+  const offices = business.offices
+    .map((office) => `<li><a href="${escapeHtml(office.slug)}">м. ${escapeHtml(office.metro)}</a> — Москва, ${escapeHtml(office.streetAddress)} (район ${escapeHtml(office.district)})</li>`)
+    .join('')
+
+  return `<section aria-label="Где получить технику"><h2>Где получить технику в Москве</h2><ul>${offices}</ul><p>Самовывоз и возврат через постамат: ${escapeHtml(business.hours)}. Доставка по Москве курьером. Телефон: <a href="tel:${escapeHtml(business.telephone)}">${escapeHtml(business.telephoneLabel)}</a>, Telegram: <a href="https://t.me/VozmiMenyaRent">@VozmiMenyaRent</a>.</p></section>`
+}
+
 function pageShell(title, description, sections = []) {
   const body = [
     `<h1>${escapeHtml(cleanTitle(title))}</h1>`,
     `<p>${escapeHtml(description)}</p>`,
     ...sections,
+    businessContactsSection(),
     `<nav aria-label="Важные разделы">${linkList([
       { href: '/arenda-pylesosov-moskva', label: 'Аренда пылесосов и клининговой техники' },
       { href: '/arenda-gopro-moskva', label: 'Аренда GoPro и камер' },
@@ -905,7 +1020,7 @@ function buildProductBody(item, remoteData) {
     price > 0 ? `<p>Минимальная цена аренды: ${escapeHtml(formatPrice(price))} ₽ за сутки. Доступны доставка, самовывоз и онлайн-бронь.</p>` : '',
     rows.length ? `<h2>Тарифы аренды</h2><ul>${rows.map((row) => `<li>${escapeHtml(row.label)} — ${escapeHtml(formatPrice(row.value))} ₽${escapeHtml(row.suffix)}</li>`).join('')}</ul>` : '',
     specs.length ? `<h2>Характеристики</h2><dl>${specs.map(([key, value]) => `<dt>${escapeHtml(key)}</dt><dd>${escapeHtml(value)}</dd>`).join('')}</dl>` : '',
-    faq.length ? `<h2>Частые вопросы</h2>${faq.map((item) => `<h3>${escapeHtml(item.question)}</h3><p>${escapeHtml(item.answer)}</p>`).join('')}` : '',
+    faqSection(faq),
     related.length ? `<h2>Похожие позиции</h2>${linkList(related)}` : '',
     `<h2>Как арендовать</h2><p>Выберите даты, оставьте заявку или напишите менеджеру. Мы подтвердим наличие, офис получения, доставку и комплект перед выдачей.</p>`,
   ].filter(Boolean)
@@ -1003,6 +1118,12 @@ function buildStaticRouteBody(route, meta, remoteData) {
     '/blog': [
       articles.length ? `<h2>Статьи</h2>${linkList(articles)}` : '',
     ],
+    ...Object.fromEntries(business.offices.map((office) => [office.slug, [
+      `<p>Офис и постамат: Москва, ${escapeHtml(office.streetAddress)}, рядом с м. ${escapeHtml(office.metro)} (район ${escapeHtml(office.district)}). Технику можно забрать и вернуть 24/7 по коду после подтверждения брони. Районы рядом: ${escapeHtml(office.nearby.join(', '))}.</p>`,
+      office.yandexMaps?.ratingValue ? `<p>Рейтинг на Яндекс Картах: ${escapeHtml(String(office.yandexMaps.ratingValue).replace('.', ','))} из 5, ${escapeHtml(office.yandexMaps.reviewCount)} отзывов — <a href="${escapeHtml(office.yandexMaps.url)}">смотреть на Яндекс Картах</a>.</p>` : '',
+      `<h2>Техника в аренду у м. ${escapeHtml(office.metro)}</h2>${linkList(allProducts)}`,
+      `<p>Наличие конкретной модели в этой точке на ваши даты подтверждает менеджер. Второй постамат: ${linkList(business.offices.filter((other) => other.id !== office.id).map((other) => ({ href: other.slug, label: `м. ${other.metro}, ${other.streetAddress}` })))}</p>`,
+    ]])),
     '/sitemap': [
       `<h2>Разделы сайта</h2>${linkList([
         ...allProducts,
@@ -1011,7 +1132,10 @@ function buildStaticRouteBody(route, meta, remoteData) {
     ],
   }
 
-  return pageShell(meta.title, meta.description, routeSections[route] || [])
+  return pageShell(meta.title, meta.description, [
+    ...(routeSections[route] || []),
+    faqSection(faqContent[route]),
+  ])
 }
 
 function renderRouteHtml(indexHtml, route, remoteData) {
@@ -1047,8 +1171,71 @@ function sitemapMeta(route) {
   return { changefreq: 'monthly', priority: '0.7' }
 }
 
+function toDateOnly(value) {
+  if (!value) return null
+  const date = new Date(String(value).replace(' ', 'T'))
+  return Number.isNaN(date.getTime()) ? null : date.toISOString().split('T')[0]
+}
+
+function latestDate(...values) {
+  return values.filter(Boolean).sort().pop() || null
+}
+
+async function gitLastModified(filePaths) {
+  try {
+    const { stdout: shallow } = await execFileAsync('git', ['rev-parse', '--is-shallow-repository'], { cwd: clientDir })
+    if (shallow.trim() === 'true') return null
+    const { stdout } = await execFileAsync('git', ['log', '-1', '--format=%cs', '--', ...filePaths], { cwd: clientDir })
+    return stdout.trim() || null
+  } catch {
+    return null
+  }
+}
+
+// Маршрут -> файл страницы по lazy-импортам и <Route> в App.tsx.
+async function getRouteSourceFiles() {
+  const app = await fs.readFile(path.join(clientDir, 'src/App.tsx'), 'utf8')
+  const components = new Map(
+    [...app.matchAll(/const (\w+) = lazy\(\(\) => import\('\.\/(pages\/[^']+)'\)\)/g)]
+      .map(([, name, file]) => [name, `src/${file}.tsx`]),
+  )
+  const routes = new Map()
+  for (const [, routePath, name] of app.matchAll(/<Route path="([^"]+)" element=\{<(\w+)[^>]*\/>\}/g)) {
+    if (components.has(name) && !routes.has(routePath)) routes.set(routePath, components.get(name))
+  }
+  return routes
+}
+
+async function routeLastmod(route, remoteData, routeSourceFiles) {
+  if (route.startsWith('/equipment/')) {
+    const identifier = route.split('/').filter(Boolean)[1]
+    const item = remoteData.equipmentBySlug.get(identifier) || remoteData.equipmentById.get(identifier)
+    return toDateOnly(item?.updatedAt || item?.updated_at || item?.createdAt || item?.created_at)
+  }
+
+  if (route.startsWith('/blog/')) {
+    const article = remoteData.articleBySlug.get(route.split('/').filter(Boolean)[1])
+    return toDateOnly(article?.updated_at || article?.created_at)
+  }
+
+  const sourceFile = routeSourceFiles.get(route)
+  const pageDate = sourceFile ? await gitLastModified([sourceFile]) : null
+
+  if (route === '/') {
+    const equipmentDates = [...remoteData.equipmentById.values()].map((item) => toDateOnly(item.updatedAt || item.updated_at))
+    return latestDate(pageDate, ...equipmentDates)
+  }
+
+  if (route === '/blog') {
+    const articleDates = [...remoteData.articleBySlug.values()].map((article) => toDateOnly(article.updated_at || article.created_at))
+    return latestDate(pageDate, ...articleDates)
+  }
+
+  return pageDate
+}
+
 async function writeDistSitemap(routes, remoteData) {
-  const today = new Date().toISOString().split('T')[0]
+  const routeSourceFiles = await getRouteSourceFiles()
   const sitemapRoutes = []
   const seenLocs = new Set()
 
@@ -1060,14 +1247,14 @@ async function writeDistSitemap(routes, remoteData) {
     const loc = routeCanonical(meta, route)
     if (seenLocs.has(loc)) continue
     seenLocs.add(loc)
-    sitemapRoutes.push({ route, loc })
+    sitemapRoutes.push({ route, loc, lastmod: await routeLastmod(route, remoteData, routeSourceFiles) })
   }
 
-  const urls = sitemapRoutes.map(({ route, loc }) => {
+  const urls = sitemapRoutes.map(({ route, loc, lastmod }) => {
     const { changefreq, priority } = sitemapMeta(route)
     return `  <url>
-    <loc>${xmlEscape(loc)}</loc>
-    <lastmod>${today}</lastmod>
+    <loc>${xmlEscape(loc)}</loc>${lastmod ? `
+    <lastmod>${lastmod}</lastmod>` : ''}
     <changefreq>${changefreq}</changefreq>
     <priority>${priority}</priority>
   </url>`
@@ -1083,6 +1270,7 @@ async function writeDistSitemap(routes, remoteData) {
 async function main() {
   const indexHtml = await fs.readFile(distIndexPath, 'utf8')
   const remoteData = await loadRemoteSeoData()
+  await refreshYandexRatings()
   const routes = await getRoutesFromSitemap(remoteData)
 
   await Promise.all(

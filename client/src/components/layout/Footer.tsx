@@ -110,8 +110,8 @@ export default function Footer() {
           <div>
             <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Адреса</h3>
             <div className="space-y-2 text-sm text-gray-400">
-              <p>м. Волжская<br /><span className="text-gray-500">Волжский бульвар, 51с15</span></p>
-              <p>м. Динамо<br /><span className="text-gray-500">ул. Расковой, 1</span></p>
+              <p><Link to="/arenda-tehniki-u-metro-volzhskaya-kuzminki" className="hover:text-white transition-colors">м. Волжская</Link><br /><span className="text-gray-500">Волжский бульвар, 51с15</span></p>
+              <p><Link to="/arenda-tehniki-u-metro-dinamo" className="hover:text-white transition-colors">м. Динамо</Link><br /><span className="text-gray-500">ул. Расковой, 1</span></p>
               <p className="pt-1 text-gray-500">Круглосуточно, 24/7</p>
             </div>
           </div>

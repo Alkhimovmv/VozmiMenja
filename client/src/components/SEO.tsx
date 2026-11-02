@@ -1,4 +1,7 @@
 import { Helmet } from 'react-helmet-async'
+import business from '../content/business.json'
+
+const [primaryOffice] = business.offices
 
 interface SEOProps {
   title?: string
@@ -13,9 +16,9 @@ interface SEOProps {
 
 export default function SEO({
   title = 'ВозьмиМеня - Аренда профессионального оборудования в Москве',
-  description = 'Аренда камер, клинингового оборудования и аудиотехники в Москве. Выгодные цены, быстрая доставка, подбор и бронь через Telegram.',
-  keywords = 'аренда оборудования Москва, прокат камер, аренда фототехники, клининговое оборудование аренда, аренда аудиотехники, прокат техники Москва',
-  image = '/og-image.jpg',
+  description = 'Аренда техники в Москве: колонки JBL, экшн-камеры, моющие и строительные пылесосы, пароочистители. Постамат 24/7 у м. Волжская и м. Динамо, доставка по Москве.',
+  keywords = 'аренда техники Москва, прокат колонок JBL, аренда GoPro, аренда пылесоса Karcher, аренда пароочистителя, прокат техники Москва',
+  image = business.image,
   url = 'https://vozmimenya.ru/',
   type = 'website',
   noIndex = false,
@@ -54,8 +57,8 @@ export default function SEO({
       <meta name="author" content="ВозьмиМеня" />
       <meta name="geo.region" content="RU-MOS" />
       <meta name="geo.placename" content="Москва" />
-      <meta name="geo.position" content="55.710646;37.784785" />
-      <meta name="ICBM" content="55.710646, 37.784785" />
+      <meta name="geo.position" content={`${primaryOffice.latitude};${primaryOffice.longitude}`} />
+      <meta name="ICBM" content={`${primaryOffice.latitude}, ${primaryOffice.longitude}`} />
 
       {/* Языковые альтернативы */}
       <link rel="canonical" href={url} />

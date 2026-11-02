@@ -4,6 +4,7 @@ import { ArrowRight, CheckCircle2, ClipboardList, MessageCircle, Sparkles, Spray
 import { trackEvent } from '../lib/analytics'
 import { getTelegramUrl } from '../lib/contactLinks'
 import ScenarioRentalInfo from '../components/ui/ScenarioRentalInfo'
+import faqContent from '../content/faq.json'
 
 const pageUrl = 'https://vozmimenya.ru/arenda-stroitelnogo-pylesosa-posle-remonta-moskva'
 const wd5Href = '/equipment/karcher-wd5'
@@ -11,32 +12,7 @@ const puzzi8Href = '/equipment/karcher-puzzi-8-1'
 const puzzi10Href = '/equipment/karcher-puzzi-10-1'
 const leadMessage = 'Нужен пылесос после ремонта. Площадь: __ м2. Пыль/мусор: __. Нужна чистка мебели/ковра: да/нет. Даты аренды: __. Район Москвы: __.'
 
-const faqItems = [
-  {
-    question: 'Можно ли убрать строительную пыль обычным пылесосом?',
-    answer: 'Лучше не рисковать: мелкая цементная или гипсовая пыль быстро забивает фильтры и может перегреть бытовой пылесос.',
-  },
-  {
-    question: 'Что сначала делать после ремонта: пылесосить или мыть?',
-    answer: 'Сначала сухая уборка. Если сразу намочить слой строительной пыли, она размазывается и оставляет грязную пленку.',
-  },
-  {
-    question: 'Какой пылесос взять после ремонта?',
-    answer: 'Для сухой строительной пыли и мелкой крошки основной кандидат - строительный пылесос вроде Karcher WD5. Для дивана, ковров и текстиля после ремонта лучше смотреть моющие Puzzi.',
-  },
-  {
-    question: 'На сколько дней брать строительный пылесос?',
-    answer: 'Для небольшой уборки часто достаточно 1 дня, для квартиры после ремонта удобнее 2-3 дня. Если ремонт еще продолжается, срок лучше подбирать индивидуально.',
-  },
-  {
-    question: 'Можно ли собрать влажную грязь строительным пылесосом?',
-    answer: 'Нужно смотреть конкретную модель и комплект. Не обещаем режимы сверх того, что указано в карточке выбранного оборудования.',
-  },
-  {
-    question: 'Есть ли доставка по Москве?',
-    answer: 'Условия доставки зависят от адреса и текущих возможностей сервиса. Актуальные варианты лучше смотреть на странице доставки или уточнять при заявке.',
-  },
-]
+const faqItems = faqContent['/arenda-stroitelnogo-pylesosa-posle-remonta-moskva']
 
 const faqStructuredData = {
   '@context': 'https://schema.org',

@@ -118,10 +118,12 @@ export default function ContactPage() {
                   <div className="bg-[#F8FAFC] rounded-xl p-3">
                     <p className="font-semibold text-gray-900 text-sm">Офис 1 — м. Волжская</p>
                     <p className="text-gray-500 text-xs mt-0.5">Волжский бульвар, 51с15</p>
+                    <Link to="/arenda-tehniki-u-metro-volzhskaya-kuzminki" className="text-[#2563EB] text-xs font-semibold mt-1 inline-block hover:underline">Техника у м. Волжская</Link>
                   </div>
                   <div className="bg-[#F8FAFC] rounded-xl p-3">
                     <p className="font-semibold text-gray-900 text-sm">Офис 2 — м. Динамо</p>
                     <p className="text-gray-500 text-xs mt-0.5">ул. Расковой, 1</p>
+                    <Link to="/arenda-tehniki-u-metro-dinamo" className="text-[#2563EB] text-xs font-semibold mt-1 inline-block hover:underline">Техника у м. Динамо</Link>
                   </div>
                 </div>
               </div>

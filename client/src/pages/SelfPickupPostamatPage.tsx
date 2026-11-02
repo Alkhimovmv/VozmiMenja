@@ -3,6 +3,7 @@ import { Clock, MapPin, MessageCircle, PackageCheck, ShieldCheck, TimerReset } f
 import SEO from '../components/SEO'
 import { trackEvent } from '../lib/analytics'
 import { getTelegramUrl } from '../lib/contactLinks'
+import faqContent from '../content/faq.json'
 
 const steps = [
   'Напишите модель, даты и удобный офис/постамат.',
@@ -17,20 +18,7 @@ const goodFor = [
   { title: 'Техника для уборки', text: 'WD5, Puzzi или SC4 можно забрать под ремонт, диван, ковер, кухню или плитку.' },
 ]
 
-const faq = [
-  {
-    question: 'Можно ли забрать технику ночью?',
-    answer: 'Самовывоз 24/7 возможен по согласованию с менеджером. Для части выдач удобен постамат, но время и точку лучше подтвердить заранее.',
-  },
-  {
-    question: 'Нужны ли документы при самовывозе?',
-    answer: 'Да, условия документов и залога подтверждаются до выдачи. Обычно менеджер заранее говорит, что потребуется именно по выбранной модели.',
-  },
-  {
-    question: 'Можно ли вернуть технику через постамат?',
-    answer: 'Да, если такой возврат подходит по конкретной аренде и комплекту. Перед возвратом лучше написать менеджеру, чтобы он подтвердил порядок действий.',
-  },
-]
+const faq = faqContent['/samovyvoz-24-7-postamat']
 
 const faqStructuredData = {
   '@context': 'https://schema.org',
@@ -57,7 +45,7 @@ export default function SelfPickupPostamatPage() {
         <div className="container mx-auto px-4">
           <div className="max-w-3xl">
             <span className="mb-3 inline-block text-xs font-semibold uppercase tracking-widest text-blue-200">Получение без ожидания курьера</span>
-            <h1 className="mb-4 text-4xl font-extrabold leading-tight md:text-5xl">
+            <h1 className="text-white mb-4 text-4xl font-extrabold leading-tight md:text-5xl">
               Самовывоз 24/7 и постамат для аренды техники
             </h1>
             <p className="mb-8 max-w-2xl text-lg text-blue-100">

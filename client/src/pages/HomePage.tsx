@@ -199,8 +199,8 @@ export default function HomePage() {
     : category
     ? `Прокат ${category} в Москве. Подберем модель под задачу, срок и способ получения. Бронь онлайн или через Telegram.`
     : search
-    ? `Аренда ${search} в Москве. Доставка в день заказа, постамат 24/7, без залога. Быстрый подбор в Telegram.`
-    : 'Аренда профессионального оборудования в Москве: камеры, аудиотехника JBL, клининг. Доставка в день заказа, постамат 24/7, без залога. От 200 ₽/сутки.'
+    ? `Аренда ${search} в Москве. Доставка в день заказа, постамат 24/7, без залога при прописке в Москве и МО. Быстрый подбор в Telegram.`
+    : 'Аренда техники в Москве: колонки JBL, экшн-камеры, моющие и строительные пылесосы, пароочистители. Доставка, самовывоз и бронь онлайн.'
   const seoUrl = categorySeo?.canonicalUrl || 'https://vozmimenya.ru/'
 
   return (
@@ -224,10 +224,10 @@ export default function HomePage() {
               <span className="w-1.5 h-1.5 rounded-full bg-green-400 inline-block" />
               Доставка 24/7
             </span>
-            <h1 className="text-2xl font-extrabold text-white leading-snug mb-1">
+            <p className="text-2xl font-extrabold text-white leading-snug mb-1 font-[Manrope]">
               Техника <span className="text-[#60A5FA]">напрокат</span> в Москве
-            </h1>
-            <p className="text-slate-400 text-xs mb-4">Пылесосы, камеры, колонки. От 400 ₽/день, без залога.</p>
+            </p>
+            <p className="text-slate-400 text-xs mb-4">Пылесосы, камеры, колонки. От 400 ₽/день, постамат 24/7.</p>
             <button
               onClick={() => document.getElementById('catalog')?.scrollIntoView({ behavior: 'smooth' })}
               className="inline-flex items-center gap-2 bg-[#2563EB] text-white text-sm font-bold px-5 py-2.5 rounded-xl"
@@ -257,7 +257,7 @@ export default function HomePage() {
                     Доставка 24/7
                   </span>
                   <span className="inline-flex items-center gap-1 text-xs font-semibold text-amber-700 bg-amber-100/80 border border-amber-200/60 rounded-full px-3 py-1">
-                    ★ 4.9 на Яндексе
+                    ★ 5,0 на Яндекс Картах
                   </span>
                 </div>
                 <h1 className="text-4xl md:text-5xl font-extrabold text-gray-900 leading-tight mb-4">

@@ -3,6 +3,7 @@ import { Camera, CheckCircle, MessageCircle, Mic2, Music, PackageCheck, Sparkles
 import SEO from '../components/SEO'
 import { trackEvent } from '../lib/analytics'
 import { getTelegramUrl } from '../lib/contactLinks'
+import faqContent from '../content/faq.json'
 
 const eventScenarios = [
   {
@@ -38,20 +39,7 @@ const kitHints = [
   'Доставка или самовывоз 24/7, если техника нужна строго к определенному времени.',
 ]
 
-const faq = [
-  {
-    question: 'Что лучше взять для домашней вечеринки?',
-    answer: 'Обычно достаточно одной мощной PartyBox. Если будут поздравления, ведущий или караоке, лучше сразу добавить микрофон.',
-  },
-  {
-    question: 'Можно ли взять технику на один день?',
-    answer: 'Да, техника часто берется на один день или выходные. Даты и время получения лучше указать в заявке сразу.',
-  },
-  {
-    question: 'Поможете подобрать комплект?',
-    answer: 'Да. Напишите формат события, помещение, количество гостей, нужна ли речь/музыка/съемка/уборка — менеджер подскажет состав.',
-  },
-]
+const faq = faqContent['/arenda-tehniki-dlya-meropriyatiya-moskva']
 
 const faqStructuredData = {
   '@context': 'https://schema.org',
@@ -78,7 +66,7 @@ export default function EventEquipmentRentalPage() {
         <div className="container mx-auto px-4">
           <div className="max-w-3xl">
             <span className="mb-3 inline-block text-xs font-semibold uppercase tracking-widest text-blue-200">Для праздника, съемки и уборки</span>
-            <h1 className="mb-4 text-4xl font-extrabold leading-tight md:text-5xl">
+            <h1 className="text-white mb-4 text-4xl font-extrabold leading-tight md:text-5xl">
               Аренда техники для мероприятия в Москве
             </h1>
             <p className="mb-8 max-w-2xl text-lg text-blue-100">

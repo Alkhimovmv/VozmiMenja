@@ -12,9 +12,10 @@
     "@type": "PostalAddress",
     "streetAddress": "Волжский бульвар, 51с15",
     "addressLocality": "Москва",
+    "postalCode": "109462",
     "addressCountry": "RU"
   },
-  "description": "ВозьмиМеня — сервис аренды оборудования в Москве: колонки JBL PartyBox, экшн-камеры GoPro/Insta360/DJI, строительные и моющие пылесосы Karcher, пароочистители и микрофоны.",
+  "description": "Аренда техники в Москве на короткий срок: колонки JBL PartyBox, экшн-камеры GoPro, Insta360 и DJI Osmo Pocket, строительные и моющие пылесосы Karcher, пароочистители и беспроводные микрофоны. Самовывоз через постамат 24/7 у м. Волжская и м. Динамо или доставка по Москве.",
   "mainEntityOfPage": "https://vozmimenya.ru",
   "serviceType": "Аренда оборудования",
   "knowsAbout": [
@@ -52,6 +53,16 @@
       "name": "Как проходит аренда",
       "url": "https://vozmimenya.ru/kak-prohodit-arenda-tehniki",
       "description": "Пошаговое объяснение процесса аренды."
+    },
+    {
+      "name": "Самовывоз 24/7 и постамат",
+      "url": "https://vozmimenya.ru/samovyvoz-24-7-postamat",
+      "description": "Получение и возврат техники через постамат у м. Волжская и м. Динамо."
+    },
+    {
+      "name": "Частые вопросы",
+      "url": "https://vozmimenya.ru/faq",
+      "description": "Залог, документы, оплата, отмена, доставка и возврат."
     }
   ],
   "aiFiles": {
@@ -59,5 +70,68 @@
     "llmsFull": "https://vozmimenya.ru/llms-full.txt",
     "sitemap": "https://vozmimenya.ru/sitemap.xml",
     "robots": "https://vozmimenya.ru/robots.txt"
+  },
+  "email": "alkhimovmv@yandex.ru",
+  "sameAs": [
+    "https://t.me/VozmiMenyaRent",
+    "https://wa.me/79933636464",
+    "https://www.avito.ru/brands/bec2558749c417a5576049cbce277ace/all"
+  ],
+  "openingHours": "Mo-Su 00:00-23:59",
+  "priceRange": "от 400 ₽ в сутки",
+  "location": [
+    {
+      "@type": "Place",
+      "name": "ВозьмиМеня — м. Волжская",
+      "description": "Офис и постамат у м. Волжская",
+      "address": {
+        "@type": "PostalAddress",
+        "streetAddress": "Волжский бульвар, 51с15",
+        "addressLocality": "Москва",
+        "postalCode": "109462",
+        "addressCountry": "RU"
+      },
+      "geo": {
+        "@type": "GeoCoordinates",
+        "latitude": 55.693848,
+        "longitude": 37.759571
+      },
+      "url": "https://vozmimenya.ru/arenda-tehniki-u-metro-volzhskaya-kuzminki",
+      "aggregateRating": {
+        "@type": "AggregateRating",
+        "ratingValue": 5,
+        "reviewCount": 35,
+        "ratingCount": 36,
+        "source": "https://yandex.ru/maps/org/vozmi_menya/206350428739/",
+        "checkedAt": "2026-10-21"
+      }
+    },
+    {
+      "@type": "Place",
+      "name": "ВозьмиМеня — м. Динамо",
+      "description": "Офис и постамат у м. Динамо",
+      "address": {
+        "@type": "PostalAddress",
+        "streetAddress": "ул. Расковой, 1",
+        "addressLocality": "Москва",
+        "postalCode": "125040",
+        "addressCountry": "RU"
+      },
+      "geo": {
+        "@type": "GeoCoordinates",
+        "latitude": 55.786143,
+        "longitude": 37.57
+      },
+      "url": "https://vozmimenya.ru/arenda-tehniki-u-metro-dinamo"
+    }
+  ],
+  "rentalTerms": {
+    "source": "https://vozmimenya.ru/faq",
+    "pickup": "Постамат 24/7 у м. Волжская и м. Динамо, доставка курьером Яндекс Go по Москве или встреча в офисе.",
+    "deposit": "Не требуется при постоянной регистрации в Москве или Московской области; иначе 50% стоимости оборудования, возвращается при возврате.",
+    "documents": "Фото основной страницы паспорта и страницы с регистрацией.",
+    "cancellation": "Бесплатно не позднее чем за 24 часа до начала аренды; позже — 50% стоимости аренды.",
+    "payment": "Наличные, банковский перевод, оплата картой по ссылке; безналичный расчёт для юрлиц.",
+    "longRental": "Специальные тарифы при аренде свыше 7 дней."
   }
 }

@@ -5,12 +5,15 @@ import { emailNotifyService } from '../services/emailNotify'
 import { vkNotifyService } from '../services/vkNotify'
 import { contactLeadModel } from '../models/ContactLead'
 import { normalizeAdminPhone } from './bookingRules'
+import { publicLeadRateLimiter } from '../middleware/publicLeadGuard'
 
 const router = Router()
 
 const contactMessageSchema = z.object({
   name: z.string().min(2, 'Имя должно содержать минимум 2 символа'),
-  phone: z.string().min(10, 'Некорректный номер телефона').transform(normalizeAdminPhone),
+  phone: z.string()
+    .transform(normalizeAdminPhone)
+    .refine((value) => /^8\d{10}$/.test(value), 'Некорректный номер телефона'),
   email: z.string().email('Некорректный email').optional(),
   subject: z.string().min(1, 'Выберите тему'),
   message: z.string().min(10, 'Сообщение должно содержать минимум 10 символов'),
@@ -21,9 +24,18 @@ const contactMessageSchema = z.object({
   utmCampaign: z.string().max(160).optional()
 })
 
-router.post('/', async (req: Request, res: Response) => {
+router.post('/', publicLeadRateLimiter, async (req: Request, res: Response) => {
   try {
     const validatedData = contactMessageSchema.parse(req.body)
+    const duplicateLead = await contactLeadModel.findRecentDuplicate(validatedData)
+    if (duplicateLead) {
+      return res.status(200).json({
+        success: true,
+        duplicate: true,
+        data: duplicateLead,
+        message: 'Такое обращение уже получено',
+      })
+    }
     const lead = await contactLeadModel.create(validatedData)
 
     const contactData = {

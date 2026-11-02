@@ -10,17 +10,11 @@ import { vkNotifyService } from '../services/vkNotify'
 import { authMiddleware } from '../middleware/auth'
 import { calculateRentalTotal } from '../utils/pricing'
 import { calculateBillableRentalDays, createBookingSchema, getBookingEquipmentIds, parseDateInput } from './bookingRules'
+import { publicLeadRateLimiter } from '../middleware/publicLeadGuard'
 
 const router = Router()
 
-const getRequestIp = (req: Request) => {
-  const forwardedFor = req.headers['x-forwarded-for']
-  if (typeof forwardedFor === 'string' && forwardedFor.trim()) {
-    return forwardedFor.split(',')[0].trim()
-  }
-
-  return req.ip || req.socket.remoteAddress || ''
-}
+const getRequestIp = (req: Request) => req.ip || req.socket.remoteAddress || ''
 
 router.get('/', authMiddleware, async (req: Request, res: Response) => {
   try {
@@ -64,7 +58,7 @@ router.get('/:id', authMiddleware, async (req: Request, res: Response) => {
   }
 })
 
-router.post('/', async (req: Request, res: Response) => {
+router.post('/', publicLeadRateLimiter, async (req: Request, res: Response) => {
   try {
     const validatedData = createBookingSchema.parse(req.body)
     const equipmentIds = getBookingEquipmentIds(validatedData)
@@ -104,6 +98,25 @@ router.post('/', async (req: Request, res: Response) => {
       return res.status(400).json({
         success: false,
         message: 'Выбранный офис не найден'
+      })
+    }
+
+    const duplicateBooking = await bookingModel.findRecentDuplicate({
+      equipmentIds,
+      customerPhone: validatedData.customerPhone,
+      startDate: validatedData.startDate,
+      endDate: validatedData.endDate,
+      startTime: validatedData.startTime || '10:00',
+      endTime: validatedData.endTime || '10:00',
+      officeId: office.id,
+    })
+
+    if (duplicateBooking) {
+      return res.status(200).json({
+        success: true,
+        duplicate: true,
+        data: duplicateBooking,
+        message: 'Такая заявка уже получена',
       })
     }
 

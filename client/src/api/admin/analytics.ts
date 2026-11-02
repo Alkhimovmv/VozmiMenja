@@ -8,8 +8,10 @@ export const analyticsApi = {
     return response.data;
   },
 
-  getEquipmentUtilization: async (): Promise<EquipmentUtilization[]> => {
-    const response = await apiClient.get('/analytics/equipment-utilization');
+  getEquipmentUtilization: async (officeId?: number, days = 365): Promise<EquipmentUtilization[]> => {
+    const params = new URLSearchParams({ days: String(days) });
+    if (officeId) params.set('officeId', String(officeId));
+    const response = await apiClient.get(`/analytics/equipment-utilization?${params.toString()}`);
     return response.data;
   },
 

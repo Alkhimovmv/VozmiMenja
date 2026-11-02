@@ -4,38 +4,14 @@ import { ArrowRight, CheckCircle2, Clock, Home, MapPinned, MessageCircle, Music,
 import { trackEvent } from '../lib/analytics'
 import { getTelegramUrl } from '../lib/contactLinks'
 import ScenarioRentalInfo from '../components/ui/ScenarioRentalInfo'
+import faqContent from '../content/faq.json'
 
 const pageUrl = 'https://vozmimenya.ru/arenda-kolonki-dlya-vecherinki-moskva'
 const partyBox320Href = '/equipment/jbl-partybox-320'
 const partyBox710Href = '/equipment/jbl-partybox-710'
 const leadMessage = 'Нужна колонка для вечеринки. Где будет: квартира/дача/зал/улица. Гостей: __. Формат: фон/речь/танцы. Даты аренды: __. Район Москвы: __.'
 
-const faqItems = [
-  {
-    question: 'Какую колонку взять для вечеринки в квартире?',
-    answer: 'Для квартиры, дня рождения дома или камерной встречи обычно стоит начать с JBL PartyBox 320: ее проще разместить и хватает для музыки, фона и небольшой компании.',
-  },
-  {
-    question: 'Когда лучше взять JBL PartyBox 710?',
-    answer: 'PartyBox 710 уместнее для дачи, зала, танцевальной вечеринки и ситуации, где нужен более плотный звук с запасом громкости.',
-  },
-  {
-    question: 'Можно ли подключить телефон или ноутбук?',
-    answer: 'Для большинства бытовых сценариев колонку подключают к телефону или ноутбуку. Перед выдачей лучше уточнить устройство и проверить удобный способ подключения.',
-  },
-  {
-    question: 'На сколько дней арендовать колонку?',
-    answer: 'Для одного мероприятия обычно хватает 1 дня или суток. Если нужно забрать заранее, проверить звук и спокойно вернуть после праздника, удобнее закладывать 2 дня.',
-  },
-  {
-    question: 'Поможете выбрать мощность под помещение?',
-    answer: 'Да. Напишите площадь, число гостей, формат музыки и где будет стоять колонка. Подскажем, хватит ли PartyBox 320 или лучше взять 710.',
-  },
-  {
-    question: 'Есть ли доставка по Москве?',
-    answer: 'Условия доставки зависят от адреса и времени. Напишите район Москвы в заявке, и мы подскажем удобный вариант.',
-  },
-]
+const faqItems = faqContent['/arenda-kolonki-dlya-vecherinki-moskva']
 
 const faqStructuredData = {
   '@context': 'https://schema.org',

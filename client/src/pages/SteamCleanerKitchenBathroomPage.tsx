@@ -4,6 +4,7 @@ import { ArrowRight, Bath, CheckCircle2, CookingPot, Droplets, MessageCircle, Sp
 import { trackEvent } from '../lib/analytics'
 import { getTelegramUrl } from '../lib/contactLinks'
 import ScenarioRentalInfo from '../components/ui/ScenarioRentalInfo'
+import faqContent from '../content/faq.json'
 
 const pageUrl = 'https://vozmimenya.ru/arenda-paroochistitelya-dlya-kuhni-plitki-vannoy-moskva'
 const sc4Href = '/equipment/karcher-sc4'
@@ -11,32 +12,7 @@ const puzzi8Href = '/equipment/karcher-puzzi-8-1'
 const wd5Href = '/equipment/karcher-wd5'
 const leadMessage = 'Нужен пароочиститель. Поверхности: кухня/плитка/ванная/швы/сантехника. Что загрязнено: __. Даты аренды: __. Район Москвы: __.'
 
-const faqItems = [
-  {
-    question: 'Для чего брать пароочиститель в аренду?',
-    answer: 'Пароочиститель берут для кухни, плитки, швов, сантехники и твердых поверхностей, когда нужна обработка паром и насадками, а не химчистка ткани.',
-  },
-  {
-    question: 'Пароочиститель заменяет моющий пылесос?',
-    answer: 'Нет. Пароочиститель работает с твердыми поверхностями и локальными загрязнениями, а моющий Puzzi нужен для диванов, ковров, матрасов и текстиля.',
-  },
-  {
-    question: 'Подойдет ли Karcher SC4 для плитки и ванной?',
-    answer: 'Да, такой сценарий подходит для пароочистителя: плитка, швы, ванная, сантехника и кухня. Конкретные насадки и ограничения лучше уточнить по карточке и при заявке.',
-  },
-  {
-    question: 'Можно ли чистить паром мягкую мебель?',
-    answer: 'Для мягкой мебели обычно лучше смотреть моющий пылесос Puzzi. Пар может быть не лучшим вариантом для ткани, особенно если неизвестен материал и рекомендации производителя.',
-  },
-  {
-    question: 'На сколько дней брать пароочиститель?',
-    answer: 'Для кухни или ванной часто хватает 1 дня. Для квартиры, швов в нескольких помещениях или уборки после переезда удобнее взять 2 дня.',
-  },
-  {
-    question: 'Что написать, чтобы быстро подобрать технику?',
-    answer: 'Напишите поверхности, тип загрязнения, площадь или число помещений, даты аренды и район Москвы. Так проще понять, нужен SC4, Puzzi или строительный пылесос.',
-  },
-]
+const faqItems = faqContent['/arenda-paroochistitelya-dlya-kuhni-plitki-vannoy-moskva']
 
 const faqStructuredData = {
   '@context': 'https://schema.org',

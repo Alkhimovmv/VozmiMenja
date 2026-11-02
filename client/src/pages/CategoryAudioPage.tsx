@@ -6,6 +6,7 @@ import SEO from '../components/SEO'
 import { Check, Mic, Music, Radio } from 'lucide-react'
 import { trackEvent } from '../lib/analytics'
 import { CONTACT_PHONE, CONTACT_PHONE_LABEL, getTelegramUrl } from '../lib/contactLinks'
+import faqContent from '../content/faq.json'
 
 export default function CategoryAudioPage() {
   const [page] = useState(1)
@@ -49,19 +50,14 @@ export default function CategoryAudioPage() {
   const faqStructuredData = {
     '@context': 'https://schema.org',
     '@type': 'FAQPage',
-    mainEntity: [
-      { '@type': 'Question', name: 'Какое аудиооборудование взять для интервью или видео?', acceptedAnswer: { '@type': 'Answer', text: 'Для речи в кадре обычно нужен внешний микрофон. Для мобильной съемки удобно взять беспроводной комплект вроде DJI Mic 2.' } },
-      { '@type': 'Question', name: 'Какую колонку выбрать для вечеринки?', acceptedAnswer: { '@type': 'Answer', text: 'Для квартиры, небольшой дачи или камерной встречи чаще достаточно JBL PartyBox 320. Для большого помещения, танцев и громкой музыки лучше брать PartyBox 710.' } },
-      { '@type': 'Question', name: 'Можно ли подключить телефон к колонке?', acceptedAnswer: { '@type': 'Answer', text: 'Да, для большинства сценариев можно подключить телефон или ноутбук, но перед мероприятием лучше заранее проверить нужный формат подключения.' } },
-      { '@type': 'Question', name: 'Поможете рассчитать мощность под помещение?', acceptedAnswer: { '@type': 'Answer', text: 'Да, напишите примерную площадь, число гостей и формат мероприятия, а мы подскажем подходящий комплект.' } },
-    ],
+    mainEntity: faqContent['/arenda-audiooborudovaniya-moskva'].map((faq) => ({ '@type': 'Question', name: faq.question, acceptedAnswer: { '@type': 'Answer', text: faq.answer } })),
   }
 
   const useCases = [
-    { title: 'Подкасты и стримы', description: 'Студийные микрофоны для чистого звука' },
-    { title: 'Мероприятия', description: 'PA-системы для конференций и презентаций' },
-    { title: 'Съемки видео', description: 'Петличные и shotgun микрофоны' },
-    { title: 'Музыкальные выступления', description: 'Вокальные микрофоны и акустика' },
+    { title: 'Интервью и подкасты', description: 'Беспроводная петличка DJI Mic 2 на двух спикеров' },
+    { title: 'Вечеринка и праздник', description: 'JBL PartyBox 320 для квартиры, 710 — для зала и танцев' },
+    { title: 'Съемка видео', description: 'DJI Mic 2 к телефону или камере — чистая речь в кадре' },
+    { title: 'Выступление и тост', description: 'PartyBox и микрофон по наличию — для речи и поздравлений' },
   ]
 
   const taskGuides = [
@@ -116,7 +112,7 @@ export default function CategoryAudioPage() {
             <span className="mx-2">/</span>
             <span>Аренда аудиооборудования</span>
           </div>
-          <h1 className="text-4xl md:text-5xl font-extrabold mb-4 leading-tight">
+          <h1 className="text-white text-4xl md:text-5xl font-extrabold mb-4 leading-tight">
             Аренда аудиооборудования в Москве
           </h1>
           <p className="text-blue-100 text-lg max-w-2xl mb-8">
@@ -263,7 +259,7 @@ export default function CategoryAudioPage() {
       <section className="py-14">
         <div className="container mx-auto px-4">
           <div className="bg-gradient-to-br from-[#1D4ED8] to-[#0F172A] rounded-2xl p-10 text-center text-white">
-            <h2 className="text-2xl font-extrabold mb-3">Нужно качественное звуковое оборудование?</h2>
+            <h2 className="text-2xl font-extrabold mb-3 text-white">Нужно качественное звуковое оборудование?</h2>
             <p className="text-blue-100 mb-6 max-w-xl mx-auto text-sm">Напишите в Telegram — подберем колонку, микрофон или комплект под ваш формат.</p>
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
               <a href={getTelegramUrl()} target="_blank" rel="noopener noreferrer" onClick={() => trackEvent('telegram_click', { source: 'category_audio_bottom_cta' })} className="btn bg-white text-primary hover:bg-blue-50">

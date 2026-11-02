@@ -149,6 +149,49 @@ export class BookingModel {
     return booking
   }
 
+  async findRecentDuplicate(data: {
+    equipmentIds: string[]
+    customerPhone: string
+    startDate: string
+    endDate: string
+    startTime: string
+    endTime: string
+    officeId: number
+  }, windowMinutes = 10): Promise<Booking | null> {
+    const rows = await all(`
+      SELECT *
+      FROM bookings
+      WHERE customer_phone = ?
+        AND start_date = ?
+        AND end_date = ?
+        AND COALESCE(start_time, '10:00') = ?
+        AND COALESCE(end_time, '10:00') = ?
+        AND COALESCE(office_id, 1) = ?
+        AND status != 'cancelled'
+        AND created_at >= datetime('now', ?)
+      ORDER BY created_at DESC
+      LIMIT 10
+    `, [
+      data.customerPhone,
+      data.startDate,
+      data.endDate,
+      data.startTime,
+      data.endTime,
+      data.officeId,
+      `-${windowMinutes} minutes`,
+    ]) as any[]
+
+    const expectedIds = [...new Set(data.equipmentIds)].sort()
+    const matchingRow = rows.find((row) => {
+      const ids = this.parseEquipmentIds(row.equipment_ids, row.equipment_id).sort()
+      return ids.length === expectedIds.length && ids.every((id, index) => id === expectedIds[index])
+    })
+
+    if (!matchingRow) return null
+    const [booking] = await this.attachEquipmentItems([this.mapRow(matchingRow)])
+    return booking || null
+  }
+
   async updateStatus(id: string, status: Booking['status']): Promise<void> {
     await run(`
       UPDATE bookings

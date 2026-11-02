@@ -171,8 +171,14 @@ export interface EquipmentUtilization {
   id: number;
   name: string;
   quantity: number;
+  office_id: number | null;
   total_rentals: number;
+  rented_days: number;
   total_revenue: number;
+  average_revenue: number;
+  utilization_percent: number;
+  investment_value: number;
+  gross_return_percent: number | null;
 }
 
 export type LockerSize = 'large' | 'medium' | 'small';

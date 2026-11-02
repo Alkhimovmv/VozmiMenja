@@ -3,38 +3,14 @@ import { Helmet } from 'react-helmet-async'
 import { ArrowRight, BatteryCharging, CheckCircle2, ClipboardList, MessageCircle, Mic2, Phone, RadioTower, Smartphone, Video } from 'lucide-react'
 import { trackEvent } from '../lib/analytics'
 import { CONTACT_PHONE, CONTACT_PHONE_LABEL, getTelegramUrl } from '../lib/contactLinks'
+import faqContent from '../content/faq.json'
 
 const pageUrl = 'https://vozmimenya.ru/arenda-mikrofona-dlya-intervyu-moskva'
 const djiMicHref = '/equipment/dji-mic-2'
 const camerasHref = '/arenda-gopro-moskva'
 const leadMessage = 'Нужен микрофон для интервью. Формат: один/два героя, помещение/улица: __. Камера/телефон: __. Даты аренды: __. Район Москвы: __.'
 
-const faqItems = [
-  {
-    question: 'Какой микрофон взять для интервью?',
-    answer: 'Для интервью на телефон или камеру обычно удобен беспроводной петличный комплект вроде DJI Mic 2: его проще поставить на героя и быстро проверить звук перед записью.',
-  },
-  {
-    question: 'Подойдет ли DJI Mic 2 для съемки на телефон?',
-    answer: 'Да, комплект рассчитан на мобильные сценарии и может подключаться к телефону, камере или рекордеру. Перед арендой лучше уточнить нужный разъем и устройство.',
-  },
-  {
-    question: 'Можно ли записывать интервью на улице?',
-    answer: 'Можно, но на улице сильнее влияют ветер, расстояние и шум. Для важной записи стоит заранее проверить уровень звука и взять запас времени на тест.',
-  },
-  {
-    question: 'Нужен ли микрофон, если камера уже пишет звук?',
-    answer: 'Встроенный микрофон камеры часто ловит помещение, ветер и шум вокруг. Внешняя петличка помогает держать речь ближе и чище.',
-  },
-  {
-    question: 'На сколько дней брать микрофон?',
-    answer: 'Для одной съемки обычно хватает 1 дня. Если есть репетиция, несколько локаций или монтажные пересъемки, удобнее брать на 2 дня.',
-  },
-  {
-    question: 'Можно ли взять микрофон вместе с камерой?',
-    answer: 'Да, можно подобрать комплект под задачу: микрофон для речи и камеру для видео. Напишите формат съемки, и мы подскажем связку.',
-  },
-]
+const faqItems = faqContent['/arenda-mikrofona-dlya-intervyu-moskva']
 
 const faqStructuredData = {
   '@context': 'https://schema.org',
