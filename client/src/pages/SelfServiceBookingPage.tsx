@@ -11,6 +11,7 @@ import {
   buildSelectedEquipmentList,
   buildSingleBookingEquipmentPayload,
   calculateMultiEquipmentTotal,
+  getJblMicrophoneUpsell,
   getSelectedEquipment,
 } from '../lib/selfServiceBooking'
 
@@ -126,6 +127,10 @@ export default function SelfServiceBookingPage() {
   )
   const selectedEquipment = selectedEquipmentItems[0]
   const selectedEquipmentList = buildSelectedEquipmentList(selectedEquipmentItems)
+  const microphoneUpsell = useMemo(
+    () => getJblMicrophoneUpsell(equipment, formData.equipmentIds),
+    [equipment, formData.equipmentIds],
+  )
   const selectedOffice = offices.find((office) => String(office.id) === formData.officeId) || offices[0]
 
   const rentalDays = calculateBillableRentalDays(
@@ -167,8 +172,7 @@ export default function SelfServiceBookingPage() {
     }))
   }
 
-  const handleAddEquipment = (event: React.ChangeEvent<HTMLSelectElement>) => {
-    const equipmentId = event.target.value
+  const addEquipment = (equipmentId: string) => {
     if (!equipmentId) return
 
     setFormData((prev) => ({
@@ -178,6 +182,20 @@ export default function SelfServiceBookingPage() {
         : [...prev.equipmentIds, equipmentId],
       nextEquipmentId: '',
     }))
+  }
+
+  const handleAddEquipment = (event: React.ChangeEvent<HTMLSelectElement>) => {
+    addEquipment(event.target.value)
+  }
+
+  const handleAddMicrophoneUpsell = () => {
+    if (!microphoneUpsell) return
+    addEquipment(microphoneUpsell.id)
+    trackEvent('booking_upsell_add', {
+      equipment_id: microphoneUpsell.id,
+      equipment_name: microphoneUpsell.name,
+      source: 'jbl_partybox_booking',
+    })
   }
 
   const handleRemoveEquipment = (equipmentId: string) => {
@@ -359,6 +377,21 @@ export default function SelfServiceBookingPage() {
                       </button>
                     </div>
                   ))}
+                </div>
+              )}
+              {microphoneUpsell && (
+                <div className="mt-3 flex flex-col gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <div className="text-sm font-black text-slate-900">Добавить микрофоны к колонке?</div>
+                    <div className="mt-0.5 text-xs text-slate-600">Два беспроводных микрофона JBL — 500 ₽ за 1–3 суток.</div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleAddMicrophoneUpsell}
+                    className="min-h-11 shrink-0 rounded-xl bg-slate-950 px-4 py-2 text-sm font-black text-white transition hover:bg-slate-800"
+                  >
+                    Добавить микрофоны
+                  </button>
                 </div>
               )}
               <p className="mt-2 text-xs text-slate-500">Можно добавить несколько позиций — например колонку и камеру одной заявкой-комплектом.</p>

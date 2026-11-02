@@ -3,6 +3,7 @@ import {
   buildSelectedEquipmentList,
   buildSingleBookingEquipmentPayload,
   calculateMultiEquipmentTotal,
+  getJblMicrophoneUpsell,
   getSelectedEquipment,
 } from './selfServiceBooking'
 import type { Equipment } from '../types'
@@ -34,6 +35,19 @@ const equipment: Equipment[] = [
     createdAt: '',
     updatedAt: '',
   },
+  {
+    id: 'jbl-partybox-wireless-microphones',
+    name: 'Микрофоны JBL',
+    category: 'Аудиооборудование',
+    pricePerDay: 500,
+    quantity: 4,
+    availableQuantity: 4,
+    images: [],
+    description: '',
+    specifications: {},
+    createdAt: '',
+    updatedAt: '',
+  },
 ]
 
 const selected = getSelectedEquipment(equipment, ['camera', 'missing', 'speaker'])
@@ -46,5 +60,13 @@ assert.deepEqual(buildSingleBookingEquipmentPayload(selected), {
   equipmentIds: ['camera', 'speaker'],
 })
 assert.equal(calculateMultiEquipmentTotal(selected, 2, '2026-10-09', '2026-10-11', '10:00', '10:00'), 7000)
+assert.equal(getJblMicrophoneUpsell(equipment, ['speaker'])?.id, 'jbl-partybox-wireless-microphones')
+assert.equal(getJblMicrophoneUpsell(equipment, ['camera']), null)
+assert.equal(getJblMicrophoneUpsell(equipment, ['speaker', 'jbl-partybox-wireless-microphones']), null)
+
+const unavailableMicrophones = equipment.map((item) => (
+  item.id === 'jbl-partybox-wireless-microphones' ? { ...item, availableQuantity: 0 } : item
+))
+assert.equal(getJblMicrophoneUpsell(unavailableMicrophones, ['speaker']), null)
 
 console.log('selfServiceBooking tests passed')

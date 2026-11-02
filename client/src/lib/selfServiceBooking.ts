@@ -8,6 +8,28 @@ export const getSelectedEquipment = (equipment: Equipment[], equipmentIds: strin
     .filter((item): item is Equipment => Boolean(item))
 }
 
+const isJblPartyBox = (item: Equipment) => {
+  const normalizedName = item.name.toLocaleLowerCase('ru-RU')
+  return normalizedName.includes('jbl') && normalizedName.includes('partybox') && !normalizedName.includes('микрофон')
+}
+
+const isJblMicrophones = (item: Equipment) =>
+  item.id === 'jbl-partybox-wireless-microphones'
+  || (item.name.toLocaleLowerCase('ru-RU').includes('jbl') && item.name.toLocaleLowerCase('ru-RU').includes('микрофон'))
+
+export const getJblMicrophoneUpsell = (equipment: Equipment[], selectedEquipmentIds: string[]) => {
+  const selectedIds = new Set(selectedEquipmentIds)
+  const hasPartyBox = equipment.some((item) => selectedIds.has(item.id) && isJblPartyBox(item))
+
+  if (!hasPartyBox) return null
+
+  return equipment.find((item) => (
+    !selectedIds.has(item.id)
+    && item.availableQuantity > 0
+    && isJblMicrophones(item)
+  )) || null
+}
+
 export const buildSelectedEquipmentList = (items: Equipment[]) =>
   items.map((item, index) => `${index + 1}. ${item.name} (${item.category})`).join('\n')
 

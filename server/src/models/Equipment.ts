@@ -1,5 +1,9 @@
 import { database, run, get, all } from './database'
 
+const LEGACY_EQUIPMENT_SLUGS: Record<string, string> = {
+  'nabor-besprovodnyh-mikrofonov-jbl-partybox': 'jbl-partybox-wireless-microphones',
+}
+
 export interface PricingTier {
   day1_10to20: number
   day1: number
@@ -125,7 +129,7 @@ export class EquipmentModel {
   }
 
   async findByIdOrSlug(idOrSlug: string): Promise<Equipment | null> {
-    const byId = await this.findById(idOrSlug)
+    const byId = await this.findById(LEGACY_EQUIPMENT_SLUGS[idOrSlug] || idOrSlug)
     if (byId) return byId
 
     const rows = await all('SELECT * FROM equipment') as any[]

@@ -7,6 +7,9 @@ import { promisify } from 'node:util'
 const SITE_ORIGIN = 'https://vozmimenya.ru'
 const API_ORIGIN = (process.env.STATIC_SEO_API_URL || process.env.VITE_API_URL || 'https://api.vozmimenya.ru/api').replace(/\/$/, '')
 const execFileAsync = promisify(execFile)
+const LEGACY_EQUIPMENT_SLUGS = new Map([
+  ['nabor-besprovodnyh-mikrofonov-jbl-partybox', 'jbl-partybox-wireless-microphones'],
+])
 
 const staticRoutes = [
   '/',
@@ -251,9 +254,21 @@ function getRemoteRoutes(remoteData) {
 }
 
 function getLegacyEquipmentRoutes(remoteData) {
-  return [...remoteData.equipmentById.keys()]
+  const idRoutes = [...remoteData.equipmentById.keys()]
     .filter((id) => !remoteData.equipmentBySlug.has(id))
     .map((id) => `/equipment/${id}`)
+
+  const slugRoutes = [...LEGACY_EQUIPMENT_SLUGS.entries()]
+    .filter(([, id]) => remoteData.equipmentById.has(id))
+    .map(([slug]) => `/equipment/${slug}`)
+
+  return [...new Set([...idRoutes, ...slugRoutes])]
+}
+
+function findEquipmentByIdentifier(remoteData, identifier) {
+  return remoteData.equipmentBySlug.get(identifier)
+    || remoteData.equipmentById.get(identifier)
+    || remoteData.equipmentById.get(LEGACY_EQUIPMENT_SLUGS.get(identifier))
 }
 
 async function getRoutesFromSitemap(remoteData) {
@@ -863,7 +878,7 @@ function fallbackSeo(route) {
 function getSeoMeta(route, remoteData) {
   if (route.startsWith('/equipment/')) {
     const identifier = route.split('/').filter(Boolean)[1]
-    const item = remoteData.equipmentBySlug.get(identifier) || remoteData.equipmentById.get(identifier)
+    const item = findEquipmentByIdentifier(remoteData, identifier)
     const meta = buildProductSeo(route, item)
     if (item) meta.canonicalPath = equipmentRoute(item)
     return meta
@@ -1051,7 +1066,7 @@ function buildArticleBody(article, remoteData) {
 function buildStaticRouteBody(route, meta, remoteData) {
   if (route.startsWith('/equipment/')) {
     const identifier = route.split('/').filter(Boolean)[1]
-    return buildProductBody(remoteData.equipmentBySlug.get(identifier) || remoteData.equipmentById.get(identifier), remoteData)
+    return buildProductBody(findEquipmentByIdentifier(remoteData, identifier), remoteData)
   }
 
   if (route.startsWith('/blog/') && route !== '/blog') {
@@ -1209,7 +1224,7 @@ async function getRouteSourceFiles() {
 async function routeLastmod(route, remoteData, routeSourceFiles) {
   if (route.startsWith('/equipment/')) {
     const identifier = route.split('/').filter(Boolean)[1]
-    const item = remoteData.equipmentBySlug.get(identifier) || remoteData.equipmentById.get(identifier)
+    const item = findEquipmentByIdentifier(remoteData, identifier)
     return toDateOnly(item?.updatedAt || item?.updated_at || item?.createdAt || item?.created_at)
   }
 
