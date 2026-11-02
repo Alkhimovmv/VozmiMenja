@@ -1,4 +1,4 @@
-import { database, get, run } from '../models/database'
+import { database, get, run, all } from '../models/database'
 
 const PRODUCT_ID = 'jbl-partybox-wireless-microphones'
 const PRODUCT_NAME = 'Набор беспроводных микрофонов JBL PartyBox'
@@ -43,8 +43,8 @@ async function seedCatalogAdditions() {
       'Аудиооборудование',
       pricing.day1,
       JSON.stringify(pricing),
-      1,
-      1,
+      4,
+      4,
       JSON.stringify([
         'https://c.dns-shop.ru/thumb/st1/fit/500/500/3fa4cd7577856bf4a805c22eb92261fa/17308335de239047ccd63d1e5fac39c2a8b8cc0a7ac5a765314d08def597f832.jpg',
       ]),
@@ -52,32 +52,34 @@ async function seedCatalogAdditions() {
       JSON.stringify(specifications),
     ])
 
-    const office = await get(`
-      SELECT id
+    const offices = await all(`
+      SELECT id, name
       FROM offices
-      ORDER BY CASE WHEN name LIKE 'Волж%' THEN 0 ELSE 1 END, id
-      LIMIT 1
-    `) as { id?: number } | undefined
+      WHERE name LIKE 'Волж%' OR name LIKE 'Динамо%'
+      ORDER BY id
+    `) as Array<{ id: number; name: string }>
 
-    if (!office?.id) throw new Error('Не найден офис для добавления микрофонов')
+    if (offices.length !== 2) throw new Error('Не найдены оба офиса для добавления микрофонов')
 
-    await run(`
-      INSERT INTO rental_equipment (name, quantity, description, base_price, office_id)
-      SELECT ?, 1, ?, 0, ?
-      WHERE NOT EXISTS (
-        SELECT 1 FROM rental_equipment WHERE name = ? AND office_id = ?
-      )
-    `, [PRODUCT_NAME, description, office.id, PRODUCT_NAME, office.id])
-
-    const adminEquipment = await get(`
-      SELECT id FROM rental_equipment WHERE name = ? AND office_id = ? LIMIT 1
-    `, [PRODUCT_NAME, office.id]) as { id?: number } | undefined
-
-    if (adminEquipment?.id) {
+    for (const office of offices) {
       await run(`
-        INSERT OR IGNORE INTO rental_equipment_instances (equipment_id, instance_number)
-        VALUES (?, 1)
-      `, [adminEquipment.id])
+        INSERT INTO rental_equipment (name, quantity, description, base_price, office_id)
+        SELECT ?, 2, ?, 0, ?
+        WHERE NOT EXISTS (
+          SELECT 1 FROM rental_equipment WHERE name = ? AND office_id = ?
+        )
+      `, [PRODUCT_NAME, description, office.id, PRODUCT_NAME, office.id])
+
+      const adminEquipment = await get(`
+        SELECT id FROM rental_equipment WHERE name = ? AND office_id = ? LIMIT 1
+      `, [PRODUCT_NAME, office.id]) as { id?: number } | undefined
+
+      if (adminEquipment?.id) {
+        await run(`
+          INSERT OR IGNORE INTO rental_equipment_instances (equipment_id, instance_number)
+          VALUES (?, 1), (?, 2)
+        `, [adminEquipment.id, adminEquipment.id])
+      }
     }
 
     console.log(`✅ Каталог: ${PRODUCT_NAME}`)
