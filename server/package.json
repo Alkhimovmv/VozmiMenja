@@ -14,6 +14,8 @@
     "sitemap:prod": "node dist/scripts/generate-sitemap.js",
     "seed:blog-growth": "tsx src/scripts/seed-blog-growth-articles.ts",
     "seed:blog-growth:prod": "node dist/scripts/seed-blog-growth-articles.js",
+    "seed:catalog-additions": "tsx src/scripts/seed-catalog-additions.ts",
+    "seed:catalog-additions:prod": "node dist/scripts/seed-catalog-additions.js",
     "smoke:public": "tsx src/scripts/smoke-public-urls.ts",
     "smoke:public:prod": "SMOKE_BASE_URL=https://vozmimenya.ru node dist/scripts/smoke-public-urls.js",
     "smoke:seo": "tsx src/scripts/smoke-seo.ts",

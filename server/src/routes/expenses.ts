@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { expenseModel, CreateExpenseData } from '../models/Expense'
 import { authMiddleware } from '../middleware/auth'
 import { getUserOfficeIds } from '../middleware/userFilter'
+import { EXPENSE_CATEGORY_VALUES } from '../domain/expenseCategories'
 
 const router = Router()
 
@@ -10,7 +11,7 @@ const createExpenseSchema = z.object({
   description: z.string().min(1, 'description обязателен').max(500),
   amount: z.number().positive('amount должен быть положительным'),
   date: z.string().min(1, 'date обязателен'),
-  category: z.string().max(100).optional(),
+  category: z.enum(EXPENSE_CATEGORY_VALUES),
   office_id: z.number().int().positive().optional().default(1)
 })
 

@@ -350,6 +350,8 @@ router.get('/financial-summary', authMiddleware, async (req: Request, res: Respo
     const revenueDetails = await rentalModel.getMonthlyRevenueDetails(yearNum, monthNum, officeIds)
     const expensesDetails = await expenseModel.getMonthlyExpensesDetails(yearNum, monthNum, officeIds)
 
+    const operatingProfit = (revenueDetails.rental_revenue + revenueDetails.delivery_revenue) -
+      (revenueDetails.delivery_costs + expensesDetails.operational_expenses)
     const summary = {
       total_revenue: revenueDetails.rental_revenue + revenueDetails.delivery_revenue,
       rental_revenue: revenueDetails.rental_revenue,
@@ -357,8 +359,10 @@ router.get('/financial-summary', authMiddleware, async (req: Request, res: Respo
       total_costs: revenueDetails.delivery_costs + expensesDetails.operational_expenses,
       delivery_costs: revenueDetails.delivery_costs,
       operational_expenses: expensesDetails.operational_expenses,
-      net_profit: (revenueDetails.rental_revenue + revenueDetails.delivery_revenue) -
-                  (revenueDetails.delivery_costs + expensesDetails.operational_expenses),
+      capital_expenditures: expensesDetails.capital_expenditures,
+      net_profit: operatingProfit,
+      operating_profit: operatingProfit,
+      cash_result: operatingProfit - expensesDetails.capital_expenditures,
       total_rentals: revenueDetails.total_rentals,
       expenses_by_category: expensesDetails.by_category
     }

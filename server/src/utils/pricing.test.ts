@@ -58,6 +58,28 @@ describe('calculateRentalTotal', () => {
     })).toBe(3200)
   })
 
+  it('uses JBL microphone rates as discounted daily prices', () => {
+    const microphonePricing: PricingTier = {
+      day1_10to20: 0,
+      day1: 500,
+      days2: 0,
+      days3: 0,
+      days4: 400,
+      days7: 300,
+      days14: 200,
+      days30: 100,
+      weekendDay: 0,
+      weekendDay10to20: 0,
+    }
+
+    expect(calculateRentalTotal(microphonePricing, 1, 500)).toBe(500)
+    expect(calculateRentalTotal(microphonePricing, 3, 500)).toBe(1500)
+    expect(calculateRentalTotal(microphonePricing, 4, 500)).toBe(1600)
+    expect(calculateRentalTotal(microphonePricing, 7, 500)).toBe(2100)
+    expect(calculateRentalTotal(microphonePricing, 14, 500)).toBe(2800)
+    expect(calculateRentalTotal(microphonePricing, 30, 500)).toBe(3000)
+  })
+
   it('uses same-day 10 to 20 price when the rental stays inside that window', () => {
     expect(calculateRentalTotal(pricing, 1, 1000, {
       startDate: '2026-09-14',

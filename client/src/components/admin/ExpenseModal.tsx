@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { type Expense, type CreateExpenseDto } from '../types/index';
 import CustomSelect from './CustomSelect';
+import { EXPENSE_CATEGORIES, UNCATEGORIZED_EXPENSE } from '../../constants/expenseCategories';
 
 interface ExpenseModalProps {
   isOpen: boolean;
@@ -49,19 +50,9 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!formData.category || formData.category === UNCATEGORIZED_EXPENSE) return;
     onSubmit(formData);
   };
-
-  const categories = [
-    'Покупка оборудования',
-    'Топливо',
-    'Ремонт оборудования',
-    'Реклама',
-    'Аренда помещения',
-    'Интернет и связь',
-    'Упаковка и расходники',
-    'Прочее',
-  ];
 
   if (!isOpen) return null;
 
@@ -119,17 +110,26 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({
 
             <div>
               <label className="block text-sm font-medium text-gray-700">
-                Категория (опционально)
+                Категория
               </label>
               <CustomSelect
                 value={formData.category || ''}
                 onChange={(value) => setFormData({ ...formData, category: value })}
                 options={[
                   { value: '', label: 'Выберите категорию' },
-                  ...categories.map(cat => ({ value: cat, label: cat }))
+                  ...EXPENSE_CATEGORIES.map((category) => ({
+                    value: category.value,
+                    label: category.type === 'capital' ? `${category.label} · инвестиции` : category.label,
+                  })),
+                  ...(formData.category === UNCATEGORIZED_EXPENSE
+                    ? [{ value: UNCATEGORIZED_EXPENSE, label: 'Требует разбора · выберите новую категорию' }]
+                    : []),
                 ]}
                 placeholder="Выберите категорию"
               />
+              {(!formData.category || formData.category === UNCATEGORIZED_EXPENSE) && (
+                <p className="mt-1 text-xs text-red-600">Категория обязательна для корректного расчёта прибыли.</p>
+              )}
             </div>
             </div>
 
@@ -149,7 +149,7 @@ const ExpenseModal: React.FC<ExpenseModalProps> = ({
               <button
                 type="submit"
                 className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md disabled:opacity-50 font-medium min-h-[44px] touch-manipulation flex items-center justify-center gap-2"
-                disabled={isLoading}
+                disabled={isLoading || !formData.category || formData.category === UNCATEGORIZED_EXPENSE}
               >
                 {isLoading ? (
                   'Сохранение...'

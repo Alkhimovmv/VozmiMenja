@@ -587,6 +587,9 @@ export class RentalModel {
     month_name: string
     total_revenue: number
     net_profit: number
+    operating_profit: number
+    capital_expenditures: number
+    cash_result: number
     rental_count: number
   }>> {
     const officeFilter = officeIds !== undefined
@@ -620,17 +623,21 @@ export class RentalModel {
       SELECT
         strftime('%m', date) as month,
         strftime('%Y', date) as year,
-        SUM(amount) as total_expenses
+        SUM(CASE WHEN expense_type = 'operational' THEN amount ELSE 0 END) as operational_expenses,
+        SUM(CASE WHEN expense_type = 'capital' THEN amount ELSE 0 END) as capital_expenditures
       FROM expenses
       WHERE 1=1
       ${expenseOfficeFilter}
       GROUP BY month, year
     `, officeParams) as any[]
 
-    const expensesMap = new Map<string, number>()
+    const expensesMap = new Map<string, { operational: number; capital: number }>()
     expenseRows.forEach(row => {
       const key = `${row.year}-${row.month}`
-      expensesMap.set(key, row.total_expenses || 0)
+      expensesMap.set(key, {
+        operational: row.operational_expenses || 0,
+        capital: row.capital_expenditures || 0,
+      })
     })
 
     return rows.map(row => {
@@ -639,15 +646,18 @@ export class RentalModel {
       const key = `${year}-${row.month}`
       const totalRevenue = row.total_revenue || 0
       const deliveryCosts = row.delivery_costs || 0
-      const operationalExpenses = expensesMap.get(key) || 0
-      const netProfit = totalRevenue - deliveryCosts - operationalExpenses
+      const monthExpenses = expensesMap.get(key) || { operational: 0, capital: 0 }
+      const operatingProfit = totalRevenue - deliveryCosts - monthExpenses.operational
 
       return {
         month: monthNum,
         year: year,
         month_name: monthNames[monthNum - 1],
         total_revenue: totalRevenue,
-        net_profit: netProfit,
+        net_profit: operatingProfit,
+        operating_profit: operatingProfit,
+        capital_expenditures: monthExpenses.capital,
+        cash_result: operatingProfit - monthExpenses.capital,
         rental_count: row.rental_count
       }
     })

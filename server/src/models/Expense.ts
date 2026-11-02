@@ -1,11 +1,13 @@
 import { database, run, get, all } from './database'
+import { ExpenseCategory, ExpenseType, getExpenseType } from '../domain/expenseCategories'
 
 export interface Expense {
   id: number
   description: string
   amount: number
   date: string
-  category?: string
+  category: ExpenseCategory
+  expenseType: ExpenseType
   officeId: number
   createdAt: string
   updatedAt: string
@@ -15,7 +17,7 @@ export interface CreateExpenseData {
   description: string
   amount: number
   date: string
-  category?: string
+  category: ExpenseCategory
   officeId?: number
 }
 
@@ -78,9 +80,9 @@ export class ExpenseModel {
   async create(data: CreateExpenseData): Promise<Expense> {
     const result = await new Promise<number>((resolve, reject) => {
       this.db.run(`
-        INSERT INTO expenses (description, amount, date, category, office_id)
-        VALUES (?, ?, ?, ?, ?)
-      `, [data.description, data.amount, data.date, data.category || null, data.officeId || 1], function(err) {
+        INSERT INTO expenses (description, amount, date, category, expense_type, office_id)
+        VALUES (?, ?, ?, ?, ?, ?)
+      `, [data.description, data.amount, data.date, data.category, getExpenseType(data.category), data.officeId || 1], function(err) {
         if (err) reject(err)
         else resolve(this.lastID)
       })
@@ -113,6 +115,8 @@ export class ExpenseModel {
     if (data.category !== undefined) {
       updates.push('category = ?')
       values.push(data.category)
+      updates.push('expense_type = ?')
+      values.push(getExpenseType(data.category))
     }
 
     if (updates.length === 0) {
@@ -188,10 +192,11 @@ export class ExpenseModel {
 
   async getMonthlyExpensesDetails(year: number, month: number, officeIds?: number[]): Promise<{
     operational_expenses: number
+    capital_expenditures: number
     by_category: Record<string, number>
   }> {
     if (officeIds !== undefined && officeIds.length === 0) {
-      return { operational_expenses: 0, by_category: {} }
+      return { operational_expenses: 0, capital_expenditures: 0, by_category: {} }
     }
     const monthStr = month.toString().padStart(2, '0')
     const officeFilter = officeIds !== undefined
@@ -200,7 +205,9 @@ export class ExpenseModel {
     const officeParams = officeIds ?? []
 
     const totalRow = await get(`
-      SELECT COALESCE(SUM(amount), 0) as total
+      SELECT
+        COALESCE(SUM(CASE WHEN expense_type = 'operational' THEN amount ELSE 0 END), 0) as operational_total,
+        COALESCE(SUM(CASE WHEN expense_type = 'capital' THEN amount ELSE 0 END), 0) as capital_total
       FROM expenses
       WHERE strftime('%Y', date) = ?
         AND strftime('%m', date) = ?
@@ -223,7 +230,8 @@ export class ExpenseModel {
     })
 
     return {
-      operational_expenses: totalRow?.total || 0,
+      operational_expenses: totalRow?.operational_total || 0,
+      capital_expenditures: totalRow?.capital_total || 0,
       by_category: byCategory
     }
   }
@@ -234,7 +242,8 @@ export class ExpenseModel {
       description: row.description,
       amount: row.amount,
       date: row.date,
-      category: row.category || undefined,
+      category: row.category || 'Требует разбора',
+      expenseType: row.expense_type === 'capital' ? 'capital' : 'operational',
       officeId: row.office_id || 1,
       createdAt: row.created_at,
       updatedAt: row.updated_at

@@ -77,4 +77,23 @@ assert.equal(calculateRentalTotal(pricing, 1, 1000, {
   endTime: '20:00',
 }), 1000)
 
+const microphonePricing: PricingTier = {
+  day1_10to20: 0,
+  day1: 500,
+  days2: 0,
+  days3: 0,
+  days4: 400,
+  days7: 300,
+  days14: 200,
+  days30: 100,
+  weekendDay: 0,
+  weekendDay10to20: 0,
+}
+
+assert.equal(calculateRentalTotal(microphonePricing, 3, 500), 1500)
+assert.equal(calculateRentalTotal(microphonePricing, 4, 500), 1600)
+assert.equal(calculateRentalTotal(microphonePricing, 7, 500), 2100)
+assert.equal(calculateRentalTotal(microphonePricing, 14, 500), 2800)
+assert.equal(calculateRentalTotal(microphonePricing, 30, 500), 3000)
+
 console.log('pricing tests passed')

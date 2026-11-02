@@ -9,6 +9,7 @@ import ExpenseModal from '../../components/admin/ExpenseModal';
 import CustomSelect from '../../components/admin/CustomSelect';
 import ConfirmDialog from '../../components/admin/ConfirmDialog';
 import { useOffice } from '../../hooks/useOffice';
+import { EXPENSE_CATEGORIES, UNCATEGORIZED_EXPENSE } from '../../constants/expenseCategories';
 
 type CreateExpenseWithOfficeDto = CreateExpenseDto & { office_id: number };
 
@@ -24,6 +25,7 @@ const FinancesPage: React.FC = () => {
   const [selectedMonth, setSelectedMonth] = useState<string>('');
   const [isExpenseModalOpen, setIsExpenseModalOpen] = useState(false);
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
+  const [expenseCategoryFilter, setExpenseCategoryFilter] = useState('');
   const [deleteConfirm, setDeleteConfirm] = useState<{ isOpen: boolean; expenseId: number | null; expenseName: string }>({
     isOpen: false,
     expenseId: null,
@@ -134,29 +136,49 @@ const FinancesPage: React.FC = () => {
       monthlyRevenue.map((item) => [monthKey(item.year, item.month), item])
     );
 
-    const expensesByMonth = new Map<string, number>();
+    const expensesByMonth = new Map<string, { operational: number; capital: number }>();
     expenses.forEach((expense) => {
       const expenseDate = new Date(expense.date);
       const key = monthKey(expenseDate.getFullYear(), expenseDate.getMonth() + 1);
-      expensesByMonth.set(key, (expensesByMonth.get(key) || 0) + (expense.amount || 0));
+      const current = expensesByMonth.get(key) || { operational: 0, capital: 0 };
+      const expenseType = expense.expenseType || (
+        expense.category === 'Покупка оборудования' || expense.category === 'Постамат и инфраструктура'
+          ? 'capital'
+          : 'operational'
+      );
+      current[expenseType] += expense.amount || 0;
+      expensesByMonth.set(key, current);
     });
 
     return lastTwelveMonths.map(({ year, month, key, month_name }) => {
       const revenueItem = revenueByMonth.get(key);
-      const expenseOnlyNetProfit = -(expensesByMonth.get(key) || 0);
+      const monthExpenses = expensesByMonth.get(key) || { operational: 0, capital: 0 };
+      const operatingProfit = revenueItem
+        ? (revenueItem.operating_profit ?? revenueItem.net_profit ?? 0)
+        : -monthExpenses.operational;
+      const capitalExpenditures = revenueItem?.capital_expenditures ?? monthExpenses.capital;
 
       return {
         year,
         month,
         month_name: revenueItem?.month_name || month_name,
         total_revenue: revenueItem?.total_revenue || 0,
-        net_profit: revenueItem ? (revenueItem.net_profit || 0) : expenseOnlyNetProfit,
+        net_profit: operatingProfit,
+        operating_profit: operatingProfit,
+        capital_expenditures: capitalExpenditures,
+        cash_result: revenueItem?.cash_result ?? (operatingProfit - capitalExpenditures),
         rental_count: revenueItem?.rental_count || 0,
       };
     });
   }, [expenses, lastTwelveMonths, monthlyRevenue]);
 
-  const yearlyNetProfit = monthlyDynamics.reduce((sum, item) => sum + (item.net_profit || 0), 0);
+  const yearlyOperatingProfit = monthlyDynamics.reduce((sum, item) => sum + item.operating_profit, 0);
+  const yearlyCashResult = monthlyDynamics.reduce((sum, item) => sum + item.cash_result, 0);
+  const expensesNeedingReview = expenses.filter((expense) => expense.category === UNCATEGORIZED_EXPENSE);
+  const expensesNeedingReviewTotal = expensesNeedingReview.reduce((sum, expense) => sum + (expense.amount || 0), 0);
+  const filteredExpenses = expenseCategoryFilter
+    ? expenses.filter((expense) => expense.category === expenseCategoryFilter)
+    : expenses;
 
   // Генерируем опции месяцев на основе реальных данных и полного последнего года
   const monthOptions = (() => {
@@ -238,7 +260,7 @@ const FinancesPage: React.FC = () => {
 
       {/* Финансовая сводка за выбранный месяц */}
       {financialSummary && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-6 gap-4">
           <div className="bg-green-50 p-4 sm:p-6 rounded-lg border border-green-200">
             <div className="text-xl sm:text-2xl font-bold text-green-600">
               {financialSummary.total_revenue.toLocaleString()}₽
@@ -254,7 +276,7 @@ const FinancesPage: React.FC = () => {
             <div className="text-xl sm:text-2xl font-bold text-red-600">
               {financialSummary.total_costs.toLocaleString()}₽
             </div>
-            <div className="text-sm text-red-600">Общие расходы</div>
+            <div className="text-sm text-red-600">Операционные расходы</div>
             <div className="text-xs text-gray-500 mt-1">
               Доставка: {financialSummary.delivery_costs.toLocaleString()}₽<br className="sm:hidden" />
               <span className="hidden sm:inline"> + </span>Операционные: {financialSummary.operational_expenses.toLocaleString()}₽
@@ -262,20 +284,40 @@ const FinancesPage: React.FC = () => {
           </div>
 
           <div className={`p-4 sm:p-6 rounded-lg border ${
-            financialSummary.net_profit >= 0
+            financialSummary.operating_profit >= 0
               ? 'bg-blue-50 border-blue-200'
               : 'bg-orange-50 border-orange-200'
           }`}>
             <div className={`text-xl sm:text-2xl font-bold ${
-              financialSummary.net_profit >= 0 ? 'text-blue-600' : 'text-orange-600'
+              financialSummary.operating_profit >= 0 ? 'text-blue-600' : 'text-orange-600'
             }`}>
-              {financialSummary.net_profit.toLocaleString()}₽
+              {financialSummary.operating_profit.toLocaleString()}₽
             </div>
             <div className={`text-sm ${
-              financialSummary.net_profit >= 0 ? 'text-blue-600' : 'text-orange-600'
+              financialSummary.operating_profit >= 0 ? 'text-blue-600' : 'text-orange-600'
             }`}>
-              Чистая прибыль
+              Операционная прибыль
             </div>
+          </div>
+
+          <div className="bg-amber-50 p-4 sm:p-6 rounded-lg border border-amber-200">
+            <div className="text-xl sm:text-2xl font-bold text-amber-700">
+              {financialSummary.capital_expenditures.toLocaleString()}₽
+            </div>
+            <div className="text-sm text-amber-700">Закупки и инвестиции</div>
+          </div>
+
+          <div className={`p-4 sm:p-6 rounded-lg border ${
+            financialSummary.cash_result >= 0
+              ? 'bg-emerald-50 border-emerald-200'
+              : 'bg-orange-50 border-orange-200'
+          }`}>
+            <div className={`text-xl sm:text-2xl font-bold ${
+              financialSummary.cash_result >= 0 ? 'text-emerald-700' : 'text-orange-700'
+            }`}>
+              {financialSummary.cash_result.toLocaleString()}₽
+            </div>
+            <div className="text-sm text-gray-600">После закупок</div>
           </div>
 
           <div className="bg-gray-50 p-4 sm:p-6 rounded-lg border border-gray-200">
@@ -294,10 +336,17 @@ const FinancesPage: React.FC = () => {
             <h3 className="text-lg font-medium text-gray-900">Помесячная динамика за год</h3>
             <p className="mt-1 text-xs text-gray-500">Показаны все 12 месяцев, включая месяцы без аренд.</p>
           </div>
-          <div className={`rounded-lg px-3 py-2 text-sm font-bold ${
-            yearlyNetProfit >= 0 ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'
-          }`}>
-            Годовая чистая прибыль: {yearlyNetProfit.toLocaleString()}₽
+          <div className="flex flex-wrap gap-2">
+            <div className={`rounded-lg px-3 py-2 text-sm font-bold ${
+              yearlyOperatingProfit >= 0 ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'
+            }`}>
+              Операционная прибыль: {yearlyOperatingProfit.toLocaleString()}₽
+            </div>
+            <div className={`rounded-lg px-3 py-2 text-sm font-bold ${
+              yearlyCashResult >= 0 ? 'bg-blue-50 text-blue-700' : 'bg-orange-50 text-orange-700'
+            }`}>
+              После закупок: {yearlyCashResult.toLocaleString()}₽
+            </div>
           </div>
         </div>
         <div className="p-4 sm:p-6">
@@ -312,8 +361,13 @@ const FinancesPage: React.FC = () => {
                     {item.rental_count || 0} аренд
                   </div>
                 </div>
-                <div className={`text-sm font-medium ${item.net_profit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                  {(item.net_profit || 0).toLocaleString()}₽
+                <div className="text-right">
+                  <div className={`text-sm font-medium ${item.operating_profit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    {item.operating_profit.toLocaleString()}₽
+                  </div>
+                  {item.capital_expenditures > 0 && (
+                    <div className="text-xs text-gray-500">после закупок {item.cash_result.toLocaleString()}₽</div>
+                  )}
                 </div>
               </div>
             ))}
@@ -323,11 +377,34 @@ const FinancesPage: React.FC = () => {
 
       {/* Список расходов */}
       <div className="bg-white shadow rounded-lg">
-        <div className="px-4 sm:px-6 py-4 border-b border-gray-200">
-          <h3 className="text-lg font-medium text-gray-900">Последние расходы</h3>
+        <div className="flex flex-col gap-3 border-b border-gray-200 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+          <div>
+            <h3 className="text-lg font-medium text-gray-900">Расходы</h3>
+            {expensesNeedingReview.length > 0 && (
+              <button
+                type="button"
+                onClick={() => setExpenseCategoryFilter(UNCATEGORIZED_EXPENSE)}
+                className="mt-1 text-left text-xs font-medium text-amber-700 hover:text-amber-800"
+              >
+                Требуют разбора: {expensesNeedingReview.length} на {expensesNeedingReviewTotal.toLocaleString()}₽
+              </button>
+            )}
+          </div>
+          <div className="w-full sm:w-72">
+            <CustomSelect
+              value={expenseCategoryFilter}
+              onChange={setExpenseCategoryFilter}
+              options={[
+                { value: '', label: 'Все категории' },
+                ...EXPENSE_CATEGORIES.map((category) => ({ value: category.value, label: category.label })),
+                { value: UNCATEGORIZED_EXPENSE, label: 'Требует разбора' },
+              ]}
+              placeholder="Все категории"
+            />
+          </div>
         </div>
         <div className="divide-y divide-gray-200 max-h-96 overflow-y-auto">
-          {expenses.slice(0, 10).map((expense) => (
+          {filteredExpenses.map((expense) => (
             <div key={expense.id} className="px-4 sm:px-6 py-3 sm:py-4">
               <div className="flex flex-col space-y-2 sm:space-y-0 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex-1 min-w-0">
@@ -362,7 +439,7 @@ const FinancesPage: React.FC = () => {
             </div>
           ))}
         </div>
-        {expenses.length === 0 && (
+        {filteredExpenses.length === 0 && (
           <div className="text-center py-8 text-gray-500">
             Нет записей о расходах
           </div>

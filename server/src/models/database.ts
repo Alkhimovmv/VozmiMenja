@@ -2,7 +2,9 @@ import sqlite3 from 'sqlite3'
 import { promisify } from 'util'
 import path from 'path'
 
-const dbPath = path.join(__dirname, '../../database.sqlite')
+const dbPath = process.env.DATABASE_PATH
+  ? path.resolve(process.env.DATABASE_PATH)
+  : path.join(__dirname, '../../database.sqlite')
 
 class Database {
   private db: sqlite3.Database
@@ -210,7 +212,8 @@ class Database {
         description TEXT NOT NULL,
         amount REAL NOT NULL,
         date DATETIME NOT NULL,
-        category TEXT,
+        category TEXT NOT NULL DEFAULT 'Требует разбора',
+        expense_type TEXT NOT NULL DEFAULT 'operational' CHECK (expense_type IN ('operational', 'capital')),
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
       )
@@ -315,6 +318,51 @@ class Database {
     } catch (error: any) {
       if (!error.message?.includes('duplicate column name')) throw error
     }
+
+    try {
+      await run(`ALTER TABLE expenses ADD COLUMN expense_type TEXT NOT NULL DEFAULT 'operational'`)
+    } catch (error: any) {
+      if (!error.message?.includes('duplicate column name')) throw error
+    }
+
+    // Нормализуем старые свободные категории. Неоднозначные записи оставляем
+    // заметными для ручного разбора, а не угадываем их назначение.
+    await run(`
+      UPDATE expenses
+      SET category = CASE TRIM(COALESCE(category, ''))
+        WHEN 'Покупка оборудования' THEN 'Покупка оборудования'
+        WHEN 'Топливо' THEN 'Доставка и топливо'
+        WHEN 'Ремонт оборудования' THEN 'Ремонт и обслуживание'
+        WHEN 'Реклама' THEN 'Реклама и продвижение'
+        WHEN 'Аренда' THEN 'Аренда помещения'
+        WHEN 'Аренда помещения' THEN 'Аренда помещения'
+        WHEN 'Аренда помещений' THEN 'Аренда помещения'
+        WHEN 'Арендв' THEN 'Аренда помещения'
+        WHEN 'Интернет и связь' THEN 'Интернет и связь'
+        WHEN 'Упаковка и расходники' THEN 'Расходники и химия'
+        WHEN 'Прочее' THEN 'Требует разбора'
+        WHEN 'Постамат и инфраструктура' THEN 'Постамат и инфраструктура'
+        WHEN 'Реклама и продвижение' THEN 'Реклама и продвижение'
+        WHEN 'Доставка и топливо' THEN 'Доставка и топливо'
+        WHEN 'Ремонт и обслуживание' THEN 'Ремонт и обслуживание'
+        WHEN 'Расходники и химия' THEN 'Расходники и химия'
+        WHEN 'Офис и хозяйственные расходы' THEN 'Офис и хозяйственные расходы'
+        WHEN 'Комиссии и сервисы' THEN 'Комиссии и сервисы'
+        WHEN 'Налоги и сборы' THEN 'Налоги и сборы'
+        WHEN 'Зарплата и подрядчики' THEN 'Зарплата и подрядчики'
+        WHEN 'Прочие операционные' THEN 'Прочие операционные'
+        WHEN 'Требует разбора' THEN 'Требует разбора'
+        ELSE 'Требует разбора'
+      END
+    `)
+
+    await run(`
+      UPDATE expenses
+      SET expense_type = CASE
+        WHEN category IN ('Покупка оборудования', 'Постамат и инфраструктура') THEN 'capital'
+        ELSE 'operational'
+      END
+    `)
 
     // Добавляем поля size, row_number, position_in_row если их нет
     try {
