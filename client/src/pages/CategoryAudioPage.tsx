@@ -204,6 +204,9 @@ export default function CategoryAudioPage() {
               <Link to="/equipment/jbl-partybox-710" className="px-4 py-2 bg-gray-900 text-white rounded-xl text-sm font-semibold hover:bg-gray-800 transition-colors">
                 Смотреть PartyBox 710
               </Link>
+              <Link to="/arenda-karaoke-komplekta-moskva" className="px-4 py-2 bg-amber-400 text-slate-950 rounded-xl text-sm font-semibold hover:bg-amber-300 transition-colors">
+                Колонка + два микрофона
+              </Link>
               <Link to="/blog/kolonka-dlya-vecherinki-kakuyu-jbl-partybox-vzyat-v-arendu" className="px-4 py-2 bg-[#F8FAFC] text-gray-700 rounded-xl text-sm font-semibold border border-gray-100 hover:text-[#2563EB] transition-colors">
                 Читать гид по выбору
               </Link>

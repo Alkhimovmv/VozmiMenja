@@ -4,13 +4,16 @@ import {
   buildSingleBookingEquipmentPayload,
   calculateMultiEquipmentTotal,
   getJblMicrophoneUpsell,
+  getPuzziDryerUpsell,
   getSelectedEquipment,
+  resolveEquipmentSelection,
 } from './selfServiceBooking'
 import type { Equipment } from '../types'
 
 const equipment: Equipment[] = [
   {
     id: 'speaker',
+    slug: 'jbl-partybox-320',
     name: 'JBL PartyBox 710',
     category: 'Аудиооборудование',
     pricePerDay: 2300,
@@ -48,6 +51,34 @@ const equipment: Equipment[] = [
     createdAt: '',
     updatedAt: '',
   },
+  {
+    id: 'puzzi',
+    slug: 'karcher-puzzi-8-1',
+    name: 'Karcher Puzzi 8/1',
+    category: 'Пылесосы, уборка и клининг',
+    pricePerDay: 980,
+    quantity: 2,
+    availableQuantity: 2,
+    images: [],
+    description: '',
+    specifications: {},
+    createdAt: '',
+    updatedAt: '',
+  },
+  {
+    id: 'vacmaster-125w-carpet-dryer',
+    slug: 'sushilka-vacmaster',
+    name: 'Сушилка Vacmaster',
+    category: 'Пылесосы, уборка и клининг',
+    pricePerDay: 400,
+    quantity: 1,
+    availableQuantity: 1,
+    images: [],
+    description: '',
+    specifications: {},
+    createdAt: '',
+    updatedAt: '',
+  },
 ]
 
 const selected = getSelectedEquipment(equipment, ['camera', 'missing', 'speaker'])
@@ -68,5 +99,16 @@ const unavailableMicrophones = equipment.map((item) => (
   item.id === 'jbl-partybox-wireless-microphones' ? { ...item, availableQuantity: 0 } : item
 ))
 assert.equal(getJblMicrophoneUpsell(unavailableMicrophones, ['speaker']), null)
+assert.equal(getPuzziDryerUpsell(equipment, ['puzzi'])?.id, 'vacmaster-125w-carpet-dryer')
+assert.equal(getPuzziDryerUpsell(equipment, ['camera']), null)
+assert.equal(getPuzziDryerUpsell(equipment, ['puzzi', 'vacmaster-125w-carpet-dryer']), null)
+const unavailableDryer = equipment.map((item) => (
+  item.id === 'vacmaster-125w-carpet-dryer' ? { ...item, availableQuantity: 0 } : item
+))
+assert.equal(getPuzziDryerUpsell(unavailableDryer, ['puzzi']), null)
+assert.deepEqual(
+  resolveEquipmentSelection(equipment, ['jbl-partybox-320', 'jbl-partybox-wireless-microphones', 'missing']),
+  ['speaker', 'jbl-partybox-wireless-microphones'],
+)
 
 console.log('selfServiceBooking tests passed')

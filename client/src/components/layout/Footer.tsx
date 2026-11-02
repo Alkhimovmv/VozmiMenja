@@ -93,6 +93,7 @@ export default function Footer() {
             <div className="space-y-2">
               {[
                 { to: '/arenda-kolonki-dlya-vecherinki-moskva', label: 'Колонка для вечеринки' },
+                { to: '/arenda-karaoke-komplekta-moskva', label: 'Караоке-комплект' },
                 { to: '/arenda-tehniki-dlya-meropriyatiya-moskva', label: 'Техника для мероприятия' },
                 { to: '/arenda-kamery-dlya-puteshestviya-vloga-moskva', label: 'Камера для поездки и влога' },
                 { to: '/arenda-moyushchego-pylesosa-dlya-divana-kovra-moskva', label: 'Моющий пылесос для дивана' },

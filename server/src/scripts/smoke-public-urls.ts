@@ -12,6 +12,7 @@ const requiredPaths = [
   '/arenda-moyushchego-pylesosa-dlya-divana-kovra-moskva',
   '/arenda-mikrofona-dlya-intervyu-moskva',
   '/arenda-kolonki-dlya-vecherinki-moskva',
+  '/arenda-karaoke-komplekta-moskva',
   '/arenda-paroochistitelya-dlya-kuhni-plitki-vannoy-moskva',
   '/arenda-kamery-dlya-puteshestviya-vloga-moskva',
   '/arenda-gopro-moskva',

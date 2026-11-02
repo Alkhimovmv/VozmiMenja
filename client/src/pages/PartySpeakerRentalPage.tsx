@@ -9,6 +9,7 @@ import faqContent from '../content/faq.json'
 const pageUrl = 'https://vozmimenya.ru/arenda-kolonki-dlya-vecherinki-moskva'
 const partyBox320Href = '/equipment/jbl-partybox-320'
 const partyBox710Href = '/equipment/jbl-partybox-710'
+const karaokeKitHref = '/arenda-karaoke-komplekta-moskva'
 const leadMessage = 'Нужна колонка для вечеринки. Где будет: квартира/дача/зал/улица. Гостей: __. Формат: фон/речь/танцы. Даты аренды: __. Район Москвы: __.'
 
 const faqItems = faqContent['/arenda-kolonki-dlya-vecherinki-moskva']
@@ -87,7 +88,7 @@ const kitItems = [
   'Квартира: PartyBox 320, кабель питания, подключение телефона, срок 1 день',
   'Дача: PartyBox 320/710, доставка к удобному окну, проверка питания, срок на выходные',
   'Зал и танцы: PartyBox 710, запас громкости, время на тест до гостей',
-  'Поздравления/караоке: колонка плюс микрофон по наличию и задаче',
+  'Поздравления/караоке: колонка плюс два беспроводных микрофона одной заявкой',
 ]
 
 const durationItems = [
@@ -170,6 +171,9 @@ export default function PartySpeakerRentalPage() {
                 </a>
                 <Link to="/arenda-audiooborudovaniya-moskva" className="btn border border-white/15 bg-white/10 text-white hover:bg-white/20">
                   Все аудио в аренду
+                </Link>
+                <Link to={karaokeKitHref} className="btn border border-white/15 bg-white/10 text-white hover:bg-white/20">
+                  Караоке-комплект
                 </Link>
               </div>
             </div>

@@ -30,6 +30,37 @@ export const getJblMicrophoneUpsell = (equipment: Equipment[], selectedEquipment
   )) || null
 }
 
+export const getPuzziDryerUpsell = (equipment: Equipment[], selectedEquipmentIds: string[]) => {
+  const selectedIds = new Set(selectedEquipmentIds)
+  const hasPuzzi = equipment.some((item) => (
+    selectedIds.has(item.id) && item.name.toLocaleLowerCase('ru-RU').includes('puzzi')
+  ))
+
+  if (!hasPuzzi) return null
+
+  return equipment.find((item) => (
+    !selectedIds.has(item.id)
+    && item.availableQuantity > 0
+    && (
+      item.id === 'vacmaster-125w-carpet-dryer'
+      || (item.name.toLocaleLowerCase('ru-RU').includes('vacmaster') && item.name.toLocaleLowerCase('ru-RU').includes('сушил'))
+    )
+  )) || null
+}
+
+export const resolveEquipmentSelection = (equipment: Equipment[], identifiers: string[]) => {
+  const byIdentifier = new Map<string, Equipment>()
+  equipment.forEach((item) => {
+    byIdentifier.set(item.id, item)
+    if (item.slug) byIdentifier.set(item.slug, item)
+  })
+
+  return [...new Set(identifiers)]
+    .map((identifier) => byIdentifier.get(identifier)?.id)
+    .filter((id): id is string => Boolean(id))
+    .slice(0, 20)
+}
+
 export const buildSelectedEquipmentList = (items: Equipment[]) =>
   items.map((item, index) => `${index + 1}. ${item.name} (${item.category})`).join('\n')
 

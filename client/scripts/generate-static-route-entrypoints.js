@@ -19,6 +19,7 @@ const staticRoutes = [
   '/arenda-moyushchego-pylesosa-dlya-divana-kovra-moskva',
   '/arenda-mikrofona-dlya-intervyu-moskva',
   '/arenda-kolonki-dlya-vecherinki-moskva',
+  '/arenda-karaoke-komplekta-moskva',
   '/arenda-paroochistitelya-dlya-kuhni-plitki-vannoy-moskva',
   '/arenda-kamery-dlya-puteshestviya-vloga-moskva',
   '/arenda-gopro-moskva',
@@ -75,6 +76,10 @@ const staticSeo = {
   '/arenda-kolonki-dlya-vecherinki-moskva': {
     title: 'Аренда колонки для вечеринки в Москве | JBL PartyBox',
     description: 'Колонки JBL PartyBox напрокат для квартиры, дачи, праздника и мероприятия. Поможем выбрать мощность и срок аренды.',
+  },
+  '/arenda-karaoke-komplekta-moskva': {
+    title: 'Аренда караоке-комплекта в Москве — JBL и 2 микрофона',
+    description: 'Аренда караоке-комплекта в Москве: JBL PartyBox 320 или 710 и два беспроводных микрофона. Выберите комплект и оформите одной заявкой.',
   },
   '/arenda-paroochistitelya-dlya-kuhni-plitki-vannoy-moskva': {
     title: 'Аренда пароочистителя для кухни, плитки и ванной',
@@ -641,6 +646,7 @@ function buildItemListJsonLd(route, remoteData) {
     '/arenda-pylesosov-moskva': (item) => String(item.category || '').includes('Пылесос') || String(item.category || '').includes('клининг'),
     '/arenda-gopro-moskva': (item) => String(item.category || '').includes('Камер'),
     '/arenda-audiooborudovaniya-moskva': (item) => String(item.category || '').includes('Аудио'),
+    '/arenda-karaoke-komplekta-moskva': (item) => String(item.name || '').toLowerCase().includes('jbl'),
     '/': () => true,
   }
   const predicate = predicates[route]
@@ -981,6 +987,7 @@ function routeProductLinks(route, remoteData, limit = 8) {
     '/arenda-kamery-dlya-puteshestviya-vloga-moskva': (item) => String(item.category || '').includes('Камер'),
     '/arenda-audiooborudovaniya-moskva': (item) => String(item.category || '').includes('Аудио'),
     '/arenda-kolonki-dlya-vecherinki-moskva': (item) => String(item.name || '').toLowerCase().includes('jbl') || String(item.category || '').includes('Аудио'),
+    '/arenda-karaoke-komplekta-moskva': (item) => String(item.name || '').toLowerCase().includes('jbl'),
     '/arenda-mikrofona-dlya-intervyu-moskva': (item) => String(item.name || '').toLowerCase().includes('mic') || String(item.name || '').toLowerCase().includes('микрофон'),
     '/arenda-tehniki-dlya-meropriyatiya-moskva': (item) => String(item.category || '').includes('Аудио') || String(item.category || '').includes('Камер'),
   }
@@ -1121,6 +1128,15 @@ function buildStaticRouteBody(route, meta, remoteData) {
     '/arenda-kolonki-dlya-vecherinki-moskva': [
       routeProducts.length ? `<h2>Колонки для вечеринки</h2>${linkList(routeProducts)}` : '',
       `<p>Для вечеринки важны мощность, автономность, бас и удобное подключение телефона. Менеджер поможет выбрать колонку под помещение и количество гостей.</p>`,
+    ],
+    '/arenda-karaoke-komplekta-moskva': [
+      routeProducts.length ? `<h2>Колонки и микрофоны для караоке</h2>${linkList(routeProducts)}` : '',
+      `<p>Караоке-комплект состоит из JBL PartyBox 320 или 710 и двух беспроводных микрофонов JBL. Обе позиции можно добавить в одну заявку, выбрать общие даты, самовывоз или доставку.</p>`,
+      `<p>${linkList([
+        { href: '/booking?equipment=jbl-partybox-320,jbl-partybox-wireless-microphones', label: 'Забронировать комплект с JBL PartyBox 320' },
+        { href: '/booking?equipment=jbl-partybox-710,jbl-partybox-wireless-microphones', label: 'Забронировать комплект с JBL PartyBox 710' },
+        { href: '/arenda-kolonki-dlya-vecherinki-moskva', label: 'Сравнить колонки для вечеринки' },
+      ])}</p>`,
     ],
     '/arenda-mikrofona-dlya-intervyu-moskva': [
       routeProducts.length ? `<h2>Микрофоны для интервью и съемки</h2>${linkList(routeProducts)}` : '',

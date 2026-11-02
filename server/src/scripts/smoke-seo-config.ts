@@ -8,6 +8,7 @@ export const pagesToCheck = [
   { path: '/arenda-audiooborudovaniya-moskva', canonicalPath: '/arenda-audiooborudovaniya-moskva' },
   { path: '/arenda-stroitelnogo-pylesosa-posle-remonta-moskva', canonicalPath: '/arenda-stroitelnogo-pylesosa-posle-remonta-moskva' },
   { path: '/arenda-kolonki-dlya-vecherinki-moskva', canonicalPath: '/arenda-kolonki-dlya-vecherinki-moskva' },
+  { path: '/arenda-karaoke-komplekta-moskva', canonicalPath: '/arenda-karaoke-komplekta-moskva' },
   { path: '/arenda-kamery-dlya-puteshestviya-vloga-moskva', canonicalPath: '/arenda-kamery-dlya-puteshestviya-vloga-moskva' },
   { path: '/arenda-paroochistitelya-dlya-kuhni-plitki-vannoy-moskva', canonicalPath: '/arenda-paroochistitelya-dlya-kuhni-plitki-vannoy-moskva' },
   { path: '/booking', canonicalPath: '/booking' },

@@ -34,6 +34,7 @@ const staticUrls: SitemapUrl[] = [
   { loc: '/arenda-moyushchego-pylesosa-dlya-divana-kovra-moskva', lastmod: today(), changefreq: 'weekly', priority: '0.8' },
   { loc: '/arenda-mikrofona-dlya-intervyu-moskva', lastmod: today(), changefreq: 'weekly', priority: '0.8' },
   { loc: '/arenda-kolonki-dlya-vecherinki-moskva', lastmod: today(), changefreq: 'weekly', priority: '0.8' },
+  { loc: '/arenda-karaoke-komplekta-moskva', lastmod: today(), changefreq: 'weekly', priority: '0.8' },
   { loc: '/arenda-paroochistitelya-dlya-kuhni-plitki-vannoy-moskva', lastmod: today(), changefreq: 'weekly', priority: '0.8' },
   { loc: '/arenda-kamery-dlya-puteshestviya-vloga-moskva', lastmod: today(), changefreq: 'weekly', priority: '0.8' },
   { loc: '/arenda-gopro-moskva', lastmod: today(), changefreq: 'weekly', priority: '0.9' },
