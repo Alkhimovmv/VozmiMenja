@@ -52,7 +52,7 @@ const equipment: RentalEquipment[] = [
   },
 ]
 
-const unavailableOfficeEquipment: Equipment[] = [
+const unavailableOfficeEquipment: RentalEquipment[] = [
   {
     ...equipment[0],
     quantity: 0,

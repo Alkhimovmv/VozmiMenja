@@ -8,19 +8,89 @@ import { lockerModel } from '../models/Locker'
 import { get, all } from '../models/database'
 import { equipmentModel } from '../models/Equipment'
 import { calculateRentalPriceQuote } from '../domain/rentalPriceQuote'
+import { isForeignKeyError } from '../utils/dbErrors'
+import {
+  OfficeEquipmentSelectionItem,
+  validateOfficeEquipmentSelection,
+} from '../domain/officeEquipmentSelection'
+import { normalizeLocalRentalDate } from '../domain/rentalDate'
 
 const router = Router()
+
+async function hasOfficeAccess(req: Request, officeId: number): Promise<boolean> {
+  const userOfficeIds = await getUserOfficeIds(req)
+  return userOfficeIds === null || userOfficeIds.includes(officeId)
+}
+
+async function validateEquipmentForOffice(
+  equipmentInstances: OfficeEquipmentSelectionItem[],
+  officeId: number,
+) {
+  const uniqueIds = [...new Set(equipmentInstances.map((item) => item.equipmentId))]
+  if (!uniqueIds.length) return null
+
+  const rows = await all(
+    `SELECT id, office_id, quantity FROM rental_equipment WHERE id IN (${uniqueIds.map(() => '?').join(',')})`,
+    uniqueIds
+  ) as Array<{ id: number; office_id: number | null; quantity: number }>
+
+  return validateOfficeEquipmentSelection(
+    equipmentInstances,
+    rows.map((row) => ({ id: row.id, officeId: row.office_id, quantity: row.quantity })),
+    officeId,
+  )
+}
+
+const equipmentSelectionErrorMessage = (error: ReturnType<typeof validateOfficeEquipmentSelection>) => {
+  if (error === 'office-mismatch') return 'Выбранное оборудование находится в другом офисе'
+  if (error === 'instance-out-of-range') return 'У выбранного оборудования нет такого экземпляра'
+  if (error === 'duplicate-instance') return 'Один экземпляр оборудования выбран несколько раз'
+  return 'Оборудование не найдено'
+}
+
+// Загружает аренду по :id и проверяет, что её офис доступен пользователю.
+// Сам отвечает 400/404/403 и возвращает null, если продолжать нельзя.
+async function findAccessibleRental(req: Request, res: Response) {
+  const id = Number(req.params.id)
+  if (!Number.isInteger(id) || id <= 0) {
+    res.status(400).json({ error: 'Некорректный id аренды' })
+    return null
+  }
+
+  const rental = await rentalModel.findById(id)
+  if (!rental) {
+    res.status(404).json({ error: 'Аренда не найдена' })
+    return null
+  }
+
+  if (!await hasOfficeAccess(req, rental.officeId || 1)) {
+    res.status(403).json({ error: 'Нет доступа к этой аренде' })
+    return null
+  }
+
+  return rental
+}
 
 const equipmentInstanceSchema = z.object({
   equipment_id: z.number().int().positive(),
   instance_number: z.number().int().positive()
 })
 
+// Даты хранятся строкой и сравниваются лексикографически, поэтому формат обязан быть единым:
+// YYYY-MM-DD или YYYY-MM-DDTHH:mm[:ss]. Пробел вместо T нормализуем, иначе сравнение ломается.
+const rentalDateSchema = z.string()
+  .trim()
+  .refine((value) => normalizeLocalRentalDate(value) !== null, 'Некорректный формат даты')
+  .transform((value) => normalizeLocalRentalDate(value)!)
+
+// Совпадает с CHECK-ограничением колонки rentals.source.
+const RENTAL_SOURCES = ['авито', 'сайт', 'рекомендация', 'карты'] as const
+
 const createRentalSchema = z.object({
   equipment_id: z.number().int().positive({ message: 'equipment_id обязателен' }),
-  equipment_instances: z.array(equipmentInstanceSchema).optional(),
-  start_date: z.string().min(1, 'start_date обязателен'),
-  end_date: z.string().min(1, 'end_date обязателен'),
+  equipment_instances: z.array(equipmentInstanceSchema).min(1).optional(),
+  start_date: rentalDateSchema,
+  end_date: rentalDateSchema,
   customer_name: z.string().min(1, 'customer_name обязателен').max(200),
   customer_phone: z.string().min(1, 'customer_phone обязателен').max(50),
   needs_delivery: z.boolean().optional().default(false),
@@ -28,16 +98,19 @@ const createRentalSchema = z.object({
   rental_price: z.number().min(0).optional().nullable(),
   delivery_price: z.number().min(0).optional().nullable(),
   delivery_costs: z.number().min(0).optional().nullable(),
-  source: z.string().optional().default('авито'),
+  source: z.enum(RENTAL_SOURCES, { message: 'Некорректный источник аренды' }).optional().default('авито'),
   comment: z.string().max(1000).optional(),
   office_id: z.number().int().positive().optional().default(1)
+}).refine((data) => data.end_date > data.start_date, {
+  message: 'Дата окончания должна быть позже даты начала',
+  path: ['end_date'],
 })
 
 const updateRentalSchema = z.object({
   equipment_id: z.number().int().positive().optional(),
-  equipment_instances: z.array(equipmentInstanceSchema).optional(),
-  start_date: z.string().optional(),
-  end_date: z.string().optional(),
+  equipment_instances: z.array(equipmentInstanceSchema).min(1).optional(),
+  start_date: rentalDateSchema.optional(),
+  end_date: rentalDateSchema.optional(),
   customer_name: z.string().min(1).max(200).optional(),
   customer_phone: z.string().min(1).max(50).optional(),
   needs_delivery: z.boolean().optional(),
@@ -45,7 +118,7 @@ const updateRentalSchema = z.object({
   rental_price: z.number().min(0).optional().nullable(),
   delivery_price: z.number().min(0).optional().nullable(),
   delivery_costs: z.number().min(0).optional().nullable(),
-  source: z.string().optional(),
+  source: z.enum(RENTAL_SOURCES, { message: 'Некорректный источник аренды' }).optional(),
   comment: z.string().max(1000).optional().nullable(),
   office_id: z.number().int().positive().optional(),
   status: z.enum(['pending', 'active', 'completed', 'overdue']).optional()
@@ -53,15 +126,21 @@ const updateRentalSchema = z.object({
 
 const availabilityQuerySchema = z.object({
   equipment_id: z.coerce.number().int().positive(),
-  start_date: z.string().min(1, 'start_date обязателен'),
-  end_date: z.string().min(1, 'end_date обязателен'),
+  start_date: rentalDateSchema,
+  end_date: rentalDateSchema,
   office_id: z.coerce.number().int().positive().optional()
+}).refine((data) => data.end_date > data.start_date, {
+  message: 'Дата окончания должна быть позже даты начала',
+  path: ['end_date'],
 })
 
 const priceQuoteSchema = z.object({
   equipment_ids: z.array(z.number().int().positive()).min(1).max(30),
-  start_date: z.string().min(1, 'start_date обязателен'),
-  end_date: z.string().min(1, 'end_date обязателен'),
+  start_date: rentalDateSchema,
+  end_date: rentalDateSchema,
+}).refine((data) => data.end_date > data.start_date, {
+  message: 'Дата окончания должна быть позже даты начала',
+  path: ['end_date'],
 })
 
 // GET /api/rentals - Получить все аренды
@@ -102,6 +181,9 @@ router.get('/gantt', authMiddleware, async (req: Request, res: Response) => {
   try {
     const officeId = req.query.officeId ? parseInt(req.query.officeId as string) : undefined
     const userOfficeIds = await getUserOfficeIds(req)
+    if (userOfficeIds !== null && officeId !== undefined && !userOfficeIds.includes(officeId)) {
+      return res.json([])
+    }
     const rentals = await rentalModel.findAll({ officeId, officeIds: userOfficeIds ?? undefined })
 
     // Для диаграммы Ганта разворачиваем каждую аренду в отдельные записи
@@ -144,7 +226,7 @@ router.post('/price-quote', authMiddleware, async (req: Request, res: Response) 
   try {
     const parsed = priceQuoteSchema.safeParse(req.body)
     if (!parsed.success) {
-      return res.status(400).json({ error: parsed.error.errors.map((error) => error.message).join(', ') })
+      return res.status(400).json({ error: parsed.error.issues.map((error) => error.message).join(', ') })
     }
 
     const { equipment_ids: equipmentIds, start_date: startDate, end_date: endDate } = parsed.data
@@ -225,13 +307,26 @@ router.get('/availability', authMiddleware, async (req: Request, res: Response) 
     const parsed = availabilityQuerySchema.safeParse(req.query)
 
     if (!parsed.success) {
-      return res.status(400).json({ error: parsed.error.errors.map(e => e.message).join(', ') })
+      return res.status(400).json({ error: parsed.error.issues.map(e => e.message).join(', ') })
     }
 
     const { equipment_id, start_date, end_date, office_id } = parsed.data
     const userOfficeIds = await getUserOfficeIds(req)
 
-    if (userOfficeIds !== null && office_id !== undefined && !userOfficeIds.includes(office_id)) {
+    const equipmentOffice = await get(
+      'SELECT id, name, quantity, office_id FROM rental_equipment WHERE id = ?',
+      [equipment_id]
+    ) as { id: number; name: string; quantity: number; office_id: number | null } | undefined
+    if (!equipmentOffice) {
+      return res.status(404).json({ error: 'Оборудование не найдено' })
+    }
+
+    const effectiveOfficeId = office_id ?? equipmentOffice.office_id ?? undefined
+    if (office_id !== undefined && equipmentOffice.office_id !== office_id) {
+      return res.status(400).json({ error: 'Оборудование находится в другом офисе' })
+    }
+
+    if (userOfficeIds !== null && (effectiveOfficeId === undefined || !userOfficeIds.includes(effectiveOfficeId))) {
       return res.status(403).json({ error: 'Нет доступа к выбранному офису' })
     }
 
@@ -240,11 +335,11 @@ router.get('/availability', authMiddleware, async (req: Request, res: Response) 
       start_date,
       end_date,
       undefined,
-      office_id
+      effectiveOfficeId
     )
 
     const rentals = await rentalModel.findAll({
-      officeId: office_id,
+      officeId: effectiveOfficeId,
       officeIds: userOfficeIds ?? undefined,
     })
 
@@ -280,15 +375,10 @@ router.get('/availability', authMiddleware, async (req: Request, res: Response) 
         return start_date < rental.endDate && end_date > rental.startDate
       })
 
-    const equipmentRow = await get(
-      'SELECT id, name, quantity FROM rental_equipment WHERE id = ?',
-      [equipment_id]
-    ) as { id: number; name: string; quantity: number } | undefined
-
     res.json({
       equipment_id,
-      equipment_name: equipmentRow?.name ?? null,
-      total_instances: equipmentRow?.quantity ?? 0,
+      equipment_name: equipmentOffice.name,
+      total_instances: equipmentOffice.quantity,
       available: availableInstances.length > 0,
       available_instances: availableInstances,
       conflicting_rentals: conflictingRentals.map(toSnakeCase)
@@ -326,12 +416,8 @@ router.get('/revenue', authMiddleware, async (req: Request, res: Response) => {
 // GET /api/rentals/:id - Получить аренду по ID
 router.get('/:id', authMiddleware, async (req: Request, res: Response) => {
   try {
-    const rental = await rentalModel.findById(parseInt(req.params.id))
-
-    if (!rental) {
-      res.status(404).json({ error: 'Аренда не найдена' })
-      return
-    }
+    const rental = await findAccessibleRental(req, res)
+    if (!rental) return
 
     res.json(toSnakeCase({
       ...rental,
@@ -348,15 +434,42 @@ router.post('/', authMiddleware, async (req: Request, res: Response) => {
   try {
     const parsed = createRentalSchema.safeParse(req.body)
     if (!parsed.success) {
-      return res.status(400).json({ error: parsed.error.errors.map(e => e.message).join(', ') })
+      return res.status(400).json({ error: parsed.error.issues.map(e => e.message).join(', ') })
     }
     const body = parsed.data
+
+    if (!await hasOfficeAccess(req, body.office_id)) {
+      return res.status(403).json({ error: 'Нет доступа к этому офису' })
+    }
+
+    let equipmentInstances = body.equipment_instances?.map(inst => ({
+      equipmentId: inst.equipment_id,
+      instanceNumber: inst.instance_number
+    }))
+    if (equipmentInstances && !equipmentInstances.some((item) => item.equipmentId === body.equipment_id)) {
+      return res.status(400).json({ error: 'Основное оборудование должно входить в список выбранных экземпляров' })
+    }
+
+    // Без экземпляров аренда не попадёт в rental_equipment_items и станет невидимой
+    // для проверки занятости. Подбираем первый свободный экземпляр сами.
+    if (!equipmentInstances?.length) {
+      const freeInstances = await rentalModel.findAvailableInstances(
+        body.equipment_id, body.start_date, body.end_date, undefined, body.office_id
+      )
+      if (!freeInstances.length) {
+        return res.status(400).json({ error: 'Все экземпляры оборудования уже забронированы на выбранные даты' })
+      }
+      equipmentInstances = [{ equipmentId: body.equipment_id, instanceNumber: freeInstances[0] }]
+    }
+
+    const selectionError = await validateEquipmentForOffice(equipmentInstances, body.office_id)
+    if (selectionError) {
+      return res.status(400).json({ error: equipmentSelectionErrorMessage(selectionError) })
+    }
+
     const data: CreateRentalData = {
       equipmentId: body.equipment_id,
-      equipmentInstances: body.equipment_instances?.map(inst => ({
-        equipmentId: inst.equipment_id,
-        instanceNumber: inst.instance_number
-      })),
+      equipmentInstances,
       startDate: body.start_date,
       endDate: body.end_date,
       customerName: body.customer_name,
@@ -366,7 +479,7 @@ router.post('/', authMiddleware, async (req: Request, res: Response) => {
       rentalPrice: body.rental_price ?? undefined,
       deliveryPrice: body.delivery_price ?? undefined,
       deliveryCosts: body.delivery_costs ?? undefined,
-      source: body.source as any,
+      source: body.source,
       comment: body.comment,
       officeId: body.office_id
     }
@@ -377,6 +490,8 @@ router.post('/', authMiddleware, async (req: Request, res: Response) => {
     // Если это ошибка проверки доступности, возвращаем 400 с сообщением
     if (error.message && error.message.includes('уже забронировано')) {
       res.status(400).json({ error: error.message })
+    } else if (isForeignKeyError(error)) {
+      res.status(400).json({ error: 'Оборудование не найдено' })
     } else {
       res.status(500).json({ error: 'Ошибка создания аренды' })
     }
@@ -388,17 +503,54 @@ router.put('/:id', authMiddleware, async (req: Request, res: Response) => {
   try {
     const parsed = updateRentalSchema.safeParse(req.body)
     if (!parsed.success) {
-      return res.status(400).json({ error: parsed.error.errors.map(e => e.message).join(', ') })
+      return res.status(400).json({ error: parsed.error.issues.map(e => e.message).join(', ') })
     }
     const body = parsed.data
+
+    const existing = await findAccessibleRental(req, res)
+    if (!existing) return
+
+    const nextStartDate = body.start_date ?? existing.startDate.replace(' ', 'T')
+    const nextEndDate = body.end_date ?? existing.endDate.replace(' ', 'T')
+    if (nextEndDate <= nextStartDate) {
+      return res.status(400).json({ error: 'Дата окончания должна быть позже даты начала' })
+    }
+
+    if (body.office_id !== undefined && !await hasOfficeAccess(req, body.office_id)) {
+      return res.status(403).json({ error: 'Нет доступа к этому офису' })
+    }
+    const nextOfficeId = body.office_id ?? existing.officeId
+    const requestedInstances = body.equipment_instances?.map((item) => ({
+      equipmentId: item.equipment_id,
+      instanceNumber: item.instance_number,
+    }))
+    if (requestedInstances && body.equipment_id !== undefined
+      && !requestedInstances.some((item) => item.equipmentId === body.equipment_id)) {
+      return res.status(400).json({ error: 'Основное оборудование должно входить в список выбранных экземпляров' })
+    }
+    const effectiveInstances = requestedInstances
+      ?? (body.equipment_id !== undefined
+        ? [{ equipmentId: body.equipment_id, instanceNumber: 1 }]
+        : existing.equipmentList?.map((item) => ({
+            equipmentId: item.id,
+            instanceNumber: item.instanceNumber || 1,
+          })) ?? [{ equipmentId: existing.equipmentId, instanceNumber: 1 }])
+    const selectionError = await validateEquipmentForOffice(effectiveInstances, nextOfficeId)
+    if (selectionError) {
+      return res.status(400).json({ error: equipmentSelectionErrorMessage(selectionError) })
+    }
+
     const data: Partial<CreateRentalData & { status: RentalStatus }> = {}
 
     if (body.equipment_id !== undefined) data.equipmentId = body.equipment_id
+    else if (requestedInstances) data.equipmentId = requestedInstances[0].equipmentId
     if (body.equipment_instances !== undefined) {
       data.equipmentInstances = body.equipment_instances.map(inst => ({
         equipmentId: inst.equipment_id,
         instanceNumber: inst.instance_number
       }))
+    } else if (body.equipment_id !== undefined) {
+      data.equipmentInstances = effectiveInstances
     }
     if (body.start_date !== undefined) data.startDate = body.start_date
     if (body.end_date !== undefined) data.endDate = body.end_date
@@ -415,7 +567,7 @@ router.put('/:id', authMiddleware, async (req: Request, res: Response) => {
     if (body.status !== undefined) data.status = body.status
     if ((body as any).locker_id !== undefined) (data as any).lockerId = (body as any).locker_id
 
-    const rental = await rentalModel.update(parseInt(req.params.id), data)
+    const rental = await rentalModel.update(existing.id, data)
 
     // Если аренда завершена — найти ячейку с этим оборудованием и пометить как требующую проверки
     if (body.status === 'completed') {
@@ -457,7 +609,10 @@ router.put('/:id', authMiddleware, async (req: Request, res: Response) => {
 // DELETE /api/admin/rentals/:id - Удалить аренду
 router.delete('/:id', authMiddleware, async (req: Request, res: Response) => {
   try {
-    await rentalModel.delete(parseInt(req.params.id))
+    const rental = await findAccessibleRental(req, res)
+    if (!rental) return
+
+    await rentalModel.delete(rental.id)
     res.status(204).send()
   } catch (error) {
     console.error('Error deleting rental:', error)

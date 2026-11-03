@@ -5,6 +5,7 @@ import { expenseModel } from '../models/Expense'
 import { all } from '../models/database'
 import { authMiddleware } from '../middleware/auth'
 import { getUserOfficeIds } from '../middleware/userFilter'
+import { resolveOfficeScope } from '../domain/officeScope'
 
 const router = Router()
 
@@ -36,15 +37,6 @@ type LeadSourceReportRow = {
   last_created_at: string
 }
 
-function resolveOfficeIds(userOfficeIds: number[] | null, queryOfficeId?: string): number[] | undefined {
-  const qId = queryOfficeId ? parseInt(queryOfficeId) : undefined
-  if (userOfficeIds === null) {
-    return qId ? [qId] : undefined
-  }
-  if (qId && userOfficeIds.includes(qId)) return [qId]
-  return userOfficeIds.length > 0 ? userOfficeIds : undefined
-}
-
 const addCount = (acc: Record<string, number>, key: string, value: number) => {
   acc[key] = (acc[key] || 0) + value
   return acc
@@ -62,7 +54,7 @@ const formatSourceLabel = (row: LeadSourceReportRow) => {
 router.get('/monthly-revenue', authMiddleware, async (req: Request, res: Response) => {
   try {
     const userOfficeIds = await getUserOfficeIds(req)
-    const officeIds = resolveOfficeIds(userOfficeIds, req.query.officeId as string | undefined)
+    const officeIds = resolveOfficeScope(userOfficeIds, req.query.officeId as string | undefined)
     const revenue = await rentalModel.getMonthlyRevenue(officeIds)
     res.json(revenue)
   } catch (error) {
@@ -83,7 +75,7 @@ router.get('/equipment-utilization', authMiddleware, async (req: Request, res: R
     if (userOfficeIds !== null && userOfficeIds.length === 0) {
       return res.json([])
     }
-    const officeIds = resolveOfficeIds(
+    const officeIds = resolveOfficeScope(
       userOfficeIds,
       parsedQuery.data.officeId ? String(parsedQuery.data.officeId) : undefined
     )
@@ -203,11 +195,12 @@ router.get('/lead-sources', authMiddleware, async (req: Request, res: Response) 
       return res.status(400).json({
         success: false,
         message: 'Некорректные параметры отчета',
-        errors: parsedQuery.error.errors
+        errors: parsedQuery.error.issues
       })
     }
 
     const { from, to, limit } = parsedQuery.data
+    const userOfficeIds = await getUserOfficeIds(req)
     const filters: string[] = []
     const params: Array<string | number> = []
 
@@ -222,6 +215,12 @@ router.get('/lead-sources', authMiddleware, async (req: Request, res: Response) 
     }
 
     const whereClause = filters.length ? `WHERE ${filters.join(' AND ')}` : ''
+    const bookingOfficeFilter = userOfficeIds === null
+      ? ''
+      : userOfficeIds.length > 0
+        ? `WHERE COALESCE(b.office_id, 1) IN (${userOfficeIds.map(() => '?').join(',')})`
+        : 'WHERE 1=0'
+    const includeContactLeads = userOfficeIds === null || userOfficeIds.includes(1) ? 1 : 0
 
     const rows = await all(`
       WITH leads AS (
@@ -237,6 +236,7 @@ router.get('/lead-sources', authMiddleware, async (req: Request, res: Response) 
           COALESCE(NULLIF(e.name, ''), b.equipment_id) AS equipment
         FROM bookings b
         LEFT JOIN equipment e ON e.id = b.equipment_id
+        ${bookingOfficeFilter}
 
         UNION ALL
 
@@ -255,6 +255,7 @@ router.get('/lead-sources', authMiddleware, async (req: Request, res: Response) 
           c.created_at,
           '' AS equipment
         FROM contact_leads c
+        WHERE ? = 1
       ),
       filtered AS (
         SELECT *
@@ -285,7 +286,7 @@ router.get('/lead-sources', authMiddleware, async (req: Request, res: Response) 
         status
       ORDER BY total DESC, last_created_at DESC
       LIMIT ?
-    `, [...params, limit]) as LeadSourceReportRow[]
+    `, [...(userOfficeIds ?? []), includeContactLeads, ...params, limit]) as LeadSourceReportRow[]
 
     const totalsByChannel: Record<string, number> = {}
     const totalsByStatus: Record<string, number> = {}
@@ -345,7 +346,7 @@ router.get('/financial-summary', authMiddleware, async (req: Request, res: Respo
     const yearNum = parseInt(year as string)
     const monthNum = parseInt(month as string)
     const userOfficeIds = await getUserOfficeIds(req)
-    const officeIds = resolveOfficeIds(userOfficeIds, req.query.officeId as string | undefined)
+    const officeIds = resolveOfficeScope(userOfficeIds, req.query.officeId as string | undefined)
 
     const revenueDetails = await rentalModel.getMonthlyRevenueDetails(yearNum, monthNum, officeIds)
     const expensesDetails = await expenseModel.getMonthlyExpensesDetails(yearNum, monthNum, officeIds)

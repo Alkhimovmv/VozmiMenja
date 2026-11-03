@@ -118,6 +118,10 @@ export class ExpenseModel {
       updates.push('expense_type = ?')
       values.push(getExpenseType(data.category))
     }
+    if (data.officeId !== undefined) {
+      updates.push('office_id = ?')
+      values.push(data.officeId)
+    }
 
     if (updates.length === 0) {
       throw new Error('No fields to update')

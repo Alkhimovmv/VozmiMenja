@@ -89,7 +89,7 @@ router.post('/', authMiddleware, async (req: Request, res: Response) => {
   try {
     const parsed = createExpenseSchema.safeParse(req.body)
     if (!parsed.success) {
-      return res.status(400).json({ error: parsed.error.errors.map(e => e.message).join(', ') })
+      return res.status(400).json({ error: parsed.error.issues.map(e => e.message).join(', ') })
     }
     const { description, amount, date, category, office_id } = parsed.data
 
@@ -112,7 +112,7 @@ router.put('/:id', authMiddleware, async (req: Request, res: Response) => {
   try {
     const parsed = updateExpenseSchema.safeParse(req.body)
     if (!parsed.success) {
-      return res.status(400).json({ error: parsed.error.errors.map(e => e.message).join(', ') })
+      return res.status(400).json({ error: parsed.error.issues.map(e => e.message).join(', ') })
     }
     const existing = await expenseModel.findById(parseInt(req.params.id))
     if (!existing) return res.status(404).json({ error: 'Расход не найден' })
@@ -123,6 +123,9 @@ router.put('/:id', authMiddleware, async (req: Request, res: Response) => {
     }
 
     const { description, amount, date, category, office_id } = parsed.data
+    if (userOfficeIds !== null && office_id !== undefined && !userOfficeIds.includes(office_id)) {
+      return res.status(403).json({ error: 'Нет доступа к выбранному офису' })
+    }
     const data: Partial<CreateExpenseData> = { description, amount, date, category, officeId: office_id }
     const expense = await expenseModel.update(parseInt(req.params.id), data)
     res.json(expense)

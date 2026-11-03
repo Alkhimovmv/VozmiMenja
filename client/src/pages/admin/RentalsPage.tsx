@@ -53,7 +53,7 @@ const getDayOperations = (rentals: Rental[], targetDate: Date): DayOperations =>
   returns: rentals.filter((rental) => isSameDay(new Date(rental.end_date), targetDate) && (rental.status === 'active' || rental.status === 'overdue')),
 });
 
-const formatRentalEquipmentNames = (rental: Rental, equipment: Equipment[]) => {
+const formatRentalEquipmentNames = (rental: Rental, equipment: RentalEquipment[]) => {
   if (!rental.equipment_list || rental.equipment_list.length === 0) {
     return rental.equipment_name;
   }

@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express'
 import { z } from 'zod'
 import { lockerCommandsService } from '../services/lockerCommands'
 import { database } from '../models/database'
+import { getPostomatSecret, secretMatches } from '../utils/secrets'
 
 const router = Router()
 
@@ -17,15 +18,14 @@ const commandDoneSchema = z.object({
   error: z.string().max(500).optional().nullable(),
 })
 
-function verifyPostomatSecret(req: Request, res: Response): boolean {
-  const secret = process.env.POSTOMAT_SECRET
+function verifyPostomatSecret(req: Request, res: Response, officeId?: number | null): boolean {
+  const secret = getPostomatSecret(officeId)
   if (!secret) {
     res.status(500).json({ error: 'POSTOMAT_SECRET не настроен' })
     return false
   }
 
-  const provided = req.headers['x-postomat-secret']
-  if (!provided || provided !== secret) {
+  if (!secretMatches(req.headers['x-postomat-secret'], secret)) {
     res.status(401).json({ error: 'Unauthorized' })
     return false
   }
@@ -34,7 +34,7 @@ function verifyPostomatSecret(req: Request, res: Response): boolean {
 }
 
 router.get('/offices/:officeId/commands/next', async (req: Request, res: Response) => {
-  if (!verifyPostomatSecret(req, res)) return
+  if (!verifyPostomatSecret(req, res, Number(req.params.officeId))) return
 
   try {
     const officeId = Number(req.params.officeId)
@@ -77,7 +77,10 @@ router.get('/offices/:officeId/commands/next', async (req: Request, res: Respons
 })
 
 router.post('/commands/:commandId/done', async (req: Request, res: Response) => {
-  if (!verifyPostomatSecret(req, res)) return
+  // Секрет зависит от офиса команды: устройство одного офиса не может закрывать чужие команды.
+  const commandOffice = await database.get('SELECT office_id FROM locker_commands WHERE id = ?', [Number(req.params.commandId)])
+    .catch(() => null)
+  if (!verifyPostomatSecret(req, res, commandOffice?.office_id)) return
 
   try {
     const commandId = Number(req.params.commandId)
@@ -87,7 +90,7 @@ router.post('/commands/:commandId/done', async (req: Request, res: Response) => 
 
     const parsed = commandDoneSchema.safeParse(req.body)
     if (!parsed.success) {
-      return res.status(400).json({ error: parsed.error.errors.map((e) => e.message).join(', ') })
+      return res.status(400).json({ error: parsed.error.issues.map((e) => e.message).join(', ') })
     }
 
     const existing = await database.get('SELECT office_id FROM locker_commands WHERE id = ?', [commandId])
@@ -108,12 +111,12 @@ router.post('/commands/:commandId/done', async (req: Request, res: Response) => 
 })
 
 router.post('/heartbeat', async (req: Request, res: Response) => {
-  if (!verifyPostomatSecret(req, res)) return
+  if (!verifyPostomatSecret(req, res, Number(req.body?.officeId))) return
 
   try {
     const parsed = heartbeatSchema.safeParse(req.body)
     if (!parsed.success) {
-      return res.status(400).json({ error: parsed.error.errors.map((e) => e.message).join(', ') })
+      return res.status(400).json({ error: parsed.error.issues.map((e) => e.message).join(', ') })
     }
 
     const office = await database.get('SELECT id FROM offices WHERE id = ?', [parsed.data.officeId])

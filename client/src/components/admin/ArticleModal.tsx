@@ -175,7 +175,7 @@ export default function ArticleModal({ article, onClose }: ArticleModalProps) {
               </label>
               <input
                 type="text"
-                value={formData.image_url}
+                value={formData.image_url ?? ''}
                 onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
                 className="w-full min-h-[44px] border border-gray-300 rounded-xl px-4 py-2 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 placeholder="http://localhost:3002/uploads/image.jpg"
@@ -222,7 +222,7 @@ export default function ArticleModal({ article, onClose }: ArticleModalProps) {
               </label>
               <input
                 type="text"
-                value={formData.tags}
+                value={formData.tags ?? ''}
                 onChange={(e) => setFormData({ ...formData, tags: e.target.value })}
                 className="w-full min-h-[44px] border border-gray-300 rounded-xl px-4 py-2 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 placeholder="тег1, тег2, тег3"

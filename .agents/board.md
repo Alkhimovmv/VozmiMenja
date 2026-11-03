@@ -14,6 +14,8 @@
 
 ## Now
 
+- [x] QA/Security Review: проверить общий backend-релиз, закрыть межофисные утечки и защитить историю от некорректных связей и удаления
+- [x] Security Task: безопасно обновить `follow-redirects`, `multer`, `nodemailer` и Zod; убрать production advisories без `npm audit fix --force`
 - [x] Local Growth Task: проверить обе карточки Яндекс Бизнеса и подготовить location-specific YML-фиды для Волжской и Динамо
 - [x] Yandex Business Task: отправить локальные сайты с UTM, описания и Telegram обеих карточек на модерацию
 - [ ] Owner Action: отдельно решить перенос Динамо с Ленинградского проспекта, 34 на ул. Расковой, 1

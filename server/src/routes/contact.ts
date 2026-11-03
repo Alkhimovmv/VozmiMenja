@@ -63,7 +63,7 @@ router.post('/', publicLeadRateLimiter, async (req: Request, res: Response) => {
       return res.status(400).json({
         success: false,
         message: 'Некорректные данные',
-        errors: error.errors
+        errors: error.issues
       })
     }
 

@@ -1,4 +1,7 @@
 import { Router, Request, Response } from 'express'
+import { isForeignKeyError } from '../utils/dbErrors'
+import { canAccessOffice, filterByOfficeAccess } from '../middleware/userFilter'
+import { createPublicLeadRateLimiter } from '../middleware/publicLeadGuard'
 import { upload } from '../middleware/upload'
 import { authMiddleware, superAdminMiddleware, signToken } from '../middleware/auth'
 import { adminUserModel } from '../models/AdminUser'
@@ -9,8 +12,11 @@ import { emailBackupService } from '../services/emailBackup'
 
 const router = Router()
 
+// Защита от подбора пароля: не больше 10 попыток входа с одного IP за 15 минут.
+const loginRateLimiter = createPublicLeadRateLimiter({ limit: 10, windowMs: 15 * 60 * 1000 })
+
 // Логин по номеру телефона + пароль
-router.post('/auth/login', async (req: Request, res: Response) => {
+router.post('/auth/login', loginRateLimiter, async (req: Request, res: Response) => {
   try {
     const { phone, password } = req.body
 
@@ -53,9 +59,9 @@ router.get('/auth/verify', authMiddleware, async (req: Request, res: Response) =
   }
 })
 
-router.get('/bookings', authMiddleware, async (_req: Request, res: Response) => {
+router.get('/bookings', authMiddleware, async (req: Request, res: Response) => {
   try {
-    const bookings = await bookingModel.findAll()
+    const bookings = await filterByOfficeAccess(req, await bookingModel.findAll(), (booking) => booking.officeId)
     res.json(bookings)
   } catch (error) {
     console.error('Admin bookings list error:', error)
@@ -73,7 +79,7 @@ router.patch('/bookings/:id/status', authMiddleware, async (req: Request, res: R
     }
 
     const booking = await bookingModel.findById(req.params.id)
-    if (!booking) {
+    if (!booking || !await canAccessOffice(req, booking.officeId)) {
       return res.status(404).json({ error: 'Заявка не найдена' })
     }
 
@@ -89,7 +95,7 @@ router.patch('/bookings/:id/status', authMiddleware, async (req: Request, res: R
 router.delete('/bookings/:id', authMiddleware, async (req: Request, res: Response) => {
   try {
     const booking = await bookingModel.findById(req.params.id)
-    if (!booking) {
+    if (!booking || !await canAccessOffice(req, booking.officeId)) {
       return res.status(404).json({ error: 'Заявка не найдена' })
     }
 
@@ -101,9 +107,10 @@ router.delete('/bookings/:id', authMiddleware, async (req: Request, res: Respons
   }
 })
 
-router.get('/contact-leads', authMiddleware, async (_req: Request, res: Response) => {
+router.get('/contact-leads', authMiddleware, async (req: Request, res: Response) => {
   try {
-    const leads = await contactLeadModel.findAll()
+    // У обращений нет офиса: они приходят с сайта и относятся к офису по умолчанию.
+    const leads = await canAccessOffice(req, null) ? await contactLeadModel.findAll() : []
     res.json(leads)
   } catch (error) {
     console.error('Admin contact leads list error:', error)
@@ -126,7 +133,7 @@ router.patch('/contact-leads/:id/status', authMiddleware, async (req: Request, r
     }
 
     const lead = await contactLeadModel.findById(id)
-    if (!lead) {
+    if (!lead || !await canAccessOffice(req, null)) {
       return res.status(404).json({ error: 'Обращение не найдено' })
     }
 
@@ -147,7 +154,7 @@ router.delete('/contact-leads/:id', authMiddleware, async (req: Request, res: Re
     }
 
     const lead = await contactLeadModel.findById(id)
-    if (!lead) {
+    if (!lead || !await canAccessOffice(req, null)) {
       return res.status(404).json({ error: 'Обращение не найдено' })
     }
 
@@ -219,12 +226,15 @@ router.delete('/users/:id', superAdminMiddleware, async (req: Request, res: Resp
     await adminUserModel.delete(id)
     res.json({ success: true })
   } catch (error) {
+    if (isForeignKeyError(error)) {
+      return res.status(409).json({ error: 'У пользователя есть офисы или оборудование — сначала передайте их другому аккаунту.' })
+    }
     res.status(500).json({ error: 'Ошибка удаления пользователя' })
   }
 })
 
 // Тестовая отправка ежедневного уведомления
-router.post('/test-daily-reminder', authMiddleware, async (req: Request, res: Response) => {
+router.post('/test-daily-reminder', superAdminMiddleware, async (req: Request, res: Response) => {
   try {
     await schedulerService.sendDailyRentalsReminder()
     res.json({ success: true, message: 'Уведомление отправлено' })
@@ -235,7 +245,7 @@ router.post('/test-daily-reminder', authMiddleware, async (req: Request, res: Re
 })
 
 // Ручная отправка email бэкапа БД
-router.post('/send-db-backup', authMiddleware, async (req: Request, res: Response) => {
+router.post('/send-db-backup', superAdminMiddleware, async (req: Request, res: Response) => {
   try {
     await emailBackupService.sendDatabaseBackup()
     res.json({ success: true, message: 'Бэкап отправлен на email' })

@@ -5,6 +5,7 @@ import { database } from '../models/database'
 import { authMiddleware } from '../middleware/auth'
 import { getUserOfficeIds } from '../middleware/userFilter'
 import { initializeLockers } from '../scripts/initializeLockers'
+import { validateOfficeEquipmentSelection } from '../domain/officeEquipmentSelection'
 
 const router = Router()
 
@@ -15,6 +16,13 @@ const createLockerSchema = z.object({
   items: z.array(z.string()).optional().default([]),
   is_active: z.boolean().optional().default(true),
   office_id: z.number().int().positive().optional().default(1)
+})
+
+const lockerEquipmentSchema = z.object({
+  items: z.array(z.object({
+    equipment_id: z.number().int().positive(),
+    instance_number: z.number().int().positive().optional().default(1),
+  })).max(100),
 })
 
 function toSnakeCase(locker: any) {
@@ -70,6 +78,10 @@ router.get('/', authMiddleware, async (req: Request, res: Response) => {
 router.post('/initialize', authMiddleware, async (req: Request, res: Response) => {
   try {
     const officeId = req.body.office_id ? parseInt(req.body.office_id) : 1
+    const userOfficeIds = await getUserOfficeIds(req)
+    if (userOfficeIds !== null && !userOfficeIds.includes(officeId)) {
+      return res.status(403).json({ error: 'Нет доступа к этому офису' })
+    }
     await initializeLockers(officeId)
     res.json({ message: 'Ячейки успешно инициализированы' })
   } catch (error) {
@@ -118,7 +130,9 @@ router.get('/:id', authMiddleware, async (req: Request, res: Response) => {
   try {
     const locker = await lockerModel.findById(parseInt(req.params.id))
 
-    if (!locker) {
+    // Ответ содержит код доступа к ячейке: чужой офис получает 404, как и несуществующая ячейка.
+    const userOfficeIds = await getUserOfficeIds(req)
+    if (!locker || (userOfficeIds !== null && !userOfficeIds.includes(locker.officeId))) {
       res.status(404).json({ error: 'Ячейка не найдена' })
       return
     }
@@ -135,7 +149,7 @@ router.post('/', authMiddleware, async (req: Request, res: Response) => {
   try {
     const parsed = createLockerSchema.safeParse(req.body)
     if (!parsed.success) {
-      return res.status(400).json({ error: parsed.error.errors.map(e => e.message).join(', ') })
+      return res.status(400).json({ error: parsed.error.issues.map(e => e.message).join(', ') })
     }
 
     const userOfficeIds = await getUserOfficeIds(req)
@@ -229,10 +243,37 @@ router.put('/:id/equipment', authMiddleware, async (req: Request, res: Response)
       return res.status(403).json({ error: 'Нет доступа' })
     }
 
-    const items: Array<{ equipmentId: number; instanceNumber: number }> = (req.body.items || []).map((item: any) => ({
+    const parsed = lockerEquipmentSchema.safeParse(req.body)
+    if (!parsed.success) {
+      return res.status(400).json({ error: parsed.error.issues.map((issue) => issue.message).join(', ') })
+    }
+
+    const items = parsed.data.items.map((item) => ({
       equipmentId: item.equipment_id,
-      instanceNumber: item.instance_number || 1,
+      instanceNumber: item.instance_number,
     }))
+    const equipmentIds = [...new Set(items.map((item) => item.equipmentId))]
+    const equipment = equipmentIds.length > 0
+      ? await database.all(
+          `SELECT id, office_id, quantity FROM rental_equipment WHERE id IN (${equipmentIds.map(() => '?').join(',')})`,
+          equipmentIds,
+        )
+      : []
+    const selectionError = validateOfficeEquipmentSelection(
+      items,
+      equipment.map((item) => ({ id: item.id, officeId: item.office_id, quantity: item.quantity })),
+      locker.officeId,
+    )
+    if (selectionError) {
+      const message = selectionError === 'office-mismatch'
+        ? 'Оборудование находится в другом офисе'
+        : selectionError === 'instance-out-of-range'
+          ? 'У оборудования нет такого экземпляра'
+          : selectionError === 'duplicate-instance'
+            ? 'Один экземпляр оборудования выбран несколько раз'
+            : 'Оборудование не найдено'
+      return res.status(400).json({ error: message })
+    }
 
     await lockerModel.setEquipment(lockerId, items)
 

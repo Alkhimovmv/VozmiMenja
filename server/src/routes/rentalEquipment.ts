@@ -3,6 +3,7 @@ import { rentalEquipmentModel, CreateRentalEquipmentData, RentalEquipmentInstanc
 import { equipmentModel } from '../models/Equipment'
 import { authMiddleware } from '../middleware/auth'
 import { getUserOfficeIds } from '../middleware/userFilter'
+import { database } from '../models/database'
 import { equipmentToSnakeCase as toSnakeCase, equipmentToRentalFormat as toRentalFormat } from '../utils/transformers'
 
 const router = Router()
@@ -269,6 +270,18 @@ router.delete('/:id', authMiddleware, async (req: Request, res: Response) => {
 
     if (!await canAccessEquipment(req, equipment.officeId)) {
       return res.status(403).json({ error: 'Нет доступа' })
+    }
+
+    // rentals.equipment_id объявлен с ON DELETE CASCADE: удаление позиции стёрло бы
+    // всю историю аренд и выручку по ней. Такие позиции удалять нельзя.
+    const usage = await database.get(
+      `SELECT
+        (SELECT COUNT(*) FROM rentals WHERE equipment_id = ?) +
+        (SELECT COUNT(*) FROM rental_equipment_items WHERE equipment_id = ?) AS cnt`,
+      [equipment.id, equipment.id]
+    )
+    if (usage?.cnt > 0) {
+      return res.status(409).json({ error: 'У позиции есть история аренд — удалить её нельзя. Уменьшите количество или переименуйте позицию.' })
     }
 
     await rentalEquipmentModel.delete(parseInt(req.params.id))

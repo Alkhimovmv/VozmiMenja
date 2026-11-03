@@ -296,9 +296,9 @@ export class RentalModel {
         normalizedCustomerPhone,
         data.needsDelivery ? 1 : 0,
         data.deliveryAddress || null,
-        data.rentalPrice || null,
-        data.deliveryPrice || null,
-        data.deliveryCosts || null,
+        data.rentalPrice ?? null,
+        data.deliveryPrice ?? null,
+        data.deliveryCosts ?? null,
         data.source,
         data.comment || null,
         'pending',
@@ -309,7 +309,25 @@ export class RentalModel {
       })
     })
 
-    // Если указано несколько единиц оборудования, добавляем их в связующую таблицу
+    // Аренда без позиций невидима для проверки занятости, поэтому при сбое вставки
+    // позиций удаляем только что созданную аренду (транзакцию на общем соединении
+    // node-sqlite3 открыть безопасно нельзя: в неё попадут чужие запросы).
+    try {
+      await this.insertRentalItems(rentalId, data)
+    } catch (error) {
+      await run('DELETE FROM rentals WHERE id = ?', [rentalId])
+      throw error
+    }
+
+    const rental = await this.findById(rentalId)
+    if (!rental) {
+      throw new Error('Failed to create rental')
+    }
+
+    return rental
+  }
+
+  private async insertRentalItems(rentalId: number, data: CreateRentalData): Promise<void> {
     if (data.equipmentInstances && data.equipmentInstances.length > 0) {
       // Новый формат с номерами экземпляров
       for (const instance of data.equipmentInstances) {
@@ -327,13 +345,6 @@ export class RentalModel {
         `, [rentalId, equipmentId, 1])
       }
     }
-
-    const rental = await this.findById(rentalId)
-    if (!rental) {
-      throw new Error('Failed to create rental')
-    }
-
-    return rental
   }
 
   async update(id: number, data: Partial<CreateRentalData & { status: RentalStatus }>): Promise<Rental> {
@@ -721,9 +732,9 @@ export class RentalModel {
       customerPhone: row.customer_phone,
       needsDelivery: row.needs_delivery === 1,
       deliveryAddress: row.delivery_address || undefined,
-      rentalPrice: row.rental_price || undefined,
-      deliveryPrice: row.delivery_price || undefined,
-      deliveryCosts: row.delivery_costs || undefined,
+      rentalPrice: row.rental_price ?? undefined,
+      deliveryPrice: row.delivery_price ?? undefined,
+      deliveryCosts: row.delivery_costs ?? undefined,
       source: row.source as RentalSource,
       comment: row.comment || undefined,
       status: row.status as RentalStatus,

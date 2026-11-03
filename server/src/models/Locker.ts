@@ -327,6 +327,8 @@ export class LockerModel {
   }
 
   async delete(id: number): Promise<void> {
+    // Аренды сохраняем: ссылка на удалённую ячейку обнуляется, а не блокирует удаление.
+    await run('UPDATE rentals SET locker_id = NULL WHERE locker_id = ?', [id])
     await run('DELETE FROM lockers WHERE id = ?', [id])
   }
 }

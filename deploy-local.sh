@@ -227,8 +227,21 @@ backup_database() {
     # Бэкап VozmiMenja database (включая данные админки)
     if [ -f "server/database.sqlite" ]; then
         echo "Бэкап VozmiMenja database.sqlite..."
-        cp server/database.sqlite backups/vozmimenya-db-${BACKUP_DATE}.sqlite
-        print_success "БД сохранена: backups/vozmimenya-db-${BACKUP_DATE}.sqlite"
+        BACKUP_FILE="backups/vozmimenya-db-${BACKUP_DATE}.sqlite"
+        # Сервер в этот момент ещё работает: обычный cp может скопировать файл посреди записи.
+        # VACUUM INTO даёт согласованный снимок; cp остаётся запасным вариантом.
+        if command -v sqlite3 >/dev/null 2>&1 && sqlite3 server/database.sqlite "VACUUM INTO '${BACKUP_FILE}'"; then
+            print_success "БД сохранена (снимок sqlite3): ${BACKUP_FILE}"
+        elif (cd server && node -e "
+            const sqlite3 = require('sqlite3')
+            const db = new sqlite3.Database('database.sqlite')
+            db.run('VACUUM INTO ?', ['../${BACKUP_FILE}'], (err) => { db.close(); process.exit(err ? 1 : 0) })
+        "); then
+            print_success "БД сохранена (снимок node): ${BACKUP_FILE}"
+        else
+            cp server/database.sqlite "${BACKUP_FILE}"
+            print_warning "Снимок не удался, БД скопирована через cp: ${BACKUP_FILE}"
+        fi
     fi
 
     # Удаление старых бэкапов (старше 7 дней)

@@ -11,14 +11,23 @@ import { authMiddleware } from '../middleware/auth'
 import { calculateRentalTotal } from '../utils/pricing'
 import { calculateBillableRentalDays, createBookingSchema, getBookingEquipmentIds, parseDateInput } from './bookingRules'
 import { publicLeadRateLimiter } from '../middleware/publicLeadGuard'
+import { canAccessOffice, filterByOfficeAccess } from '../middleware/userFilter'
 
 const router = Router()
 
 const getRequestIp = (req: Request) => req.ip || req.socket.remoteAddress || ''
 
+// Публичный ответ без персональных данных: повторная отправка с тем же телефоном
+// и датами иначе раскрывала бы всю ранее сохранённую заявку (адрес, комментарий, IP).
+const toPublicBooking = (booking: { id: string; status?: string; totalPrice?: number }) => ({
+  id: booking.id,
+  status: booking.status,
+  totalPrice: booking.totalPrice,
+})
+
 router.get('/', authMiddleware, async (req: Request, res: Response) => {
   try {
-    const bookings = await bookingModel.findAll()
+    const bookings = await filterByOfficeAccess(req, await bookingModel.findAll(), (booking) => booking.officeId)
 
     res.json({
       success: true,
@@ -38,7 +47,7 @@ router.get('/:id', authMiddleware, async (req: Request, res: Response) => {
     const { id } = req.params
     const booking = await bookingModel.findById(id)
 
-    if (!booking) {
+    if (!booking || !await canAccessOffice(req, booking.officeId)) {
       return res.status(404).json({
         success: false,
         message: 'Бронирование не найдено'
@@ -119,7 +128,7 @@ router.post('/', publicLeadRateLimiter, async (req: Request, res: Response) => {
       return res.status(200).json({
         success: true,
         duplicate: true,
-        data: duplicateBooking,
+        data: toPublicBooking(duplicateBooking),
         message: 'Такая заявка уже получена',
       })
     }
@@ -193,7 +202,7 @@ router.post('/', publicLeadRateLimiter, async (req: Request, res: Response) => {
 
     res.status(201).json({
       success: true,
-      data: booking,
+      data: toPublicBooking(booking),
       message: 'Бронирование успешно создано'
     })
 
@@ -202,7 +211,7 @@ router.post('/', publicLeadRateLimiter, async (req: Request, res: Response) => {
       return res.status(400).json({
         success: false,
         message: 'Некорректные данные',
-        errors: error.errors
+        errors: error.issues
       })
     }
 

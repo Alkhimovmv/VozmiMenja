@@ -1,4 +1,4 @@
-type AnalyticsParams = Record<string, string | number | boolean | undefined>
+type AnalyticsParams = Record<string, string | number | boolean | null | undefined | Array<string | number>>
 
 declare global {
   interface Window {

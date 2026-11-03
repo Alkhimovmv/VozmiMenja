@@ -1,5 +1,5 @@
 import apiClient from './client';
-import { type CreateRentalDto, type Rental, type RentalAvailabilityResult } from '../types/index';
+import { type CreateRentalDto, type Rental, type RentalAvailabilityResult } from '../../types/admin';
 import type { RentalPriceQuote } from '../../types/admin';
 
 export interface Customer {

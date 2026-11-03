@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express'
 import jwt from 'jsonwebtoken'
-import { AdminRole } from '../models/AdminUser'
+import { AdminRole, adminUserModel } from '../models/AdminUser'
 
 export interface AuthTokenPayload {
   userId: number
@@ -34,7 +34,7 @@ export function verifyToken(token: string): AuthTokenPayload | null {
   }
 }
 
-export function authMiddleware(req: Request, res: Response, next: NextFunction) {
+export async function authMiddleware(req: Request, res: Response, next: NextFunction) {
   const authHeader = req.headers.authorization
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     return res.status(401).json({ success: false, message: 'Unauthorized' })
@@ -47,7 +47,19 @@ export function authMiddleware(req: Request, res: Response, next: NextFunction) 
     return res.status(401).json({ success: false, message: 'Invalid token' })
   }
 
-  req.user = payload
+  // Токен живёт 30 дней, поэтому сверяемся с базой: удалённый пользователь теряет доступ
+  // сразу, а смена роли действует без перевыпуска токена.
+  try {
+    const user = await adminUserModel.findById(payload.userId)
+    if (!user) {
+      return res.status(401).json({ success: false, message: 'User not found' })
+    }
+    req.user = { userId: user.id, phone: user.phone, role: user.role }
+  } catch (error) {
+    console.error('Auth user lookup failed:', error)
+    return res.status(500).json({ success: false, message: 'Internal server error' })
+  }
+
   next()
 }
 

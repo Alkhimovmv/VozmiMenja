@@ -159,7 +159,7 @@ export default function BookingSuccessPage() {
 
             <div className="mt-6 space-y-3">
               <a
-                href={getTelegramUrl('Здравствуйте! Я отправил(а) заявку на бронь на сайте. Подскажите, пожалуйста, удалось ли подтвердить наличие?')}
+                href={getTelegramUrl()}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="block rounded-2xl bg-blue-600 px-5 py-3 text-center text-sm font-black text-white transition hover:bg-blue-700"

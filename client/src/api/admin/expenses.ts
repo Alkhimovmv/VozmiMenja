@@ -1,5 +1,5 @@
 import apiClient from './client';
-import { type Expense, type CreateExpenseDto } from '../types/index';
+import { type Expense, type CreateExpenseDto } from '../../types/admin';
 
 export const expensesApi = {
   getAll: async (officeId?: number): Promise<Expense[]> => {

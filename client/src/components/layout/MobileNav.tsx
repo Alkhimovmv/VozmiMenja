@@ -15,13 +15,12 @@ export default function MobileNav() {
   return (
     <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-100" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
       <div className="flex items-center justify-around px-1 py-1.5">
-        {tabs.map(({ to, icon: Icon, label, onClick }) => {
+        {tabs.map(({ to, icon: Icon, label }) => {
           const isActive = to === '/' ? pathname === '/' : pathname.startsWith(to.split('#')[0]) && to !== '/'
           return (
             <Link
               key={label}
               to={to}
-              onClick={onClick}
               className={`flex flex-col items-center gap-0.5 px-2 py-1 rounded-xl transition-colors min-w-0 ${
                 isActive ? 'text-primary' : 'text-gray-400'
               }`}

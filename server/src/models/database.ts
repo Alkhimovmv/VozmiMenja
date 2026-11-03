@@ -1,6 +1,7 @@
 import sqlite3 from 'sqlite3'
 import { promisify } from 'util'
 import path from 'path'
+import { getExpenseType, normalizeExpenseCategory } from '../domain/expenseCategories'
 
 const dbPath = process.env.DATABASE_PATH
   ? path.resolve(process.env.DATABASE_PATH)
@@ -327,44 +328,20 @@ class Database {
       if (!error.message?.includes('duplicate column name')) throw error
     }
 
-    // Нормализуем старые свободные категории. Неоднозначные записи оставляем
-    // заметными для ручного разбора, а не угадываем их назначение.
-    await run(`
-      UPDATE expenses
-      SET category = CASE TRIM(COALESCE(category, ''))
-        WHEN 'Покупка оборудования' THEN 'Покупка оборудования'
-        WHEN 'Топливо' THEN 'Доставка и топливо'
-        WHEN 'Ремонт оборудования' THEN 'Ремонт и обслуживание'
-        WHEN 'Реклама' THEN 'Реклама и продвижение'
-        WHEN 'Аренда' THEN 'Аренда помещения'
-        WHEN 'Аренда помещения' THEN 'Аренда помещения'
-        WHEN 'Аренда помещений' THEN 'Аренда помещения'
-        WHEN 'Арендв' THEN 'Аренда помещения'
-        WHEN 'Интернет и связь' THEN 'Интернет и связь'
-        WHEN 'Упаковка и расходники' THEN 'Расходники и химия'
-        WHEN 'Прочее' THEN 'Требует разбора'
-        WHEN 'Постамат и инфраструктура' THEN 'Постамат и инфраструктура'
-        WHEN 'Реклама и продвижение' THEN 'Реклама и продвижение'
-        WHEN 'Доставка и топливо' THEN 'Доставка и топливо'
-        WHEN 'Ремонт и обслуживание' THEN 'Ремонт и обслуживание'
-        WHEN 'Расходники и химия' THEN 'Расходники и химия'
-        WHEN 'Офис и хозяйственные расходы' THEN 'Офис и хозяйственные расходы'
-        WHEN 'Комиссии и сервисы' THEN 'Комиссии и сервисы'
-        WHEN 'Налоги и сборы' THEN 'Налоги и сборы'
-        WHEN 'Зарплата и подрядчики' THEN 'Зарплата и подрядчики'
-        WHEN 'Прочие операционные' THEN 'Прочие операционные'
-        WHEN 'Требует разбора' THEN 'Требует разбора'
-        ELSE 'Требует разбора'
-      END
-    `)
-
-    await run(`
-      UPDATE expenses
-      SET expense_type = CASE
-        WHEN category IN ('Покупка оборудования', 'Постамат и инфраструктура') THEN 'capital'
-        ELSE 'operational'
-      END
-    `)
+    // Нормализуем старые свободные категории через тот же справочник, что и API:
+    // единый источник не даёт новой категории молча превратиться в «Требует разбора»
+    // при следующем старте. Обновляем только строки, где значение реально меняется.
+    const storedCategories = await this.all('SELECT DISTINCT category, expense_type FROM expenses')
+    for (const row of storedCategories) {
+      const category = normalizeExpenseCategory(row.category)
+      const expenseType = getExpenseType(category)
+      if (category !== row.category || expenseType !== row.expense_type) {
+        await this.run(
+          'UPDATE expenses SET category = ?, expense_type = ? WHERE category IS ? AND expense_type IS ?',
+          [category, expenseType, row.category, row.expense_type]
+        )
+      }
+    }
 
     // Добавляем поля size, row_number, position_in_row если их нет
     try {
@@ -669,6 +646,11 @@ class Database {
     await run(`
       CREATE INDEX IF NOT EXISTS idx_articles_category ON articles(category);
     `)
+
+    // SQLite по умолчанию не проверяет внешние ключи. Включаем после миграций:
+    // каскады (ячейки, позиции аренды) начинают работать, а удаление записей,
+    // на которые ссылаются другие, отклоняется вместо тихого появления «сирот».
+    await run('PRAGMA foreign_keys = ON')
   }
 
   get instance(): sqlite3.Database {

@@ -1,4 +1,5 @@
 import { Router, Request, Response } from 'express'
+import { isForeignKeyError } from '../utils/dbErrors'
 import { equipmentModel } from '../models/Equipment'
 import { authMiddleware } from '../middleware/auth'
 import { v4 as uuidv4 } from 'uuid'
@@ -161,6 +162,12 @@ router.delete('/:id', authMiddleware, async (req: Request, res: Response) => {
     await equipmentModel.delete(id)
     res.status(204).send()
   } catch (error) {
+    if (isForeignKeyError(error)) {
+      return res.status(409).json({
+        success: false,
+        message: 'Товар связан с заявками или позициями офисов — сначала отвяжите их.'
+      })
+    }
     console.error('Error deleting equipment:', error)
     res.status(500).json({
       success: false,
