@@ -699,7 +699,7 @@ const RentalModal: React.FC<RentalModalProps> = ({
                     className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
                     placeholder="Не указана"
                     min="0"
-                    step="10"
+                    step="1"
                   />
                   {rental && (
                     <div className="mt-2">
@@ -775,7 +775,7 @@ const RentalModal: React.FC<RentalModalProps> = ({
                       className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
                       placeholder="Не указана"
                       min="0"
-                      step="10"
+                      step="1"
                     />
                     <p className="mt-1 text-xs text-gray-500">Сколько тебе перевели</p>
                   </div>
@@ -788,7 +788,7 @@ const RentalModal: React.FC<RentalModalProps> = ({
                       className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
                       placeholder="Не указаны"
                       min="0"
-                      step="10"
+                      step="1"
                     />
                     <p className="mt-1 text-xs text-gray-500">Цена Яндекса</p>
                   </div>
