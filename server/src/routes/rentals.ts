@@ -6,6 +6,8 @@ import { getUserOfficeIds } from '../middleware/userFilter'
 import { rentalToSnakeCase as toSnakeCase } from '../utils/transformers'
 import { lockerModel } from '../models/Locker'
 import { get, all } from '../models/database'
+import { equipmentModel } from '../models/Equipment'
+import { calculateRentalPriceQuote } from '../domain/rentalPriceQuote'
 
 const router = Router()
 
@@ -54,6 +56,12 @@ const availabilityQuerySchema = z.object({
   start_date: z.string().min(1, 'start_date обязателен'),
   end_date: z.string().min(1, 'end_date обязателен'),
   office_id: z.coerce.number().int().positive().optional()
+})
+
+const priceQuoteSchema = z.object({
+  equipment_ids: z.array(z.number().int().positive()).min(1).max(30),
+  start_date: z.string().min(1, 'start_date обязателен'),
+  end_date: z.string().min(1, 'end_date обязателен'),
 })
 
 // GET /api/rentals - Получить все аренды
@@ -127,6 +135,87 @@ router.get('/gantt', authMiddleware, async (req: Request, res: Response) => {
   } catch (error) {
     console.error('Error getting gantt data:', error)
     res.status(500).json({ error: 'Ошибка получения данных для диаграммы Ганта' })
+  }
+})
+
+// POST /api/admin/rentals/price-quote - необязательная тарифная подсказка.
+// Никогда не изменяет аренду и не перезаписывает введённую менеджером сумму.
+router.post('/price-quote', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const parsed = priceQuoteSchema.safeParse(req.body)
+    if (!parsed.success) {
+      return res.status(400).json({ error: parsed.error.errors.map((error) => error.message).join(', ') })
+    }
+
+    const { equipment_ids: equipmentIds, start_date: startDate, end_date: endDate } = parsed.data
+    const uniqueEquipmentIds = [...new Set(equipmentIds)]
+    const placeholders = uniqueEquipmentIds.map(() => '?').join(', ')
+    const officeEquipmentRows = await all(`
+      SELECT id, name, office_id, catalog_equipment_id
+      FROM rental_equipment
+      WHERE id IN (${placeholders})
+    `, uniqueEquipmentIds) as Array<{
+      id: number
+      name: string
+      office_id: number | null
+      catalog_equipment_id: string | null
+    }>
+    const userOfficeIds = await getUserOfficeIds(req)
+    const accessibleOfficeEquipmentRows = userOfficeIds === null
+      ? officeEquipmentRows
+      : officeEquipmentRows.filter((item) => item.office_id !== null && userOfficeIds.includes(item.office_id))
+    const officeEquipmentById = new Map(accessibleOfficeEquipmentRows.map((item) => [item.id, item]))
+    const catalogEquipmentIds = [...new Set(
+      accessibleOfficeEquipmentRows
+        .map((item) => item.catalog_equipment_id)
+        .filter((id): id is string => Boolean(id)),
+    )]
+    const catalogEquipment = await equipmentModel.findByIds(catalogEquipmentIds)
+    const catalogEquipmentById = new Map(catalogEquipment.map((item) => [item.id, item]))
+    const unresolvedEquipmentIds: number[] = []
+    const quoteItems = equipmentIds.flatMap((equipmentId) => {
+      const officeEquipment = officeEquipmentById.get(equipmentId)
+      const catalogItem = officeEquipment?.catalog_equipment_id
+        ? catalogEquipmentById.get(officeEquipment.catalog_equipment_id)
+        : undefined
+
+      if (!officeEquipment || !catalogItem) {
+        unresolvedEquipmentIds.push(equipmentId)
+        return []
+      }
+
+      return [{
+        rentalEquipmentId: officeEquipment.id,
+        rentalEquipmentName: officeEquipment.name,
+        catalogEquipment: catalogItem,
+      }]
+    })
+
+    if (unresolvedEquipmentIds.length > 0) {
+      return res.json({
+        complete: false,
+        unresolved_equipment_ids: [...new Set(unresolvedEquipmentIds)],
+        message: 'Не для всех позиций настроена связь с тарифами сайта',
+      })
+    }
+
+    const quote = calculateRentalPriceQuote(quoteItems, startDate, endDate)
+    res.json({
+      complete: true,
+      rental_days: quote.rentalDays,
+      total: quote.total,
+      items: quote.items.map((item) => ({
+        rental_equipment_id: item.rentalEquipmentId,
+        rental_equipment_name: item.rentalEquipmentName,
+        catalog_equipment_id: item.catalogEquipmentId,
+        catalog_equipment_name: item.catalogEquipmentName,
+        total: item.total,
+      })),
+      unresolved_equipment_ids: [],
+    })
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Не удалось рассчитать стоимость'
+    res.status(400).json({ error: message })
   }
 })
 

@@ -1,5 +1,6 @@
 import apiClient from './client';
 import { type CreateRentalDto, type Rental, type RentalAvailabilityResult } from '../types/index';
+import type { RentalPriceQuote } from '../../types/admin';
 
 export interface Customer {
   customerName: string;
@@ -37,6 +38,15 @@ export const rentalsApi = {
     if (officeId) params.append('office_id', String(officeId));
 
     const response = await apiClient.get(`/rentals/availability?${params.toString()}`);
+    return response.data;
+  },
+
+  quotePrice: async (equipmentIds: number[], startDate: string, endDate: string): Promise<RentalPriceQuote> => {
+    const response = await apiClient.post('/rentals/price-quote', {
+      equipment_ids: equipmentIds,
+      start_date: startDate,
+      end_date: endDate,
+    });
     return response.data;
   },
 

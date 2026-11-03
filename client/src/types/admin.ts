@@ -150,6 +150,21 @@ export interface RentalAvailabilityResult {
   conflicting_rentals: Rental[];
 }
 
+export interface RentalPriceQuote {
+  complete: boolean;
+  rental_days?: number;
+  total?: number;
+  items?: Array<{
+    rental_equipment_id: number;
+    rental_equipment_name: string;
+    catalog_equipment_id: string;
+    catalog_equipment_name: string;
+    total: number;
+  }>;
+  unresolved_equipment_ids: number[];
+  message?: string;
+}
+
 export interface CustomerNote {
   customer_phone: string;
   tag: CustomerTag;
