@@ -22,6 +22,11 @@ const chromePath = chromeCandidates.find((candidate) => existsSync(candidate)) |
 const chromeTimeout = process.env.SMOKE_SEO_CHROME_TIMEOUT || '35s'
 const maxRenderAttempts = Number(process.env.SMOKE_SEO_RENDER_ATTEMPTS || 2)
 const maxChromeOutputBytes = 5 * 1024 * 1024
+const staticCatalogPages = [
+  { path: '/arenda-pylesosov-moskva', minProducts: 3 },
+  { path: '/arenda-gopro-moskva', minProducts: 3 },
+  { path: '/arenda-audiooborudovaniya-moskva', minProducts: 3 },
+]
 
 function absoluteUrl(pagePath: string) {
   return new URL(pagePath, `${baseUrl}/`).toString()
@@ -146,6 +151,36 @@ async function checkSitemap() {
   console.log(`✅ sitemap.xml contains ${requiredCanonicalPaths.length} key canonical URLs`)
 }
 
+async function checkStaticCatalog(page: { path: string; minProducts: number }) {
+  const url = absoluteUrl(page.path)
+  const response = await fetch(url)
+
+  if (!response.ok) {
+    throw new Error(`${url}: static catalog returned ${response.status}`)
+  }
+
+  const html = await response.text()
+  const productCount = (html.match(/data-static-product="true"/g) || []).length
+
+  if (!html.includes('data-static-product-catalog="true"')) {
+    throw new Error(`${url}: static product catalog is missing from raw HTML`)
+  }
+
+  if (productCount < page.minProducts) {
+    throw new Error(`${url}: expected at least ${page.minProducts} static products, got ${productCount}`)
+  }
+
+  if (!html.includes('href="/equipment/') || !html.includes('href="/booking?equipment=')) {
+    throw new Error(`${url}: static product or booking links are missing`)
+  }
+
+  if (!html.includes('1 сутки —') || !html.includes('"@type":"Product"')) {
+    throw new Error(`${url}: one-day price or Product structured data is missing`)
+  }
+
+  console.log(`✅ Static catalog ${page.path}: ${productCount} products`)
+}
+
 async function checkPage(page: { path: string; canonicalPath: string }, userDataDir: string) {
   const url = absoluteUrl(page.path)
   let html = ''
@@ -188,6 +223,10 @@ async function checkPage(page: { path: string; canonicalPath: string }, userData
     throw new Error(`${url}: expected canonical ${expectedCanonical}, got ${canonical}`)
   }
 
+  if (staticCatalogPages.some((item) => item.path === page.canonicalPath) && html.includes('data-static-product-catalog="true"')) {
+    throw new Error(`${url}: static product catalog remains after React render and would duplicate the visible catalog`)
+  }
+
   console.log(`✅ SEO ${page.path} -> ${page.canonicalPath}`)
 }
 
@@ -203,6 +242,10 @@ async function smokeSeo() {
   }
 
   await checkSitemap()
+
+  for (const page of staticCatalogPages) {
+    await checkStaticCatalog(page)
+  }
 
   for (const page of pagesToCheck) {
     const userDataDir = await mkdtemp(path.join(tmpdir(), 'vozmimenya-seo-smoke-'))

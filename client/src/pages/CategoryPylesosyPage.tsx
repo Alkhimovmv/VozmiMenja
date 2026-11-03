@@ -25,8 +25,8 @@ export default function CategoryPylesosyPage() {
   const categoryStructuredData = {
     '@context': 'https://schema.org',
     '@type': 'CollectionPage',
-    name: 'Аренда пылесосов в Москве',
-    description: 'Профессиональные строительные и промышленные пылесосы в аренду. Низкие цены от 400₽/день. Доставка по Москве.',
+    name: 'Аренда моющих и строительных пылесосов Karcher в Москве',
+    description: 'Karcher Puzzi для мебели и ковров, WD5 для уборки после ремонта и SC4 для кухни и плитки. Постамат 24/7 и доставка по Москве.',
     url: 'https://vozmimenya.ru/arenda-pylesosov-moskva',
     mainEntity: {
       '@type': 'ItemList',
@@ -50,9 +50,9 @@ export default function CategoryPylesosyPage() {
   }
 
   const advantages = [
-    { icon: Clock, title: 'Доставка 2-4 часа', description: 'Быстрая доставка по всей Москве в удобное время' },
-    { icon: Shield, title: 'Гарантия качества', description: 'Профессиональное оборудование в отличном состоянии' },
-    { icon: Truck, title: 'Быстрая доставка', description: 'Доставка по всей Москве за 2–4 часа' },
+    { icon: Clock, title: 'Постамат 24/7', description: 'Самовывоз и возврат в удобное время на Волжской или Динамо' },
+    { icon: Shield, title: 'Проверенная техника', description: 'Комплект и состояние оборудования проверяются перед выдачей' },
+    { icon: Truck, title: 'Доставка по Москве', description: 'Стоимость и удобное окно доставки подтверждаем до выдачи' },
     { icon: Star, title: '5000+ клиентов', description: 'Более 8 лет на рынке, рейтинг 5.0 из 5.0' },
   ]
 
@@ -111,9 +111,9 @@ export default function CategoryPylesosyPage() {
   return (
     <div className="min-h-screen bg-[#F8FAFC]">
       <SEO
-        title="Аренда пылесосов в Москве от 400₽/день - Строительные и промышленные"
-        description="✅ Аренда строительных и промышленных пылесосов в Москве. Низкие цены от 400₽/день. Доставка 24/7. Подбор модели и бронь через Telegram."
-        keywords="аренда пылесосов москва, прокат строительных пылесосов, промышленные пылесосы аренда, клининговое оборудование напрокат, строительный пылесос москва"
+        title="Аренда моющих и строительных пылесосов Karcher в Москве"
+        description="Karcher Puzzi, WD5 и SC4 в аренду в Москве: химчистка мебели, уборка после ремонта и паровая очистка. Постамат 24/7 и доставка."
+        keywords="аренда пылесоса karcher москва, аренда моющего пылесоса, строительный пылесос аренда, karcher puzzi аренда"
         url="https://vozmimenya.ru/arenda-pylesosov-moskva"
         structuredData={[categoryStructuredData, faqStructuredData]}
       />
@@ -127,11 +127,11 @@ export default function CategoryPylesosyPage() {
             <span>Аренда пылесосов</span>
           </div>
           <h1 className="text-white text-4xl md:text-5xl font-extrabold mb-4 leading-tight">
-            Аренда пылесосов в Москве
+            Аренда моющих и строительных пылесосов Karcher в Москве
           </h1>
           <p className="text-blue-100 text-lg max-w-2xl mb-8">
-            Пылесосы, пароочистители, мойщики окон и клининговое оборудование для любых задач.
-            Профессиональная техника от <span className="font-bold text-white">400₽/день</span>. Доставка по Москве за 2-4 часа.
+            Karcher Puzzi для мебели и ковров, WD5 для уборки после ремонта и SC4 для кухни и плитки.
+            Самовывоз и возврат через постамат 24/7 или доставка по Москве.
           </p>
           <div className="flex flex-col sm:flex-row gap-3 mb-10">
             <a href={getTelegramUrl()} target="_blank" rel="noopener noreferrer" onClick={() => trackEvent('telegram_click', { source: 'category_pylesosy_hero' })} className="btn bg-white text-primary hover:bg-blue-50">
@@ -142,7 +142,7 @@ export default function CategoryPylesosyPage() {
             </a>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 max-w-lg">
-            {[['400₽', 'от / день'], ['2-4ч', 'доставка'], ['24/7', 'работаем'], ['5000+', 'клиентов']].map(([val, label]) => (
+            {[['Puzzi', 'мебель и ковры'], ['WD5', 'после ремонта'], ['24/7', 'постамат'], ['2', 'точки в Москве']].map(([val, label]) => (
               <div key={label} className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
                 <div className="text-2xl font-extrabold mb-0.5">{val}</div>
                 <div className="text-xs text-blue-200">{label}</div>

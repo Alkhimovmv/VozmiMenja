@@ -58,8 +58,8 @@ const staticSeo = {
     canonicalPath: '/',
   },
   '/arenda-pylesosov-moskva': {
-    title: 'Аренда пылесосов в Москве от 400 ₽/день | ВозьмиМеня',
-    description: 'Аренда строительных, моющих и хозяйственных пылесосов в Москве: Karcher WD, Puzzi и техника для уборки после ремонта, мебели и авто.',
+    title: 'Аренда моющих и строительных пылесосов Karcher в Москве',
+    description: 'Karcher Puzzi, WD5 и SC4 в аренду в Москве: химчистка мебели, уборка после ремонта и паровая очистка. Постамат 24/7 и доставка.',
   },
   '/arenda-stroitelnogo-pylesosa-posle-remonta-moskva': {
     title: 'Аренда строительного пылесоса после ремонта в Москве',
@@ -90,12 +90,12 @@ const staticSeo = {
     description: 'Камеры GoPro, Insta360 и DJI Osmo Pocket напрокат для поездки, блога, спорта и мероприятия. Подберём комплект.',
   },
   '/arenda-gopro-moskva': {
-    title: 'Аренда GoPro и экшн-камер в Москве | ВозьмиМеня',
-    description: 'Экшн-камеры GoPro, Insta360 и DJI Osmo Pocket в аренду в Москве для спорта, поездки, блога и съёмки контента.',
+    title: 'Аренда экшн-камер GoPro, Insta360 и DJI в Москве | ВозьмиМеня',
+    description: 'GoPro 13, Insta360 X5 и DJI Osmo Pocket 3 в аренду в Москве. Комплект для съёмки, постамат 24/7, доставка и бронь онлайн.',
   },
   '/arenda-audiooborudovaniya-moskva': {
-    title: 'Аренда аудиооборудования в Москве | Колонки и микрофоны',
-    description: 'Аудиооборудование напрокат в Москве: колонки JBL PartyBox и беспроводные микрофоны для мероприятий, интервью и съёмок.',
+    title: 'Аренда колонок JBL и аудиооборудования в Москве | ВозьмиМеня',
+    description: 'JBL PartyBox 320 и 710, микрофоны JBL и DJI Mic 2 в аренду в Москве. Постамат 24/7, доставка, подбор комплекта и бронь онлайн.',
   },
   '/blog': {
     title: 'Блог об аренде техники и оборудования | ВозьмиМеня',
@@ -408,6 +408,11 @@ function getMinimumPrice(item) {
   return Number(item?.pricePerDay || item?.price_per_day || 0)
 }
 
+function getOneDayPrice(item) {
+  const pricing = normalizePricing(item?.pricing)
+  return Number(pricing.day1) || Number(item?.pricePerDay || item?.price_per_day || 0)
+}
+
 function formatPrice(price) {
   return new Intl.NumberFormat('ru-RU').format(Math.round(price))
 }
@@ -658,11 +663,32 @@ function buildItemListJsonLd(route, remoteData) {
   return {
     '@context': 'https://schema.org',
     '@type': 'ItemList',
+    name: cleanTitle(staticSeo[route]?.title || 'Оборудование в аренду'),
+    numberOfItems: products.length,
     itemListElement: products.map((item, index) => ({
       '@type': 'ListItem',
       position: index + 1,
-      name: item.name,
-      url: `${SITE_ORIGIN}${equipmentRoute(item)}`,
+      item: {
+        '@type': 'Product',
+        name: item.name,
+        description: truncate(item.description || `${item.name} в аренду в Москве.`, 240),
+        image: Array.isArray(item.images) && item.images[0] ? absoluteUrl(item.images[0]) : undefined,
+        category: item.category,
+        url: `${SITE_ORIGIN}${equipmentRoute(item)}`,
+        offers: getOneDayPrice(item) > 0 ? {
+          '@type': 'Offer',
+          url: `${SITE_ORIGIN}${equipmentRoute(item)}`,
+          price: getOneDayPrice(item),
+          priceCurrency: 'RUB',
+          seller: { '@id': ORGANIZATION_ID },
+          priceSpecification: {
+            '@type': 'UnitPriceSpecification',
+            price: getOneDayPrice(item),
+            priceCurrency: 'RUB',
+            unitText: 'сутки',
+          },
+        } : undefined,
+      },
     })),
   }
 }
@@ -938,6 +964,26 @@ function linkList(items) {
   return `<ul>${items.map((item) => `<li><a href="${escapeHtml(item.href)}">${escapeHtml(item.label)}</a></li>`).join('')}</ul>`
 }
 
+function staticProductCatalog(items, heading) {
+  if (!items.length) return ''
+
+  const products = items.map((item) => {
+    const productUrl = equipmentRoute(item)
+    const oneDayPrice = getOneDayPrice(item)
+    const description = truncate(item.description || `${item.name} в аренду в Москве.`, 220)
+    const bookingUrl = `/booking?equipment=${encodeURIComponent(String(item.id || item.slug || ''))}`
+
+    return `<li><article data-static-product="true">
+      <h3><a href="${escapeHtml(productUrl)}">${escapeHtml(item.name)}</a></h3>
+      <p>${escapeHtml(description)}</p>
+      ${oneDayPrice > 0 ? `<p><strong>1 сутки — ${escapeHtml(formatPrice(oneDayPrice))} ₽</strong></p>` : ''}
+      <p><a href="${escapeHtml(bookingUrl)}">Забронировать ${escapeHtml(item.name)}</a></p>
+    </article></li>`
+  }).join('')
+
+  return `<section data-static-product-catalog="true" aria-label="${escapeHtml(heading)}"><h2>${escapeHtml(heading)}</h2><ul>${products}</ul></section>`
+}
+
 function faqSection(items) {
   if (!items?.length) return ''
   return `<h2>Частые вопросы</h2>${items.map((item) => `<h3>${escapeHtml(item.question)}</h3><p>${escapeHtml(item.answer)}</p>`).join('')}`
@@ -975,6 +1021,12 @@ function productLinks(remoteData, predicate = () => true, limit = 8) {
     .filter(predicate)
     .slice(0, limit)
     .map((item) => ({ href: equipmentRoute(item), label: item.name }))
+}
+
+function productsByCategory(remoteData, predicate, limit = 8) {
+  return [...remoteData.equipmentBySlug.values()]
+    .filter(predicate)
+    .slice(0, limit)
 }
 
 function routeProductLinks(route, remoteData, limit = 8) {
@@ -1082,9 +1134,9 @@ function buildStaticRouteBody(route, meta, remoteData) {
   }
 
   const allProducts = productLinks(remoteData, () => true, 12)
-  const cleaning = productLinks(remoteData, (item) => String(item.category || '').includes('Пылесос') || String(item.category || '').includes('клининг'), 8)
-  const cameras = productLinks(remoteData, (item) => String(item.category || '').includes('Камер'), 8)
-  const audio = productLinks(remoteData, (item) => String(item.category || '').includes('Аудио'), 8)
+  const cleaningProducts = productsByCategory(remoteData, (item) => String(item.category || '').includes('Пылесос') || String(item.category || '').includes('клининг'), 8)
+  const cameraProducts = productsByCategory(remoteData, (item) => String(item.category || '').includes('Камер'), 8)
+  const audioProducts = productsByCategory(remoteData, (item) => String(item.category || '').includes('Аудио'), 8)
   const articles = articleLinks(remoteData, 10)
   const routeProducts = routeProductLinks(route, remoteData, 8)
   const routeSections = {
@@ -1098,7 +1150,7 @@ function buildStaticRouteBody(route, meta, remoteData) {
       articles.length ? `<h2>Гайды по выбору</h2>${linkList(articles)}` : '',
     ],
     '/arenda-pylesosov-moskva': [
-      `<h2>Пылесосы и клининг</h2>${linkList(cleaning)}`,
+      staticProductCatalog(cleaningProducts, 'Пылесосы и клининговая техника в аренду'),
       `<p>Для строительной пыли подходит WD5, для диванов и ковров — Karcher Puzzi, для плитки и кухни — пароочиститель SC4.</p>`,
     ],
     '/arenda-stroitelnogo-pylesosa-posle-remonta-moskva': [
@@ -1114,7 +1166,7 @@ function buildStaticRouteBody(route, meta, remoteData) {
       `<p>Пароочиститель подходит для плитки, швов, кухни, ванной и финальной уборки без покупки техники ради одной задачи.</p>`,
     ],
     '/arenda-gopro-moskva': [
-      `<h2>Камеры в аренду</h2>${linkList(cameras)}`,
+      staticProductCatalog(cameraProducts, 'Экшн-камеры в аренду'),
       `<p>GoPro удобна для спорта и воды, Insta360 — для 360-ракурсов, DJI Osmo Pocket — для влогов и плавной съемки с рук.</p>`,
     ],
     '/arenda-kamery-dlya-puteshestviya-vloga-moskva': [
@@ -1122,7 +1174,7 @@ function buildStaticRouteBody(route, meta, remoteData) {
       `<p>Для путешествия важны компактность, стабилизация, автономность и быстрый старт съемки. Подберем камеру и аксессуары под маршрут и формат контента.</p>`,
     ],
     '/arenda-audiooborudovaniya-moskva': [
-      `<h2>Аудиооборудование</h2>${linkList(audio)}`,
+      staticProductCatalog(audioProducts, 'Колонки и микрофоны в аренду'),
       `<p>Колонки JBL PartyBox подходят для квартиры, дачи, праздника и небольшого мероприятия. Микрофоны помогают записать речь и интервью.</p>`,
     ],
     '/arenda-kolonki-dlya-vecherinki-moskva': [

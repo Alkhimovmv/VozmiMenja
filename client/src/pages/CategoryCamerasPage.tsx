@@ -24,8 +24,8 @@ export default function CategoryCamerasPage() {
   const categoryStructuredData = {
     '@context': 'https://schema.org',
     '@type': 'CollectionPage',
-    name: 'Аренда GoPro и камер в Москве',
-    description: 'Профессиональные экшн-камеры GoPro и видеокамеры в аренду. Низкие цены от 400₽/день.',
+    name: 'Аренда экшн-камер GoPro, Insta360 и DJI в Москве',
+    description: 'GoPro 13, Insta360 X5 и DJI Osmo Pocket 3 в аренду для спорта, путешествий и влога. Постамат 24/7 и доставка по Москве.',
     url: 'https://vozmimenya.ru/arenda-gopro-moskva',
   }
 
@@ -97,9 +97,9 @@ export default function CategoryCamerasPage() {
   return (
     <div className="min-h-screen bg-[#F8FAFC]">
       <SEO
-        title="Аренда GoPro в Москве от 400₽/день - Прокат экшн-камер и фототехники"
-        description="✅ Аренда GoPro, DJI Osmo Pocket и Insta360 в Москве. Полный комплект креплений. Доставка 24/7. Подбор камеры и бронь через Telegram."
-        keywords="аренда gopro москва, прокат экшн камер, аренда gopro hero 12, прокат видеокамер, фототехника напрокат москва"
+        title="Аренда экшн-камер GoPro, Insta360 и DJI в Москве | ВозьмиМеня"
+        description="GoPro 13, Insta360 X5 и DJI Osmo Pocket 3 в аренду в Москве. Комплект для съёмки, постамат 24/7, доставка и бронь онлайн."
+        keywords="аренда экшн камеры москва, аренда gopro москва, insta360 в аренду, dji osmo pocket 3 аренда"
         url="https://vozmimenya.ru/arenda-gopro-moskva"
         structuredData={[categoryStructuredData, faqStructuredData]}
       />
@@ -113,11 +113,11 @@ export default function CategoryCamerasPage() {
             <span>Аренда камер</span>
           </div>
           <h1 className="text-white text-4xl md:text-5xl font-extrabold mb-4 leading-tight">
-            Аренда GoPro и экшн-камер в Москве
+            Аренда экшн-камер GoPro, Insta360 и DJI в Москве
           </h1>
           <p className="text-blue-100 text-lg max-w-2xl mb-8">
-            Профессиональные камеры для съемки спорта, путешествий, влогов.
-            От <span className="font-bold text-white">400₽/день</span>. Полный комплект креплений в подарок.
+            GoPro 13 для активной съёмки, Insta360 X5 для 360°-видео и DJI Osmo Pocket 3
+            для влога. Самовывоз через постамат 24/7 или доставка по Москве.
           </p>
           <div className="flex flex-col sm:flex-row gap-3">
             <a href={getTelegramUrl()} target="_blank" rel="noopener noreferrer" onClick={() => trackEvent('telegram_click', { source: 'category_cameras_hero' })} className="btn bg-white text-primary hover:bg-blue-50 shadow-sm">
