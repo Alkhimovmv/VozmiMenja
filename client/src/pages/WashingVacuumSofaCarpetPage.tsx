@@ -10,6 +10,8 @@ const pageUrl = 'https://vozmimenya.ru/arenda-moyushchego-pylesosa-dlya-divana-k
 const puzzi8Href = '/equipment/karcher-puzzi-8-1'
 const puzzi10Href = '/equipment/karcher-puzzi-10-1'
 const sc4Href = '/equipment/karcher-sc4'
+const puzziBookingHref = (equipment: 'karcher-puzzi-8-1' | 'karcher-puzzi-10-1') =>
+  `/booking?equipment=${equipment}&utm_source=site&utm_medium=landing&utm_campaign=puzzi-cleaning`
 const leadMessage = 'Нужен моющий пылесос для чистки. Что чистим: диван/ковер/матрас/авто. Размер/количество: __. Пятна: __. Даты аренды: __. Район Москвы: __.'
 
 const faqItems = faqContent['/arenda-moyushchego-pylesosa-dlya-divana-kovra-moskva']
@@ -41,15 +43,17 @@ const scenarioCards = [
   {
     title: 'Диван, кресло, матрас',
     text: 'Точечная домашняя чистка текстиля без покупки отдельного аппарата ради одного-двух дней.',
-    result: 'Посмотреть Puzzi 8/1',
-    href: puzzi8Href,
+    result: 'Забронировать Puzzi 8/1',
+    href: puzziBookingHref('karcher-puzzi-8-1'),
+    bookingEquipment: 'karcher-puzzi-8-1',
     icon: Sofa,
   },
   {
     title: 'Ковер или несколько комнат',
     text: 'Когда объем больше и хочется пройти ковры, мягкую мебель и дорожки за одну аренду.',
-    result: 'Сравнить с Puzzi 10/1',
-    href: puzzi10Href,
+    result: 'Забронировать Puzzi 10/1',
+    href: puzziBookingHref('karcher-puzzi-10-1'),
+    bookingEquipment: 'karcher-puzzi-10-1',
     icon: SprayCan,
   },
   {
@@ -158,19 +162,24 @@ export default function WashingVacuumSofaCarpetPage() {
                 Если диван, ковер или матрас нужно освежить один раз, аренда Puzzi обычно практичнее покупки. Напишите, что чистите и на какие даты — поможем выбрать модель без лишнего запаса.
               </p>
               <div className="flex flex-col gap-3 sm:flex-row">
+                <Link
+                  to={puzziBookingHref('karcher-puzzi-8-1')}
+                  onClick={() => trackEvent('washing_vacuum_booking_click', { equipment: 'karcher-puzzi-8-1' })}
+                  className="btn bg-[#F4CD7C] text-slate-950 hover:bg-[#FFE1A3]"
+                >
+                  Забронировать Puzzi 8/1
+                  <ArrowRight className="h-5 w-5" />
+                </Link>
                 <a
                   href={getTelegramUrl()}
                   target="_blank"
                   rel="noopener noreferrer"
                   onClick={() => handleTelegramClick('washing_vacuum_hero')}
-                  className="btn bg-[#F4CD7C] text-slate-950 hover:bg-[#FFE1A3]"
+                  className="btn border border-white/15 bg-white/10 text-white hover:bg-white/20"
                 >
                   <MessageCircle className="h-5 w-5" />
-                  Подобрать Puzzi в Telegram
+                  Помочь с выбором
                 </a>
-                <Link to="/arenda-pylesosov-moskva" className="btn border border-white/15 bg-white/10 text-white hover:bg-white/20">
-                  Все пылесосы в аренду
-                </Link>
               </div>
             </div>
 
@@ -196,6 +205,14 @@ export default function WashingVacuumSofaCarpetPage() {
                 </div>
                 <Link to={puzzi8Href} className="btn mt-5 w-full bg-slate-950 text-white hover:bg-slate-800">
                   Открыть Karcher Puzzi 8/1
+                  <ArrowRight className="h-4 w-4" />
+                </Link>
+                <Link
+                  to={puzziBookingHref('karcher-puzzi-8-1')}
+                  onClick={() => trackEvent('washing_vacuum_booking_click', { equipment: 'karcher-puzzi-8-1', placement: 'featured_card' })}
+                  className="mt-3 inline-flex w-full items-center justify-center gap-2 text-sm font-bold text-[#1D4ED8] hover:underline"
+                >
+                  Сразу перейти к брони
                   <ArrowRight className="h-4 w-4" />
                 </Link>
               </div>
@@ -235,7 +252,15 @@ export default function WashingVacuumSofaCarpetPage() {
                   {content}
                 </a>
               ) : (
-                <Link key={card.title} to={card.href} className={className}>
+                <Link
+                  key={card.title}
+                  to={card.href}
+                  onClick={() => card.bookingEquipment && trackEvent('washing_vacuum_booking_click', {
+                    equipment: card.bookingEquipment,
+                    placement: 'scenario_card',
+                  })}
+                  className={className}
+                >
                   {content}
                 </Link>
               )

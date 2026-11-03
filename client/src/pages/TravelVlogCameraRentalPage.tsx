@@ -10,6 +10,8 @@ const pageUrl = 'https://vozmimenya.ru/arenda-kamery-dlya-puteshestviya-vloga-mo
 const goproHref = '/equipment/gopro-13'
 const osmoHref = '/equipment/dji-osmo-pocket-3-creator-combo'
 const insta360Href = '/equipment/insta360-x5'
+const cameraBookingHref = (equipment: 'gopro-13' | 'dji-osmo-pocket-3-creator-combo' | 'insta360-x5') =>
+  `/booking?equipment=${equipment}&utm_source=site&utm_medium=landing&utm_campaign=travel-camera`
 const leadMessage = 'Нужна камера для поездки/влога. Что снимаем: путешествие/спорт/Reels/360. Срок: __ дней. Нужны крепления/аккумуляторы: __. Район Москвы: __.'
 
 const faqItems = faqContent['/arenda-kamery-dlya-puteshestviya-vloga-moskva']
@@ -41,22 +43,25 @@ const scenarioCards = [
   {
     title: 'Активная поездка и спорт',
     text: 'Горы, вода, велосипед, сноуборд, дорога и крепления — сценарий, где GoPro обычно понятнее всего.',
-    result: 'Открыть GoPro 13',
-    href: goproHref,
+    result: 'Забронировать GoPro 13',
+    href: cameraBookingHref('gopro-13'),
+    bookingEquipment: 'gopro-13',
     icon: Mountain,
   },
   {
     title: 'Влог, прогулка, Reels',
     text: 'Когда вы говорите в кадре, снимаете город, обзор или короткие вертикальные видео, удобен компактный стабилизированный формат.',
-    result: 'Открыть Osmo Pocket 3',
-    href: osmoHref,
+    result: 'Забронировать Osmo Pocket 3',
+    href: cameraBookingHref('dji-osmo-pocket-3-creator-combo'),
+    bookingEquipment: 'dji-osmo-pocket-3-creator-combo',
     icon: Smartphone,
   },
   {
     title: '360 и необычные ракурсы',
     text: 'Если снимаете один и хотите потом выбрать ракурс на монтаже, Insta360 дает больше свободы с кадром.',
-    result: 'Открыть Insta360 X5',
-    href: insta360Href,
+    result: 'Забронировать Insta360 X5',
+    href: cameraBookingHref('insta360-x5'),
+    bookingEquipment: 'insta360-x5',
     icon: Compass,
   },
   {
@@ -164,19 +169,24 @@ export default function TravelVlogCameraRentalPage() {
                 Не покупайте камеру ради одной поездки или съемочного уикенда. Возьмите GoPro, Insta360 или DJI Osmo Pocket на нужный срок и подберите комплект под маршрут, крепления и формат видео.
               </p>
               <div className="flex flex-col gap-3 sm:flex-row">
+                <Link
+                  to={cameraBookingHref('gopro-13')}
+                  onClick={() => trackEvent('travel_camera_booking_click', { equipment: 'gopro-13' })}
+                  className="btn bg-[#7DD3FC] text-slate-950 hover:bg-[#BAE6FD]"
+                >
+                  Забронировать GoPro 13
+                  <ArrowRight className="h-5 w-5" />
+                </Link>
                 <a
                   href={getTelegramUrl()}
                   target="_blank"
                   rel="noopener noreferrer"
                   onClick={() => handleTelegramClick('travel_vlog_camera_hero')}
-                  className="btn bg-[#7DD3FC] text-slate-950 hover:bg-[#BAE6FD]"
+                  className="btn border border-white/15 bg-white/10 text-white hover:bg-white/20"
                 >
                   <MessageCircle className="h-5 w-5" />
-                  Подобрать камеру в Telegram
+                  Помочь с выбором
                 </a>
-                <Link to="/arenda-gopro-moskva" className="btn border border-white/15 bg-white/10 text-white hover:bg-white/20">
-                  Все камеры в аренду
-                </Link>
               </div>
             </div>
 
@@ -200,10 +210,14 @@ export default function TravelVlogCameraRentalPage() {
                     </div>
                   ))}
                 </div>
-                <a href={getTelegramUrl()} target="_blank" rel="noopener noreferrer" onClick={() => handleTelegramClick('travel_vlog_camera_card')} className="btn mt-5 w-full bg-slate-950 text-white hover:bg-slate-800">
-                  Написать задачу
+                <Link
+                  to={cameraBookingHref('gopro-13')}
+                  onClick={() => trackEvent('travel_camera_booking_click', { equipment: 'gopro-13', placement: 'featured_card' })}
+                  className="btn mt-5 w-full bg-slate-950 text-white hover:bg-slate-800"
+                >
+                  Перейти к брони GoPro
                   <ArrowRight className="h-4 w-4" />
-                </a>
+                </Link>
               </div>
             </div>
           </div>
@@ -241,7 +255,15 @@ export default function TravelVlogCameraRentalPage() {
                   {content}
                 </a>
               ) : (
-                <Link key={card.title} to={card.href} className={className}>
+                <Link
+                  key={card.title}
+                  to={card.href}
+                  onClick={() => card.bookingEquipment && trackEvent('travel_camera_booking_click', {
+                    equipment: card.bookingEquipment,
+                    placement: 'scenario_card',
+                  })}
+                  className={className}
+                >
                   {content}
                 </Link>
               )
