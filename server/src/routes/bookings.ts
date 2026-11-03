@@ -101,6 +101,10 @@ router.post('/', publicLeadRateLimiter, async (req: Request, res: Response) => {
       })
     }
 
+    // Занятость оборудования намеренно не блокирует публичную заявку.
+    // Бронь остается лидом для менеджера: свободный экземпляр и возможную
+    // альтернативу система проверит при конвертации заявки в аренду.
+
     const duplicateBooking = await bookingModel.findRecentDuplicate({
       equipmentIds,
       customerPhone: validatedData.customerPhone,

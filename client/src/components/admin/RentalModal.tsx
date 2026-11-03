@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { type Rental, type CreateRentalDto, type Equipment, type EquipmentInstance } from '../../types/index';
+import { type Rental, type CreateRentalDto, type EquipmentInstance } from '../../types/index';
+import type { RentalEquipment } from '../../types/admin';
 import { rentalsApi, type Customer } from '../../api/admin/rentals';
 import { equipmentApi } from '../../api/admin/equipment';
 import type { Office } from '../../api/admin/offices';
@@ -11,7 +12,7 @@ interface RentalModalProps {
   onSubmit: (data: CreateRentalDto | Partial<CreateRentalDto & { status: string }>) => void;
   rental?: Rental | null;
   initialData?: Partial<CreateRentalDto> | null;
-  equipment: Equipment[];
+  equipment: RentalEquipment[];
   isLoading?: boolean;
   errorMessage?: string | null;
   offices?: Office[];
@@ -70,7 +71,7 @@ const RentalModal: React.FC<RentalModalProps> = ({
   const [selectedInstances, setSelectedInstances] = useState<Set<string>>(new Set());
   const [isOfficeModalOpen, setIsOfficeModalOpen] = useState(false);
   const [selectedOfficeId, setSelectedOfficeId] = useState(defaultOfficeId);
-  const [officeEquipment, setOfficeEquipment] = useState<Equipment[]>([]);
+  const [officeEquipment, setOfficeEquipment] = useState<RentalEquipment[]>([]);
   const [officeEquipmentOfficeId, setOfficeEquipmentOfficeId] = useState<number | null>(null);
   const [officeSelectedInstances, setOfficeSelectedInstances] = useState<Set<string>>(new Set());
   const [isOfficeEquipmentLoading, setIsOfficeEquipmentLoading] = useState(false);

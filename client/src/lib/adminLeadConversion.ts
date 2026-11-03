@@ -1,7 +1,5 @@
-import type { Booking, CreateRentalDto, Equipment } from '../types'
-
-export const normalizeEquipmentName = (name: string) =>
-  name.toLowerCase().replace(/ё/g, 'е').replace(/[^a-zа-я0-9]+/g, '')
+import type { Booking, CreateRentalDto, PublicEquipment } from '../types'
+import type { RentalEquipment } from '../types/admin'
 
 export const normalizeAdminPhone = (phone: string) => {
   const digits = phone.replace(/\D/g, '')
@@ -63,17 +61,7 @@ export const formatSourcePage = (sourcePage?: string, origin = 'https://vozmimen
   }
 }
 
-export const matchAdminEquipment = (booking: Booking, equipment: Equipment[]) => {
-  const bookingEquipmentName = normalizeEquipmentName(booking.equipment?.name || '')
-  if (!bookingEquipmentName) return undefined
-
-  return equipment.find((item) => {
-    const adminName = normalizeEquipmentName(item.name)
-    return adminName === bookingEquipmentName || adminName.includes(bookingEquipmentName) || bookingEquipmentName.includes(adminName)
-  })
-}
-
-const getBookingEquipmentItems = (booking: Booking) =>
+export const getBookingEquipmentItems = (booking: Booking) =>
   booking.equipmentItems?.length
     ? booking.equipmentItems
     : booking.equipment
@@ -83,45 +71,94 @@ const getBookingEquipmentItems = (booking: Booking) =>
 export const getBookingEquipmentNames = (booking: Booking) =>
   getBookingEquipmentItems(booking).map((item) => item.name)
 
-export const matchAdminEquipmentItems = (booking: Booking, equipment: Equipment[]) => {
-  const matchedIds = new Set<string>()
-  return getBookingEquipmentItems(booking).flatMap((bookingItem) => {
-    const bookingName = normalizeEquipmentName(bookingItem.name)
-    const matched = equipment.find((item) => {
-      if (matchedIds.has(String(item.id))) return false
-      const adminName = normalizeEquipmentName(item.name)
-      return adminName === bookingName || adminName.includes(bookingName) || bookingName.includes(adminName)
-    })
-    if (!matched) return []
-    matchedIds.add(String(matched.id))
-    return [matched]
-  })
+export interface BookingEquipmentMapping {
+  bookingEquipment: PublicEquipment
+  adminEquipment?: RentalEquipment
 }
 
-const getFirstAvailableInstance = (item: Equipment) => {
-  const availableQuantity = Number(
-    item.availableQuantity ?? (item as unknown as { available_quantity?: number }).available_quantity ?? item.quantity
-  ) || 0
+export const resolveBookingEquipmentMappings = (
+  booking: Booking,
+  equipment: RentalEquipment[],
+): BookingEquipmentMapping[] => getBookingEquipmentItems(booking).map((bookingEquipment) => {
+  const exactMatches = equipment.filter((item) => item.catalog_equipment_id === bookingEquipment.id)
+  return {
+    bookingEquipment,
+    adminEquipment: exactMatches.length === 1 ? exactMatches[0] : undefined,
+  }
+})
 
-  return availableQuantity > 0 && item.quantity > 0 ? 1 : undefined
+export const matchAdminEquipment = (booking: Booking, equipment: RentalEquipment[]) =>
+  resolveBookingEquipmentMappings(booking, equipment)[0]?.adminEquipment
+
+export const matchAdminEquipmentItems = (booking: Booking, equipment: RentalEquipment[]) =>
+  resolveBookingEquipmentMappings(booking, equipment)
+    .flatMap((mapping) => mapping.adminEquipment ? [mapping.adminEquipment] : [])
+
+export interface BookingRentalBuildOptions {
+  availableInstancesByEquipmentId?: Record<number, number[]>
+  availabilityCheckFailedEquipmentIds?: number[]
+}
+
+const getFirstAvailableInstance = (
+  item: RentalEquipment,
+  availableInstancesByEquipmentId?: Record<number, number[]>,
+) => {
+  if (availableInstancesByEquipmentId) {
+    return availableInstancesByEquipmentId[item.id]?.[0]
+  }
+
+  return item.quantity > 0 ? 1 : undefined
 }
 
 export const buildRentalFromBooking = (
   booking: Booking,
-  equipment: Equipment[],
+  equipment: RentalEquipment[],
   currentOfficeId: number,
   origin = 'https://vozmimenya.ru',
+  options: BookingRentalBuildOptions = {},
 ): Partial<CreateRentalDto> => {
   const bookingEquipmentNames = getBookingEquipmentNames(booking)
-  const equipmentInstances = matchAdminEquipmentItems(booking, equipment).flatMap((matchedEquipment) => {
-    const matchedInstanceNumber = getFirstAvailableInstance(matchedEquipment)
+  const mappings = resolveBookingEquipmentMappings(booking, equipment)
+  const equipmentInstances = mappings.flatMap(({ adminEquipment }) => {
+    if (!adminEquipment) return []
+    const matchedInstanceNumber = getFirstAvailableInstance(
+      adminEquipment,
+      options.availableInstancesByEquipmentId,
+    )
     return matchedInstanceNumber
-      ? [{ equipment_id: Number(matchedEquipment.id), instance_number: matchedInstanceNumber }]
+      ? [{ equipment_id: Number(adminEquipment.id), instance_number: matchedInstanceNumber }]
       : []
   })
+  const missingEquipmentNames = mappings
+    .filter((mapping) => !mapping.adminEquipment)
+    .map((mapping) => mapping.bookingEquipment.name)
+  const unavailableEquipmentNames = options.availableInstancesByEquipmentId
+    ? mappings
+        .filter((mapping) => (
+          mapping.adminEquipment
+          && !options.availabilityCheckFailedEquipmentIds?.includes(mapping.adminEquipment.id)
+          && (options.availableInstancesByEquipmentId?.[mapping.adminEquipment.id]?.length || 0) === 0
+        ))
+        .map((mapping) => mapping.bookingEquipment.name)
+    : []
+  const failedAvailabilityEquipmentNames = mappings
+    .filter((mapping) => (
+      mapping.adminEquipment
+      && options.availabilityCheckFailedEquipmentIds?.includes(mapping.adminEquipment.id)
+    ))
+    .map((mapping) => mapping.bookingEquipment.name)
   const sourceText = [
     `Заявка с сайта #${booking.id}`,
     bookingEquipmentNames.length ? `Оборудование на сайте: ${bookingEquipmentNames.join(', ')}` : '',
+    missingEquipmentNames.length
+      ? `Требует ручного выбора: нет связи с оборудованием офиса — ${missingEquipmentNames.join(', ')}`
+      : '',
+    unavailableEquipmentNames.length
+      ? `Все экземпляры заняты на даты заявки — ${unavailableEquipmentNames.join(', ')}`
+      : '',
+    failedAvailabilityEquipmentNames.length
+      ? `Не удалось проверить занятость — ${failedAvailabilityEquipmentNames.join(', ')}`
+      : '',
     booking.preferredContact ? `Предпочтительный канал связи: ${booking.preferredContact}` : '',
     booking.deliveryMethod ? `Получение: ${booking.deliveryMethod === 'delivery' ? 'доставка' : 'самовывоз'}` : '',
     booking.officeName ? `Офис заявки: ${booking.officeName}` : '',

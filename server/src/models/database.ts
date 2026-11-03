@@ -138,8 +138,10 @@ class Database {
         quantity INTEGER NOT NULL DEFAULT 1,
         description TEXT,
         base_price REAL NOT NULL DEFAULT 0,
+        catalog_equipment_id TEXT,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (catalog_equipment_id) REFERENCES equipment(id)
       )
     `)
 
@@ -509,6 +511,20 @@ class Database {
     } catch (error: any) {
       if (!error.message?.includes('duplicate column name')) throw error
     }
+
+    // Явная связь офисной позиции админки с товаром публичного каталога.
+    // Nullable сохраняет обратную совместимость: несопоставленные позиции
+    // остаются доступными в админке, но не подставляются в аренду автоматически.
+    try {
+      await run(`ALTER TABLE rental_equipment ADD COLUMN catalog_equipment_id TEXT REFERENCES equipment(id)`)
+    } catch (error: any) {
+      if (!error.message?.includes('duplicate column name')) throw error
+    }
+
+    await run(`
+      CREATE INDEX IF NOT EXISTS idx_rental_equipment_catalog_office
+      ON rental_equipment(catalog_equipment_id, office_id)
+    `)
 
     // Синхронизация экземпляров оборудования по quantity
     try {

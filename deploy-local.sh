@@ -256,6 +256,7 @@ build_projects() {
         sudo -u $SUDO_USER npm rebuild sqlite3 --build-from-source
         sudo -u $SUDO_USER NODE_OPTIONS="--max-old-space-size=512" npm run build
         sudo -u $SUDO_USER npm run seed:catalog-additions
+        sudo -u $SUDO_USER npm run migrate:catalog-equipment-links
         sudo -u $SUDO_USER npm run seed:blog-growth
         sudo -u $SUDO_USER npm run sitemap
 

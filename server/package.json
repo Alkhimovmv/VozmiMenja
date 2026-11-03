@@ -25,6 +25,8 @@
     "migrate": "tsx src/scripts/migrate-pricing.ts",
     "migrate:images": "node src/scripts/migrate-image-urls.js",
     "migrate:auth": "tsx src/scripts/migrate-auth.ts",
+    "migrate:catalog-equipment-links": "tsx src/scripts/backfill-catalog-equipment-links.ts",
+    "migrate:catalog-equipment-links:prod": "node dist/scripts/backfill-catalog-equipment-links.js",
     "repair:rental-office-links": "tsx src/scripts/repair-rental-office-equipment-links.ts",
     "repair:rental-office-links:dry": "tsx src/scripts/repair-rental-office-equipment-links.ts --dry-run"
   },

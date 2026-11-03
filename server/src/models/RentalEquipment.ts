@@ -6,6 +6,7 @@ export interface RentalEquipment {
   quantity: number
   description?: string
   basePrice: number
+  catalogEquipmentId?: string
   officeId?: number
   instances: RentalEquipmentInstance[]
   createdAt: string
@@ -23,6 +24,7 @@ export interface CreateRentalEquipmentData {
   quantity: number
   description?: string
   basePrice: number
+  catalogEquipmentId?: string | null
   userId?: number
   officeId?: number
   instances?: RentalEquipmentInstance[]
@@ -44,12 +46,32 @@ export class RentalEquipmentModel {
     return row ? this.mapRow(row) : null
   }
 
+  async findByCatalogEquipmentId(catalogEquipmentId: string, officeId: number): Promise<RentalEquipment[]> {
+    const rows = await all(`
+      SELECT *
+      FROM rental_equipment
+      WHERE catalog_equipment_id = ? AND office_id = ?
+      ORDER BY id ASC
+    `, [catalogEquipmentId, officeId]) as any[]
+
+    return Promise.all(rows.map((row) => this.mapRow(row)))
+  }
+
   async create(data: CreateRentalEquipmentData): Promise<RentalEquipment> {
     const result = await new Promise<number>((resolve, reject) => {
       this.db.run(`
-        INSERT INTO rental_equipment (name, quantity, description, base_price, user_id, office_id)
-        VALUES (?, ?, ?, ?, ?, ?)
-      `, [data.name, data.quantity, data.description || null, data.basePrice, data.userId || null, data.officeId || null], function(err) {
+        INSERT INTO rental_equipment (
+          name, quantity, description, base_price, catalog_equipment_id, user_id, office_id
+        ) VALUES (?, ?, ?, ?, ?, ?, ?)
+      `, [
+        data.name,
+        data.quantity,
+        data.description || null,
+        data.basePrice,
+        data.catalogEquipmentId || null,
+        data.userId || null,
+        data.officeId || null,
+      ], function(err) {
         if (err) reject(err)
         else resolve(this.lastID)
       })
@@ -70,6 +92,10 @@ export class RentalEquipmentModel {
     if (data.quantity !== undefined) { updates.push('quantity = ?'); values.push(data.quantity) }
     if (data.description !== undefined) { updates.push('description = ?'); values.push(data.description) }
     if (data.basePrice !== undefined) { updates.push('base_price = ?'); values.push(data.basePrice) }
+    if (data.catalogEquipmentId !== undefined) {
+      updates.push('catalog_equipment_id = ?')
+      values.push(data.catalogEquipmentId || null)
+    }
     const nextQuantity = data.quantity ?? (await this.findById(id))?.quantity
     if (!nextQuantity) throw new Error('Equipment not found')
 
@@ -116,23 +142,61 @@ export class RentalEquipmentModel {
     }
 
     const movingInstance = source.instances.find((instance) => instance.instanceNumber === instanceNumber) || { instanceNumber }
-    const targetRow = await get(`
-      SELECT *
-      FROM rental_equipment
-      WHERE office_id = ? AND name = ?
-      ORDER BY id ASC
-      LIMIT 1
-    `, [targetOfficeId, source.name]) as any
+    let targetRow = source.catalogEquipmentId
+      ? await get(`
+          SELECT *
+          FROM rental_equipment
+          WHERE office_id = ? AND catalog_equipment_id = ?
+          ORDER BY id ASC
+          LIMIT 1
+        `, [targetOfficeId, source.catalogEquipmentId]) as any
+      : await get(`
+          SELECT *
+          FROM rental_equipment
+          WHERE office_id = ? AND catalog_equipment_id IS NULL AND name = ?
+          ORDER BY id ASC
+          LIMIT 1
+        `, [targetOfficeId, source.name]) as any
+
+    let shouldLinkExistingTarget = false
+    if (!targetRow && source.catalogEquipmentId) {
+      const exactUnlinkedTargets = await all(`
+        SELECT *
+        FROM rental_equipment
+        WHERE office_id = ? AND catalog_equipment_id IS NULL AND name = ?
+        ORDER BY id ASC
+      `, [targetOfficeId, source.name]) as any[]
+
+      if (exactUnlinkedTargets.length === 1) {
+        targetRow = exactUnlinkedTargets[0]
+        shouldLinkExistingTarget = true
+      }
+    }
 
     await run('BEGIN TRANSACTION')
     try {
+      if (targetRow && shouldLinkExistingTarget) {
+        await run(`
+          UPDATE rental_equipment
+          SET catalog_equipment_id = ?, updated_at = CURRENT_TIMESTAMP
+          WHERE id = ?
+        `, [source.catalogEquipmentId, targetRow.id])
+      }
+
       const targetEquipmentId = targetRow
         ? targetRow.id
         : await new Promise<number>((resolve, reject) => {
             this.db.run(`
-              INSERT INTO rental_equipment (name, quantity, description, base_price, office_id)
-              VALUES (?, 0, ?, ?, ?)
-            `, [source.name, source.description || null, source.basePrice || 0, targetOfficeId], function(err) {
+              INSERT INTO rental_equipment (
+                name, quantity, description, base_price, catalog_equipment_id, office_id
+              ) VALUES (?, 0, ?, ?, ?, ?)
+            `, [
+              source.name,
+              source.description || null,
+              source.basePrice || 0,
+              source.catalogEquipmentId || null,
+              targetOfficeId,
+            ], function(err) {
               if (err) reject(err)
               else resolve(this.lastID)
             })
@@ -279,6 +343,7 @@ export class RentalEquipmentModel {
       quantity: row.quantity,
       description: row.description || undefined,
       basePrice: row.base_price,
+      catalogEquipmentId: row.catalog_equipment_id || undefined,
       officeId: row.office_id || undefined,
       instances: await this.getInstances(row.id, row.quantity),
       createdAt: row.created_at,

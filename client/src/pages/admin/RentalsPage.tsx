@@ -4,7 +4,8 @@ import { useAuthenticatedQuery } from '../../hooks/useAuthenticatedQuery';
 import { rentalsApi } from '../../api/admin/rentals';
 import { equipmentApi } from '../../api/admin/equipment';
 import { officesApi } from '../../api/admin/offices';
-import type { Rental, CreateRentalDto, Equipment } from '../../types/index';
+import type { Rental, CreateRentalDto } from '../../types/index';
+import type { RentalEquipment } from '../../types/admin';
 import { formatDate, getStatusText, getStatusColor } from '../../utils/dateUtils';
 import RentalModal from '../../components/admin/RentalModal';
 import CustomSelect from '../../components/admin/CustomSelect';
@@ -98,7 +99,7 @@ const RentalsPage: React.FC = () => {
     () => rentalsApi.getAll(currentOfficeId)
   );
 
-  const { data: equipment = [] } = useAuthenticatedQuery<Equipment[]>(['equipment-rental', currentOfficeId], () => equipmentApi.getForRental(currentOfficeId));
+  const { data: equipment = [] } = useAuthenticatedQuery<RentalEquipment[]>(['equipment-rental', currentOfficeId], () => equipmentApi.getForRental(currentOfficeId));
   const { data: offices = [] } = useAuthenticatedQuery(['offices'], officesApi.getAll);
 
   const todayOperations = useMemo(() => {

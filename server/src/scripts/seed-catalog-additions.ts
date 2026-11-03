@@ -69,12 +69,14 @@ async function seedCatalogAdditions() {
 
     for (const office of offices) {
       await run(`
-        INSERT INTO rental_equipment (name, quantity, description, base_price, office_id)
-        SELECT ?, 2, ?, ?, ?
+        INSERT INTO rental_equipment (
+          name, quantity, description, base_price, catalog_equipment_id, office_id
+        )
+        SELECT ?, 2, ?, ?, ?, ?
         WHERE NOT EXISTS (
           SELECT 1 FROM rental_equipment WHERE name = ? AND office_id = ?
         )
-      `, [PRODUCT_NAME, description, PURCHASE_PRICE, office.id, PRODUCT_NAME, office.id])
+      `, [PRODUCT_NAME, description, PURCHASE_PRICE, PRODUCT_ID, office.id, PRODUCT_NAME, office.id])
 
       const adminEquipment = await get(`
         SELECT id FROM rental_equipment WHERE name = ? AND office_id = ? LIMIT 1

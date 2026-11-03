@@ -1,10 +1,40 @@
 import { Router, Request, Response } from 'express'
 import { rentalEquipmentModel, CreateRentalEquipmentData, RentalEquipmentInstance } from '../models/RentalEquipment'
+import { equipmentModel } from '../models/Equipment'
 import { authMiddleware } from '../middleware/auth'
 import { getUserOfficeIds } from '../middleware/userFilter'
 import { equipmentToSnakeCase as toSnakeCase, equipmentToRentalFormat as toRentalFormat } from '../utils/transformers'
 
 const router = Router()
+
+const getCatalogEquipmentId = (body: any): string | null | undefined => {
+  const hasSnakeCaseValue = Object.prototype.hasOwnProperty.call(body, 'catalog_equipment_id')
+  const hasCamelCaseValue = Object.prototype.hasOwnProperty.call(body, 'catalogEquipmentId')
+  if (!hasSnakeCaseValue && !hasCamelCaseValue) return undefined
+
+  const rawValue = hasSnakeCaseValue ? body.catalog_equipment_id : body.catalogEquipmentId
+  if (rawValue === null || String(rawValue).trim() === '') return null
+  return String(rawValue).trim()
+}
+
+async function validateCatalogEquipmentLink(
+  catalogEquipmentId: string | null | undefined,
+  officeId: number | undefined,
+  excludeRentalEquipmentId?: number,
+): Promise<string | null> {
+  if (!catalogEquipmentId) return null
+  if (!officeId) return 'Сначала выберите офис оборудования'
+
+  const catalogEquipment = await equipmentModel.findById(catalogEquipmentId)
+  if (!catalogEquipment) return 'Выбранная позиция отсутствует в каталоге сайта'
+
+  const existingLinks = await rentalEquipmentModel.findByCatalogEquipmentId(catalogEquipmentId, officeId)
+  if (existingLinks.some((item) => item.id !== excludeRentalEquipmentId)) {
+    return 'Эта позиция каталога уже связана с другим оборудованием выбранного офиса'
+  }
+
+  return null
+}
 
 function normalizeInstances(input: any, quantity: number): RentalEquipmentInstance[] {
   if (!Array.isArray(input)) {
@@ -59,6 +89,20 @@ router.get('/for-rental', authMiddleware, async (req: Request, res: Response) =>
     res.json(equipment.map(toRentalFormat))
   } catch (error) {
     res.status(500).json({ error: 'Ошибка получения оборудования' })
+  }
+})
+
+// Список публичного каталога для явной связи с офисным оборудованием.
+router.get('/catalog-options', authMiddleware, async (_req: Request, res: Response) => {
+  try {
+    const result = await equipmentModel.findAll({ page: 1, limit: 1000 })
+    res.json(result.data.map((item) => ({
+      id: item.id,
+      name: item.name,
+      category: item.category,
+    })))
+  } catch (error) {
+    res.status(500).json({ error: 'Ошибка получения каталога сайта' })
   }
 })
 
@@ -154,10 +198,15 @@ router.post('/', authMiddleware, async (req: Request, res: Response) => {
       quantity: req.body.quantity,
       description: req.body.description,
       basePrice: normalizedBasePrice,
+      catalogEquipmentId: getCatalogEquipmentId(req.body),
       userId: req.user!.userId,
       officeId: finalOfficeId,
       instances: normalizeInstances(req.body.instances, Number(req.body.quantity) || 1),
     }
+
+    const catalogLinkError = await validateCatalogEquipmentLink(data.catalogEquipmentId, finalOfficeId)
+    if (catalogLinkError) return res.status(400).json({ error: catalogLinkError })
+
     const equipment = await rentalEquipmentModel.create(data)
     res.status(201).json(toSnakeCase(equipment))
   } catch (error) {
@@ -179,6 +228,8 @@ router.put('/:id', authMiddleware, async (req: Request, res: Response) => {
     if (req.body.name !== undefined) data.name = req.body.name
     if (req.body.quantity !== undefined) data.quantity = req.body.quantity
     if (req.body.description !== undefined) data.description = req.body.description
+    const catalogEquipmentId = getCatalogEquipmentId(req.body)
+    if (catalogEquipmentId !== undefined) data.catalogEquipmentId = catalogEquipmentId
     const nextQuantity = req.body.quantity !== undefined ? Number(req.body.quantity) : equipment.quantity
     if (req.body.base_price !== undefined || req.body.basePrice !== undefined) {
       const rawBasePrice = req.body.base_price ?? req.body.basePrice
@@ -195,6 +246,13 @@ router.put('/:id', authMiddleware, async (req: Request, res: Response) => {
     if (req.body.instances !== undefined || req.body.quantity !== undefined) {
       data.instances = normalizeInstances(req.body.instances, nextQuantity)
     }
+
+    const catalogLinkError = await validateCatalogEquipmentLink(
+      data.catalogEquipmentId,
+      equipment.officeId,
+      equipment.id,
+    )
+    if (catalogLinkError) return res.status(400).json({ error: catalogLinkError })
 
     const updated = await rentalEquipmentModel.update(parseInt(req.params.id), data)
     res.json(toSnakeCase(updated))

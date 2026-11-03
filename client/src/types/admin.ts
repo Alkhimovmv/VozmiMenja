@@ -37,6 +37,7 @@ export interface RentalEquipment {
   quantity: number;
   description?: string;
   base_price: number | null;
+  catalog_equipment_id?: string | null;
   office_id?: number;
   instances?: RentalEquipmentInstance[];
   created_at: string;
@@ -49,8 +50,15 @@ export interface CreateRentalEquipmentDto {
   quantity: number;
   description?: string;
   base_price: number | null;
+  catalog_equipment_id?: string | null;
   office_id?: number;
   instances?: RentalEquipmentInstance[];
+}
+
+export interface CatalogEquipmentOption {
+  id: string;
+  name: string;
+  category: string;
 }
 
 export type RentalSource = 'авито' | 'сайт' | 'рекомендация' | 'карты';

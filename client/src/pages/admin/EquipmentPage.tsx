@@ -11,7 +11,7 @@ const Spinner = () => (
 import { useAuthenticatedQuery } from '../../hooks/useAuthenticatedQuery';
 import { equipmentApi } from '../../api/admin/equipment';
 import { officesApi, type Office } from '../../api/admin/offices';
-import { type RentalEquipment, type CreateRentalEquipmentDto } from '../../types/admin';
+import { type CatalogEquipmentOption, type RentalEquipment, type CreateRentalEquipmentDto } from '../../types/admin';
 import EquipmentModal, { type EquipmentInstanceOfficeChange } from '../../components/admin/EquipmentModal';
 import ConfirmDialog from '../../components/admin/ConfirmDialog';
 import { useOffice } from '../../hooks/useOffice';
@@ -27,6 +27,10 @@ const EquipmentPage: React.FC = () => {
   const queryClient = useQueryClient();
 
   const { data: equipment = [], isLoading } = useAuthenticatedQuery<RentalEquipment[]>(['equipment', currentOfficeId], () => equipmentApi.getAll(currentOfficeId));
+  const { data: catalogOptions = [] } = useAuthenticatedQuery<CatalogEquipmentOption[]>(
+    ['equipment', 'catalog-options'],
+    equipmentApi.getCatalogOptions
+  );
   const { data: offices = [] } = useAuthenticatedQuery<Office[]>(['offices'], officesApi.getAll);
   const { data: equipmentPerformance = [], isLoading: isPerformanceLoading } = useAuthenticatedQuery<EquipmentUtilization[]>(
     ['analytics', 'equipment-utilization', currentOfficeId, 365],
@@ -232,6 +236,13 @@ const EquipmentPage: React.FC = () => {
                     }`}>
                       {item.quantity} шт.
                     </span>
+                    <span className={`inline-flex w-fit items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                      item.catalog_equipment_id
+                        ? 'bg-blue-50 text-blue-700'
+                        : 'bg-amber-50 text-amber-700'
+                    }`}>
+                      {item.catalog_equipment_id ? 'Связано с сайтом' : 'Не связано с сайтом'}
+                    </span>
                   </div>
 
                   <div className="mt-2 text-sm text-gray-500">
@@ -241,6 +252,11 @@ const EquipmentPage: React.FC = () => {
                   <div className="mt-2 flex flex-col sm:flex-row sm:items-center space-y-1 sm:space-y-0 sm:space-x-4 text-sm text-gray-500">
                     <span>💰 Цена: {item.base_price !== null ? `${item.base_price}₽` : 'Не указана'}</span>
                     <span>📊 Общая стоимость: {item.base_price !== null ? `${(item.base_price * item.quantity).toLocaleString()}₽` : 'Не указана'}</span>
+                    {item.catalog_equipment_id && (
+                      <span>
+                        Сайт: {catalogOptions.find((option) => option.id === item.catalog_equipment_id)?.name || item.catalog_equipment_id}
+                      </span>
+                    )}
                   </div>
 
                   {item.instances && item.instances.length > 0 && (
@@ -299,6 +315,7 @@ const EquipmentPage: React.FC = () => {
         isLoading={createMutation.isPending || updateMutation.isPending}
         defaultOfficeId={currentOfficeId}
         offices={offices}
+        catalogOptions={catalogOptions}
       />
 
       <ConfirmDialog

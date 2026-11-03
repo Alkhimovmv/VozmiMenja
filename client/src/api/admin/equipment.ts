@@ -1,5 +1,5 @@
 import apiClient from './client';
-import { type RentalEquipment, type CreateRentalEquipmentDto } from '../../types/admin';
+import { type CatalogEquipmentOption, type RentalEquipment, type CreateRentalEquipmentDto } from '../../types/admin';
 
 export const equipmentApi = {
   getAll: async (officeId?: number): Promise<RentalEquipment[]> => {
@@ -36,5 +36,10 @@ export const equipmentApi = {
     const params = officeId ? `?officeId=${officeId}` : '';
     const response = await apiClient.get(`/equipment/for-rental${params}`);
     return response.data;
+  },
+
+  getCatalogOptions: async (): Promise<CatalogEquipmentOption[]> => {
+    const response = await apiClient.get('/equipment/catalog-options');
+    return response.data.data || response.data;
   },
 };

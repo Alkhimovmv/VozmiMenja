@@ -9,9 +9,18 @@ import { rentalsApi } from '../../api/admin/rentals';
 import RentalModal from '../../components/admin/RentalModal';
 import { useAuthenticatedQuery } from '../../hooks/useAuthenticatedQuery';
 import { useOffice } from '../../hooks/useOffice';
-import type { Booking, ContactLead, CreateRentalDto, Equipment } from '../../types';
+import type { Booking, ContactLead, CreateRentalDto } from '../../types';
+import type { RentalEquipment } from '../../types/admin';
 import { getApiErrorMessage } from '../../lib/apiError';
-import { buildRentalFromBooking, formatLeadSource, formatSourcePage, getBookingEquipmentNames } from '../../lib/adminLeadConversion';
+import {
+  buildRentalFromBooking,
+  extractBookingRentalTimes,
+  formatBookingDateTime,
+  formatLeadSource,
+  formatSourcePage,
+  getBookingEquipmentNames,
+  resolveBookingEquipmentMappings,
+} from '../../lib/adminLeadConversion';
 
 const formatContactSubject = (subject: string) => {
   const labels: Record<string, string> = {
@@ -118,7 +127,7 @@ export default function SiteBookingsPage() {
     queryFn: contactLeadsApi.getAll,
     retry: false,
   });
-  const { data: equipment = [] } = useAuthenticatedQuery<Equipment[]>(['equipment-rental', currentOfficeId], () => equipmentApi.getForRental(currentOfficeId));
+  const { data: equipment = [] } = useAuthenticatedQuery<RentalEquipment[]>(['equipment-rental', currentOfficeId], () => equipmentApi.getForRental(currentOfficeId));
   const { data: offices = [] } = useAuthenticatedQuery(['offices'], officesApi.getAll);
 
   const openBookings = useMemo(
@@ -218,8 +227,65 @@ export default function SiteBookingsPage() {
       const officeEquipment = targetOfficeId === currentOfficeId
         ? equipment
         : await equipmentApi.getForRental(targetOfficeId);
-      setInitialRentalData(buildRentalFromBooking(booking, officeEquipment as Equipment[], targetOfficeId, window.location.origin));
+      const mappings = resolveBookingEquipmentMappings(booking, officeEquipment);
+      const mappedEquipment = mappings.flatMap((mapping) => mapping.adminEquipment ? [mapping.adminEquipment] : []);
+      const rentalTimes = extractBookingRentalTimes(booking);
+      const startDateTime = formatBookingDateTime(booking.startDate, rentalTimes.startTime);
+      const endDateTime = formatBookingDateTime(booking.endDate, rentalTimes.endTime);
+      const availabilityResults = await Promise.allSettled(
+        mappedEquipment.map((item) => rentalsApi.checkAvailability(
+          item.id,
+          startDateTime,
+          endDateTime,
+          targetOfficeId,
+        ))
+      );
+      const availableInstancesByEquipmentId: Record<number, number[]> = {};
+      const availabilityCheckFailedEquipmentIds: number[] = [];
+
+      availabilityResults.forEach((result, index) => {
+        const equipmentId = mappedEquipment[index].id;
+        if (result.status === 'fulfilled') {
+          availableInstancesByEquipmentId[equipmentId] = result.value.available_instances;
+        } else {
+          availableInstancesByEquipmentId[equipmentId] = [];
+          availabilityCheckFailedEquipmentIds.push(equipmentId);
+        }
+      });
+
+      const missingNames = mappings
+        .filter((mapping) => !mapping.adminEquipment)
+        .map((mapping) => mapping.bookingEquipment.name);
+      const occupiedNames = mappings
+        .filter((mapping) => (
+          mapping.adminEquipment
+          && !availabilityCheckFailedEquipmentIds.includes(mapping.adminEquipment.id)
+          && (availableInstancesByEquipmentId[mapping.adminEquipment.id]?.length || 0) === 0
+        ))
+        .map((mapping) => mapping.bookingEquipment.name);
+      const failedNames = mappings
+        .filter((mapping) => (
+          mapping.adminEquipment
+          && availabilityCheckFailedEquipmentIds.includes(mapping.adminEquipment.id)
+        ))
+        .map((mapping) => mapping.bookingEquipment.name);
+
+      setInitialRentalData(buildRentalFromBooking(
+        booking,
+        officeEquipment,
+        targetOfficeId,
+        window.location.origin,
+        { availableInstancesByEquipmentId, availabilityCheckFailedEquipmentIds },
+      ));
       setIsRentalModalOpen(true);
+      const warnings = [
+        missingNames.length ? `нет связи с офисом: ${missingNames.join(', ')}` : '',
+        occupiedNames.length ? `все экземпляры заняты: ${occupiedNames.join(', ')}` : '',
+        failedNames.length ? `не удалось проверить занятость: ${failedNames.join(', ')}` : '',
+      ].filter(Boolean);
+      if (warnings.length > 0) {
+        toast.error(`Заявка сохранена, нужен ручной выбор — ${warnings.join('; ')}`, { duration: 7000 });
+      }
     } catch {
       setInitialRentalData(buildRentalFromBooking(booking, [], targetOfficeId, window.location.origin));
       setIsRentalModalOpen(true);

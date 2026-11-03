@@ -1,7 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import type { Office } from '../../api/admin/offices';
-import { type RentalEquipment, type CreateRentalEquipmentDto, type RentalEquipmentInstance } from '../../types/admin';
+import {
+  type CatalogEquipmentOption,
+  type RentalEquipment,
+  type CreateRentalEquipmentDto,
+  type RentalEquipmentInstance,
+} from '../../types/admin';
 
 export interface EquipmentInstanceOfficeChange {
   instanceNumber: number;
@@ -16,6 +21,7 @@ interface EquipmentModalProps {
   isLoading?: boolean;
   defaultOfficeId?: number;
   offices?: Office[];
+  catalogOptions?: CatalogEquipmentOption[];
 }
 
 const EquipmentModal: React.FC<EquipmentModalProps> = ({
@@ -26,6 +32,7 @@ const EquipmentModal: React.FC<EquipmentModalProps> = ({
   isLoading = false,
   defaultOfficeId = 1,
   offices = [],
+  catalogOptions = [],
 }) => {
   const buildInstances = (quantity: number, currentInstances?: RentalEquipmentInstance[]): RentalEquipmentInstance[] => {
     return Array.from({ length: quantity }, (_, index) => {
@@ -44,6 +51,7 @@ const EquipmentModal: React.FC<EquipmentModalProps> = ({
     quantity: 1,
     description: '',
     base_price: null,
+    catalog_equipment_id: null,
     office_id: defaultOfficeId,
     instances: buildInstances(1),
   });
@@ -62,6 +70,7 @@ const EquipmentModal: React.FC<EquipmentModalProps> = ({
           quantity: equipment.quantity,
           description: equipment.description || '',
           base_price: equipment.base_price,
+          catalog_equipment_id: equipment.catalog_equipment_id || null,
           office_id: equipment.office_id || defaultOfficeId,
           instances: buildInstances(equipment.quantity, equipment.instances),
         });
@@ -80,6 +89,7 @@ const EquipmentModal: React.FC<EquipmentModalProps> = ({
           quantity: 1,
           description: '',
           base_price: null,
+          catalog_equipment_id: null,
           office_id: defaultOfficeId,
           instances: buildInstances(1),
         });
@@ -167,6 +177,30 @@ const EquipmentModal: React.FC<EquipmentModalProps> = ({
                   {validationErrors.name}
                 </div>
               )}
+            </div>
+
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700">
+                Позиция на сайте
+              </label>
+              <select
+                value={formData.catalog_equipment_id || ''}
+                onChange={(e) => setFormData({
+                  ...formData,
+                  catalog_equipment_id: e.target.value || null,
+                })}
+                className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+              >
+                <option value="">Не связана — не подставлять в аренду</option>
+                {catalogOptions.map((item) => (
+                  <option key={item.id} value={item.id}>
+                    {item.name} · {item.category}
+                  </option>
+                ))}
+              </select>
+              <p className="mt-1 text-xs text-gray-500">
+                Связь используется для точного переноса заявки с сайта без угадывания по названию.
+              </p>
             </div>
 
             <div className="mb-4">

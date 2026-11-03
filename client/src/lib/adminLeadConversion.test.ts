@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import { buildRentalFromBooking, extractBookingRentalTimes, formatLeadSource, formatSourcePage, matchAdminEquipment, normalizeAdminPhone } from './adminLeadConversion'
-import type { Booking, Equipment } from '../types'
+import type { Booking } from '../types'
+import type { RentalEquipment } from '../types/admin'
 
 const booking: Booking = {
   id: 'booking-1',
@@ -37,19 +38,17 @@ const booking: Booking = {
   updatedAt: '2026-09-10T10:00:00Z',
 }
 
-const equipment: Equipment[] = [
+const equipment: RentalEquipment[] = [
   {
-    id: '42',
+    id: 42,
     name: 'JBL PartyBox 320',
-    category: 'Аудиооборудование',
-    pricePerDay: 1000,
     quantity: 1,
-    availableQuantity: 1,
-    images: [],
+    base_price: 10000,
+    catalog_equipment_id: 'public-1',
     description: '',
-    specifications: {},
-    createdAt: '',
-    updatedAt: '',
+    instances: [{ instance_number: 1, serial_number: null, comment: null }],
+    created_at: '',
+    updated_at: '',
   },
 ]
 
@@ -57,15 +56,15 @@ const unavailableOfficeEquipment: Equipment[] = [
   {
     ...equipment[0],
     quantity: 0,
-    availableQuantity: 0,
+    instances: [],
   },
 ]
 
-const camera: Equipment = {
+const camera: RentalEquipment = {
   ...equipment[0],
-  id: '43',
+  id: 43,
   name: 'GoPro 13',
-  category: 'Камеры',
+  catalog_equipment_id: 'public-2',
 }
 
 const multiEquipmentBooking: Booking = {
@@ -80,7 +79,8 @@ const multiEquipmentBooking: Booking = {
 
 assert.equal(formatLeadSource(booking), 'telegram / post / partybox')
 assert.equal(formatSourcePage(booking.sourcePage), '/arenda-kolonki-dlya-vecherinki-moskva')
-assert.equal(matchAdminEquipment(booking, equipment)?.id, '42')
+assert.equal(matchAdminEquipment(booking, equipment)?.id, 42)
+assert.equal(matchAdminEquipment(booking, [{ ...equipment[0], catalog_equipment_id: null }]), undefined)
 assert.equal(normalizeAdminPhone('+7 999 000-00-00'), '89990000000')
 assert.equal(normalizeAdminPhone('8 (999) 000-00-00'), '89990000000')
 assert.equal(normalizeAdminPhone('9990000000'), '89990000000')
@@ -101,10 +101,38 @@ assert.match(rental.comment || '', /Заявка с сайта #booking-1/)
 assert.match(rental.comment || '', /Оборудование на сайте: JBL PartyBox 320/)
 assert.match(rental.comment || '', /Офис заявки: Офис 2/)
 
+const rentalWithSecondInstanceAvailable = buildRentalFromBooking(booking, equipment, 3, undefined, {
+  availableInstancesByEquipmentId: { 42: [2] },
+})
+assert.deepEqual(rentalWithSecondInstanceAvailable.equipment_instances, [{ equipment_id: 42, instance_number: 2 }])
+
+const rentalWithAllInstancesOccupied = buildRentalFromBooking(booking, equipment, 3, undefined, {
+  availableInstancesByEquipmentId: { 42: [] },
+})
+assert.equal(rentalWithAllInstancesOccupied.equipment_id, 0)
+assert.deepEqual(rentalWithAllInstancesOccupied.equipment_ids, [])
+assert.deepEqual(rentalWithAllInstancesOccupied.equipment_instances, [])
+assert.match(rentalWithAllInstancesOccupied.comment || '', /Все экземпляры заняты на даты заявки — JBL PartyBox 320/)
+
+const rentalWithAvailabilityCheckFailure = buildRentalFromBooking(booking, equipment, 3, undefined, {
+  availableInstancesByEquipmentId: { 42: [] },
+  availabilityCheckFailedEquipmentIds: [42],
+})
+assert.match(rentalWithAvailabilityCheckFailure.comment || '', /Не удалось проверить занятость — JBL PartyBox 320/)
+assert.doesNotMatch(rentalWithAvailabilityCheckFailure.comment || '', /Все экземпляры заняты/)
+
 const rentalWithoutOfficeEquipment = buildRentalFromBooking(booking, unavailableOfficeEquipment, 3)
 assert.equal(rentalWithoutOfficeEquipment.equipment_id, 0)
 assert.deepEqual(rentalWithoutOfficeEquipment.equipment_ids, [])
 assert.deepEqual(rentalWithoutOfficeEquipment.equipment_instances, [])
+
+const rentalWithoutCatalogLink = buildRentalFromBooking(
+  booking,
+  [{ ...equipment[0], catalog_equipment_id: null }],
+  3,
+)
+assert.equal(rentalWithoutCatalogLink.equipment_id, 0)
+assert.match(rentalWithoutCatalogLink.comment || '', /Требует ручного выбора: нет связи с оборудованием офиса/)
 
 const multiEquipmentRental = buildRentalFromBooking(multiEquipmentBooking, [...equipment, camera], 3)
 assert.deepEqual(multiEquipmentRental.equipment_ids, [42, 43])
