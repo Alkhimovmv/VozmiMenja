@@ -18,6 +18,7 @@ import lockersRoutes from './routes/lockers'
 import officesRoutes from './routes/offices'
 import postomatRoutes from './routes/postomat'
 import prerenderRoutes from './routes/prerender'
+import yandexBusinessFeedsRoutes from './routes/yandexBusinessFeeds'
 import { schedulerService } from './services/scheduler'
 
 // server/dist/ -> server/.env (локально), server/dist/ -> ../../.env (production, корень проекта)
@@ -84,6 +85,7 @@ app.get('/api/offices', async (_req, res) => {
 app.use('/api/bookings', bookingsRoutes)
 app.use('/api/contact', contactRoutes)
 app.use('/api/articles', articlesRoutes)
+app.use('/api/yandex-business/feeds', yandexBusinessFeedsRoutes)
 
 // Admin API Routes (RentAdmin integrated) - ВАЖНО: регистрируем специфичные роуты ДО общего /api/admin
 app.use('/api/admin/equipment', rentalEquipmentRoutes) // Используем rental_equipment для админки
