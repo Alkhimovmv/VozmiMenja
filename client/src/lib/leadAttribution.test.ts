@@ -120,7 +120,7 @@ const originalWindow = globalThis.window
 const originalDocument = globalThis.document
 const mockWindow = {
   location: {
-    href: 'https://vozmimenya.ru/arenda-karaoke-komplekta-moskva?utm_source=vk&utm_content=community-post',
+    href: 'https://vozmimenya.ru/arenda-karaoke-komplekta-moskva?utm_source=vk',
   },
   sessionStorage: storage,
 }
@@ -134,8 +134,28 @@ Object.defineProperty(globalThis, 'document', {
   value: { referrer: 'https://vk.com/' },
 })
 
+const firstExternalContext = getLeadContext()
+assert.equal(firstExternalContext.utmSource, 'vk')
+assert.equal(firstExternalContext.utmMedium, 'landing')
+assert.equal(firstExternalContext.utmCampaign, 'karaoke-kit')
+assert.equal(firstExternalContext.scenario, 'karaoke-kit')
+
+const secondExternalUrl = 'https://vozmimenya.ru/arenda-kamery-dlya-puteshestviya-vloga-moskva?utm_source=avito&utm_medium=listing&utm_campaign=travel-camera&utm_content=account-2'
+mockWindow.location.href = secondExternalUrl
+const secondExternalContext = getLeadContext()
+assert.equal(secondExternalContext.sourcePage, secondExternalUrl)
+assert.equal(secondExternalContext.utmSource, 'vk')
+assert.equal(secondExternalContext.utmMedium, 'landing')
+assert.equal(secondExternalContext.utmCampaign, 'karaoke-kit')
+assert.equal(secondExternalContext.utmContent, undefined)
+assert.equal(secondExternalContext.scenario, 'karaoke-kit')
+
+storage.clear()
+mockWindow.location.href = 'https://vozmimenya.ru/arenda-karaoke-komplekta-moskva?utm_source=vk&utm_content=community-post'
 const partialLandingContext = getLeadContext()
 assert.equal(partialLandingContext.utmSource, 'vk')
+assert.equal(partialLandingContext.utmMedium, 'landing')
+assert.equal(partialLandingContext.utmCampaign, 'karaoke-kit')
 assert.equal(partialLandingContext.utmContent, 'community-post')
 assert.equal(storage.length, 1)
 
