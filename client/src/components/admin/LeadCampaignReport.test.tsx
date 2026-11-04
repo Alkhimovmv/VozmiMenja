@@ -64,6 +64,32 @@ assert.match(reportHtml, /yandex/);
 assert.match(reportHtml, /winter/);
 assert.match(reportHtml, /15[\s\S]*₽/);
 assert.match(reportHtml, /50[\s\S]*%/);
+assert.match(reportHtml, /scope="colgroup"[^>]*col[Ss]pan="5"[^>]*>Текущие 14 дней</);
+assert.match(reportHtml, /scope="colgroup"[^>]*col[Ss]pan="5"[^>]*>Предыдущие 14 дней</);
+
+const expectedColumnOrder = [
+  'current-leads',
+  'current-started',
+  'current-confirmed',
+  'current-conversion',
+  'current-revenue',
+  'baseline-leads',
+  'baseline-started',
+  'baseline-confirmed',
+  'baseline-conversion',
+  'baseline-revenue',
+];
+let previousColumnIndex = -1;
+let previousCellIndex = -1;
+for (const columnId of expectedColumnOrder) {
+  const columnIndex = reportHtml.indexOf(`id="${columnId}"`);
+  const period = columnId.startsWith('current-') ? 'current' : 'baseline';
+  const cellIndex = reportHtml.indexOf(`headers="${period}-period ${columnId}"`);
+  assert.ok(columnIndex > previousColumnIndex, `${columnId} must be a separate column in report order`);
+  assert.ok(cellIndex > previousCellIndex, `${columnId} data cell must follow the column order`);
+  previousColumnIndex = columnIndex;
+  previousCellIndex = cellIndex;
+}
 
 const failedClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
 await failedClient.prefetchQuery({

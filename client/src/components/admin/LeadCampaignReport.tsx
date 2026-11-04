@@ -11,11 +11,10 @@ const rubFormatter = new Intl.NumberFormat('ru-RU', {
 const formatRub = (value: number) => rubFormatter.format(value);
 const formatPercent = (value: number) => `${value.toLocaleString('ru-RU', { maximumFractionDigits: 1 })}%`;
 
-function MetricCell({ current, baseline }: { current: string | number; baseline: string | number }) {
+function MetricCell({ value, headers }: { value: string | number; headers: string }) {
   return (
-    <td className="whitespace-nowrap px-3 py-3 text-right align-top">
-      <span className="block font-bold text-slate-900">{current}</span>
-      <span className="mt-0.5 block text-xs text-slate-500">ранее {baseline}</span>
+    <td headers={headers} className="whitespace-nowrap px-3 py-3 text-right align-top font-bold text-slate-900">
+      {value}
     </td>
   );
 }
@@ -27,11 +26,16 @@ function ReportRow({ row }: { row: LeadReportRow }) {
         {row.source}
       </th>
       <td className="max-w-52 break-words px-3 py-3 align-top text-slate-700">{row.campaign}</td>
-      <MetricCell current={row.currentLeads} baseline={row.baselineLeads} />
-      <MetricCell current={row.currentStartedBookings} baseline={row.baselineStartedBookings} />
-      <MetricCell current={row.currentConfirmedRentals} baseline={row.baselineConfirmedRentals} />
-      <MetricCell current={formatPercent(row.currentConversion)} baseline={formatPercent(row.baselineConversion)} />
-      <MetricCell current={formatRub(row.currentRevenue)} baseline={formatRub(row.baselineRevenue)} />
+      <MetricCell value={row.currentLeads} headers="current-period current-leads" />
+      <MetricCell value={row.currentStartedBookings} headers="current-period current-started" />
+      <MetricCell value={row.currentConfirmedRentals} headers="current-period current-confirmed" />
+      <MetricCell value={formatPercent(row.currentConversion)} headers="current-period current-conversion" />
+      <MetricCell value={formatRub(row.currentRevenue)} headers="current-period current-revenue" />
+      <MetricCell value={row.baselineLeads} headers="baseline-period baseline-leads" />
+      <MetricCell value={row.baselineStartedBookings} headers="baseline-period baseline-started" />
+      <MetricCell value={row.baselineConfirmedRentals} headers="baseline-period baseline-confirmed" />
+      <MetricCell value={formatPercent(row.baselineConversion)} headers="baseline-period baseline-conversion" />
+      <MetricCell value={formatRub(row.baselineRevenue)} headers="baseline-period baseline-revenue" />
     </tr>
   );
 }
@@ -50,7 +54,7 @@ export default function LeadCampaignReport() {
           <p className="text-xs font-bold uppercase tracking-[0.18em] text-amber-300">Последние 14 дней</p>
           <h2 id="lead-campaign-report-title" className="mt-1 text-lg font-bold">Отчёт по каналам и предложениям</h2>
         </div>
-        <p className="text-xs text-slate-300">В каждой ячейке: сейчас · ранее за 14 дней</p>
+        <p className="text-xs text-slate-300">Текущие 14 дней рядом с предыдущими</p>
       </div>
 
       {isLoading && (
@@ -71,19 +75,32 @@ export default function LeadCampaignReport() {
 
       {!isLoading && !isError && data && data.rows.length > 0 && (
         <div className="overflow-x-auto">
-          <table className="min-w-[900px] w-full border-collapse text-sm">
+          <table className="min-w-[1320px] w-full border-collapse text-sm">
             <caption className="sr-only">
               Сравнение лидов, бронирований, подтверждённых аренд, конверсии и выручки по UTM-каналам и кампаниям
             </caption>
             <thead className="bg-slate-100 text-xs uppercase tracking-wide text-slate-600">
+              <tr className="border-b border-slate-300">
+                <th id="report-channel" scope="col" rowSpan={2} className="px-3 py-2.5 text-left">Канал</th>
+                <th id="report-offer" scope="col" rowSpan={2} className="px-3 py-2.5 text-left">Предложение</th>
+                <th id="current-period" scope="colgroup" colSpan={5} className="border-l border-slate-300 px-3 py-2.5 text-center text-slate-800">
+                  Текущие 14 дней
+                </th>
+                <th id="baseline-period" scope="colgroup" colSpan={5} className="border-l border-slate-300 px-3 py-2.5 text-center text-slate-800">
+                  Предыдущие 14 дней
+                </th>
+              </tr>
               <tr>
-                <th scope="col" className="px-3 py-2.5 text-left">Канал</th>
-                <th scope="col" className="px-3 py-2.5 text-left">Предложение</th>
-                <th scope="col" className="px-3 py-2.5 text-right">Лиды</th>
-                <th scope="col" className="px-3 py-2.5 text-right">Брони</th>
-                <th scope="col" className="px-3 py-2.5 text-right">Аренды</th>
-                <th scope="col" className="px-3 py-2.5 text-right">Конверсия</th>
-                <th scope="col" className="px-3 py-2.5 text-right">Выручка</th>
+                <th id="current-leads" headers="current-period" scope="col" className="border-l border-slate-300 px-3 py-2.5 text-right">Лиды</th>
+                <th id="current-started" headers="current-period" scope="col" className="px-3 py-2.5 text-right">Брони</th>
+                <th id="current-confirmed" headers="current-period" scope="col" className="px-3 py-2.5 text-right">Аренды</th>
+                <th id="current-conversion" headers="current-period" scope="col" className="px-3 py-2.5 text-right">Конверсия</th>
+                <th id="current-revenue" headers="current-period" scope="col" className="px-3 py-2.5 text-right">Выручка</th>
+                <th id="baseline-leads" headers="baseline-period" scope="col" className="border-l border-slate-300 px-3 py-2.5 text-right">Лиды</th>
+                <th id="baseline-started" headers="baseline-period" scope="col" className="px-3 py-2.5 text-right">Брони</th>
+                <th id="baseline-confirmed" headers="baseline-period" scope="col" className="px-3 py-2.5 text-right">Аренды</th>
+                <th id="baseline-conversion" headers="baseline-period" scope="col" className="px-3 py-2.5 text-right">Конверсия</th>
+                <th id="baseline-revenue" headers="baseline-period" scope="col" className="px-3 py-2.5 text-right">Выручка</th>
               </tr>
             </thead>
             <tbody>
