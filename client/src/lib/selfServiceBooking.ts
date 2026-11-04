@@ -27,6 +27,29 @@ export const getEquipmentBookingHint = (item: Equipment) => {
 
   return 'оборудование в аренду'
 }
+
+const getBookingCategoryPriority = (category: string) => {
+  const normalized = category.toLocaleLowerCase('ru-RU')
+  if (normalized.includes('клининг') || normalized.includes('пылесос') || normalized.includes('уборк')) return 0
+  if (normalized.includes('аудио')) return 1
+  if (normalized.includes('камер')) return 2
+  return 3
+}
+
+export const groupBookingEquipment = (equipment: Equipment[]) => {
+  const groups = new Map<string, Equipment[]>()
+
+  equipment.forEach((item) => {
+    const group = groups.get(item.category) || []
+    group.push(item)
+    groups.set(item.category, group)
+  })
+
+  return [...groups.entries()].sort(([categoryA], [categoryB]) => {
+    const priorityDifference = getBookingCategoryPriority(categoryA) - getBookingCategoryPriority(categoryB)
+    return priorityDifference || categoryA.localeCompare(categoryB, 'ru-RU')
+  })
+}
 import { calculateRentalTotal } from '../utils/pricing'
 
 export type UrgentBookingStart = 'today' | 'tomorrow'

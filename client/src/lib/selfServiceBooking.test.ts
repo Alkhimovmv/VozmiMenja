@@ -5,6 +5,7 @@ import {
   buildSingleBookingEquipmentPayload,
   calculateMultiEquipmentTotal,
   getEquipmentBookingHint,
+  groupBookingEquipment,
   getJblMicrophoneUpsell,
   getPuzziDryerUpsell,
   getSelectedEquipment,
@@ -146,6 +147,16 @@ assert.equal(getEquipmentBookingHint(equipment[0]), 'портативная ко
 assert.equal(getEquipmentBookingHint(equipment[1]), 'экшн-камера')
 assert.equal(getEquipmentBookingHint(equipment[6]), 'моющий пылесос')
 assert.equal(getEquipmentBookingHint(equipment[8]), 'сушилка')
+const bookingGroups = groupBookingEquipment(equipment)
+assert.deepEqual(bookingGroups.map(([category]) => category), [
+  'Пылесосы, уборка и клининг',
+  'Аудиооборудование',
+  'Камеры',
+])
+assert.deepEqual(
+  bookingGroups.find(([category]) => category === 'Камеры')?.[1].map((item) => item.id),
+  ['camera', 'gopro-13-id', 'osmo-pocket-3-id', 'insta360-x5-id'],
+)
 assert.match(buildSelectedEquipmentList(selected), /1\. GoPro Hero \(Камеры\)/)
 assert.match(buildSelectedEquipmentList(selected), /2\. JBL PartyBox 710 \(Аудиооборудование\)/)
 assert.deepEqual(buildSingleBookingEquipmentPayload(selected), {

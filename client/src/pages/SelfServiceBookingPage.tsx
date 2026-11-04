@@ -3,7 +3,6 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import SEO from '../components/SEO'
 import { useCreateBooking, useEquipment, usePublicOffices } from '../hooks/useEquipment'
-import type { Equipment } from '../types'
 import { calculateBillableRentalDays } from '../utils/pricing'
 import { trackEvent } from '../lib/analytics'
 import { getApiErrorMessage } from '../lib/apiError'
@@ -15,6 +14,7 @@ import {
   calculateMultiEquipmentTotal,
   getJblMicrophoneUpsell,
   getEquipmentBookingHint,
+  groupBookingEquipment,
   getPuzziDryerUpsell,
   getSelectedEquipment,
   resolveEquipmentSelection,
@@ -160,13 +160,7 @@ export default function SelfServiceBookingPage() {
     formData.endTime,
   )
 
-  const groupedEquipment = useMemo(() => {
-    return equipment.reduce<Record<string, Equipment[]>>((acc, item) => {
-      acc[item.category] = acc[item.category] || []
-      acc[item.category].push(item)
-      return acc
-    }, {})
-  }, [equipment])
+  const groupedEquipment = useMemo(() => groupBookingEquipment(equipment), [equipment])
 
   const allLegalAccepted = formData.offerAccepted && formData.agreementAccepted && formData.privacyAccepted
 
@@ -383,7 +377,7 @@ export default function SelfServiceBookingPage() {
                 className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
               >
                 <option value="">{isLoading ? 'Загружаем оборудование...' : 'Добавьте оборудование в комплект'}</option>
-                {Object.entries(groupedEquipment).map(([category, items]) => (
+                {groupedEquipment.map(([category, items]) => (
                   <optgroup key={category} label={category}>
                     {items.map((item) => (
                       <option key={item.id} value={item.id} disabled={formData.equipmentIds.includes(item.id)}>
