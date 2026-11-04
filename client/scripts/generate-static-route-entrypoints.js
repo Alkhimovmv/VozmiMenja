@@ -187,6 +187,11 @@ const distIndexPath = path.join(distDir, 'index.html')
 const distSitemapPath = path.join(distDir, 'sitemap.xml')
 const business = JSON.parse(await fs.readFile(path.join(clientDir, 'src/content/business.json'), 'utf8'))
 const faqContent = JSON.parse(await fs.readFile(path.join(clientDir, 'src/content/faq.json'), 'utf8'))
+// Общие title/description со страницами React (src/content/seoMeta.json), чтобы сниппеты не расходились.
+const seoMeta = JSON.parse(await fs.readFile(path.join(clientDir, 'src/content/seoMeta.json'), 'utf8'))
+for (const [route, meta] of Object.entries(seoMeta)) {
+  staticSeo[route] = { ...staticSeo[route], ...meta }
+}
 const ORGANIZATION_ID = `${SITE_ORIGIN}/#organization`
 const WEBSITE_ID = `${SITE_ORIGIN}/#website`
 

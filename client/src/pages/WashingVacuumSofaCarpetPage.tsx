@@ -6,6 +6,7 @@ import { getTelegramUrl } from '../lib/contactLinks'
 import { buildAttributedBookingLinks, getLeadContext } from '../lib/leadAttribution'
 import ScenarioRentalInfo from '../components/ui/ScenarioRentalInfo'
 import faqContent from '../content/faq.json'
+import seoMeta from '../content/seoMeta.json'
 
 const pageUrl = 'https://vozmimenya.ru/arenda-moyushchego-pylesosa-dlya-divana-kovra-moskva'
 const puzzi8Href = '/equipment/karcher-puzzi-8-1'
@@ -112,8 +113,8 @@ function handleTelegramClick(source: string) {
 }
 
 export default function WashingVacuumSofaCarpetPage() {
-  const pageTitle = 'Аренда моющего пылесоса для дивана и ковра в Москве | ВозьмиМеня'
-  const pageDescription = 'Возьмите моющий пылесос Karcher Puzzi для чистки дивана, ковра, матраса или салона авто в Москве. Поможем выбрать модель и срок аренды.'
+  const pageTitle = seoMeta['/arenda-moyushchego-pylesosa-dlya-divana-kovra-moskva'].title
+  const pageDescription = seoMeta['/arenda-moyushchego-pylesosa-dlya-divana-kovra-moskva'].description
   const puzziBookingLinks = buildAttributedBookingLinks(puzziBookingItems, 'puzzi-cleaning', getLeadContext())
   const getPuzziBookingHref = (equipment: PuzziBookingEquipment) => (
     puzziBookingLinks.find((item) => item.equipment === equipment)?.href || '/booking'

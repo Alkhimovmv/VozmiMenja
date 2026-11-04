@@ -4,6 +4,7 @@ import SEO from '../components/SEO'
 import { trackEvent } from '../lib/analytics'
 import { getTelegramUrl } from '../lib/contactLinks'
 import faqContent from '../content/faq.json'
+import seoMeta from '../content/seoMeta.json'
 
 const steps = [
   'Напишите модель, даты и удобный офис/постамат.',
@@ -34,8 +35,8 @@ export default function SelfPickupPostamatPage() {
   return (
     <div className="min-h-screen bg-[#F8FAFC]">
       <SEO
-        title="Самовывоз техники 24/7 и постамат в Москве | ВозьмиМеня"
-        description="Самовывоз техники 24/7 и получение через постамат в Москве: камеры, колонки, пылесосы и пароочистители по согласованию с менеджером."
+        title={seoMeta['/samovyvoz-24-7-postamat'].title}
+        description={seoMeta['/samovyvoz-24-7-postamat'].description}
         keywords="самовывоз техники 24/7, постамат аренда техники, забрать камеру ночью, аренда техники самовывоз москва"
         url="https://vozmimenya.ru/samovyvoz-24-7-postamat"
         structuredData={faqStructuredData}

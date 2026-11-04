@@ -8,6 +8,7 @@ import { Check, Star, Clock, Shield, Truck } from 'lucide-react'
 import { trackEvent } from '../lib/analytics'
 import { CONTACT_PHONE, CONTACT_PHONE_LABEL, getTelegramUrl } from '../lib/contactLinks'
 import faqContent from '../content/faq.json'
+import seoMeta from '../content/seoMeta.json'
 
 export default function CategoryPylesosyPage() {
   const [page] = useState(1)
@@ -111,8 +112,8 @@ export default function CategoryPylesosyPage() {
   return (
     <div className="min-h-screen bg-[#F8FAFC]">
       <SEO
-        title="Аренда моющих и строительных пылесосов Karcher в Москве"
-        description="Karcher Puzzi, WD5 и SC4 в аренду в Москве: химчистка мебели, уборка после ремонта и паровая очистка. Постамат 24/7 и доставка."
+        title={seoMeta['/arenda-pylesosov-moskva'].title}
+        description={seoMeta['/arenda-pylesosov-moskva'].description}
         keywords="аренда пылесоса karcher москва, аренда моющего пылесоса, строительный пылесос аренда, karcher puzzi аренда"
         url="https://vozmimenya.ru/arenda-pylesosov-moskva"
         structuredData={[categoryStructuredData, faqStructuredData]}

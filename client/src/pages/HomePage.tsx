@@ -10,6 +10,7 @@ import SEO from '../components/SEO'
 import { ChevronLeft, ChevronRight, Phone, Shield, Truck, Clock, Sparkles, Search, X, MapPin, Mail, SprayCan } from 'lucide-react'
 import { trackEvent } from '../lib/analytics'
 import { CONTACT_PHONE, CONTACT_PHONE_LABEL, getTelegramUrl } from '../lib/contactLinks'
+import seoMeta from '../content/seoMeta.json'
 
 // Конфиг стилей по ключу категории из БД (без переименований — label берём с бэка)
 const CAT_CONFIG: Record<string, { gradient: string; iconBg: string; blobColor: string }> = {
@@ -193,14 +194,14 @@ export default function HomePage() {
     ? `Аренда ${category} в Москве — цены, доставка 24/7`
     : search
     ? `Аренда ${search} в Москве | ВозьмиМеня`
-    : 'Аренда оборудования в Москве — камеры, аудио, клининг | ВозьмиМеня'
+    : seoMeta['/'].title
   const seoDescription = categorySeo
     ? categorySeo.description
     : category
     ? `Прокат ${category} в Москве. Подберем модель под задачу, срок и способ получения. Бронь онлайн или через Telegram.`
     : search
     ? `Аренда ${search} в Москве. Доставка в день заказа, постамат 24/7, без залога при прописке в Москве и МО. Быстрый подбор в Telegram.`
-    : 'Аренда техники в Москве: колонки JBL, экшн-камеры, моющие и строительные пылесосы, пароочистители. Доставка, самовывоз и бронь онлайн.'
+    : seoMeta['/'].description
   const seoUrl = categorySeo?.canonicalUrl || 'https://vozmimenya.ru/'
 
   return (
