@@ -83,14 +83,21 @@ export function getLeadContext(): LeadAttribution {
 
   try {
     const stored = readFirstTouchAttribution(window.sessionStorage)
-    const firstTouch = stored || current
+    const firstTouch = stored
+      ? {
+          utmSource: stored.utmSource || current.utmSource,
+          utmMedium: stored.utmMedium || current.utmMedium,
+          utmCampaign: stored.utmCampaign || current.utmCampaign,
+          utmContent: stored.utmContent || current.utmContent,
+        }
+      : current
 
-    if (!stored && hasUtmAttribution(current)) {
+    if ((stored || hasUtmAttribution(current)) && hasUtmAttribution(firstTouch)) {
       window.sessionStorage.setItem(FIRST_TOUCH_STORAGE_KEY, JSON.stringify({
-        utmSource: current.utmSource,
-        utmMedium: current.utmMedium,
-        utmCampaign: current.utmCampaign,
-        utmContent: current.utmContent,
+        utmSource: firstTouch.utmSource,
+        utmMedium: firstTouch.utmMedium,
+        utmCampaign: firstTouch.utmCampaign,
+        utmContent: firstTouch.utmContent,
       }))
     }
 

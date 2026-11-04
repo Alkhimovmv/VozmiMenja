@@ -120,7 +120,7 @@ const originalWindow = globalThis.window
 const originalDocument = globalThis.document
 const mockWindow = {
   location: {
-    href: 'https://vozmimenya.ru/arenda-karaoke-komplekta-moskva?utm_source=avito&utm_medium=listing&utm_campaign=karaoke-kit&utm_content=first-ad',
+    href: 'https://vozmimenya.ru/arenda-karaoke-komplekta-moskva?utm_source=vk&utm_content=community-post',
   },
   sessionStorage: storage,
 }
@@ -131,19 +131,27 @@ Object.defineProperty(globalThis, 'window', {
 })
 Object.defineProperty(globalThis, 'document', {
   configurable: true,
-  value: { referrer: 'https://www.avito.ru/' },
+  value: { referrer: 'https://vk.com/' },
 })
 
-assert.equal(getLeadContext().utmContent, 'first-ad')
+const partialLandingContext = getLeadContext()
+assert.equal(partialLandingContext.utmSource, 'vk')
+assert.equal(partialLandingContext.utmContent, 'community-post')
 assert.equal(storage.length, 1)
 
-mockWindow.location.href = 'https://vozmimenya.ru/booking?equipment=jbl-partybox-320'
+const sessionBookingHref = buildAttributedBookingHref(
+  ['jbl-partybox-320', 'jbl-partybox-wireless-microphones'],
+  'karaoke-kit',
+  partialLandingContext,
+)
+const sessionBookingUrl = new URL(sessionBookingHref, 'https://vozmimenya.ru').href
+mockWindow.location.href = sessionBookingUrl
 const bookingContext = getLeadContext()
-assert.equal(bookingContext.sourcePage, 'https://vozmimenya.ru/booking?equipment=jbl-partybox-320')
-assert.equal(bookingContext.utmSource, 'avito')
-assert.equal(bookingContext.utmMedium, 'listing')
+assert.equal(bookingContext.sourcePage, sessionBookingUrl)
+assert.equal(bookingContext.utmSource, 'vk')
+assert.equal(bookingContext.utmMedium, 'landing')
 assert.equal(bookingContext.utmCampaign, 'karaoke-kit')
-assert.equal(bookingContext.utmContent, 'first-ad')
+assert.equal(bookingContext.utmContent, 'community-post')
 assert.equal(bookingContext.scenario, 'karaoke-kit')
 
 const storageKey = storage.key(0)
