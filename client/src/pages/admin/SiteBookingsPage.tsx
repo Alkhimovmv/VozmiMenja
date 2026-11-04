@@ -3,6 +3,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { bookingsApi } from '../../api/admin/bookings';
 import { contactLeadsApi } from '../../api/admin/contactLeads';
+import { customersApi } from '../../api/admin/customers';
 import { equipmentApi } from '../../api/admin/equipment';
 import { officesApi } from '../../api/admin/offices';
 import { rentalsApi } from '../../api/admin/rentals';
@@ -11,7 +12,7 @@ import LeadCampaignReport from '../../components/admin/LeadCampaignReport';
 import { useAuthenticatedQuery } from '../../hooks/useAuthenticatedQuery';
 import { useOffice } from '../../hooks/useOffice';
 import type { Booking, ContactLead, CreateRentalDto, LeadResult, LeadScenario } from '../../types';
-import type { RentalEquipment } from '../../types/admin';
+import type { Customer, RentalEquipment } from '../../types/admin';
 import { getApiErrorMessage } from '../../lib/apiError';
 import {
   buildRentalFromBooking,
@@ -20,6 +21,7 @@ import {
   formatLeadSource,
   formatSourcePage,
   getBookingEquipmentNames,
+  normalizeAdminPhone,
   resolveBookingEquipmentMappings,
 } from '../../lib/adminLeadConversion';
 import {
@@ -30,6 +32,13 @@ import {
   resolveLeadScenario,
 } from '../../lib/leadWorkflow';
 import { invalidateAdminLeadReport } from '../../lib/adminLeadReport';
+import {
+  getBookingUrgency,
+  getCustomerSegment,
+  sortBookingsByOperationalPriority,
+  type BookingUrgency,
+  type CustomerSegment,
+} from '../../lib/adminBookingPriorities';
 
 const LEAD_RESULTS: LeadResult[] = ['unreached', 'thinking', 'booked', 'declined', 'duplicate'];
 
@@ -122,6 +131,20 @@ function LeadContext({
     </dl>
   );
 }
+
+const URGENCY_BADGES: Record<BookingUrgency, { label: string; className: string }> = {
+  past: { label: 'Дата прошла', className: 'bg-red-100 text-red-800 ring-red-200' },
+  today: { label: 'Сегодня', className: 'bg-orange-100 text-orange-800 ring-orange-200' },
+  tomorrow: { label: 'Завтра', className: 'bg-yellow-100 text-yellow-800 ring-yellow-200' },
+  later: { label: 'Позже', className: 'bg-slate-100 text-slate-700 ring-slate-200' },
+};
+
+const CUSTOMER_SEGMENT_BADGES: Record<CustomerSegment, { label: string; className: string }> = {
+  new: { label: 'Новый клиент', className: 'bg-gray-100 text-gray-700 ring-gray-200' },
+  single: { label: 'Уже арендовал 1 раз', className: 'bg-cyan-50 text-cyan-800 ring-cyan-200' },
+  repeat: { label: 'Повторный клиент', className: 'bg-blue-50 text-blue-800 ring-blue-200' },
+  loyal: { label: 'Постоянный клиент', className: 'bg-indigo-50 text-indigo-800 ring-indigo-200' },
+};
 
 const formatContactSubject = (subject: string) => {
   const labels: Record<string, string> = {
@@ -231,15 +254,25 @@ export default function SiteBookingsPage() {
   });
   const { data: equipment = [] } = useAuthenticatedQuery<RentalEquipment[]>(['equipment-rental', currentOfficeId], () => equipmentApi.getForRental(currentOfficeId));
   const { data: offices = [] } = useAuthenticatedQuery(['offices'], officesApi.getAll);
+  const { data: customers = [] } = useAuthenticatedQuery<Customer[]>({
+    queryKey: ['customers-all'],
+    queryFn: () => customersApi.getAll(),
+    staleTime: 30_000,
+  });
+
+  const rentalCountByPhone = useMemo(() => {
+    const counts = new Map<string, number>();
+    customers.forEach((customer) => {
+      const phone = normalizeAdminPhone(customer.customer_phone);
+      counts.set(phone, Math.max(counts.get(phone) || 0, customer.rental_count));
+    });
+    return counts;
+  }, [customers]);
 
   const openBookings = useMemo(
-    () => bookings
-      .filter((booking) => booking.status === 'pending' || booking.status === 'confirmed')
-      .sort((a, b) => {
-        if (a.status === 'pending' && b.status !== 'pending') return -1;
-        if (a.status !== 'pending' && b.status === 'pending') return 1;
-        return getBookingSortTime(b.createdAt) - getBookingSortTime(a.createdAt);
-      }),
+    () => sortBookingsByOperationalPriority(
+      bookings.filter((booking) => booking.status === 'pending' || booking.status === 'confirmed'),
+    ),
     [bookings]
   );
   const archivedBookings = useMemo(
@@ -532,8 +565,7 @@ export default function SiteBookingsPage() {
         )}
         <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <p className="text-xs font-bold uppercase tracking-widest text-amber-700">Inbox</p>
-            <h2 className="mt-1 text-lg font-bold text-gray-900">Новые лиды, которые ждут обработки</h2>
+            <h2 className="text-lg font-bold text-gray-900">Новые лиды, которые ждут обработки</h2>
           </div>
           <div className="text-sm font-semibold text-amber-800">
             {activeCount} активных из {totalCount}{isContactLeadsLoading ? ' · обращения загружаются' : ''}
@@ -577,6 +609,9 @@ export default function SiteBookingsPage() {
                 const bookingContext = extractBookingContext(booking.comment);
                 const equipmentNames = getBookingEquipmentNames(booking);
                 const resolvedScenario = resolveLeadScenario(booking.scenario, bookingContext.scenario);
+                const urgency = URGENCY_BADGES[getBookingUrgency(booking.startDate)];
+                const rentalCount = rentalCountByPhone.get(normalizeAdminPhone(booking.customerPhone)) || 0;
+                const customerSegment = CUSTOMER_SEGMENT_BADGES[getCustomerSegment(rentalCount)];
                 return (
               <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                 <div className="min-w-0">
@@ -596,8 +631,16 @@ export default function SiteBookingsPage() {
                           ? 'Обработана'
                           : 'Отменена'}
 	                    </span>
+                    {viewMode === 'active' && (
+                      <span className={`rounded-full px-2.5 py-1 text-xs font-bold ring-1 ${urgency.className}`}>
+                        {urgency.label}
+                      </span>
+                    )}
                     <span className="rounded-full bg-amber-50 px-2.5 py-1 text-xs font-bold text-amber-700">
                       {formatBookingAge(booking.createdAt)}
+                    </span>
+                    <span className={`rounded-full px-2.5 py-1 text-xs font-bold ring-1 ${customerSegment.className}`}>
+                      {customerSegment.label}{rentalCount >= 2 ? ` · ${rentalCount}` : ''}
                     </span>
                     <span className="text-sm font-bold text-gray-900">
                       {equipmentNames.length > 0 ? equipmentNames.join(', ') : booking.equipmentId}
