@@ -168,7 +168,7 @@ Create `docs/growth/free-acquisition-campaigns.json` with exactly these 15 uniqu
 ]
 ```
 
-The split deliberately avoids identical Avito offers across both accounts. If a listed office lacks the required equipment during preflight, mark that row `blocked`; do not silently substitute another office.
+The split deliberately avoids identical Avito offers across both accounts. Current free stock in a listed office does not block the placement: the manager may confirm another office, move equipment or purchase it. Do not promise immediate availability in a specific office.
 
 - [ ] **Step 5: Add and run the validation script**
 
@@ -231,7 +231,7 @@ For each selected offer, inspect its `<offer>` entry and confirm at minimum:
 - the selected camera exists at the selected office;
 - every selected item has at least one owned JPG/PNG image.
 
-In authorized Chrome, open `https://vozmimenya.ru/admin/equipment`, select each office, and verify the physical quantity for the catalog-linked item. Record exact product IDs, office IDs, daily prices, confirmed quantities and chosen image URLs in `docs/growth/free-acquisition-runbook.md`. If an item is `available="unknown"` in the office feed, lacks a unique catalog link, or has no confirmed physical quantity in the admin inventory, mark the placement `blocked` instead of claiming stock.
+In authorized Chrome, open `https://vozmimenya.ru/admin/equipment` and record exact catalog links, daily prices and chosen image URLs in `docs/growth/free-acquisition-runbook.md`. Current free quantity is operational context, not a publication blocker: do not claim immediate stock in a specific office, and let the manager confirm relocation or purchase after the request.
 
 - [ ] **Step 3: Verify production attribution before any public link goes live**
 
