@@ -1,6 +1,30 @@
 import type { Equipment } from '../types'
 import { calculateRentalTotal } from '../utils/pricing'
 
+export type UrgentBookingStart = 'today' | 'tomorrow'
+
+const getMoscowDateKey = (date: Date) => {
+  const parts = new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Europe/Moscow',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(date)
+  const values = Object.fromEntries(parts.map((part) => [part.type, part.value]))
+  return `${values.year}-${values.month}-${values.day}`
+}
+
+const addDays = (dateKey: string, days: number) => {
+  const [year, month, day] = dateKey.split('-').map(Number)
+  return new Date(Date.UTC(year, month - 1, day + days)).toISOString().slice(0, 10)
+}
+
+export const buildUrgentBookingDates = (start: UrgentBookingStart, now = new Date()) => {
+  const today = getMoscowDateKey(now)
+  const startDate = start === 'tomorrow' ? addDays(today, 1) : today
+  return { startDate, endDate: addDays(startDate, 1) }
+}
+
 export const getSelectedEquipment = (equipment: Equipment[], equipmentIds: string[]) => {
   const byId = new Map(equipment.map((item) => [item.id, item]))
   return equipmentIds
@@ -25,7 +49,6 @@ export const getJblMicrophoneUpsell = (equipment: Equipment[], selectedEquipment
 
   return equipment.find((item) => (
     !selectedIds.has(item.id)
-    && item.availableQuantity > 0
     && isJblMicrophones(item)
   )) || null
 }
@@ -40,7 +63,6 @@ export const getPuzziDryerUpsell = (equipment: Equipment[], selectedEquipmentIds
 
   return equipment.find((item) => (
     !selectedIds.has(item.id)
-    && item.availableQuantity > 0
     && (
       item.id === 'vacmaster-125w-carpet-dryer'
       || (item.name.toLocaleLowerCase('ru-RU').includes('vacmaster') && item.name.toLocaleLowerCase('ru-RU').includes('сушил'))

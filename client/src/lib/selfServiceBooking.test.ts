@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict'
 import {
+  buildUrgentBookingDates,
   buildSelectedEquipmentList,
   buildSingleBookingEquipmentPayload,
   calculateMultiEquipmentTotal,
@@ -154,14 +155,22 @@ assert.equal(getJblMicrophoneUpsell(equipment, ['speaker', 'jbl-partybox-wireles
 const unavailableMicrophones = equipment.map((item) => (
   item.id === 'jbl-partybox-wireless-microphones' ? { ...item, availableQuantity: 0 } : item
 ))
-assert.equal(getJblMicrophoneUpsell(unavailableMicrophones, ['speaker']), null)
+assert.equal(getJblMicrophoneUpsell(unavailableMicrophones, ['speaker'])?.id, 'jbl-partybox-wireless-microphones')
 assert.equal(getPuzziDryerUpsell(equipment, ['puzzi'])?.id, 'vacmaster-125w-carpet-dryer')
 assert.equal(getPuzziDryerUpsell(equipment, ['camera']), null)
 assert.equal(getPuzziDryerUpsell(equipment, ['puzzi', 'vacmaster-125w-carpet-dryer']), null)
 const unavailableDryer = equipment.map((item) => (
   item.id === 'vacmaster-125w-carpet-dryer' ? { ...item, availableQuantity: 0 } : item
 ))
-assert.equal(getPuzziDryerUpsell(unavailableDryer, ['puzzi']), null)
+assert.equal(getPuzziDryerUpsell(unavailableDryer, ['puzzi'])?.id, 'vacmaster-125w-carpet-dryer')
+assert.deepEqual(
+  buildUrgentBookingDates('today', new Date('2026-11-05T09:00:00+03:00')),
+  { startDate: '2026-11-05', endDate: '2026-11-06' },
+)
+assert.deepEqual(
+  buildUrgentBookingDates('tomorrow', new Date('2026-11-05T09:00:00+03:00')),
+  { startDate: '2026-11-06', endDate: '2026-11-07' },
+)
 assert.deepEqual(
   resolveEquipmentSelection(equipment, ['jbl-partybox-320', 'jbl-partybox-wireless-microphones', 'missing']),
   ['speaker', 'jbl-partybox-wireless-microphones'],

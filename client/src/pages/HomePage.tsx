@@ -228,12 +228,21 @@ export default function HomePage() {
               Техника <span className="text-[#60A5FA]">напрокат</span> в Москве
             </p>
             <p className="text-slate-400 text-xs mb-4">Пылесосы, камеры, колонки. От 400 ₽/день, постамат 24/7.</p>
-            <button
-              onClick={() => document.getElementById('catalog')?.scrollIntoView({ behavior: 'smooth' })}
-              className="inline-flex items-center gap-2 bg-[#2563EB] text-white text-sm font-bold px-5 py-2.5 rounded-xl"
-            >
-              Открыть каталог <ChevronRight className="w-4 h-4" />
-            </button>
+            <div className="flex flex-wrap gap-2">
+              <Link
+                to="/booking?when=today&utm_source=site&utm_medium=home&utm_campaign=urgent-booking"
+                onClick={() => trackEvent('booking_click', { source: 'home_mobile_urgent' })}
+                className="inline-flex items-center gap-2 rounded-xl bg-[#2563EB] px-5 py-2.5 text-sm font-bold text-white"
+              >
+                Нужно сегодня <ChevronRight className="w-4 h-4" />
+              </Link>
+              <button
+                onClick={() => document.getElementById('catalog')?.scrollIntoView({ behavior: 'smooth' })}
+                className="inline-flex items-center rounded-xl bg-white/10 px-4 py-2.5 text-sm font-bold text-white ring-1 ring-white/15"
+              >
+                Каталог
+              </button>
+            </div>
           </div>
         </div>
         </div>
@@ -270,11 +279,18 @@ export default function HomePage() {
                   Привезём за 2–4 часа. Без залога для постоянных клиентов.
                 </p>
                 <div className="flex flex-col sm:flex-row gap-3">
+                  <Link
+                    to="/booking?when=today&utm_source=site&utm_medium=home&utm_campaign=urgent-booking"
+                    onClick={() => trackEvent('booking_click', { source: 'home_desktop_urgent' })}
+                    className="btn-pill-primary shadow-lg hover:shadow-blue-200 hover:scale-[1.02] bg-[#2563EB]"
+                  >
+                    Нужно сегодня
+                    <span className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center text-sm">›</span>
+                  </Link>
                   <a href="#catalog"
                     onClick={(e) => { e.preventDefault(); document.getElementById('catalog')?.scrollIntoView({ behavior: 'smooth' }) }}
-                    className="btn-pill-primary shadow-lg hover:shadow-blue-200 hover:scale-[1.02] bg-[#2563EB]">
+                    className="btn-pill btn-secondary bg-white/70 backdrop-blur-sm">
                     Открыть каталог
-                    <span className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center text-sm">›</span>
                   </a>
                   <a
                     href={getTelegramUrl()}

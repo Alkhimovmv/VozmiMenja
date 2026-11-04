@@ -11,6 +11,7 @@ import { getLeadContext } from '../lib/contactLinks'
 import {
   buildSelectedEquipmentList,
   buildSingleBookingEquipmentPayload,
+  buildUrgentBookingDates,
   calculateMultiEquipmentTotal,
   getJblMicrophoneUpsell,
   getPuzziDryerUpsell,
@@ -19,13 +20,6 @@ import {
 } from '../lib/selfServiceBooking'
 
 const LEGAL_TERMS_VERSION = 'offer-2026-05-09_agreement-2026-05-09_privacy-current'
-
-const getDateInputValue = (date: Date) => {
-  const year = date.getFullYear()
-  const month = String(date.getMonth() + 1).padStart(2, '0')
-  const day = String(date.getDate()).padStart(2, '0')
-  return `${year}-${month}-${day}`
-}
 
 const formatPrice = (value: number) =>
   new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', minimumFractionDigits: 0 }).format(value)
@@ -88,8 +82,10 @@ export default function SelfServiceBookingPage() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const initialSelectionApplied = useRef(false)
-  const today = getDateInputValue(new Date())
-  const tomorrow = getDateInputValue(new Date(Date.now() + 24 * 60 * 60 * 1000))
+  const todayDates = buildUrgentBookingDates('today')
+  const tomorrowDates = buildUrgentBookingDates('tomorrow')
+  const today = todayDates.startDate
+  const initialDates = searchParams.get('when') === 'tomorrow' ? tomorrowDates : todayDates
   const { data: equipmentResponse, isLoading } = useEquipment({ limit: 100 })
   const { data: officesResponse, isLoading: isOfficesLoading } = usePublicOffices()
   const createBookingMutation = useCreateBooking()
@@ -101,8 +97,8 @@ export default function SelfServiceBookingPage() {
     nextEquipmentId: '',
     customerName: '',
     customerPhone: '',
-    startDate: today,
-    endDate: tomorrow,
+    startDate: initialDates.startDate,
+    endDate: initialDates.endDate,
     startTime: '10:00',
     endTime: '10:00',
     preferredContact: 'Telegram',
@@ -233,6 +229,12 @@ export default function SelfServiceBookingPage() {
       ...prev,
       equipmentIds: prev.equipmentIds.filter((id) => id !== equipmentId),
     }))
+  }
+
+  const handleUrgentDates = (start: 'today' | 'tomorrow') => {
+    const dates = buildUrgentBookingDates(start)
+    setFormData((prev) => ({ ...prev, ...dates }))
+    trackEvent('booking_urgent_dates_select', { start })
   }
 
   const handleSubmit = async (event: React.FormEvent) => {
@@ -454,6 +456,31 @@ export default function SelfServiceBookingPage() {
               </label>
             </div>
 
+            <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="text-sm font-black text-amber-950">Техника нужна срочно?</p>
+                  <p className="mt-1 text-xs leading-relaxed text-amber-800">Выберите быстрый срок. Заявку можно отправить на любую позицию — менеджер уточнит комплект и удобный офис.</p>
+                </div>
+                <div className="grid shrink-0 grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handleUrgentDates('today')}
+                    className={`rounded-xl px-4 py-2.5 text-sm font-black transition ${formData.startDate === todayDates.startDate ? 'bg-amber-900 text-white' : 'bg-white text-amber-900 ring-1 ring-amber-200'}`}
+                  >
+                    Сегодня
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleUrgentDates('tomorrow')}
+                    className={`rounded-xl px-4 py-2.5 text-sm font-black transition ${formData.startDate === tomorrowDates.startDate ? 'bg-amber-900 text-white' : 'bg-white text-amber-900 ring-1 ring-amber-200'}`}
+                  >
+                    Завтра
+                  </button>
+                </div>
+              </div>
+            </div>
+
             <div className="grid gap-4 sm:grid-cols-2">
               <label className="block">
                 <span className="text-sm font-bold text-slate-700">Время получения</span>
@@ -646,7 +673,7 @@ export default function SelfServiceBookingPage() {
               <p className="font-bold text-slate-900">Что будет после отправки</p>
               <ol className="mt-2 list-decimal space-y-1 pl-5">
                 <li>Заявка появится у менеджера.</li>
-                <li>Мы проверим наличие, комплект и офис выдачи.</li>
+                <li>Мы уточним комплект и удобный офис выдачи.</li>
                 <li>Менеджер свяжется с вами и подтвердит бронь.</li>
               </ol>
             </div>
