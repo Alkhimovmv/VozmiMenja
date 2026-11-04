@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import {
   buildAttributedBookingHref,
+  buildAttributedBookingLinks,
   getLeadContext,
   inferLeadScenario,
   parseLeadAttribution,
@@ -58,6 +59,24 @@ assert.equal(
   '/booking?equipment=jbl-partybox-320%2Cjbl-partybox-wireless-microphones&utm_source=avito&utm_medium=listing&utm_campaign=karaoke-kit&utm_content=volzhskaya-account-1',
 )
 
+const karaokeLinkItems = [{
+  id: 'partybox-320',
+  equipment: ['jbl-partybox-320', 'jbl-partybox-wireless-microphones'],
+}]
+const avitoLinks = buildAttributedBookingLinks(karaokeLinkItems, 'karaoke-kit', avitoAttribution)
+const vkLinks = buildAttributedBookingLinks(
+  karaokeLinkItems,
+  'karaoke-kit',
+  parseLeadAttribution(
+    'https://vozmimenya.ru/arenda-karaoke-komplekta-moskva?utm_source=vk&utm_medium=social&utm_campaign=karaoke-kit',
+    'https://vk.com/',
+  ),
+)
+
+assert.match(avitoLinks[0].href, /utm_source=avito/)
+assert.match(vkLinks[0].href, /utm_source=vk/)
+assert.doesNotMatch(vkLinks[0].href, /utm_source=avito/)
+
 const directPuzziAttribution = parseLeadAttribution(
   'https://vozmimenya.ru/arenda-moyushchego-pylesosa-dlya-divana-kovra-moskva',
   '',
@@ -70,6 +89,8 @@ assert.equal(
 
 assert.equal(inferLeadScenario('travel-camera', '/booking'), 'travel-camera')
 assert.equal(inferLeadScenario('travel-camera', '/arenda-karaoke-komplekta-moskva'), 'travel-camera')
+assert.equal(inferLeadScenario('not-karaoke-kit', '/booking'), undefined)
+assert.equal(inferLeadScenario('not-karaoke-kit', '/arenda-kamery-dlya-puteshestviya-vloga-moskva'), 'travel-camera')
 assert.equal(inferLeadScenario(undefined, '/arenda-karaoke-komplekta-moskva'), 'karaoke-kit')
 assert.equal(inferLeadScenario(undefined, '/arenda-moyushchego-pylesosa-dlya-divana-kovra-moskva'), 'puzzi-cleaning')
 

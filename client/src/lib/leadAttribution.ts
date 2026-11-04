@@ -19,24 +19,18 @@ type FirstTouchAttribution = Pick<
 
 const getOptionalParam = (params: URLSearchParams, name: string) => params.get(name) || undefined
 
-const matchLeadScenario = (value: string): LeadScenario | undefined => {
-  const normalized = value.toLowerCase()
+export function inferLeadScenario(campaign?: string, pathname = ''): LeadScenario | undefined {
+  const normalizedCampaign = campaign?.toLowerCase()
+  if (normalizedCampaign === 'puzzi-cleaning') return 'puzzi-cleaning'
+  if (normalizedCampaign === 'karaoke-kit') return 'karaoke-kit'
+  if (normalizedCampaign === 'travel-camera') return 'travel-camera'
 
-  if (normalized.includes('puzzi-cleaning') || normalized.includes('arenda-moyushchego-pylesosa-dlya-divana-kovra')) {
-    return 'puzzi-cleaning'
-  }
-  if (normalized.includes('karaoke-kit') || normalized.includes('arenda-karaoke-komplekta')) {
-    return 'karaoke-kit'
-  }
-  if (normalized.includes('travel-camera') || normalized.includes('arenda-kamery-dlya-puteshestviya-vloga')) {
-    return 'travel-camera'
-  }
+  const normalizedPathname = pathname.toLowerCase()
+  if (normalizedPathname.includes('arenda-moyushchego-pylesosa-dlya-divana-kovra')) return 'puzzi-cleaning'
+  if (normalizedPathname.includes('arenda-karaoke-komplekta')) return 'karaoke-kit'
+  if (normalizedPathname.includes('arenda-kamery-dlya-puteshestviya-vloga')) return 'travel-camera'
 
   return undefined
-}
-
-export function inferLeadScenario(campaign?: string, pathname = ''): LeadScenario | undefined {
-  return matchLeadScenario(campaign || '') || matchLeadScenario(pathname)
 }
 
 export function parseLeadAttribution(href: string, referrer?: string): LeadAttribution {
@@ -114,7 +108,7 @@ export function getLeadContext(): LeadAttribution {
 }
 
 export function buildAttributedBookingHref(
-  equipment: string | string[],
+  equipment: string | readonly string[],
   scenario: LeadScenario,
   attribution: LeadAttribution,
 ) {
@@ -133,4 +127,15 @@ export function buildAttributedBookingHref(
   }
 
   return `/booking?${params.toString()}`
+}
+
+export function buildAttributedBookingLinks<T extends { equipment: string | readonly string[] }>(
+  items: readonly T[],
+  scenario: LeadScenario,
+  attribution: LeadAttribution,
+) {
+  return items.map((item) => ({
+    ...item,
+    href: buildAttributedBookingHref(item.equipment, scenario, attribution),
+  }))
 }

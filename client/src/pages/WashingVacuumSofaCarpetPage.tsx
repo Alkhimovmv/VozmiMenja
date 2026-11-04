@@ -3,7 +3,7 @@ import { Helmet } from 'react-helmet-async'
 import { ArrowRight, CheckCircle2, Clock, HelpCircle, MessageCircle, Sofa, Sparkles, SprayCan, Truck } from 'lucide-react'
 import { trackEvent } from '../lib/analytics'
 import { getTelegramUrl } from '../lib/contactLinks'
-import { buildAttributedBookingHref, getLeadContext } from '../lib/leadAttribution'
+import { buildAttributedBookingLinks, getLeadContext } from '../lib/leadAttribution'
 import ScenarioRentalInfo from '../components/ui/ScenarioRentalInfo'
 import faqContent from '../content/faq.json'
 
@@ -11,8 +11,11 @@ const pageUrl = 'https://vozmimenya.ru/arenda-moyushchego-pylesosa-dlya-divana-k
 const puzzi8Href = '/equipment/karcher-puzzi-8-1'
 const puzzi10Href = '/equipment/karcher-puzzi-10-1'
 const sc4Href = '/equipment/karcher-sc4'
-const puzziBookingHref = (equipment: 'karcher-puzzi-8-1' | 'karcher-puzzi-10-1') =>
-  buildAttributedBookingHref(equipment, 'puzzi-cleaning', getLeadContext())
+type PuzziBookingEquipment = 'karcher-puzzi-8-1' | 'karcher-puzzi-10-1'
+const puzziBookingItems: { equipment: PuzziBookingEquipment }[] = [
+  { equipment: 'karcher-puzzi-8-1' },
+  { equipment: 'karcher-puzzi-10-1' },
+]
 const leadMessage = 'Нужен моющий пылесос для чистки. Что чистим: диван/ковер/матрас/авто. Размер/количество: __. Пятна: __. Даты аренды: __. Район Москвы: __.'
 
 const faqItems = faqContent['/arenda-moyushchego-pylesosa-dlya-divana-kovra-moskva']
@@ -45,7 +48,6 @@ const scenarioCards = [
     title: 'Диван, кресло, матрас',
     text: 'Точечная домашняя чистка текстиля без покупки отдельного аппарата ради одного-двух дней.',
     result: 'Забронировать Puzzi 8/1',
-    href: puzziBookingHref('karcher-puzzi-8-1'),
     bookingEquipment: 'karcher-puzzi-8-1',
     icon: Sofa,
   },
@@ -53,7 +55,6 @@ const scenarioCards = [
     title: 'Ковер или несколько комнат',
     text: 'Когда объем больше и хочется пройти ковры, мягкую мебель и дорожки за одну аренду.',
     result: 'Забронировать Puzzi 10/1',
-    href: puzziBookingHref('karcher-puzzi-10-1'),
     bookingEquipment: 'karcher-puzzi-10-1',
     icon: SprayCan,
   },
@@ -113,6 +114,10 @@ function handleTelegramClick(source: string) {
 export default function WashingVacuumSofaCarpetPage() {
   const pageTitle = 'Аренда моющего пылесоса для дивана и ковра в Москве | ВозьмиМеня'
   const pageDescription = 'Возьмите моющий пылесос Karcher Puzzi для чистки дивана, ковра, матраса или салона авто в Москве. Поможем выбрать модель и срок аренды.'
+  const puzziBookingLinks = buildAttributedBookingLinks(puzziBookingItems, 'puzzi-cleaning', getLeadContext())
+  const getPuzziBookingHref = (equipment: PuzziBookingEquipment) => (
+    puzziBookingLinks.find((item) => item.equipment === equipment)?.href || '/booking'
+  )
 
   return (
     <div className="min-h-screen bg-[#F7F3EA] text-slate-900">
@@ -164,7 +169,7 @@ export default function WashingVacuumSofaCarpetPage() {
               </p>
               <div className="flex flex-col gap-3 sm:flex-row">
                 <Link
-                  to={puzziBookingHref('karcher-puzzi-8-1')}
+                  to={getPuzziBookingHref('karcher-puzzi-8-1')}
                   onClick={() => trackEvent('washing_vacuum_booking_click', { equipment: 'karcher-puzzi-8-1' })}
                   className="btn bg-[#F4CD7C] text-slate-950 hover:bg-[#FFE1A3]"
                 >
@@ -209,7 +214,7 @@ export default function WashingVacuumSofaCarpetPage() {
                   <ArrowRight className="h-4 w-4" />
                 </Link>
                 <Link
-                  to={puzziBookingHref('karcher-puzzi-8-1')}
+                  to={getPuzziBookingHref('karcher-puzzi-8-1')}
                   onClick={() => trackEvent('washing_vacuum_booking_click', { equipment: 'karcher-puzzi-8-1', placement: 'featured_card' })}
                   className="mt-3 inline-flex w-full items-center justify-center gap-2 text-sm font-bold text-[#1D4ED8] hover:underline"
                 >
@@ -233,6 +238,9 @@ export default function WashingVacuumSofaCarpetPage() {
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
             {scenarioCards.map((card) => {
               const Icon = card.icon
+              const href = card.bookingEquipment
+                ? getPuzziBookingHref(card.bookingEquipment as PuzziBookingEquipment)
+                : card.href
               const className = 'group rounded-3xl border border-[#E6DDCA] bg-white p-5 transition hover:-translate-y-1 hover:border-[#D3C2A4] hover:shadow-xl'
               const content = (
                 <>
@@ -249,13 +257,13 @@ export default function WashingVacuumSofaCarpetPage() {
               )
 
               return card.external ? (
-                <a key={card.title} href={card.href} target="_blank" rel="noopener noreferrer" onClick={() => handleTelegramClick('washing_vacuum_scenario_auto')} className={className}>
+                <a key={card.title} href={href} target="_blank" rel="noopener noreferrer" onClick={() => handleTelegramClick('washing_vacuum_scenario_auto')} className={className}>
                   {content}
                 </a>
               ) : (
                 <Link
                   key={card.title}
-                  to={card.href}
+                  to={href || '/'}
                   onClick={() => card.bookingEquipment && trackEvent('washing_vacuum_booking_click', {
                     equipment: card.bookingEquipment,
                     placement: 'scenario_card',

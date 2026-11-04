@@ -3,7 +3,7 @@ import { Helmet } from 'react-helmet-async'
 import { ArrowRight, BatteryCharging, CheckCircle2, Compass, Film, MapPinned, MessageCircle, Mountain, Smartphone } from 'lucide-react'
 import { trackEvent } from '../lib/analytics'
 import { getTelegramUrl } from '../lib/contactLinks'
-import { buildAttributedBookingHref, getLeadContext } from '../lib/leadAttribution'
+import { buildAttributedBookingLinks, getLeadContext } from '../lib/leadAttribution'
 import ScenarioRentalInfo from '../components/ui/ScenarioRentalInfo'
 import faqContent from '../content/faq.json'
 
@@ -11,8 +11,12 @@ const pageUrl = 'https://vozmimenya.ru/arenda-kamery-dlya-puteshestviya-vloga-mo
 const goproHref = '/equipment/gopro-13'
 const osmoHref = '/equipment/dji-osmo-pocket-3-creator-combo'
 const insta360Href = '/equipment/insta360-x5'
-const cameraBookingHref = (equipment: 'gopro-13' | 'dji-osmo-pocket-3-creator-combo' | 'insta360-x5') =>
-  buildAttributedBookingHref(equipment, 'travel-camera', getLeadContext())
+type CameraBookingEquipment = 'gopro-13' | 'dji-osmo-pocket-3-creator-combo' | 'insta360-x5'
+const cameraBookingItems: { equipment: CameraBookingEquipment }[] = [
+  { equipment: 'gopro-13' },
+  { equipment: 'dji-osmo-pocket-3-creator-combo' },
+  { equipment: 'insta360-x5' },
+]
 const leadMessage = 'Нужна камера для поездки/влога. Что снимаем: путешествие/спорт/Reels/360. Срок: __ дней. Нужны крепления/аккумуляторы: __. Район Москвы: __.'
 
 const faqItems = faqContent['/arenda-kamery-dlya-puteshestviya-vloga-moskva']
@@ -45,7 +49,6 @@ const scenarioCards = [
     title: 'Активная поездка и спорт',
     text: 'Горы, вода, велосипед, сноуборд, дорога и крепления — сценарий, где GoPro обычно понятнее всего.',
     result: 'Забронировать GoPro 13',
-    href: cameraBookingHref('gopro-13'),
     bookingEquipment: 'gopro-13',
     icon: Mountain,
   },
@@ -53,7 +56,6 @@ const scenarioCards = [
     title: 'Влог, прогулка, Reels',
     text: 'Когда вы говорите в кадре, снимаете город, обзор или короткие вертикальные видео, удобен компактный стабилизированный формат.',
     result: 'Забронировать Osmo Pocket 3',
-    href: cameraBookingHref('dji-osmo-pocket-3-creator-combo'),
     bookingEquipment: 'dji-osmo-pocket-3-creator-combo',
     icon: Smartphone,
   },
@@ -61,7 +63,6 @@ const scenarioCards = [
     title: '360 и необычные ракурсы',
     text: 'Если снимаете один и хотите потом выбрать ракурс на монтаже, Insta360 дает больше свободы с кадром.',
     result: 'Забронировать Insta360 X5',
-    href: cameraBookingHref('insta360-x5'),
     bookingEquipment: 'insta360-x5',
     icon: Compass,
   },
@@ -120,6 +121,10 @@ function handleTelegramClick(source: string) {
 export default function TravelVlogCameraRentalPage() {
   const pageTitle = 'Аренда камеры для путешествия и влога в Москве | ВозьмиМеня'
   const pageDescription = 'Возьмите GoPro, Insta360 или DJI Osmo Pocket для поездки, Reels, Shorts, спорта и влога в Москве. Подберем камеру и комплект.'
+  const cameraBookingLinks = buildAttributedBookingLinks(cameraBookingItems, 'travel-camera', getLeadContext())
+  const getCameraBookingHref = (equipment: CameraBookingEquipment) => (
+    cameraBookingLinks.find((item) => item.equipment === equipment)?.href || '/booking'
+  )
 
   return (
     <div className="min-h-screen bg-[#F4F0E8] text-slate-900">
@@ -171,7 +176,7 @@ export default function TravelVlogCameraRentalPage() {
               </p>
               <div className="flex flex-col gap-3 sm:flex-row">
                 <Link
-                  to={cameraBookingHref('gopro-13')}
+                  to={getCameraBookingHref('gopro-13')}
                   onClick={() => trackEvent('travel_camera_booking_click', { equipment: 'gopro-13' })}
                   className="btn bg-[#7DD3FC] text-slate-950 hover:bg-[#BAE6FD]"
                 >
@@ -212,7 +217,7 @@ export default function TravelVlogCameraRentalPage() {
                   ))}
                 </div>
                 <Link
-                  to={cameraBookingHref('gopro-13')}
+                  to={getCameraBookingHref('gopro-13')}
                   onClick={() => trackEvent('travel_camera_booking_click', { equipment: 'gopro-13', placement: 'featured_card' })}
                   className="btn mt-5 w-full bg-slate-950 text-white hover:bg-slate-800"
                 >
@@ -236,6 +241,9 @@ export default function TravelVlogCameraRentalPage() {
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
             {scenarioCards.map((card) => {
               const Icon = card.icon
+              const href = card.bookingEquipment
+                ? getCameraBookingHref(card.bookingEquipment as CameraBookingEquipment)
+                : card.href
               const className = 'group rounded-3xl border border-[#D8DEE8] bg-white p-5 transition hover:-translate-y-1 hover:border-[#38BDF8] hover:shadow-xl'
               const content = (
                 <>
@@ -252,13 +260,13 @@ export default function TravelVlogCameraRentalPage() {
               )
 
               return card.external ? (
-                <a key={card.title} href={card.href} target="_blank" rel="noopener noreferrer" onClick={() => handleTelegramClick(`travel_vlog_camera_${card.title}`)} className={className}>
+                <a key={card.title} href={href} target="_blank" rel="noopener noreferrer" onClick={() => handleTelegramClick(`travel_vlog_camera_${card.title}`)} className={className}>
                   {content}
                 </a>
               ) : (
                 <Link
                   key={card.title}
-                  to={card.href}
+                  to={href || '/'}
                   onClick={() => card.bookingEquipment && trackEvent('travel_camera_booking_click', {
                     equipment: card.bookingEquipment,
                     placement: 'scenario_card',
