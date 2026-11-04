@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
-import { Save } from 'lucide-react'
+import { AlertTriangle, Save } from 'lucide-react'
 import { apiClient } from '../../lib/api'
 import type { Equipment, PricingTier } from '../../types'
+import { getPricingConsistencyIssues } from '../../lib/pricingConsistency'
 
 const priceFields: Array<{
   key: keyof PricingTier
@@ -52,6 +53,11 @@ export default function SitePricesPage() {
   })
 
   const equipment = useMemo(() => data?.data ?? [], [data?.data])
+
+  const issueCount = useMemo(() => equipment.reduce((total, item) => {
+    const pricing = drafts[item.id] ?? buildPricing(item)
+    return total + getPricingConsistencyIssues(pricing, item.pricePerDay).length
+  }, 0), [drafts, equipment])
 
   useEffect(() => {
     if (equipment.length === 0) return
@@ -140,10 +146,23 @@ export default function SitePricesPage() {
         />
       </div>
 
+      {issueCount > 0 && (
+        <div className="flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0" />
+          <div>
+            <div className="font-semibold">Найдено несоответствий: {issueCount}</div>
+            <div className="mt-0.5 text-xs text-amber-800">
+              Цены автоматически не меняются. Проверьте предупреждения у конкретных позиций.
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="space-y-4">
         {filteredEquipment.map((item) => {
           const pricing = drafts[item.id] ?? buildPricing(item)
           const isSaving = saveMutation.isPending && saveMutation.variables?.id === item.id
+          const pricingIssues = getPricingConsistencyIssues(pricing, item.pricePerDay)
 
           return (
             <section key={item.id} className="rounded-lg bg-white p-4 shadow sm:p-5">
@@ -180,6 +199,18 @@ export default function SitePricesPage() {
                   </label>
                 ))}
               </div>
+
+              {pricingIssues.length > 0 && (
+                <div className="mt-4 rounded-md border border-amber-200 bg-amber-50 px-3 py-2">
+                  <div className="flex items-center gap-2 text-sm font-semibold text-amber-900">
+                    <AlertTriangle className="h-4 w-4" />
+                    Проверить цены
+                  </div>
+                  <ul className="mt-1 list-disc space-y-1 pl-5 text-xs text-amber-800">
+                    {pricingIssues.map((issue) => <li key={issue.code}>{issue.message}</li>)}
+                  </ul>
+                </div>
+              )}
             </section>
           )
         })}
