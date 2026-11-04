@@ -132,6 +132,7 @@ router.get('/equipment-utilization', authMiddleware, async (req: Request, res: R
         e.name,
         e.quantity,
         e.office_id,
+        e.created_at,
         COALESCE(e.base_price, 0) AS base_price,
         COUNT(DISTINCT wi.rental_id) AS total_rentals,
         COALESCE(SUM(
@@ -143,13 +144,14 @@ router.get('/equipment-utilization', authMiddleware, async (req: Request, res: R
       FROM rental_equipment e
       LEFT JOIN weighted_items wi ON wi.equipment_id = e.id
       ${officeFilter}
-      GROUP BY e.id, e.name, e.quantity, e.office_id, e.base_price
+      GROUP BY e.id, e.name, e.quantity, e.office_id, e.created_at, e.base_price
       ORDER BY total_revenue DESC, total_rentals DESC, e.name ASC
     `, [daysModifier, ...(officeIds || []), ...(officeIds || [])]) as Array<{
       id: number
       name: string
       quantity: number
       office_id: number | null
+      created_at: string
       base_price: number
       total_rentals: number
       rented_days: number
@@ -162,6 +164,12 @@ router.get('/equipment-utilization', authMiddleware, async (req: Request, res: R
       const totalRentals = Number(row.total_rentals) || 0
       const rentedDays = Number(row.rented_days) || 0
       const investmentValue = (Number(row.base_price) || 0) * quantity
+      const createdAt = new Date(`${row.created_at.replace(' ', 'T')}Z`)
+      const ageInDays = Number.isNaN(createdAt.getTime())
+        ? parsedQuery.data.days
+        : Math.max(1, Math.ceil((Date.now() - createdAt.getTime()) / 86_400_000))
+      const observationDays = Math.min(parsedQuery.data.days, ageInDays)
+      const availableDays = observationDays * quantity
 
       return {
         id: row.id,
@@ -170,9 +178,11 @@ router.get('/equipment-utilization', authMiddleware, async (req: Request, res: R
         office_id: row.office_id,
         total_rentals: totalRentals,
         rented_days: rentedDays,
+        idle_days: Math.max(0, availableDays - rentedDays),
+        observation_days: observationDays,
         total_revenue: totalRevenue,
         average_revenue: totalRentals > 0 ? Math.round(totalRevenue / totalRentals) : 0,
-        utilization_percent: Math.round((rentedDays / (parsedQuery.data.days * quantity)) * 1000) / 10,
+        utilization_percent: Math.round((rentedDays / availableDays) * 1000) / 10,
         investment_value: investmentValue,
         gross_return_percent: investmentValue > 0
           ? Math.round((totalRevenue / investmentValue) * 1000) / 10

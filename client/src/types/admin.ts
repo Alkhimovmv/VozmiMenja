@@ -198,6 +198,8 @@ export interface EquipmentUtilization {
   office_id: number | null;
   total_rentals: number;
   rented_days: number;
+  idle_days: number;
+  observation_days: number;
   total_revenue: number;
   average_revenue: number;
   utilization_percent: number;

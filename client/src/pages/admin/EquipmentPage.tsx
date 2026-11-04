@@ -19,10 +19,25 @@ import { getApiErrorMessage } from '../../lib/apiError';
 import { analyticsApi } from '../../api/admin/analytics';
 import type { EquipmentUtilization } from '../../types/admin';
 import { buildAvitoBookingUrl } from '../../lib/avitoBookingLink';
+import {
+  getEquipmentDecision,
+  type EquipmentPerformancePeriod,
+  type EquipmentPerformancePeriods,
+} from '../../lib/equipmentPerformance';
+
+const performancePeriods: EquipmentPerformancePeriod[] = [30, 90, 365];
+
+const decisionToneClasses = {
+  green: 'bg-green-50 text-green-700',
+  blue: 'bg-blue-50 text-blue-700',
+  amber: 'bg-amber-50 text-amber-700',
+  gray: 'bg-gray-100 text-gray-600',
+};
 
 const EquipmentPage: React.FC = () => {
   const { currentOfficeId } = useOffice();
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [performancePeriod, setPerformancePeriod] = useState<EquipmentPerformancePeriod>(365);
   const [editingEquipment, setEditingEquipment] = useState<RentalEquipment | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<{ isOpen: boolean; equipmentId: string | null }>({ isOpen: false, equipmentId: null });
   const queryClient = useQueryClient();
@@ -33,11 +48,12 @@ const EquipmentPage: React.FC = () => {
     equipmentApi.getCatalogOptions
   );
   const { data: offices = [] } = useAuthenticatedQuery<Office[]>(['offices'], officesApi.getAll);
-  const { data: equipmentPerformance = [], isLoading: isPerformanceLoading } = useAuthenticatedQuery<EquipmentUtilization[]>(
-    ['analytics', 'equipment-utilization', currentOfficeId, 365],
-    () => analyticsApi.getEquipmentUtilization(currentOfficeId, 365),
+  const { data: equipmentPerformance, isLoading: isPerformanceLoading } = useAuthenticatedQuery<EquipmentPerformancePeriods>(
+    ['analytics', 'equipment-utilization', currentOfficeId, 'periods'],
+    () => analyticsApi.getEquipmentPerformancePeriods(currentOfficeId),
     { staleTime: 60_000 }
   );
+  const selectedEquipmentPerformance: EquipmentUtilization[] = equipmentPerformance?.[performancePeriod] ?? [];
 
   const createMutation = useMutation({
     mutationFn: equipmentApi.create,
@@ -170,17 +186,32 @@ const EquipmentPage: React.FC = () => {
       </div>
 
       <section className="rounded-lg bg-white p-4 shadow sm:p-6">
-        <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <h2 className="text-lg font-bold text-gray-900">Доходность оборудования</h2>
-            <p className="text-sm text-gray-500">По завершённым арендам за последние 365 дней</p>
+            <p className="text-sm text-gray-500">По завершённым арендам, без общих расходов</p>
           </div>
-          <p className="text-xs text-gray-500">Окупаемость считается по валовой выручке без общих расходов</p>
+          <div className="flex rounded-md bg-gray-100 p-1" aria-label="Период отчёта">
+            {performancePeriods.map((period) => (
+              <button
+                key={period}
+                type="button"
+                onClick={() => setPerformancePeriod(period)}
+                className={`min-h-[36px] flex-1 rounded px-3 text-sm font-medium sm:flex-none ${
+                  performancePeriod === period
+                    ? 'bg-white text-gray-900 shadow-sm'
+                    : 'text-gray-500 hover:text-gray-800'
+                }`}
+              >
+                {period} дней
+              </button>
+            ))}
+          </div>
         </div>
 
         {isPerformanceLoading ? (
           <div className="mt-4 text-sm text-gray-500">Считаем загрузку…</div>
-        ) : equipmentPerformance.length === 0 ? (
+        ) : selectedEquipmentPerformance.length === 0 || !equipmentPerformance ? (
           <div className="mt-4 text-sm text-gray-500">Пока недостаточно данных для расчёта.</div>
         ) : (
           <div className="mt-4 overflow-x-auto">
@@ -192,14 +223,19 @@ const EquipmentPage: React.FC = () => {
                   <th className="px-3 py-2">Загрузка</th>
                   <th className="px-3 py-2">Выручка</th>
                   <th className="px-3 py-2">Окупаемость</th>
+                  <th className="px-3 py-2">Решение</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {equipmentPerformance.map((item) => (
+                {selectedEquipmentPerformance.map((item) => {
+                  const decision = getEquipmentDecision(equipmentPerformance, item.id);
+                  return (
                   <tr key={item.id} className="align-top">
                     <td className="px-3 py-3">
                       <div className="font-semibold text-gray-900">{item.name}</div>
-                      <div className="text-xs text-gray-500">{item.quantity} шт. · {item.rented_days} занятых суток</div>
+                      <div className="text-xs text-gray-500">
+                        {item.quantity} шт. · {item.rented_days} занято · {item.idle_days} простой
+                      </div>
                     </td>
                     <td className="px-3 py-3 text-gray-700">
                       {item.total_rentals}
@@ -216,8 +252,15 @@ const EquipmentPage: React.FC = () => {
                         </span>
                       )}
                     </td>
+                    <td className="px-3 py-3">
+                      <span className={`inline-flex rounded-full px-2 py-1 text-xs font-semibold ${decisionToneClasses[decision.tone]}`}>
+                        {decision.label}
+                      </span>
+                      <div className="mt-1 max-w-52 text-xs text-gray-500">{decision.reason}</div>
+                    </td>
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
           </div>
