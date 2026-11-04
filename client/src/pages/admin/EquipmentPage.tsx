@@ -18,6 +18,7 @@ import { useOffice } from '../../hooks/useOffice';
 import { getApiErrorMessage } from '../../lib/apiError';
 import { analyticsApi } from '../../api/admin/analytics';
 import type { EquipmentUtilization } from '../../types/admin';
+import { buildAvitoBookingUrl } from '../../lib/avitoBookingLink';
 
 const EquipmentPage: React.FC = () => {
   const { currentOfficeId } = useOffice();
@@ -114,6 +115,16 @@ const EquipmentPage: React.FC = () => {
   const handleEditEquipment = (equipment: RentalEquipment) => {
     setEditingEquipment(equipment);
     setIsModalOpen(true);
+  };
+
+  const handleCopyAvitoLink = async (catalogEquipmentId: string) => {
+    const link = buildAvitoBookingUrl(catalogEquipmentId);
+    try {
+      await navigator.clipboard.writeText(link);
+      toast.success('Ссылка для Авито скопирована');
+    } catch {
+      toast.error('Не удалось скопировать ссылку');
+    }
   };
 
   const totalValue = equipment.reduce((sum, item) => sum + ((item.base_price ?? 0) * item.quantity), 0);
@@ -273,6 +284,14 @@ const EquipmentPage: React.FC = () => {
                 </div>
 
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center space-y-3 sm:space-y-0 sm:space-x-3">
+                  {item.catalog_equipment_id && (
+                    <button
+                      onClick={() => handleCopyAvitoLink(item.catalog_equipment_id!)}
+                      className="inline-flex min-h-[44px] items-center justify-center rounded border border-slate-300 bg-white px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50 touch-manipulation"
+                    >
+                      Ссылка для Авито
+                    </button>
+                  )}
                   <button
                     onClick={() => handleEditEquipment(item)}
                     disabled={updateMutation.isPending}
