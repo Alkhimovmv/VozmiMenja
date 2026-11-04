@@ -3,6 +3,7 @@ import { Helmet } from 'react-helmet-async'
 import { ArrowRight, BatteryCharging, CheckCircle2, Compass, Film, MapPinned, MessageCircle, Mountain, Smartphone } from 'lucide-react'
 import { trackEvent } from '../lib/analytics'
 import { getTelegramUrl } from '../lib/contactLinks'
+import { buildAttributedBookingHref, getLeadContext } from '../lib/leadAttribution'
 import ScenarioRentalInfo from '../components/ui/ScenarioRentalInfo'
 import faqContent from '../content/faq.json'
 
@@ -11,7 +12,7 @@ const goproHref = '/equipment/gopro-13'
 const osmoHref = '/equipment/dji-osmo-pocket-3-creator-combo'
 const insta360Href = '/equipment/insta360-x5'
 const cameraBookingHref = (equipment: 'gopro-13' | 'dji-osmo-pocket-3-creator-combo' | 'insta360-x5') =>
-  `/booking?equipment=${equipment}&utm_source=site&utm_medium=landing&utm_campaign=travel-camera`
+  buildAttributedBookingHref(equipment, 'travel-camera', getLeadContext())
 const leadMessage = 'Нужна камера для поездки/влога. Что снимаем: путешествие/спорт/Reels/360. Срок: __ дней. Нужны крепления/аккумуляторы: __. Район Москвы: __.'
 
 const faqItems = faqContent['/arenda-kamery-dlya-puteshestviya-vloga-moskva']

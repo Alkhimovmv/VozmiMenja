@@ -2,12 +2,17 @@ import { Link } from 'react-router-dom'
 import { Helmet } from 'react-helmet-async'
 import { ArrowRight, CheckCircle2, Clock3, MapPin, Mic2, Music2, ShieldCheck, Speaker } from 'lucide-react'
 import { trackEvent } from '../lib/analytics'
+import { buildAttributedBookingHref, getLeadContext } from '../lib/leadAttribution'
 
 const pagePath = '/arenda-karaoke-komplekta-moskva'
 const pageUrl = `https://vozmimenya.ru${pagePath}`
 
 const bookingHref = (speaker: 'jbl-partybox-320' | 'jbl-partybox-710') =>
-  `/booking?equipment=${speaker},jbl-partybox-wireless-microphones&utm_source=site&utm_medium=landing&utm_campaign=karaoke-kit`
+  buildAttributedBookingHref(
+    [speaker, 'jbl-partybox-wireless-microphones'],
+    'karaoke-kit',
+    getLeadContext(),
+  )
 
 const faqItems = [
   {

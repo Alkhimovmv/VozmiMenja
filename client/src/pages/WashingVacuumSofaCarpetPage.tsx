@@ -3,6 +3,7 @@ import { Helmet } from 'react-helmet-async'
 import { ArrowRight, CheckCircle2, Clock, HelpCircle, MessageCircle, Sofa, Sparkles, SprayCan, Truck } from 'lucide-react'
 import { trackEvent } from '../lib/analytics'
 import { getTelegramUrl } from '../lib/contactLinks'
+import { buildAttributedBookingHref, getLeadContext } from '../lib/leadAttribution'
 import ScenarioRentalInfo from '../components/ui/ScenarioRentalInfo'
 import faqContent from '../content/faq.json'
 
@@ -11,7 +12,7 @@ const puzzi8Href = '/equipment/karcher-puzzi-8-1'
 const puzzi10Href = '/equipment/karcher-puzzi-10-1'
 const sc4Href = '/equipment/karcher-sc4'
 const puzziBookingHref = (equipment: 'karcher-puzzi-8-1' | 'karcher-puzzi-10-1') =>
-  `/booking?equipment=${equipment}&utm_source=site&utm_medium=landing&utm_campaign=puzzi-cleaning`
+  buildAttributedBookingHref(equipment, 'puzzi-cleaning', getLeadContext())
 const leadMessage = 'Нужен моющий пылесос для чистки. Что чистим: диван/ковер/матрас/авто. Размер/количество: __. Пятна: __. Даты аренды: __. Район Москвы: __.'
 
 const faqItems = faqContent['/arenda-moyushchego-pylesosa-dlya-divana-kovra-moskva']
