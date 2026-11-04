@@ -113,18 +113,12 @@ export function buildAttributedBookingHref(
   attribution: LeadAttribution,
 ) {
   const params = new URLSearchParams()
-  params.set('equipment', Array.isArray(equipment) ? equipment.join(',') : equipment)
-
-  if (hasUtmAttribution(attribution)) {
-    if (attribution.utmSource) params.set('utm_source', attribution.utmSource)
-    if (attribution.utmMedium) params.set('utm_medium', attribution.utmMedium)
-    if (attribution.utmCampaign) params.set('utm_campaign', attribution.utmCampaign)
-    if (attribution.utmContent) params.set('utm_content', attribution.utmContent)
-  } else {
-    params.set('utm_source', 'site')
-    params.set('utm_medium', 'landing')
-    params.set('utm_campaign', scenario)
-  }
+  const equipmentValue = typeof equipment === 'string' ? equipment : equipment.join(',')
+  params.set('equipment', equipmentValue)
+  params.set('utm_source', attribution.utmSource || 'site')
+  params.set('utm_medium', attribution.utmMedium || 'landing')
+  params.set('utm_campaign', attribution.utmCampaign || scenario)
+  if (attribution.utmContent) params.set('utm_content', attribution.utmContent)
 
   return `/booking?${params.toString()}`
 }

@@ -77,6 +77,25 @@ assert.match(avitoLinks[0].href, /utm_source=avito/)
 assert.match(vkLinks[0].href, /utm_source=vk/)
 assert.doesNotMatch(vkLinks[0].href, /utm_source=avito/)
 
+const partialVkAttribution = parseLeadAttribution(
+  'https://vozmimenya.ru/arenda-karaoke-komplekta-moskva?utm_source=vk&utm_content=community-post',
+  'https://vk.com/',
+)
+const partialVkBookingHref = buildAttributedBookingHref(
+  ['jbl-partybox-320', 'jbl-partybox-wireless-microphones'],
+  'karaoke-kit',
+  partialVkAttribution,
+)
+
+assert.equal(
+  partialVkBookingHref,
+  '/booking?equipment=jbl-partybox-320%2Cjbl-partybox-wireless-microphones&utm_source=vk&utm_medium=landing&utm_campaign=karaoke-kit&utm_content=community-post',
+)
+assert.equal(
+  parseLeadAttribution(new URL(partialVkBookingHref, 'https://vozmimenya.ru').href, '').scenario,
+  'karaoke-kit',
+)
+
 const directPuzziAttribution = parseLeadAttribution(
   'https://vozmimenya.ru/arenda-moyushchego-pylesosa-dlya-divana-kovra-moskva',
   '',
@@ -99,13 +118,16 @@ assert.equal(inferLeadScenario(undefined, '/arenda-kamery-dlya-puteshestviya-vlo
 const storage = new MemoryStorage()
 const originalWindow = globalThis.window
 const originalDocument = globalThis.document
+const mockWindow = {
+  location: {
+    href: 'https://vozmimenya.ru/arenda-karaoke-komplekta-moskva?utm_source=avito&utm_medium=listing&utm_campaign=karaoke-kit&utm_content=first-ad',
+  },
+  sessionStorage: storage,
+}
 
 Object.defineProperty(globalThis, 'window', {
   configurable: true,
-  value: {
-    location: new URL('https://vozmimenya.ru/arenda-karaoke-komplekta-moskva?utm_source=avito&utm_medium=listing&utm_campaign=karaoke-kit&utm_content=first-ad'),
-    sessionStorage: storage,
-  },
+  value: mockWindow,
 })
 Object.defineProperty(globalThis, 'document', {
   configurable: true,
@@ -115,7 +137,7 @@ Object.defineProperty(globalThis, 'document', {
 assert.equal(getLeadContext().utmContent, 'first-ad')
 assert.equal(storage.length, 1)
 
-window.location = new URL('https://vozmimenya.ru/booking?equipment=jbl-partybox-320') as unknown as Location
+mockWindow.location.href = 'https://vozmimenya.ru/booking?equipment=jbl-partybox-320'
 const bookingContext = getLeadContext()
 assert.equal(bookingContext.sourcePage, 'https://vozmimenya.ru/booking?equipment=jbl-partybox-320')
 assert.equal(bookingContext.utmSource, 'avito')
@@ -127,7 +149,7 @@ assert.equal(bookingContext.scenario, 'karaoke-kit')
 const storageKey = storage.key(0)
 assert.ok(storageKey)
 storage.setItem(storageKey, '{broken json')
-window.location = new URL('https://vozmimenya.ru/arenda-kamery-dlya-puteshestviya-vloga-moskva') as unknown as Location
+mockWindow.location.href = 'https://vozmimenya.ru/arenda-kamery-dlya-puteshestviya-vloga-moskva'
 const recoveredContext = getLeadContext()
 assert.equal(recoveredContext.utmSource, undefined)
 assert.equal(recoveredContext.scenario, 'travel-camera')
