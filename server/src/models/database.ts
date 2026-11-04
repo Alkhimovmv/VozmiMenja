@@ -58,6 +58,8 @@ class Database {
         utm_source TEXT,
         utm_medium TEXT,
         utm_campaign TEXT,
+        utm_content TEXT,
+        scenario TEXT,
         status TEXT NOT NULL CHECK (status IN ('pending', 'confirmed', 'active', 'completed', 'cancelled')),
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -80,6 +82,8 @@ class Database {
       ['utm_source', 'TEXT'],
       ['utm_medium', 'TEXT'],
       ['utm_campaign', 'TEXT'],
+      ['utm_content', 'TEXT'],
+      ['scenario', 'TEXT'],
       ['legal_offer_accepted_at', 'DATETIME'],
       ['legal_agreement_accepted_at', 'DATETIME'],
       ['legal_privacy_accepted_at', 'DATETIME'],
@@ -109,6 +113,13 @@ class Database {
         utm_source TEXT,
         utm_medium TEXT,
         utm_campaign TEXT,
+        utm_content TEXT,
+        scenario TEXT,
+        office_id INTEGER,
+        office_name TEXT,
+        delivery_method TEXT,
+        preferred_contact TEXT,
+        equipment_ids TEXT,
         status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'confirmed', 'completed', 'cancelled')),
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
@@ -121,6 +132,13 @@ class Database {
       ['utm_source', 'TEXT'],
       ['utm_medium', 'TEXT'],
       ['utm_campaign', 'TEXT'],
+      ['utm_content', 'TEXT'],
+      ['scenario', 'TEXT'],
+      ['office_id', 'INTEGER'],
+      ['office_name', 'TEXT'],
+      ['delivery_method', 'TEXT'],
+      ['preferred_contact', 'TEXT'],
+      ['equipment_ids', 'TEXT'],
     ] as const
 
     for (const [column, definition] of contactLeadColumns) {
@@ -584,11 +602,21 @@ class Database {
     `)
 
     await run(`
+      CREATE INDEX IF NOT EXISTS idx_bookings_campaign_created
+      ON bookings(utm_source, utm_campaign, created_at);
+    `)
+
+    await run(`
       CREATE INDEX IF NOT EXISTS idx_contact_leads_status ON contact_leads(status);
     `)
 
     await run(`
       CREATE INDEX IF NOT EXISTS idx_contact_leads_created_at ON contact_leads(created_at);
+    `)
+
+    await run(`
+      CREATE INDEX IF NOT EXISTS idx_contact_leads_campaign_created
+      ON contact_leads(utm_source, utm_campaign, created_at);
     `)
 
     // Индексы для RentAdmin

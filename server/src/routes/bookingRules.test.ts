@@ -35,6 +35,31 @@ describe('booking rules', () => {
     expect(parsed.customerPhone).toBe('89990000000')
   })
 
+  it('accepts utm content and an exact scenario without changing legacy fields', () => {
+    const parsed = createBookingSchema.parse({
+      equipmentId: 'equipment-1',
+      customerName: 'Иван Иванов',
+      customerPhone: '+7 999 000-00-00',
+      startDate: '2026-09-12',
+      endDate: '2026-09-13',
+      utmContent: 'account-2',
+      scenario: 'travel-camera',
+    })
+
+    expect(parsed).toMatchObject({
+      utmContent: 'account-2',
+      scenario: 'travel-camera',
+    })
+    expect(() => createBookingSchema.parse({
+      equipmentId: 'equipment-1',
+      customerName: 'Иван Иванов',
+      customerPhone: '+7 999 000-00-00',
+      startDate: '2026-09-12',
+      endDate: '2026-09-13',
+      scenario: 'seasonal-promo',
+    })).toThrow()
+  })
+
   it('accepts one booking with multiple unique equipment ids', () => {
     const parsed = createBookingSchema.parse({
       equipmentIds: ['equipment-1', 'equipment-2'],

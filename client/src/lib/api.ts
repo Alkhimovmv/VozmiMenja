@@ -1,4 +1,4 @@
-import type { Equipment, Booking, BookingRequest, ApiResponse, PaginatedResponse, PublicOffice } from '../types'
+import type { Equipment, Booking, BookingRequest, ApiResponse, PaginatedResponse, PublicOffice, ContactLead, LeadScenario } from '../types'
 
 const API_BASE_URL = import.meta.env.VITE_API_URL
   || (import.meta.env.MODE === 'production' ? '/api' : 'http://localhost:3002/api')
@@ -178,7 +178,14 @@ class ApiClient {
     utmSource?: string
     utmMedium?: string
     utmCampaign?: string
-  }): Promise<ApiResponse<void>> {
+    utmContent?: string
+    scenario?: LeadScenario
+    officeId?: number
+    officeName?: string
+    deliveryMethod?: 'pickup' | 'delivery'
+    preferredContact?: 'phone' | 'telegram' | 'whatsapp'
+    equipmentIds?: string[]
+  }): Promise<ApiResponse<Pick<ContactLead, 'id' | 'status'>>> {
     return this.request('/contact', {
       method: 'POST',
       body: JSON.stringify(data),

@@ -12,6 +12,7 @@ import { calculateRentalTotal } from '../utils/pricing'
 import { calculateBillableRentalDays, createBookingSchema, getBookingEquipmentIds, parseDateInput } from './bookingRules'
 import { publicLeadRateLimiter } from '../middleware/publicLeadGuard'
 import { canAccessOffice, filterByOfficeAccess } from '../middleware/userFilter'
+import { normalizeLeadScenario } from '../domain/leadAttribution'
 
 const router = Router()
 
@@ -162,6 +163,11 @@ router.post('/', publicLeadRateLimiter, async (req: Request, res: Response) => {
 
     // Создаем бронирование
     const bookingId = uuidv4()
+    const scenario = normalizeLeadScenario(
+      validatedData.scenario,
+      validatedData.utmCampaign,
+      validatedData.sourcePage,
+    )
     const booking = await bookingModel.create({
       id: bookingId,
       ...validatedData,
@@ -170,6 +176,7 @@ router.post('/', publicLeadRateLimiter, async (req: Request, res: Response) => {
       officeId: office.id,
       officeName: office.name,
       totalPrice,
+      scenario,
       legalAcceptanceIp: validatedData.legal ? getRequestIp(req) : undefined,
       legalAcceptanceUserAgent: validatedData.legal ? req.get('user-agent') || '' : undefined
     })
@@ -190,7 +197,9 @@ router.post('/', publicLeadRateLimiter, async (req: Request, res: Response) => {
       referrer: validatedData.referrer,
       utmSource: validatedData.utmSource,
       utmMedium: validatedData.utmMedium,
-      utmCampaign: validatedData.utmCampaign
+      utmCampaign: validatedData.utmCampaign,
+      utmContent: validatedData.utmContent,
+      scenario,
     }
 
     // Отправляем уведомления (не прерываем процесс при ошибке)

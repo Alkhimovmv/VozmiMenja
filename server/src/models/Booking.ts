@@ -1,5 +1,6 @@
 import { database, run, get, all } from './database'
 import { equipmentModel, type Equipment } from './Equipment'
+import { normalizeLeadScenario, type LeadScenario } from '../domain/leadAttribution'
 
 export interface Booking {
   id: string
@@ -26,6 +27,8 @@ export interface Booking {
   utmSource?: string
   utmMedium?: string
   utmCampaign?: string
+  utmContent?: string
+  scenario?: LeadScenario
   legalOfferAcceptedAt?: string
   legalAgreementAcceptedAt?: string
   legalPrivacyAcceptedAt?: string
@@ -59,6 +62,8 @@ export interface CreateBookingData {
   utmSource?: string
   utmMedium?: string
   utmCampaign?: string
+  utmContent?: string
+  scenario?: LeadScenario
   legal?: {
     offerAccepted: true
     agreementAccepted: true
@@ -99,17 +104,18 @@ export class BookingModel {
   async create(data: CreateBookingData & { id: string }): Promise<Booking> {
     const legalAcceptedAt = data.legal ? new Date().toISOString() : null
     const equipmentIds = data.equipmentIds?.length ? [...new Set(data.equipmentIds)] : [data.equipmentId]
+    const scenario = normalizeLeadScenario(data.scenario, data.utmCampaign, data.sourcePage)
 
     await run(`
       INSERT INTO bookings (
         id, equipment_id, equipment_ids, customer_name, customer_phone, customer_email,
         start_date, end_date, start_time, end_time, office_id, office_name, total_price, comment, preferred_contact,
         delivery_method, delivery_address, source_page, referrer,
-        utm_source, utm_medium, utm_campaign, legal_offer_accepted_at,
+        utm_source, utm_medium, utm_campaign, utm_content, scenario, legal_offer_accepted_at,
         legal_agreement_accepted_at, legal_privacy_accepted_at,
         legal_terms_version, legal_acceptance_ip, legal_acceptance_user_agent,
         status
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')
     `, [
       data.id,
       data.equipmentId,
@@ -133,6 +139,8 @@ export class BookingModel {
       data.utmSource || '',
       data.utmMedium || '',
       data.utmCampaign || '',
+      data.utmContent || '',
+      scenario || '',
       legalAcceptedAt,
       legalAcceptedAt,
       legalAcceptedAt,
@@ -272,6 +280,8 @@ export class BookingModel {
       utmSource: row.utm_source || undefined,
       utmMedium: row.utm_medium || undefined,
       utmCampaign: row.utm_campaign || undefined,
+      utmContent: row.utm_content || undefined,
+      scenario: normalizeLeadScenario(row.scenario),
       legalOfferAcceptedAt: row.legal_offer_accepted_at || undefined,
       legalAgreementAcceptedAt: row.legal_agreement_accepted_at || undefined,
       legalPrivacyAcceptedAt: row.legal_privacy_accepted_at || undefined,
