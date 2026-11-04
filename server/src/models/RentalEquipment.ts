@@ -173,8 +173,7 @@ export class RentalEquipmentModel {
       }
     }
 
-    await run('BEGIN TRANSACTION')
-    try {
+    const targetEquipmentId = await database.withImmediateTransaction(async () => {
       if (targetRow && shouldLinkExistingTarget) {
         await run(`
           UPDATE rental_equipment
@@ -183,24 +182,19 @@ export class RentalEquipmentModel {
         `, [source.catalogEquipmentId, targetRow.id])
       }
 
-      const targetEquipmentId = targetRow
+      const destinationEquipmentId = targetRow
         ? targetRow.id
-        : await new Promise<number>((resolve, reject) => {
-            this.db.run(`
-              INSERT INTO rental_equipment (
-                name, quantity, description, base_price, catalog_equipment_id, office_id
-              ) VALUES (?, 0, ?, ?, ?, ?)
-            `, [
-              source.name,
-              source.description || null,
-              source.basePrice || 0,
-              source.catalogEquipmentId || null,
-              targetOfficeId,
-            ], function(err) {
-              if (err) reject(err)
-              else resolve(this.lastID)
-            })
-          })
+        : (await run(`
+            INSERT INTO rental_equipment (
+              name, quantity, description, base_price, catalog_equipment_id, office_id
+            ) VALUES (?, 0, ?, ?, ?, ?)
+          `, [
+            source.name,
+            source.description || null,
+            source.basePrice || 0,
+            source.catalogEquipmentId || null,
+            targetOfficeId,
+          ])).lastID
 
       const targetQuantity = targetRow ? Number(targetRow.quantity || 0) : 0
       const targetInstanceNumber = targetQuantity + 1
@@ -209,13 +203,13 @@ export class RentalEquipmentModel {
         UPDATE rental_equipment
         SET quantity = ?, updated_at = CURRENT_TIMESTAMP
         WHERE id = ?
-      `, [targetInstanceNumber, targetEquipmentId])
+      `, [targetInstanceNumber, destinationEquipmentId])
 
       await run(`
         INSERT INTO rental_equipment_instances (equipment_id, instance_number, serial_number, comment)
         VALUES (?, ?, ?, ?)
       `, [
-        targetEquipmentId,
+        destinationEquipmentId,
         targetInstanceNumber,
         movingInstance.serialNumber || null,
         movingInstance.comment || null,
@@ -265,16 +259,14 @@ export class RentalEquipmentModel {
         WHERE id = ?
       `, [source.quantity - 1, equipmentId])
 
-      await run('COMMIT')
-      console.log(`[equipment] instance moved: equipment=${equipmentId}, instance=${instanceNumber}, targetEquipment=${targetEquipmentId}, targetOffice=${targetOfficeId}`)
+      return destinationEquipmentId
+    })
 
-      const targetEquipment = await this.findById(targetEquipmentId)
-      if (!targetEquipment) throw new Error('Failed to move equipment instance')
-      return targetEquipment
-    } catch (error) {
-      await run('ROLLBACK')
-      throw error
-    }
+    console.log(`[equipment] instance moved: equipment=${equipmentId}, instance=${instanceNumber}, targetEquipment=${targetEquipmentId}, targetOffice=${targetOfficeId}`)
+
+    const targetEquipment = await this.findById(targetEquipmentId)
+    if (!targetEquipment) throw new Error('Failed to move equipment instance')
+    return targetEquipment
   }
 
   private async getInstances(equipmentId: number, quantity: number): Promise<RentalEquipmentInstance[]> {
