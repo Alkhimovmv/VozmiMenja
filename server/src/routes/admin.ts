@@ -1,14 +1,17 @@
 import { Router, Request, Response } from 'express'
 import { isForeignKeyError } from '../utils/dbErrors'
-import { canAccessOffice, filterByOfficeAccess } from '../middleware/userFilter'
+import { canAccessOffice, filterByOfficeAccess, getUserOfficeIds } from '../middleware/userFilter'
 import { createPublicLeadRateLimiter } from '../middleware/publicLeadGuard'
 import { upload } from '../middleware/upload'
 import { authMiddleware, superAdminMiddleware, signToken } from '../middleware/auth'
 import { adminUserModel } from '../models/AdminUser'
 import { bookingModel, Booking } from '../models/Booking'
 import { contactLeadModel, ContactLead } from '../models/ContactLead'
+import { leadReportModel } from '../models/LeadReport'
 import { schedulerService } from '../services/scheduler'
 import { emailBackupService } from '../services/emailBackup'
+import { leadWorkflowSchema } from '../domain/leadWorkflow'
+import { buildLeadReport, getLeadReportWindow, type LeadReportInput } from '../domain/leadReport'
 
 const router = Router()
 
@@ -69,6 +72,33 @@ router.get('/bookings', authMiddleware, async (req: Request, res: Response) => {
   }
 })
 
+router.get('/lead-report', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const generatedAt = new Date()
+    const officeIds = await getUserOfficeIds(req)
+    const records = await leadReportModel.findSince(getLeadReportWindow(generatedAt).baselineStart, officeIds)
+    const inputs: LeadReportInput[] = records.map((record) => ({
+      kind: record.kind,
+      createdAt: record.createdAt,
+      utmSource: record.utmSource,
+      utmCampaign: record.utmCampaign,
+      leadResult: record.leadResult,
+      revenue: record.leadRevenue ?? (record.kind === 'booking' && record.leadResult === 'booked'
+        ? record.totalPrice
+        : 0),
+    }))
+
+    res.json({
+      generatedAt: generatedAt.toISOString(),
+      periodDays: 14,
+      rows: buildLeadReport(inputs, generatedAt),
+    })
+  } catch (error) {
+    console.error('Admin lead report error:', error)
+    res.status(500).json({ error: 'Ошибка получения отчёта по каналам' })
+  }
+})
+
 router.patch('/bookings/:id/status', authMiddleware, async (req: Request, res: Response) => {
   try {
     const status = req.body.status as Booking['status']
@@ -92,6 +122,29 @@ router.patch('/bookings/:id/status', authMiddleware, async (req: Request, res: R
   }
 })
 
+router.patch('/bookings/:id/workflow', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const parsed = leadWorkflowSchema.safeParse(req.body)
+    if (!parsed.success) {
+      return res.status(400).json({ error: 'Некорректный результат обработки заявки' })
+    }
+
+    const booking = await bookingModel.findById(req.params.id)
+    if (!booking || !await canAccessOffice(req, booking.officeId)) {
+      return res.status(404).json({ error: 'Заявка не найдена' })
+    }
+
+    const updated = await bookingModel.updateWorkflow(req.params.id, parsed.data.result, parsed.data.revenue)
+    if (!updated) {
+      return res.status(404).json({ error: 'Заявка не найдена' })
+    }
+    res.json(updated)
+  } catch (error) {
+    console.error('Admin booking workflow update error:', error)
+    res.status(500).json({ error: 'Ошибка обновления результата заявки' })
+  }
+})
+
 router.delete('/bookings/:id', authMiddleware, async (req: Request, res: Response) => {
   try {
     const booking = await bookingModel.findById(req.params.id)
@@ -109,8 +162,7 @@ router.delete('/bookings/:id', authMiddleware, async (req: Request, res: Respons
 
 router.get('/contact-leads', authMiddleware, async (req: Request, res: Response) => {
   try {
-    // У обращений нет офиса: они приходят с сайта и относятся к офису по умолчанию.
-    const leads = await canAccessOffice(req, null) ? await contactLeadModel.findAll() : []
+    const leads = await filterByOfficeAccess(req, await contactLeadModel.findAll(), (lead) => lead.officeId)
     res.json(leads)
   } catch (error) {
     console.error('Admin contact leads list error:', error)
@@ -133,7 +185,7 @@ router.patch('/contact-leads/:id/status', authMiddleware, async (req: Request, r
     }
 
     const lead = await contactLeadModel.findById(id)
-    if (!lead || !await canAccessOffice(req, null)) {
+    if (!lead || !await canAccessOffice(req, lead.officeId)) {
       return res.status(404).json({ error: 'Обращение не найдено' })
     }
 
@@ -146,6 +198,34 @@ router.patch('/contact-leads/:id/status', authMiddleware, async (req: Request, r
   }
 })
 
+router.patch('/contact-leads/:id/workflow', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const id = Number(req.params.id)
+    if (!Number.isInteger(id) || id <= 0) {
+      return res.status(400).json({ error: 'Некорректный номер обращения' })
+    }
+
+    const parsed = leadWorkflowSchema.safeParse(req.body)
+    if (!parsed.success) {
+      return res.status(400).json({ error: 'Некорректный результат обработки обращения' })
+    }
+
+    const lead = await contactLeadModel.findById(id)
+    if (!lead || !await canAccessOffice(req, lead.officeId)) {
+      return res.status(404).json({ error: 'Обращение не найдено' })
+    }
+
+    const updated = await contactLeadModel.updateWorkflow(id, parsed.data.result, parsed.data.revenue)
+    if (!updated) {
+      return res.status(404).json({ error: 'Обращение не найдено' })
+    }
+    res.json(updated)
+  } catch (error) {
+    console.error('Admin contact lead workflow update error:', error)
+    res.status(500).json({ error: 'Ошибка обновления результата обращения' })
+  }
+})
+
 router.delete('/contact-leads/:id', authMiddleware, async (req: Request, res: Response) => {
   try {
     const id = Number(req.params.id)
@@ -154,7 +234,7 @@ router.delete('/contact-leads/:id', authMiddleware, async (req: Request, res: Re
     }
 
     const lead = await contactLeadModel.findById(id)
-    if (!lead || !await canAccessOffice(req, null)) {
+    if (!lead || !await canAccessOffice(req, lead.officeId)) {
       return res.status(404).json({ error: 'Обращение не найдено' })
     }
 

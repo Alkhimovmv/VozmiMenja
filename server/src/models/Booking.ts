@@ -1,5 +1,7 @@
 import { database, run, get, all } from './database'
 import { equipmentModel, type Equipment } from './Equipment'
+import { normalizeLeadScenario, type LeadScenario } from '../domain/leadAttribution'
+import type { LeadResult } from '../domain/leadWorkflow'
 
 export interface Booking {
   id: string
@@ -26,6 +28,11 @@ export interface Booking {
   utmSource?: string
   utmMedium?: string
   utmCampaign?: string
+  utmContent?: string
+  scenario?: LeadScenario
+  leadResult?: LeadResult
+  leadRevenue?: number
+  lastContactedAt?: string
   legalOfferAcceptedAt?: string
   legalAgreementAcceptedAt?: string
   legalPrivacyAcceptedAt?: string
@@ -59,6 +66,8 @@ export interface CreateBookingData {
   utmSource?: string
   utmMedium?: string
   utmCampaign?: string
+  utmContent?: string
+  scenario?: LeadScenario
   legal?: {
     offerAccepted: true
     agreementAccepted: true
@@ -70,8 +79,6 @@ export interface CreateBookingData {
 }
 
 export class BookingModel {
-  private db = database.instance
-
   async findAll(): Promise<Booking[]> {
     const rows = await all(`
       SELECT b.*
@@ -99,17 +106,18 @@ export class BookingModel {
   async create(data: CreateBookingData & { id: string }): Promise<Booking> {
     const legalAcceptedAt = data.legal ? new Date().toISOString() : null
     const equipmentIds = data.equipmentIds?.length ? [...new Set(data.equipmentIds)] : [data.equipmentId]
+    const scenario = normalizeLeadScenario(data.scenario, data.utmCampaign, data.sourcePage)
 
     await run(`
       INSERT INTO bookings (
         id, equipment_id, equipment_ids, customer_name, customer_phone, customer_email,
         start_date, end_date, start_time, end_time, office_id, office_name, total_price, comment, preferred_contact,
         delivery_method, delivery_address, source_page, referrer,
-        utm_source, utm_medium, utm_campaign, legal_offer_accepted_at,
+        utm_source, utm_medium, utm_campaign, utm_content, scenario, legal_offer_accepted_at,
         legal_agreement_accepted_at, legal_privacy_accepted_at,
         legal_terms_version, legal_acceptance_ip, legal_acceptance_user_agent,
         status
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')
     `, [
       data.id,
       data.equipmentId,
@@ -133,6 +141,8 @@ export class BookingModel {
       data.utmSource || '',
       data.utmMedium || '',
       data.utmCampaign || '',
+      data.utmContent || '',
+      scenario || '',
       legalAcceptedAt,
       legalAcceptedAt,
       legalAcceptedAt,
@@ -192,12 +202,46 @@ export class BookingModel {
     return booking || null
   }
 
+  async findOrCreateRecent(
+    data: CreateBookingData & { id: string },
+    windowMinutes = 10,
+  ): Promise<{ booking: Booking; created: boolean }> {
+    return database.withImmediateTransaction(async () => {
+      const equipmentIds = data.equipmentIds?.length ? data.equipmentIds : [data.equipmentId]
+      const duplicate = await this.findRecentDuplicate({
+        equipmentIds,
+        customerPhone: data.customerPhone,
+        startDate: data.startDate,
+        endDate: data.endDate,
+        startTime: data.startTime || '10:00',
+        endTime: data.endTime || '10:00',
+        officeId: data.officeId || 1,
+      }, windowMinutes)
+      if (duplicate) return { booking: duplicate, created: false }
+
+      return { booking: await this.create(data), created: true }
+    })
+  }
+
   async updateStatus(id: string, status: Booking['status']): Promise<void> {
     await run(`
       UPDATE bookings
       SET status = ?, updated_at = CURRENT_TIMESTAMP
       WHERE id = ?
     `, [status, id])
+  }
+
+  async updateWorkflow(id: string, result: LeadResult, revenue?: number | null): Promise<Booking | null> {
+    return database.withImmediateTransaction(async () => {
+      const update = await run(`
+        UPDATE bookings
+        SET lead_result = ?, lead_revenue = ?, last_contacted_at = CURRENT_TIMESTAMP,
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = ?
+      `, [result, revenue ?? null, id])
+
+      return update.changes > 0 ? this.findById(id) : null
+    })
   }
 
   async delete(id: string): Promise<void> {
@@ -272,6 +316,11 @@ export class BookingModel {
       utmSource: row.utm_source || undefined,
       utmMedium: row.utm_medium || undefined,
       utmCampaign: row.utm_campaign || undefined,
+      utmContent: row.utm_content || undefined,
+      scenario: normalizeLeadScenario(row.scenario, row.utm_campaign, row.source_page),
+      leadResult: row.lead_result || undefined,
+      leadRevenue: row.lead_revenue ?? undefined,
+      lastContactedAt: row.last_contacted_at || undefined,
       legalOfferAcceptedAt: row.legal_offer_accepted_at || undefined,
       legalAgreementAcceptedAt: row.legal_agreement_accepted_at || undefined,
       legalPrivacyAcceptedAt: row.legal_privacy_accepted_at || undefined,

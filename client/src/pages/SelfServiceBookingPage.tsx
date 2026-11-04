@@ -7,6 +7,7 @@ import type { Equipment } from '../types'
 import { calculateBillableRentalDays } from '../utils/pricing'
 import { trackEvent } from '../lib/analytics'
 import { getApiErrorMessage } from '../lib/apiError'
+import { getLeadContext } from '../lib/contactLinks'
 import {
   buildSelectedEquipmentList,
   buildSingleBookingEquipmentPayload,
@@ -55,17 +56,6 @@ const formatPhoneNumber = (value: string) => {
   if (phone.length <= 7) return `+7 (${area}) ${first}`
   if (phone.length <= 9) return `+7 (${area}) ${first}-${second}`
   return `+7 (${area}) ${first}-${second}-${third}`
-}
-
-const getLeadContext = () => {
-  const params = new URLSearchParams(window.location.search)
-  return {
-    sourcePage: `${window.location.pathname}${window.location.search}`,
-    referrer: document.referrer,
-    utmSource: params.get('utm_source') || undefined,
-    utmMedium: params.get('utm_medium') || undefined,
-    utmCampaign: params.get('utm_campaign') || undefined,
-  }
 }
 
 const isFullName = (value: string) => value

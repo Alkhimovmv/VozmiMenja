@@ -164,8 +164,7 @@ export const lockerCommandsService = {
   async takeNextCommand(officeId: number): Promise<LockerCommand | null> {
     await this.markStaleCommands()
 
-    await database.run('BEGIN IMMEDIATE TRANSACTION')
-    try {
+    const command = await database.withImmediateTransaction(async () => {
       const row = await database.get(
         `SELECT id
          FROM locker_commands
@@ -176,7 +175,6 @@ export const lockerCommandsService = {
       )
 
       if (!row) {
-        await database.run('COMMIT')
         return null
       }
 
@@ -190,22 +188,17 @@ export const lockerCommandsService = {
       )
 
       if (!updateResult.changes) {
-        await database.run('ROLLBACK')
         return null
       }
 
-      const command = await database.get('SELECT * FROM locker_commands WHERE id = ?', [row.id])
-      await database.run('COMMIT')
-      console.log(`[postomat] command taken: office=${officeId}, command=${row.id}`)
-      return mapCommand(command)
-    } catch (error) {
-      try {
-        await database.run('ROLLBACK')
-      } catch {
-        // ignore rollback errors
-      }
-      throw error
+      const claimedCommand = await database.get('SELECT * FROM locker_commands WHERE id = ?', [row.id])
+      return mapCommand(claimedCommand)
+    })
+
+    if (command) {
+      console.log(`[postomat] command taken: office=${officeId}, command=${command.id}`)
     }
+    return command
   },
 
   async completeCommand(commandId: number, success: boolean, error: string | null): Promise<LockerCommand | null> {

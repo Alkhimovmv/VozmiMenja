@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { leadAttributionSchema } from '../domain/leadAttribution'
 
 export const parseDateInput = (value: string) => {
   const [year, month, day] = value.split('-').map(Number)
@@ -75,7 +76,7 @@ const phoneSchema = z.string()
   .transform(normalizeAdminPhone)
   .refine((value) => /^8\d{10}$/.test(value), 'Некорректный номер телефона')
 
-export const createBookingSchema = z.object({
+export const createBookingSchema = leadAttributionSchema.extend({
   equipmentId: equipmentIdSchema.optional(),
   equipmentIds: z.array(equipmentIdSchema)
     .min(1, 'Не выбрано оборудование')
@@ -97,11 +98,6 @@ export const createBookingSchema = z.object({
   preferredContact: optionalLeadField(80),
   deliveryMethod: z.enum(['pickup', 'delivery']).optional(),
   deliveryAddress: optionalLeadField(500),
-  sourcePage: optionalLeadField(500),
-  referrer: optionalLeadField(500),
-  utmSource: optionalLeadField(120),
-  utmMedium: optionalLeadField(120),
-  utmCampaign: optionalLeadField(180),
   legal: z.object({
     offerAccepted: z.literal(true),
     agreementAccepted: z.literal(true),

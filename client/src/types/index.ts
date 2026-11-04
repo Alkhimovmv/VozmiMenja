@@ -62,6 +62,14 @@ export interface PublicEquipment {
 // Keep Equipment exported for backward compatibility with public API
 export type { PublicEquipment as Equipment }
 
+export type LeadScenario = 'puzzi-cleaning' | 'karaoke-kit' | 'travel-camera'
+export type LeadResult = 'unreached' | 'thinking' | 'booked' | 'declined' | 'duplicate'
+
+export interface LeadWorkflowUpdate {
+  result: LeadResult
+  revenue?: number | null
+}
+
 export interface CreateEquipmentDto {
   name: string
   category: string
@@ -99,6 +107,11 @@ export interface Booking {
   utmSource?: string
   utmMedium?: string
   utmCampaign?: string
+  utmContent?: string
+  scenario?: LeadScenario
+  leadResult?: LeadResult
+  leadRevenue?: number
+  lastContactedAt?: string
   legalOfferAcceptedAt?: string
   legalAgreementAcceptedAt?: string
   legalPrivacyAcceptedAt?: string
@@ -130,6 +143,8 @@ export interface BookingRequest {
   utmSource?: string
   utmMedium?: string
   utmCampaign?: string
+  utmContent?: string
+  scenario?: LeadScenario
   legal?: {
     offerAccepted: true
     agreementAccepted: true
@@ -156,6 +171,16 @@ export interface ContactLead {
   utmSource?: string
   utmMedium?: string
   utmCampaign?: string
+  utmContent?: string
+  scenario?: LeadScenario
+  leadResult?: LeadResult
+  leadRevenue?: number
+  lastContactedAt?: string
+  officeId?: number
+  officeName?: string
+  deliveryMethod?: 'pickup' | 'delivery'
+  preferredContact?: 'phone' | 'telegram' | 'whatsapp'
+  equipmentIds?: string[]
   status: 'pending' | 'confirmed' | 'completed' | 'cancelled'
   createdAt: string
   updatedAt: string

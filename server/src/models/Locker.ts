@@ -1,4 +1,4 @@
-import { database, run, get, all } from './database'
+import { run, get, all } from './database'
 
 export type LockerSize = 'large' | 'medium' | 'small'
 
@@ -44,8 +44,6 @@ export interface CreateLockerData {
 }
 
 export class LockerModel {
-  private db = database.instance
-
   // Генерация случайного 4-значного кода
   generateAccessCode(): string {
     return Math.floor(1000 + Math.random() * 9000).toString()
@@ -207,27 +205,22 @@ export class LockerModel {
 
     const itemsJson = data.items ? JSON.stringify(data.items) : '[]'
 
-    const lockerId = await new Promise<number>((resolve, reject) => {
-      this.db.run(`
-        INSERT INTO lockers (locker_number, access_code, description, items, size, row_number, position_in_row, is_active, office_id)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `, [
-        data.lockerNumber,
-        data.accessCode,
-        data.description || null,
-        itemsJson,
-        data.size || 'medium',
-        data.rowNumber || 1,
-        data.positionInRow || 1,
-        data.isActive !== undefined ? (data.isActive ? 1 : 0) : 1,
-        data.officeId || 1
-      ], function(err) {
-        if (err) reject(err)
-        else resolve(this.lastID)
-      })
-    })
+    const result = await run(`
+      INSERT INTO lockers (locker_number, access_code, description, items, size, row_number, position_in_row, is_active, office_id)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `, [
+      data.lockerNumber,
+      data.accessCode,
+      data.description || null,
+      itemsJson,
+      data.size || 'medium',
+      data.rowNumber || 1,
+      data.positionInRow || 1,
+      data.isActive !== undefined ? (data.isActive ? 1 : 0) : 1,
+      data.officeId || 1
+    ])
 
-    const locker = await this.findById(lockerId)
+    const locker = await this.findById(result.lastID)
     if (!locker) {
       throw new Error('Failed to create locker')
     }

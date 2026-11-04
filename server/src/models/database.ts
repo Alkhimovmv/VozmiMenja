@@ -1,6 +1,7 @@
 import sqlite3 from 'sqlite3'
 import { promisify } from 'util'
 import path from 'path'
+import { AsyncLocalStorage } from 'async_hooks'
 import { getExpenseType, normalizeExpenseCategory } from '../domain/expenseCategories'
 
 const dbPath = process.env.DATABASE_PATH
@@ -9,6 +10,8 @@ const dbPath = process.env.DATABASE_PATH
 
 class Database {
   private db: sqlite3.Database
+  private operationTail: Promise<void> = Promise.resolve()
+  private transactionContext = new AsyncLocalStorage<boolean>()
 
   constructor() {
     // Открываем базу данных в режиме чтения и записи с созданием при отсутствии
@@ -58,6 +61,11 @@ class Database {
         utm_source TEXT,
         utm_medium TEXT,
         utm_campaign TEXT,
+        utm_content TEXT,
+        scenario TEXT,
+        lead_result TEXT,
+        lead_revenue REAL,
+        last_contacted_at DATETIME,
         status TEXT NOT NULL CHECK (status IN ('pending', 'confirmed', 'active', 'completed', 'cancelled')),
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -80,6 +88,11 @@ class Database {
       ['utm_source', 'TEXT'],
       ['utm_medium', 'TEXT'],
       ['utm_campaign', 'TEXT'],
+      ['utm_content', 'TEXT'],
+      ['scenario', 'TEXT'],
+      ['lead_result', 'TEXT'],
+      ['lead_revenue', 'REAL'],
+      ['last_contacted_at', 'DATETIME'],
       ['legal_offer_accepted_at', 'DATETIME'],
       ['legal_agreement_accepted_at', 'DATETIME'],
       ['legal_privacy_accepted_at', 'DATETIME'],
@@ -109,6 +122,16 @@ class Database {
         utm_source TEXT,
         utm_medium TEXT,
         utm_campaign TEXT,
+        utm_content TEXT,
+        scenario TEXT,
+        lead_result TEXT,
+        lead_revenue REAL,
+        last_contacted_at DATETIME,
+        office_id INTEGER,
+        office_name TEXT,
+        delivery_method TEXT,
+        preferred_contact TEXT,
+        equipment_ids TEXT,
         status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'confirmed', 'completed', 'cancelled')),
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
@@ -121,6 +144,16 @@ class Database {
       ['utm_source', 'TEXT'],
       ['utm_medium', 'TEXT'],
       ['utm_campaign', 'TEXT'],
+      ['utm_content', 'TEXT'],
+      ['scenario', 'TEXT'],
+      ['lead_result', 'TEXT'],
+      ['lead_revenue', 'REAL'],
+      ['last_contacted_at', 'DATETIME'],
+      ['office_id', 'INTEGER'],
+      ['office_name', 'TEXT'],
+      ['delivery_method', 'TEXT'],
+      ['preferred_contact', 'TEXT'],
+      ['equipment_ids', 'TEXT'],
     ] as const
 
     for (const [column, definition] of contactLeadColumns) {
@@ -584,11 +617,25 @@ class Database {
     `)
 
     await run(`
+      CREATE INDEX IF NOT EXISTS idx_bookings_created_at ON bookings(created_at);
+    `)
+
+    await run(`
+      CREATE INDEX IF NOT EXISTS idx_bookings_campaign_created
+      ON bookings(utm_source, utm_campaign, created_at);
+    `)
+
+    await run(`
       CREATE INDEX IF NOT EXISTS idx_contact_leads_status ON contact_leads(status);
     `)
 
     await run(`
       CREATE INDEX IF NOT EXISTS idx_contact_leads_created_at ON contact_leads(created_at);
+    `)
+
+    await run(`
+      CREATE INDEX IF NOT EXISTS idx_contact_leads_campaign_created
+      ON contact_leads(utm_source, utm_campaign, created_at);
     `)
 
     // Индексы для RentAdmin
@@ -657,8 +704,13 @@ class Database {
     return this.db
   }
 
-  // Helper methods with proper typing
-  async run(sql: string, params: any[] = []): Promise<sqlite3.RunResult> {
+  private enqueue<T>(operation: () => Promise<T>): Promise<T> {
+    const result = this.operationTail.then(operation)
+    this.operationTail = result.then(() => undefined, () => undefined)
+    return result
+  }
+
+  private runDirect(sql: string, params: any[] = []): Promise<sqlite3.RunResult> {
     return new Promise((resolve, reject) => {
       this.db.run(sql, params, function(err) {
         if (err) reject(err)
@@ -667,7 +719,7 @@ class Database {
     })
   }
 
-  async get(sql: string, params: any[] = []): Promise<any> {
+  private getDirect(sql: string, params: any[] = []): Promise<any> {
     return new Promise((resolve, reject) => {
       this.db.get(sql, params, (err, row) => {
         if (err) reject(err)
@@ -676,7 +728,7 @@ class Database {
     })
   }
 
-  async all(sql: string, params: any[] = []): Promise<any[]> {
+  private allDirect(sql: string, params: any[] = []): Promise<any[]> {
     return new Promise((resolve, reject) => {
       this.db.all(sql, params, (err, rows) => {
         if (err) reject(err)
@@ -685,13 +737,54 @@ class Database {
     })
   }
 
+  async withImmediateTransaction<T>(operation: () => Promise<T>): Promise<T> {
+    if (this.transactionContext.getStore()) {
+      throw new Error('Nested database transactions are not supported')
+    }
+
+    return this.enqueue(() => this.transactionContext.run(true, async () => {
+      await this.runDirect('BEGIN IMMEDIATE')
+      try {
+        const result = await operation()
+        await this.runDirect('COMMIT')
+        return result
+      } catch (error) {
+        try {
+          await this.runDirect('ROLLBACK')
+        } catch {
+          // Preserve the original transaction error.
+        }
+        throw error
+      }
+    }))
+  }
+
+  // Helper methods with proper typing
+  async run(sql: string, params: any[] = []): Promise<sqlite3.RunResult> {
+    return this.transactionContext.getStore()
+      ? this.runDirect(sql, params)
+      : this.enqueue(() => this.runDirect(sql, params))
+  }
+
+  async get(sql: string, params: any[] = []): Promise<any> {
+    return this.transactionContext.getStore()
+      ? this.getDirect(sql, params)
+      : this.enqueue(() => this.getDirect(sql, params))
+  }
+
+  async all(sql: string, params: any[] = []): Promise<any[]> {
+    return this.transactionContext.getStore()
+      ? this.allDirect(sql, params)
+      : this.enqueue(() => this.allDirect(sql, params))
+  }
+
   async close(): Promise<void> {
-    return new Promise((resolve, reject) => {
+    return this.enqueue(() => new Promise((resolve, reject) => {
       this.db.close((err) => {
         if (err) reject(err)
         else resolve()
       })
-    })
+    }))
   }
 }
 

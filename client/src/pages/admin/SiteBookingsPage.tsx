@@ -7,9 +7,10 @@ import { equipmentApi } from '../../api/admin/equipment';
 import { officesApi } from '../../api/admin/offices';
 import { rentalsApi } from '../../api/admin/rentals';
 import RentalModal from '../../components/admin/RentalModal';
+import LeadCampaignReport from '../../components/admin/LeadCampaignReport';
 import { useAuthenticatedQuery } from '../../hooks/useAuthenticatedQuery';
 import { useOffice } from '../../hooks/useOffice';
-import type { Booking, ContactLead, CreateRentalDto } from '../../types';
+import type { Booking, ContactLead, CreateRentalDto, LeadResult, LeadScenario } from '../../types';
 import type { RentalEquipment } from '../../types/admin';
 import { getApiErrorMessage } from '../../lib/apiError';
 import {
@@ -21,6 +22,106 @@ import {
   getBookingEquipmentNames,
   resolveBookingEquipmentMappings,
 } from '../../lib/adminLeadConversion';
+import {
+  buildLeadReply,
+  getLeadResultLabel,
+  getLeadScenarioLabel,
+  parseLeadRevenue,
+  resolveLeadScenario,
+} from '../../lib/leadWorkflow';
+import { invalidateAdminLeadReport } from '../../lib/adminLeadReport';
+
+const LEAD_RESULTS: LeadResult[] = ['unreached', 'thinking', 'booked', 'declined', 'duplicate'];
+
+const formatDeliveryMethod = (method?: 'pickup' | 'delivery') => {
+  if (method === 'pickup') return 'Самовывоз';
+  if (method === 'delivery') return 'Доставка';
+  return 'Не указано';
+};
+
+const formatPreferredContact = (contact?: string) => {
+  const labels: Record<string, string> = {
+    phone: 'Телефон',
+    telegram: 'Telegram',
+    whatsapp: 'WhatsApp',
+  };
+  return contact ? labels[contact] || contact : 'Не указано';
+};
+
+function LeadOutcomeControls({
+  selectedResult,
+  isPending,
+  onSelect,
+}: {
+  selectedResult?: LeadResult;
+  isPending: boolean;
+  onSelect: (result: LeadResult) => void;
+}) {
+  return (
+    <div className="mt-3">
+      <p className="text-xs font-bold uppercase tracking-wide text-gray-500">Результат контакта</p>
+      <div className="mt-2 flex flex-wrap gap-2" role="group" aria-label="Результат контакта">
+        {LEAD_RESULTS.map((result) => {
+          const isSelected = selectedResult === result;
+          const label = getLeadResultLabel(result);
+          return (
+            <button
+              key={result}
+              type="button"
+              title={`Сохранить результат: ${label}`}
+              aria-pressed={isSelected}
+              disabled={isPending}
+              onClick={() => onSelect(result)}
+              className={`rounded-lg border px-3 py-2 text-xs font-bold transition disabled:cursor-not-allowed disabled:opacity-50 ${
+                isSelected
+                  ? 'border-indigo-700 bg-indigo-700 text-white'
+                  : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-100'
+              }`}
+            >
+              {label}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function LeadContext({
+  source,
+  utmCampaign,
+  scenario,
+  officeName,
+  deliveryMethod,
+  preferredContact,
+}: {
+  source: string;
+  utmCampaign?: string;
+  scenario?: LeadScenario;
+  officeName?: string;
+  deliveryMethod?: 'pickup' | 'delivery';
+  preferredContact?: string;
+}) {
+  const fields = [
+    ['Источник', source],
+    ['UTM-кампания', utmCampaign || 'Не указано'],
+    ['Сценарий', getLeadScenarioLabel(scenario)],
+    ['Офис', officeName || 'Не указано'],
+    ['Получение', formatDeliveryMethod(deliveryMethod)],
+    ['Предпочтительная связь', formatPreferredContact(preferredContact)],
+  ];
+
+  return (
+    <dl className="mt-3 grid gap-2 text-xs sm:grid-cols-2 xl:grid-cols-3">
+      {fields.map(([label, value]) => (
+        <div key={label} className="rounded-lg bg-gray-50 px-3 py-2 ring-1 ring-gray-100">
+          <dt className="font-bold text-gray-500">{label}</dt>
+          <dd className="mt-0.5 break-words font-semibold text-gray-800">{value}</dd>
+        </div>
+      ))}
+    </dl>
+  );
+}
 
 const formatContactSubject = (subject: string) => {
   const labels: Record<string, string> = {
@@ -92,8 +193,9 @@ const copyTextToClipboard = async (text: string) => {
   textarea.style.top = '-9999px';
   document.body.appendChild(textarea);
   textarea.select();
-  document.execCommand('copy');
-  document.body.removeChild(textarea);
+  const copied = typeof document.execCommand === 'function' && document.execCommand('copy');
+  textarea.remove();
+  if (!copied) throw new Error('Clipboard API is unavailable');
 };
 
 const getErrorMessage = (error: unknown) =>
@@ -200,8 +302,11 @@ export default function SiteBookingsPage() {
 
   const deleteBookingMutation = useMutation({
     mutationFn: bookingsApi.delete,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin-bookings'] });
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['admin-bookings'] }),
+        invalidateAdminLeadReport(queryClient),
+      ]);
       toast.success('Заявка удалена');
     },
     onError: (error: unknown) => {
@@ -211,12 +316,45 @@ export default function SiteBookingsPage() {
 
   const deleteContactLeadMutation = useMutation({
     mutationFn: contactLeadsApi.delete,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin-contact-leads'] });
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['admin-contact-leads'] }),
+        invalidateAdminLeadReport(queryClient),
+      ]);
       toast.success('Обращение удалено');
     },
     onError: (error: unknown) => {
       toast.error(getApiErrorMessage(error, 'Не удалось удалить обращение'));
+    },
+  });
+
+  const bookingWorkflowMutation = useMutation({
+    mutationFn: ({ id, result, revenue }: { id: string; result: LeadResult; revenue: number | null }) =>
+      bookingsApi.updateWorkflow(id, { result, revenue }),
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['admin-bookings'] }),
+        invalidateAdminLeadReport(queryClient),
+      ]);
+      toast.success('Результат контакта сохранён');
+    },
+    onError: (error: unknown) => {
+      toast.error(getApiErrorMessage(error, 'Не удалось сохранить результат контакта'));
+    },
+  });
+
+  const contactLeadWorkflowMutation = useMutation({
+    mutationFn: ({ id, result, revenue }: { id: number; result: LeadResult; revenue: number | null }) =>
+      contactLeadsApi.updateWorkflow(id, { result, revenue }),
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['admin-contact-leads'] }),
+        invalidateAdminLeadReport(queryClient),
+      ]);
+      toast.success('Результат контакта сохранён');
+    },
+    onError: (error: unknown) => {
+      toast.error(getApiErrorMessage(error, 'Не удалось сохранить результат контакта'));
     },
   });
 
@@ -293,13 +431,55 @@ export default function SiteBookingsPage() {
     }
   };
 
-  const handleCopyReply = async (text: string) => {
+  const handleCopyNumber = async (text: string) => {
     try {
       await copyTextToClipboard(text);
       toast.success('Номер скопирован');
     } catch {
       toast.error('Не удалось скопировать номер');
     }
+  };
+
+  const handleCopyLeadReply = async ({
+    customerName,
+    scenario,
+    officeName,
+  }: {
+    customerName: string;
+    scenario?: LeadScenario;
+    officeName?: string;
+  }) => {
+    try {
+      await copyTextToClipboard(buildLeadReply({ customerName, scenario, officeName }));
+      toast.success('Ответ скопирован');
+    } catch {
+      toast.error('Не удалось скопировать ответ');
+    }
+  };
+
+  const handleBookingLeadResult = (booking: Booking, result: LeadResult) => {
+    bookingWorkflowMutation.mutate({
+      id: booking.id,
+      result,
+      revenue: result === 'booked' ? booking.totalPrice : null,
+    });
+  };
+
+  const handleContactLeadResult = (lead: ContactLead, result: LeadResult) => {
+    let revenue: number | null = null;
+
+    if (result === 'booked') {
+      const input = window.prompt('Введите выручку по бронированию (можно оставить пустым)', '');
+      if (input === null) return;
+      const parsed = parseLeadRevenue(input);
+      if (!parsed.ok) {
+        toast.error('Выручка должна быть числом от 0 до 10 000 000');
+        return;
+      }
+      revenue = parsed.revenue;
+    }
+
+    contactLeadWorkflowMutation.mutate({ id: lead.id, result, revenue });
   };
 
   const handleDeleteBooking = (booking: Booking) => {
@@ -359,6 +539,9 @@ export default function SiteBookingsPage() {
             {activeCount} активных из {totalCount}{isContactLeadsLoading ? ' · обращения загружаются' : ''}
           </div>
         </div>
+        <div className="mt-4">
+          <LeadCampaignReport />
+        </div>
         <div className="mt-4 flex flex-wrap gap-2">
           <button
             type="button"
@@ -393,6 +576,7 @@ export default function SiteBookingsPage() {
               {(() => {
                 const bookingContext = extractBookingContext(booking.comment);
                 const equipmentNames = getBookingEquipmentNames(booking);
+                const resolvedScenario = resolveLeadScenario(booking.scenario, bookingContext.scenario);
                 return (
               <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                 <div className="min-w-0">
@@ -427,27 +611,17 @@ export default function SiteBookingsPage() {
                   </div>
                   <div className="mt-2 flex flex-wrap gap-2 text-xs">
                     <span className="rounded-full bg-gray-100 px-2.5 py-1 font-semibold text-gray-700">
-                      Источник: {formatLeadSource(booking)}
-                    </span>
-                    <span className="rounded-full bg-gray-100 px-2.5 py-1 font-semibold text-gray-700">
                       Страница: {formatSourcePage(booking.sourcePage)}
                     </span>
-                    {booking.preferredContact && (
-                      <span className="rounded-full bg-blue-50 px-2.5 py-1 font-semibold text-blue-700">
-                        Связь: {booking.preferredContact}
-                      </span>
-                    )}
-                    {booking.deliveryMethod && (
-                      <span className="rounded-full bg-violet-50 px-2.5 py-1 font-semibold text-violet-700">
-                        {booking.deliveryMethod === 'delivery' ? 'Доставка' : 'Самовывоз'}
-                      </span>
-                    )}
-                    {booking.officeName && (
-                      <span className="rounded-full bg-slate-100 px-2.5 py-1 font-semibold text-slate-700">
-                        Офис: {booking.officeName}
-                      </span>
-                    )}
                   </div>
+                  <LeadContext
+                    source={formatLeadSource(booking)}
+                    utmCampaign={booking.utmCampaign}
+                    scenario={resolvedScenario}
+                    officeName={booking.officeName}
+                    deliveryMethod={booking.deliveryMethod}
+                    preferredContact={booking.preferredContact}
+                  />
                   {booking.deliveryAddress && (
                     <div className="mt-3 grid gap-2 md:grid-cols-2">
                       {booking.deliveryAddress && (
@@ -488,12 +662,29 @@ export default function SiteBookingsPage() {
                     </a>
                     <button
                       type="button"
-                      onClick={() => handleCopyReply(booking.customerPhone)}
+                      onClick={() => void handleCopyNumber(booking.customerPhone)}
                       className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-100"
                     >
                       Скопировать номер
                     </button>
+                    <button
+                      type="button"
+                      title="Скопировать готовый ответ клиенту"
+                      onClick={() => void handleCopyLeadReply({
+                        customerName: booking.customerName,
+                        scenario: resolvedScenario,
+                        officeName: booking.officeName,
+                      })}
+                      className="rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-2 text-xs font-bold text-indigo-700 hover:bg-indigo-100"
+                    >
+                      Скопировать ответ
+                    </button>
                   </div>
+                  <LeadOutcomeControls
+                    selectedResult={booking.leadResult}
+                    isPending={bookingWorkflowMutation.isPending}
+                    onSelect={(result) => handleBookingLeadResult(booking, result)}
+                  />
                 </div>
 
                 <div className="flex flex-col gap-2 sm:flex-row">
@@ -554,12 +745,17 @@ export default function SiteBookingsPage() {
                   </div>
                   <div className="mt-2 flex flex-wrap gap-2 text-xs">
                     <span className="rounded-full bg-gray-100 px-2.5 py-1 font-semibold text-gray-700">
-                      Источник: {formatLeadSource(lead)}
-                    </span>
-                    <span className="rounded-full bg-gray-100 px-2.5 py-1 font-semibold text-gray-700">
                       Страница: {formatSourcePage(lead.sourcePage)}
                     </span>
                   </div>
+                  <LeadContext
+                    source={formatLeadSource(lead)}
+                    utmCampaign={lead.utmCampaign}
+                    scenario={resolveLeadScenario(lead.scenario)}
+                    officeName={lead.officeName}
+                    deliveryMethod={lead.deliveryMethod}
+                    preferredContact={lead.preferredContact}
+                  />
                   <p className="mt-2 max-w-3xl whitespace-pre-wrap rounded-xl bg-amber-50 px-3 py-2 text-sm text-gray-700 ring-1 ring-amber-100">
                     {lead.message}
                   </p>
@@ -572,10 +768,22 @@ export default function SiteBookingsPage() {
                     </a>
                     <button
                       type="button"
-                      onClick={() => handleCopyReply(lead.phone)}
+                      onClick={() => void handleCopyNumber(lead.phone)}
                       className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-100"
                     >
                       Скопировать номер
+                    </button>
+                    <button
+                      type="button"
+                      title="Скопировать готовый ответ клиенту"
+                      onClick={() => void handleCopyLeadReply({
+                        customerName: lead.name,
+                        scenario: resolveLeadScenario(lead.scenario),
+                        officeName: lead.officeName,
+                      })}
+                      className="rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-2 text-xs font-bold text-indigo-700 hover:bg-indigo-100"
+                    >
+                      Скопировать ответ
                     </button>
                     {lead.email && (
                       <a
@@ -586,6 +794,11 @@ export default function SiteBookingsPage() {
                       </a>
                     )}
                   </div>
+                  <LeadOutcomeControls
+                    selectedResult={lead.leadResult}
+                    isPending={contactLeadWorkflowMutation.isPending}
+                    onSelect={(result) => handleContactLeadResult(lead, result)}
+                  />
                 </div>
 
                 <div className="flex flex-col gap-2 sm:flex-row">
