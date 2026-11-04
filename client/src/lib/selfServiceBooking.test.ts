@@ -142,10 +142,10 @@ const equipment: Equipment[] = [
 const selected = getSelectedEquipment(equipment, ['camera', 'missing', 'speaker'])
 
 assert.deepEqual(selected.map((item) => item.id), ['camera', 'speaker'])
-assert.equal(getEquipmentBookingHint(equipment[0]), 'мощная колонка для больших помещений и мероприятий')
-assert.equal(getEquipmentBookingHint(equipment[1]), 'экшн-камера для спорта, поездок и съёмки в движении')
-assert.equal(getEquipmentBookingHint(equipment[6]), 'моющий пылесос для диванов, ковров и салона авто')
-assert.equal(getEquipmentBookingHint(equipment[8]), 'сушилка для ковров и мебели после химчистки')
+assert.equal(getEquipmentBookingHint(equipment[0]), 'портативная колонка')
+assert.equal(getEquipmentBookingHint(equipment[1]), 'экшн-камера')
+assert.equal(getEquipmentBookingHint(equipment[6]), 'моющий пылесос')
+assert.equal(getEquipmentBookingHint(equipment[8]), 'сушилка')
 assert.match(buildSelectedEquipmentList(selected), /1\. GoPro Hero \(Камеры\)/)
 assert.match(buildSelectedEquipmentList(selected), /2\. JBL PartyBox 710 \(Аудиооборудование\)/)
 assert.deepEqual(buildSingleBookingEquipmentPayload(selected), {

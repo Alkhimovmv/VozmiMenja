@@ -4,26 +4,25 @@ export const getEquipmentBookingHint = (item: Equipment) => {
   const name = item.name.toLocaleLowerCase('ru-RU')
   const category = item.category.toLocaleLowerCase('ru-RU')
 
-  if (name.includes('puzzi')) return 'моющий пылесос для диванов, ковров и салона авто'
-  if (name.includes('wd5')) return 'строительный пылесос для сухой и влажной уборки'
-  if (name.includes('sc4') || name.includes('пароочист')) return 'пароочиститель для кухни, плитки и сантехники'
-  if (name.includes('vacmaster') || name.includes('сушил')) return 'сушилка для ковров и мебели после химчистки'
-  if (name.includes('робот') && name.includes('окон')) return 'робот для мойки окон и зеркал'
-  if (name.includes('okami')) return 'пылесос для уборки больших площадей'
+  if (name.includes('puzzi')) return 'моющий пылесос'
+  if (name.includes('wd5')) return 'строительный пылесос'
+  if (name.includes('sc4') || name.includes('пароочист')) return 'пароочиститель'
+  if (name.includes('vacmaster') || name.includes('сушил')) return 'сушилка'
+  if (name.includes('робот') && name.includes('окон')) return 'робот-мойщик окон'
+  if (name.includes('okami')) return 'клининговое оборудование'
 
-  if (name.includes('partybox 710')) return 'мощная колонка для больших помещений и мероприятий'
-  if (name.includes('partybox')) return 'портативная колонка для вечеринок и караоке'
-  if (name.includes('jbl') && name.includes('микроф')) return 'беспроводные караоке-микрофоны для PartyBox'
-  if (name.includes('dji mic') || name.includes('радиомикроф')) return 'радиомикрофон для интервью, видео и блога'
+  if (name.includes('jbl') && name.includes('микроф')) return 'караоке-микрофоны'
+  if (name.includes('dji mic') || name.includes('радиомикроф')) return 'радиомикрофон'
+  if (name.includes('partybox')) return 'портативная колонка'
 
-  if (name.includes('gopro')) return 'экшн-камера для спорта, поездок и съёмки в движении'
-  if (name.includes('insta360')) return '360°-камера для необычных ракурсов и съёмки себя'
-  if (name.includes('osmo pocket')) return 'компактная камера со стабилизацией для влога'
+  if (name.includes('gopro')) return 'экшн-камера'
+  if (name.includes('insta360')) return 'камера 360°'
+  if (name.includes('osmo pocket')) return 'компактная камера'
 
-  if (category.includes('камер')) return 'камера для фото и видеосъёмки'
-  if (category.includes('аудио')) return 'оборудование для музыки, речи или записи звука'
+  if (category.includes('камер')) return 'камера'
+  if (category.includes('аудио')) return 'аудиооборудование'
   if (category.includes('клининг') || category.includes('пылесос') || category.includes('уборк')) {
-    return 'оборудование для уборки и клининга'
+    return 'клининговое оборудование'
   }
 
   return 'оборудование в аренду'
