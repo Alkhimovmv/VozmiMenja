@@ -128,6 +128,7 @@ export default function CallbackModal({ isOpen, onClose }: CallbackModalProps) {
           <label className="mt-4 flex items-start gap-3 cursor-pointer">
             <input
               type="checkbox"
+              name="consent"
               checked={consent}
               onChange={(e) => setConsent(e.target.checked)}
               required

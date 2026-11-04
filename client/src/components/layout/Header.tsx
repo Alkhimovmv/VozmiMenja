@@ -44,7 +44,7 @@ export default function Header() {
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <Link to="/" className="flex items-center gap-2.5 flex-shrink-0">
-            <img src={logoHeader} alt="ВозьмиМеня" className="h-10 w-auto" />
+            <img src={logoHeader} alt="" width={48} height={40} className="h-10 w-auto" />
             <span className="text-xl font-bold text-gray-900">ВозьмиМеня</span>
           </Link>
 

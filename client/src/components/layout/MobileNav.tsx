@@ -22,7 +22,7 @@ export default function MobileNav() {
               key={label}
               to={to}
               className={`flex flex-col items-center gap-0.5 px-2 py-1 rounded-xl transition-colors min-w-0 ${
-                isActive ? 'text-primary' : 'text-gray-400'
+                isActive ? 'text-primary' : 'text-gray-500'
               }`}
             >
               <Icon className="w-5 h-5 flex-shrink-0" strokeWidth={isActive ? 2.5 : 1.8} />

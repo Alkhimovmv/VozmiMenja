@@ -538,6 +538,8 @@ export default function HomePage() {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
               <input
                 type="text"
+                name="search"
+                aria-label="Поиск по каталогу"
                 placeholder="Поиск..."
                 value={search}
                 onChange={(e) => handleSearchChange(e.target.value)}
@@ -546,6 +548,7 @@ export default function HomePage() {
               {search && (
                 <button
                   onClick={() => handleSearchChange('')}
+                  aria-label="Очистить поиск"
                   className="absolute right-2.5 top-1/2 -translate-y-1/2 w-5 h-5 flex items-center justify-center text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100 transition-colors"
                 >
                   <X className="w-3.5 h-3.5" />
@@ -572,6 +575,8 @@ export default function HomePage() {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
               <input
                 type="text"
+                name="search"
+                aria-label="Поиск по каталогу"
                 placeholder="Поиск..."
                 value={search}
                 onChange={(e) => handleSearchChange(e.target.value)}
@@ -580,6 +585,7 @@ export default function HomePage() {
               {search && (
                 <button
                   onClick={() => handleSearchChange('')}
+                  aria-label="Очистить поиск"
                   className="absolute right-2.5 top-1/2 -translate-y-1/2 w-5 h-5 flex items-center justify-center text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100 transition-colors"
                 >
                   <X className="w-3.5 h-3.5" />

@@ -64,7 +64,7 @@ export default function Testimonials() {
                   <button
                     type="button"
                     onClick={() => setShowYandexWidget(true)}
-                    className="mt-4 rounded-xl bg-[#FC3F1D] px-4 py-2 text-sm font-semibold text-white transition hover:opacity-90"
+                    className="mt-4 rounded-xl bg-[#CC2E0A] px-4 py-2 text-sm font-semibold text-white transition hover:opacity-90"
                   >
                     Загрузить отзывы
                   </button>
@@ -129,7 +129,7 @@ export default function Testimonials() {
               <img src={avitoIcon} alt="Avito" className="w-10 h-10 object-contain flex-shrink-0" />
               <div className="flex-1 min-w-0">
                 <div className="font-semibold text-gray-900 text-sm">Оставить отзыв на Авито</div>
-                <div className="text-gray-400 text-xs truncate">После аренды — поделитесь впечатлениями</div>
+                <div className="text-gray-500 text-xs truncate">После аренды — поделитесь впечатлениями</div>
               </div>
               <svg className="w-4 h-4 text-gray-400 group-hover:text-[#00AAFF] transition-colors flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3" />

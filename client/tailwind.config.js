@@ -7,9 +7,9 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        sans:    ['"Inter Tight"', 'system-ui', 'sans-serif'],
-        heading: ['Manrope', 'system-ui', 'sans-serif'],
-        body:    ['"Inter Tight"', 'system-ui', 'sans-serif'],
+        sans:    ['"Inter Tight"', '"Inter Tight Fallback"', 'system-ui', 'sans-serif'],
+        heading: ['Manrope', '"Manrope Fallback"', 'system-ui', 'sans-serif'],
+        body:    ['"Inter Tight"', '"Inter Tight Fallback"', 'system-ui', 'sans-serif'],
       },
       fontSize: {
         // Manrope heading scale
