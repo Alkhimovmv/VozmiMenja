@@ -1,6 +1,7 @@
 import { database, run, get, all } from './database'
 import { equipmentModel, type Equipment } from './Equipment'
 import { normalizeLeadScenario, type LeadScenario } from '../domain/leadAttribution'
+import type { LeadResult } from '../domain/leadWorkflow'
 
 export interface Booking {
   id: string
@@ -29,6 +30,9 @@ export interface Booking {
   utmCampaign?: string
   utmContent?: string
   scenario?: LeadScenario
+  leadResult?: LeadResult
+  leadRevenue?: number
+  lastContactedAt?: string
   legalOfferAcceptedAt?: string
   legalAgreementAcceptedAt?: string
   legalPrivacyAcceptedAt?: string
@@ -227,6 +231,15 @@ export class BookingModel {
     `, [status, id])
   }
 
+  async updateWorkflow(id: string, result: LeadResult, revenue?: number | null): Promise<void> {
+    await run(`
+      UPDATE bookings
+      SET lead_result = ?, lead_revenue = ?, last_contacted_at = CURRENT_TIMESTAMP,
+          updated_at = CURRENT_TIMESTAMP
+      WHERE id = ?
+    `, [result, revenue ?? null, id])
+  }
+
   async delete(id: string): Promise<void> {
     await run('DELETE FROM bookings WHERE id = ?', [id])
   }
@@ -301,6 +314,9 @@ export class BookingModel {
       utmCampaign: row.utm_campaign || undefined,
       utmContent: row.utm_content || undefined,
       scenario: normalizeLeadScenario(row.scenario, row.utm_campaign, row.source_page),
+      leadResult: row.lead_result || undefined,
+      leadRevenue: row.lead_revenue ?? undefined,
+      lastContactedAt: row.last_contacted_at || undefined,
       legalOfferAcceptedAt: row.legal_offer_accepted_at || undefined,
       legalAgreementAcceptedAt: row.legal_agreement_accepted_at || undefined,
       legalPrivacyAcceptedAt: row.legal_privacy_accepted_at || undefined,

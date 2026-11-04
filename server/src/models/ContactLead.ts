@@ -1,5 +1,6 @@
 import { all, database, get, run } from './database'
 import { normalizeLeadScenario, type LeadScenario } from '../domain/leadAttribution'
+import type { LeadResult } from '../domain/leadWorkflow'
 
 const normalizePhone = (phone: string): string => {
   const digits = phone.replace(/\D/g, '')
@@ -39,6 +40,9 @@ export interface ContactLead {
   utmCampaign?: string
   utmContent?: string
   scenario?: LeadScenario
+  leadResult?: LeadResult
+  leadRevenue?: number
+  lastContactedAt?: string
   officeId?: number
   officeName?: string
   deliveryMethod?: 'pickup' | 'delivery'
@@ -181,6 +185,15 @@ export class ContactLeadModel {
     `, [status, id])
   }
 
+  async updateWorkflow(id: number, result: LeadResult, revenue?: number | null): Promise<void> {
+    await run(`
+      UPDATE contact_leads
+      SET lead_result = ?, lead_revenue = ?, last_contacted_at = CURRENT_TIMESTAMP,
+          updated_at = CURRENT_TIMESTAMP
+      WHERE id = ?
+    `, [result, revenue ?? null, id])
+  }
+
   async delete(id: number): Promise<void> {
     await run('DELETE FROM contact_leads WHERE id = ?', [id])
   }
@@ -200,6 +213,9 @@ export class ContactLeadModel {
       utmCampaign: row.utm_campaign || undefined,
       utmContent: row.utm_content || undefined,
       scenario: normalizeLeadScenario(row.scenario, row.utm_campaign, row.source_page),
+      leadResult: row.lead_result || undefined,
+      leadRevenue: row.lead_revenue ?? undefined,
+      lastContactedAt: row.last_contacted_at || undefined,
       officeId: row.office_id ?? undefined,
       officeName: row.office_name || undefined,
       deliveryMethod: row.delivery_method || undefined,

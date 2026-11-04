@@ -1,5 +1,5 @@
 import apiClient from './client';
-import type { Booking } from '../../types';
+import type { Booking, LeadWorkflowUpdate } from '../../types';
 
 interface BookingsResponse {
   success: boolean;
@@ -25,6 +25,11 @@ export const bookingsApi = {
 
   updateStatus: async (id: string, status: Booking['status']): Promise<Booking> => {
     const response = await apiClient.patch<Booking | BookingResponse>(`/bookings/${id}/status`, { status });
+    return unwrapBooking(response.data);
+  },
+
+  updateWorkflow: async (id: string, workflow: LeadWorkflowUpdate): Promise<Booking> => {
+    const response = await apiClient.patch<Booking | BookingResponse>(`/bookings/${id}/workflow`, workflow);
     return unwrapBooking(response.data);
   },
 

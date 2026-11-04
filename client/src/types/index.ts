@@ -63,6 +63,12 @@ export interface PublicEquipment {
 export type { PublicEquipment as Equipment }
 
 export type LeadScenario = 'puzzi-cleaning' | 'karaoke-kit' | 'travel-camera'
+export type LeadResult = 'unreached' | 'thinking' | 'booked' | 'declined' | 'duplicate'
+
+export interface LeadWorkflowUpdate {
+  result: LeadResult
+  revenue?: number | null
+}
 
 export interface CreateEquipmentDto {
   name: string
@@ -103,6 +109,9 @@ export interface Booking {
   utmCampaign?: string
   utmContent?: string
   scenario?: LeadScenario
+  leadResult?: LeadResult
+  leadRevenue?: number
+  lastContactedAt?: string
   legalOfferAcceptedAt?: string
   legalAgreementAcceptedAt?: string
   legalPrivacyAcceptedAt?: string
@@ -164,6 +173,9 @@ export interface ContactLead {
   utmCampaign?: string
   utmContent?: string
   scenario?: LeadScenario
+  leadResult?: LeadResult
+  leadRevenue?: number
+  lastContactedAt?: string
   officeId?: number
   officeName?: string
   deliveryMethod?: 'pickup' | 'delivery'
