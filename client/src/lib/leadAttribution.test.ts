@@ -91,8 +91,10 @@ assert.equal(inferLeadScenario('travel-camera', '/booking'), 'travel-camera')
 assert.equal(inferLeadScenario('travel-camera', '/arenda-karaoke-komplekta-moskva'), 'travel-camera')
 assert.equal(inferLeadScenario('not-karaoke-kit', '/booking'), undefined)
 assert.equal(inferLeadScenario('not-karaoke-kit', '/arenda-kamery-dlya-puteshestviya-vloga-moskva'), 'travel-camera')
+assert.equal(inferLeadScenario(undefined, '/blog/arenda-karaoke-komplekta-moskva-review'), undefined)
 assert.equal(inferLeadScenario(undefined, '/arenda-karaoke-komplekta-moskva'), 'karaoke-kit')
 assert.equal(inferLeadScenario(undefined, '/arenda-moyushchego-pylesosa-dlya-divana-kovra-moskva'), 'puzzi-cleaning')
+assert.equal(inferLeadScenario(undefined, '/arenda-kamery-dlya-puteshestviya-vloga-moskva'), 'travel-camera')
 
 const storage = new MemoryStorage()
 const originalWindow = globalThis.window

@@ -11,6 +11,11 @@ export interface LeadAttribution {
 }
 
 const FIRST_TOUCH_STORAGE_KEY = 'lead-attribution:first-touch'
+const SCENARIO_BY_PATHNAME: Record<string, LeadScenario> = {
+  '/arenda-moyushchego-pylesosa-dlya-divana-kovra-moskva': 'puzzi-cleaning',
+  '/arenda-karaoke-komplekta-moskva': 'karaoke-kit',
+  '/arenda-kamery-dlya-puteshestviya-vloga-moskva': 'travel-camera',
+}
 
 type FirstTouchAttribution = Pick<
   LeadAttribution,
@@ -25,12 +30,7 @@ export function inferLeadScenario(campaign?: string, pathname = ''): LeadScenari
   if (normalizedCampaign === 'karaoke-kit') return 'karaoke-kit'
   if (normalizedCampaign === 'travel-camera') return 'travel-camera'
 
-  const normalizedPathname = pathname.toLowerCase()
-  if (normalizedPathname.includes('arenda-moyushchego-pylesosa-dlya-divana-kovra')) return 'puzzi-cleaning'
-  if (normalizedPathname.includes('arenda-karaoke-komplekta')) return 'karaoke-kit'
-  if (normalizedPathname.includes('arenda-kamery-dlya-puteshestviya-vloga')) return 'travel-camera'
-
-  return undefined
+  return SCENARIO_BY_PATHNAME[pathname.toLowerCase()]
 }
 
 export function parseLeadAttribution(href: string, referrer?: string): LeadAttribution {
