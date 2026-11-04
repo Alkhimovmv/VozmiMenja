@@ -22,6 +22,22 @@ const SCENARIO_DISPLAY_LABELS: Record<LeadScenario, string> = {
 
 export const getLeadResultLabel = (result: LeadResult) => LEAD_RESULT_LABELS[result]
 
+export const resolveLeadScenario = (...candidates: Array<string | null | undefined>): LeadScenario | undefined => {
+  for (const candidate of candidates) {
+    if (candidate && candidate in SCENARIO_LABELS) return candidate as LeadScenario
+  }
+
+  for (const candidate of candidates) {
+    if (!candidate) continue
+    const normalized = candidate.toLocaleLowerCase('ru-RU').replaceAll('ё', 'е')
+    if (/химчист|диван|ковр|салон/.test(normalized)) return 'puzzi-cleaning'
+    if (/gopro|камер|поезд|reels|влог|съемк/.test(normalized)) return 'travel-camera'
+    if (/partybox|караок|вечерин|праздник|дач|зал|танц/.test(normalized)) return 'karaoke-kit'
+  }
+
+  return undefined
+}
+
 export const getLeadScenarioLabel = (scenario?: LeadScenario | string) => {
   if (!scenario) return 'Не указано'
   return scenario in SCENARIO_DISPLAY_LABELS
@@ -51,7 +67,7 @@ export const parseLeadRevenue = (value: string): { ok: true; revenue: number | n
   if (!value.trim()) return { ok: true, revenue: null }
 
   const revenue = Number(value)
-  return Number.isFinite(revenue) && revenue >= 0
+  return Number.isFinite(revenue) && revenue >= 0 && revenue <= 10_000_000
     ? { ok: true, revenue }
     : { ok: false }
 }

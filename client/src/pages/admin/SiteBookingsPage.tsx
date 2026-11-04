@@ -9,7 +9,7 @@ import { rentalsApi } from '../../api/admin/rentals';
 import RentalModal from '../../components/admin/RentalModal';
 import { useAuthenticatedQuery } from '../../hooks/useAuthenticatedQuery';
 import { useOffice } from '../../hooks/useOffice';
-import type { Booking, ContactLead, CreateRentalDto, LeadResult } from '../../types';
+import type { Booking, ContactLead, CreateRentalDto, LeadResult, LeadScenario } from '../../types';
 import type { RentalEquipment } from '../../types/admin';
 import { getApiErrorMessage } from '../../lib/apiError';
 import {
@@ -26,6 +26,7 @@ import {
   getLeadResultLabel,
   getLeadScenarioLabel,
   parseLeadRevenue,
+  resolveLeadScenario,
 } from '../../lib/leadWorkflow';
 
 const LEAD_RESULTS: LeadResult[] = ['unreached', 'thinking', 'booked', 'declined', 'duplicate'];
@@ -94,7 +95,7 @@ function LeadContext({
 }: {
   source: string;
   utmCampaign?: string;
-  scenario?: string;
+  scenario?: LeadScenario;
   officeName?: string;
   deliveryMethod?: 'pickup' | 'delivery';
   preferredContact?: string;
@@ -437,7 +438,7 @@ export default function SiteBookingsPage() {
     officeName,
   }: {
     customerName: string;
-    scenario?: string;
+    scenario?: LeadScenario;
     officeName?: string;
   }) => {
     try {
@@ -464,7 +465,7 @@ export default function SiteBookingsPage() {
       if (input === null) return;
       const parsed = parseLeadRevenue(input);
       if (!parsed.ok) {
-        toast.error('Выручка должна быть неотрицательным числом');
+        toast.error('Выручка должна быть числом от 0 до 10 000 000');
         return;
       }
       revenue = parsed.revenue;
@@ -564,6 +565,7 @@ export default function SiteBookingsPage() {
               {(() => {
                 const bookingContext = extractBookingContext(booking.comment);
                 const equipmentNames = getBookingEquipmentNames(booking);
+                const resolvedScenario = resolveLeadScenario(booking.scenario, bookingContext.scenario);
                 return (
               <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                 <div className="min-w-0">
@@ -604,7 +606,7 @@ export default function SiteBookingsPage() {
                   <LeadContext
                     source={formatLeadSource(booking)}
                     utmCampaign={booking.utmCampaign}
-                    scenario={booking.scenario || bookingContext.scenario || undefined}
+                    scenario={resolvedScenario}
                     officeName={booking.officeName}
                     deliveryMethod={booking.deliveryMethod}
                     preferredContact={booking.preferredContact}
@@ -659,7 +661,7 @@ export default function SiteBookingsPage() {
                       title="Скопировать готовый ответ клиенту"
                       onClick={() => void handleCopyLeadReply({
                         customerName: booking.customerName,
-                        scenario: booking.scenario,
+                        scenario: resolvedScenario,
                         officeName: booking.officeName,
                       })}
                       className="rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-2 text-xs font-bold text-indigo-700 hover:bg-indigo-100"
@@ -738,7 +740,7 @@ export default function SiteBookingsPage() {
                   <LeadContext
                     source={formatLeadSource(lead)}
                     utmCampaign={lead.utmCampaign}
-                    scenario={lead.scenario}
+                    scenario={resolveLeadScenario(lead.scenario)}
                     officeName={lead.officeName}
                     deliveryMethod={lead.deliveryMethod}
                     preferredContact={lead.preferredContact}
@@ -765,7 +767,7 @@ export default function SiteBookingsPage() {
                       title="Скопировать готовый ответ клиенту"
                       onClick={() => void handleCopyLeadReply({
                         customerName: lead.name,
-                        scenario: lead.scenario,
+                        scenario: resolveLeadScenario(lead.scenario),
                         officeName: lead.officeName,
                       })}
                       className="rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-2 text-xs font-bold text-indigo-700 hover:bg-indigo-100"
