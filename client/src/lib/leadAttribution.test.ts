@@ -120,7 +120,7 @@ const originalWindow = globalThis.window
 const originalDocument = globalThis.document
 const mockWindow = {
   location: {
-    href: 'https://vozmimenya.ru/arenda-karaoke-komplekta-moskva?utm_source=vk',
+    href: 'https://vozmimenya.ru/arenda-karaoke-komplekta-moskva?utm_source=vk&utm_campaign=autumn-promo',
   },
   sessionStorage: storage,
 }
@@ -134,6 +134,21 @@ Object.defineProperty(globalThis, 'document', {
   value: { referrer: 'https://vk.com/' },
 })
 
+const promotionalLandingContext = getLeadContext()
+assert.equal(promotionalLandingContext.utmCampaign, 'autumn-promo')
+assert.equal(promotionalLandingContext.scenario, 'karaoke-kit')
+const promotionalBookingHref = buildAttributedBookingHref(
+  ['jbl-partybox-320', 'jbl-partybox-wireless-microphones'],
+  'karaoke-kit',
+  promotionalLandingContext,
+)
+mockWindow.location.href = new URL(promotionalBookingHref, 'https://vozmimenya.ru').href
+const promotionalBookingContext = getLeadContext()
+assert.equal(promotionalBookingContext.utmCampaign, 'autumn-promo')
+assert.equal(promotionalBookingContext.scenario, 'karaoke-kit')
+
+storage.clear()
+mockWindow.location.href = 'https://vozmimenya.ru/arenda-karaoke-komplekta-moskva?utm_source=vk'
 const firstExternalContext = getLeadContext()
 assert.equal(firstExternalContext.utmSource, 'vk')
 assert.equal(firstExternalContext.utmMedium, 'landing')

@@ -19,7 +19,7 @@ const SCENARIO_BY_PATHNAME: Record<string, LeadScenario> = {
 
 type FirstTouchAttribution = Pick<
   LeadAttribution,
-  'utmSource' | 'utmMedium' | 'utmCampaign' | 'utmContent'
+  'utmSource' | 'utmMedium' | 'utmCampaign' | 'utmContent' | 'scenario'
 >
 
 const getOptionalParam = (params: URLSearchParams, name: string) => params.get(name) || undefined
@@ -71,6 +71,7 @@ const readFirstTouchAttribution = (storage: Storage): FirstTouchAttribution | un
       utmMedium: typeof parsed.utmMedium === 'string' ? parsed.utmMedium : undefined,
       utmCampaign: typeof parsed.utmCampaign === 'string' ? parsed.utmCampaign : undefined,
       utmContent: typeof parsed.utmContent === 'string' ? parsed.utmContent : undefined,
+      scenario: typeof parsed.scenario === 'string' ? inferLeadScenario(parsed.scenario) : undefined,
     }
   } catch {
     storage.removeItem(FIRST_TOUCH_STORAGE_KEY)
@@ -89,6 +90,7 @@ export function getLeadContext(): LeadAttribution {
           utmMedium: current.utmMedium || 'landing',
           utmCampaign: current.utmCampaign || current.scenario,
           utmContent: current.utmContent,
+          scenario: current.scenario,
         }
       : current
     const firstTouch = stored || normalizedCurrent
@@ -99,6 +101,7 @@ export function getLeadContext(): LeadAttribution {
         utmMedium: firstTouch.utmMedium,
         utmCampaign: firstTouch.utmCampaign,
         utmContent: firstTouch.utmContent,
+        scenario: firstTouch.scenario,
       }))
     }
 
@@ -108,7 +111,8 @@ export function getLeadContext(): LeadAttribution {
       utmMedium: firstTouch.utmMedium,
       utmCampaign: firstTouch.utmCampaign,
       utmContent: firstTouch.utmContent,
-      scenario: inferLeadScenario(firstTouch.utmCampaign, new URL(current.sourcePage).pathname),
+      scenario: firstTouch.scenario
+        || inferLeadScenario(firstTouch.utmCampaign, new URL(current.sourcePage).pathname),
     }
   } catch {
     return current
