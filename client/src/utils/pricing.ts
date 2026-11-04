@@ -190,16 +190,16 @@ export const getMinimumDailyPrice = (pricing: PricingTier | undefined, fallback:
 export const getOneDayPrice = (pricing: PricingTier | undefined, fallback: number) =>
   Number(pricing?.day1) || fallback;
 
-// Самая низкая цена за сутки при длинной аренде и срок, с которого она действует.
-// null, если длинная аренда не дешевле одних суток.
+// Цена за сутки при аренде от 30 суток — для подписи «от X ₽ при аренде от 30 суток».
+// Берём только месячный тариф: для срока от 30 суток расчёт всегда использует days30,
+// а промежуточные тарифы (например, days7 без days14/days30) не действуют на весь длинный срок.
+// null, если месячного тарифа нет или он не дешевле одних суток.
 export const getLongTermDailyPrice = (pricing: PricingTier | undefined, fallback: number) => {
   const oneDay = getOneDayPrice(pricing, fallback);
-  const candidates = getPricingRows(pricing)
-    .filter((tier) => tier.days > 1)
-    .map((tier) => ({ dailyPrice: Math.round(tier.effectiveDailyPrice), days: tier.days }))
-    .filter((tier) => tier.dailyPrice > 0 && tier.dailyPrice < oneDay);
-  if (!candidates.length) return null;
-  return candidates.reduce((best, tier) => (tier.dailyPrice < best.dailyPrice ? tier : best));
+  const monthly = getPricingRows(pricing).find((tier) => tier.key === 'days30');
+  if (!monthly) return null;
+  const dailyPrice = Math.round(monthly.effectiveDailyPrice);
+  return dailyPrice > 0 && dailyPrice < oneDay ? { dailyPrice, days: 30 } : null;
 };
 
 export const getPeriodPrice = (pricing: PricingTier | undefined, periodDays: number, fallback: number) =>

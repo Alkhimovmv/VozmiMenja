@@ -24,6 +24,7 @@ const staticPages = [
   { href: '/booking', label: 'Оформить бронь онлайн' },
   { href: '/kak-prohodit-arenda-tehniki', label: 'Как проходит аренда техники' },
   { href: '/samovyvoz-24-7-postamat', label: 'Самовывоз 24/7 и постамат' },
+  { href: '/arenda-tehniki-na-mesyac-moskva', label: 'Аренда техники на месяц' },
   { href: '/arenda-tehniki-u-metro-volzhskaya-kuzminki', label: 'Аренда техники у м. Волжская и в Кузьминках' },
   { href: '/arenda-tehniki-u-metro-dinamo', label: 'Аренда техники у м. Динамо' },
   { href: '/arenda-tehniki-dlya-meropriyatiya-moskva', label: 'Аренда техники для мероприятия' },

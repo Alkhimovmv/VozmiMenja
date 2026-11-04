@@ -33,6 +33,7 @@ const staticRoutes = [
   '/booking/success',
   '/kak-prohodit-arenda-tehniki',
   '/samovyvoz-24-7-postamat',
+  '/arenda-tehniki-na-mesyac-moskva',
   '/arenda-tehniki-u-metro-volzhskaya-kuzminki',
   '/arenda-tehniki-u-metro-dinamo',
   '/arenda-tehniki-dlya-meropriyatiya-moskva',
@@ -413,15 +414,14 @@ function getOneDayPrice(item) {
   return Number(pricing.day1) || Number(item?.pricePerDay || item?.price_per_day || 0)
 }
 
-// Самая низкая цена за сутки при длинной аренде и срок, с которого она действует.
+// Цена за сутки при аренде от 30 суток (как getLongTermDailyPrice в client/src/utils/pricing.ts):
+// только месячный тариф, потому что для срока от 30 суток расчёт брони всегда берёт days30.
 function getLongTermDailyPrice(item) {
   const oneDay = getOneDayPrice(item)
-  const candidates = pricingRows(item)
-    .filter((tier) => tier.days > 1)
-    .map((tier) => ({ dailyPrice: Math.round(tier.effectiveDailyPrice), days: tier.days }))
-    .filter((tier) => tier.dailyPrice > 0 && tier.dailyPrice < oneDay)
-  if (!candidates.length) return null
-  return candidates.reduce((best, tier) => (tier.dailyPrice < best.dailyPrice ? tier : best))
+  const monthly = pricingRows(item).find((tier) => tier.key === 'days30')
+  if (!monthly) return null
+  const dailyPrice = Math.round(monthly.effectiveDailyPrice)
+  return dailyPrice > 0 && dailyPrice < oneDay ? { dailyPrice, days: 30 } : null
 }
 
 function formatPrice(price) {
@@ -1013,6 +1013,18 @@ function staticProductCatalog(items, heading) {
   return `<section data-static-product-catalog="true" aria-label="${escapeHtml(heading)}"><h2>${escapeHtml(heading)}</h2><ul>${products}</ul></section>`
 }
 
+// Таблица тарифов долгой аренды для статического HTML страницы «на месяц».
+function monthlyPriceTable(remoteData) {
+  const rows = [...remoteData.equipmentBySlug.values()]
+    .map((item) => ({ item, oneDay: getOneDayPrice(item), longTerm: getLongTermDailyPrice(item) }))
+    .filter((row) => row.longTerm)
+  if (!rows.length) return ''
+  const body = rows.map(({ item, oneDay, longTerm }) => (
+    `<tr><td><a href="${escapeHtml(equipmentRoute(item))}">${escapeHtml(item.name)}</a></td><td>${escapeHtml(formatPrice(oneDay))} ₽</td><td>от ${escapeHtml(formatPrice(longTerm.dailyPrice))} ₽ (от ${longTerm.days} суток)</td></tr>`
+  )).join('')
+  return `<h2>Сколько стоит аренда на месяц</h2><table><thead><tr><th>Модель</th><th>1 сутки</th><th>Долгая аренда, за сутки</th></tr></thead><tbody>${body}</tbody></table>`
+}
+
 function faqSection(items) {
   if (!items?.length) return ''
   return `<h2>Частые вопросы</h2>${items.map((item) => `<h3>${escapeHtml(item.question)}</h3><p>${escapeHtml(item.answer)}</p>`).join('')}`
@@ -1230,6 +1242,10 @@ function buildStaticRouteBody(route, meta, remoteData) {
     ],
     '/blog': [
       articles.length ? `<h2>Статьи</h2>${linkList(articles)}` : '',
+    ],
+    '/arenda-tehniki-na-mesyac-moskva': [
+      monthlyPriceTable(remoteData),
+      `<p>Долгая аренда выгоднее посуточной: при аренде от 30 суток цена за сутки ниже. Технику берут на ремонт, поездку, сезон съёмок или регулярную уборку. Продление — по согласованию с менеджером.</p>`,
     ],
     ...Object.fromEntries(business.offices.map((office) => [office.slug, [
       `<p>Офис и постамат: Москва, ${escapeHtml(office.streetAddress)}, рядом с м. ${escapeHtml(office.metro)} (район ${escapeHtml(office.district)}). Технику можно забрать и вернуть 24/7 по коду после подтверждения брони. Районы рядом: ${escapeHtml(office.nearby.join(', '))}.</p>`,

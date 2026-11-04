@@ -25,6 +25,7 @@ const requiredPaths = [
   '/booking',
   '/kak-prohodit-arenda-tehniki',
   '/samovyvoz-24-7-postamat',
+  '/arenda-tehniki-na-mesyac-moskva',
   '/arenda-tehniki-u-metro-volzhskaya-kuzminki',
   '/arenda-tehniki-u-metro-dinamo',
   '/arenda-tehniki-dlya-meropriyatiya-moskva',

@@ -47,6 +47,7 @@ const staticUrls: SitemapUrl[] = [
   { loc: '/booking', lastmod: today(), changefreq: 'weekly', priority: '0.8' },
   { loc: '/kak-prohodit-arenda-tehniki', lastmod: today(), changefreq: 'monthly', priority: '0.7' },
   { loc: '/samovyvoz-24-7-postamat', lastmod: today(), changefreq: 'monthly', priority: '0.7' },
+  { loc: '/arenda-tehniki-na-mesyac-moskva', lastmod: today(), changefreq: 'weekly', priority: '0.8' },
   { loc: '/arenda-tehniki-u-metro-volzhskaya-kuzminki', lastmod: today(), changefreq: 'monthly', priority: '0.8' },
   { loc: '/arenda-tehniki-u-metro-dinamo', lastmod: today(), changefreq: 'monthly', priority: '0.8' },
   { loc: '/arenda-tehniki-dlya-meropriyatiya-moskva', lastmod: today(), changefreq: 'weekly', priority: '0.8' },

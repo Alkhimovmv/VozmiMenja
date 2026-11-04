@@ -14,6 +14,7 @@ export const pagesToCheck = [
   { path: '/booking', canonicalPath: '/booking' },
   { path: '/kak-prohodit-arenda-tehniki', canonicalPath: '/kak-prohodit-arenda-tehniki' },
   { path: '/samovyvoz-24-7-postamat', canonicalPath: '/samovyvoz-24-7-postamat' },
+  { path: '/arenda-tehniki-na-mesyac-moskva', canonicalPath: '/arenda-tehniki-na-mesyac-moskva' },
   { path: '/arenda-tehniki-u-metro-volzhskaya-kuzminki', canonicalPath: '/arenda-tehniki-u-metro-volzhskaya-kuzminki' },
   { path: '/arenda-tehniki-u-metro-dinamo', canonicalPath: '/arenda-tehniki-u-metro-dinamo' },
   { path: '/arenda-tehniki-dlya-meropriyatiya-moskva', canonicalPath: '/arenda-tehniki-dlya-meropriyatiya-moskva' },
