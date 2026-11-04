@@ -17,6 +17,10 @@
 ```bash
 SMOKE_DIR="$(mktemp -d /tmp/vozmimenya-acquisition-smoke.XXXXXX)"
 cleanup() {
+  if [[ "${SMOKE_CLEANED:-false}" == true ]]; then
+    return 0
+  fi
+  SMOKE_CLEANED=true
   trap - EXIT INT TERM
 
   if [[ -n "${SMOKE_CLIENT_PID:-}" ]]; then
@@ -24,22 +28,25 @@ cleanup() {
       kill "$SMOKE_CLIENT_PID"
     fi
     wait "$SMOKE_CLIENT_PID" 2>/dev/null || true
+    SMOKE_CLIENT_PID=''
   fi
   if [[ -n "${SMOKE_SERVER_PID:-}" ]]; then
     if kill -0 "$SMOKE_SERVER_PID" 2>/dev/null; then
       kill "$SMOKE_SERVER_PID"
     fi
     wait "$SMOKE_SERVER_PID" 2>/dev/null || true
+    SMOKE_SERVER_PID=''
   fi
 
   if [[ -n "${SMOKE_DIR:-}" && "$SMOKE_DIR" == /tmp/vozmimenya-acquisition-smoke.* && -d "$SMOKE_DIR" ]]; then
     find "$SMOKE_DIR" -depth -delete
   elif [[ -n "${SMOKE_DIR:-}" ]]; then
-    print -u2 -- "Refusing to remove unexpected smoke path: $SMOKE_DIR"
+    printf '%s\n' "Refusing to remove unexpected smoke path: $SMOKE_DIR" >&2
     return 1
   fi
 }
 
+SMOKE_CLEANED=false
 trap cleanup EXIT INT TERM
 SMOKE_SERVER_PID=''
 SMOKE_CLIENT_PID=''
@@ -81,7 +88,7 @@ for SMOKE_HEALTH_ATTEMPT in {1..30}; do
     break
   fi
   if ! kill -0 "$SMOKE_SERVER_PID" 2>/dev/null; then
-    print -u2 -- 'Smoke server exited before becoming healthy'
+    printf '%s\n' 'Smoke server exited before becoming healthy' >&2
     tail -n 80 "$SMOKE_DIR/server.log" >&2
     exit 1
   fi
@@ -89,7 +96,7 @@ for SMOKE_HEALTH_ATTEMPT in {1..30}; do
 done
 
 if [[ "$SMOKE_SERVER_READY" != true ]]; then
-  print -u2 -- 'Smoke server did not become healthy within 30 seconds'
+  printf '%s\n' 'Smoke server did not become healthy within 30 seconds' >&2
   tail -n 80 "$SMOKE_DIR/server.log" >&2
   exit 1
 fi
@@ -170,7 +177,7 @@ sqlite3 -header -column "$DATABASE_PATH" \
 
 ```bash
 env VITE_API_URL=http://localhost:3106/api \
-  ./node_modules/.bin/vite client --host 0.0.0.0 --port 5175 >"$SMOKE_DIR/client.log" 2>&1 &
+  npm run dev --workspace=client -- --port 5175 >"$SMOKE_DIR/client.log" 2>&1 &
 SMOKE_CLIENT_PID=$!
 
 SMOKE_CLIENT_READY=false
@@ -180,7 +187,7 @@ for SMOKE_CLIENT_ATTEMPT in {1..30}; do
     break
   fi
   if ! kill -0 "$SMOKE_CLIENT_PID" 2>/dev/null; then
-    print -u2 -- 'Smoke client exited before becoming ready'
+    printf '%s\n' 'Smoke client exited before becoming ready' >&2
     tail -n 80 "$SMOKE_DIR/client.log" >&2
     exit 1
   fi
@@ -188,7 +195,7 @@ for SMOKE_CLIENT_ATTEMPT in {1..30}; do
 done
 
 if [[ "$SMOKE_CLIENT_READY" != true ]]; then
-  print -u2 -- 'Smoke client did not become ready within 30 seconds'
+  printf '%s\n' 'Smoke client did not become ready within 30 seconds' >&2
   tail -n 80 "$SMOKE_DIR/client.log" >&2
   exit 1
 fi
@@ -203,7 +210,7 @@ cleanup
 test ! -e "$SMOKE_DIR"
 ```
 
-`cleanup` сам снимает `EXIT/INT/TERM` trap, поэтому повторный вызов после нормального завершения не выполняется. Он посылает сигнал только PID, сохраненным непосредственно после запуска backend/frontend, и удаляет только каталог, прошедший проверку префикса `/tmp/vozmimenya-acquisition-smoke.*`.
+`cleanup` сам снимает `EXIT/INT/TERM` trap и защищен флагом `SMOKE_CLEANED`, поэтому повторный ручной вызов безопасно завершается без второй попытки удаления. Он посылает сигнал только PID, сохраненным непосредственно после запуска backend/frontend, очищает PID после `wait` и удаляет только каталог, прошедший проверку префикса `/tmp/vozmimenya-acquisition-smoke.*`.
 
 ## Последний подтвержденный прогон
 
