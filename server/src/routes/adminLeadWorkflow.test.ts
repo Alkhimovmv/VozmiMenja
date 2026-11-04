@@ -282,6 +282,79 @@ describe('admin lead workflow routes', () => {
       .expect(404)
   })
 
+  it('scopes the lead report to the office admin and keeps legacy NULL leads in office 1', async () => {
+    await database.run(`
+      UPDATE bookings
+      SET utm_source = 'office-one', utm_campaign = 'booking', lead_result = 'booked', lead_revenue = NULL
+      WHERE id = 'booking-office-one'
+    `)
+    await database.run(`
+      UPDATE bookings
+      SET utm_source = 'office-two', utm_campaign = 'booking', lead_result = 'booked', lead_revenue = 2400
+      WHERE id = 'booking-office-two'
+    `)
+    await database.run(`
+      UPDATE contact_leads
+      SET utm_source = 'legacy', utm_campaign = 'callback', lead_result = 'booked', lead_revenue = 700
+      WHERE id = ?
+    `, [legacyLeadId])
+
+    const response = await request(app)
+      .get('/admin/lead-report')
+      .set(auth(adminOneToken))
+      .expect(200)
+
+    expect(response.body).toMatchObject({
+      generatedAt: expect.any(String),
+      periodDays: 14,
+    })
+    expect(new Date(response.body.generatedAt).toISOString()).toBe(response.body.generatedAt)
+    expect(response.body.rows.map((row: { source: string }) => row.source)).toEqual(expect.arrayContaining([
+      'office-one',
+      'legacy',
+    ]))
+    expect(response.body.rows.map((row: { source: string }) => row.source)).not.toContain('office-two')
+    expect(response.body.rows.find((row: { source: string }) => row.source === 'office-one')).toMatchObject({
+      currentLeads: 1,
+      currentStartedBookings: 1,
+      currentConfirmedRentals: 1,
+      currentRevenue: 1000,
+    })
+  })
+
+  it('returns all offices in the unmasked superadmin lead report', async () => {
+    await database.run("UPDATE bookings SET utm_source = 'office-one' WHERE id = 'booking-office-one'")
+    await database.run("UPDATE bookings SET utm_source = 'office-two' WHERE id = 'booking-office-two'")
+
+    const response = await request(app)
+      .get('/admin/lead-report')
+      .set(auth(superadminToken))
+      .expect(200)
+
+    expect(response.body.rows.map((row: { source: string }) => row.source)).toEqual(expect.arrayContaining([
+      'office-one',
+      'office-two',
+    ]))
+  })
+
+  it('applies the selected office to a view-as lead report', async () => {
+    await database.run("UPDATE bookings SET utm_source = 'office-one' WHERE id = 'booking-office-one'")
+    await database.run("UPDATE bookings SET utm_source = 'office-two' WHERE id = 'booking-office-two'")
+
+    const response = await request(app)
+      .get('/admin/lead-report')
+      .set(auth(superadminToken))
+      .set('X-View-As-User', String(adminTwoId))
+      .expect(200)
+
+    expect(response.body.rows.map((row: { source: string }) => row.source)).toContain('office-two')
+    expect(response.body.rows.map((row: { source: string }) => row.source)).not.toContain('office-one')
+  })
+
+  it('requires authentication for the lead report', async () => {
+    await request(app).get('/admin/lead-report').expect(401)
+  })
+
   it('allows the second office admin to work with their own lead', async () => {
     await request(app)
       .patch(`/admin/contact-leads/${officeTwoLeadId}/workflow`)

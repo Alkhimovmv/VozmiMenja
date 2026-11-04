@@ -10,6 +10,7 @@ import { contactLeadModel, ContactLead } from '../models/ContactLead'
 import { schedulerService } from '../services/scheduler'
 import { emailBackupService } from '../services/emailBackup'
 import { leadWorkflowSchema } from '../domain/leadWorkflow'
+import { buildLeadReport, type LeadReportInput } from '../domain/leadReport'
 
 const router = Router()
 
@@ -67,6 +68,43 @@ router.get('/bookings', authMiddleware, async (req: Request, res: Response) => {
   } catch (error) {
     console.error('Admin bookings list error:', error)
     res.status(500).json({ error: 'Ошибка получения заявок' })
+  }
+})
+
+router.get('/lead-report', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const [bookings, contactLeads] = await Promise.all([
+      filterByOfficeAccess(req, await bookingModel.findAll(), (booking) => booking.officeId),
+      filterByOfficeAccess(req, await contactLeadModel.findAll(), (lead) => lead.officeId),
+    ])
+    const inputs: LeadReportInput[] = [
+      ...bookings.map((booking) => ({
+        kind: 'booking' as const,
+        createdAt: booking.createdAt,
+        utmSource: booking.utmSource,
+        utmCampaign: booking.utmCampaign,
+        leadResult: booking.leadResult,
+        revenue: booking.leadRevenue ?? (booking.leadResult === 'booked' ? booking.totalPrice : 0),
+      })),
+      ...contactLeads.map((lead) => ({
+        kind: 'contact' as const,
+        createdAt: lead.createdAt,
+        utmSource: lead.utmSource,
+        utmCampaign: lead.utmCampaign,
+        leadResult: lead.leadResult,
+        revenue: lead.leadRevenue ?? 0,
+      })),
+    ]
+    const generatedAt = new Date()
+
+    res.json({
+      generatedAt: generatedAt.toISOString(),
+      periodDays: 14,
+      rows: buildLeadReport(inputs, generatedAt),
+    })
+  } catch (error) {
+    console.error('Admin lead report error:', error)
+    res.status(500).json({ error: 'Ошибка получения отчёта по каналам' })
   }
 })
 

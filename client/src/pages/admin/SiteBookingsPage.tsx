@@ -7,6 +7,7 @@ import { equipmentApi } from '../../api/admin/equipment';
 import { officesApi } from '../../api/admin/offices';
 import { rentalsApi } from '../../api/admin/rentals';
 import RentalModal from '../../components/admin/RentalModal';
+import LeadCampaignReport from '../../components/admin/LeadCampaignReport';
 import { useAuthenticatedQuery } from '../../hooks/useAuthenticatedQuery';
 import { useOffice } from '../../hooks/useOffice';
 import type { Booking, ContactLead, CreateRentalDto, LeadResult, LeadScenario } from '../../types';
@@ -530,6 +531,9 @@ export default function SiteBookingsPage() {
           <div className="text-sm font-semibold text-amber-800">
             {activeCount} активных из {totalCount}{isContactLeadsLoading ? ' · обращения загружаются' : ''}
           </div>
+        </div>
+        <div className="mt-4">
+          <LeadCampaignReport />
         </div>
         <div className="mt-4 flex flex-wrap gap-2">
           <button

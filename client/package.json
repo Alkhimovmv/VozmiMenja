@@ -10,7 +10,7 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
-    "test": "tsx src/lib/leadAttribution.test.ts && tsx src/lib/adminLeadConversion.test.ts && tsx src/lib/bookingFormGuidance.test.ts && tsx src/lib/selfServiceBooking.test.ts && tsx src/lib/rentalPriceSuggestion.test.ts && tsx src/utils/pricing.test.ts && tsx src/api/admin/leadWorkflow.test.ts && tsx src/lib/leadWorkflow.test.ts"
+    "test": "tsx src/lib/leadAttribution.test.ts && tsx src/lib/adminLeadConversion.test.ts && tsx src/lib/bookingFormGuidance.test.ts && tsx src/lib/selfServiceBooking.test.ts && tsx src/lib/rentalPriceSuggestion.test.ts && tsx src/utils/pricing.test.ts && tsx src/api/admin/leadWorkflow.test.ts && tsx src/lib/leadWorkflow.test.ts && tsx src/components/admin/LeadCampaignReport.test.tsx"
   },
   "dependencies": {
     "@react-pdf/renderer": "^4.5.1",
