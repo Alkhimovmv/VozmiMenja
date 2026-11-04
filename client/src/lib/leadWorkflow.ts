@@ -39,12 +39,12 @@ export const buildLeadReply = ({
   officeName?: string
 }) => {
   const firstName = customerName.trim().split(/\s+/)[0] || 'клиент'
-  const scenarioLabel = scenario && scenario in SCENARIO_LABELS
+  const offer = scenario && scenario in SCENARIO_LABELS
     ? SCENARIO_LABELS[scenario as LeadScenario]
     : 'оборудование'
   const officeSuffix = officeName?.trim() ? ` Офис: ${officeName.trim()}.` : ''
 
-  return `Здравствуйте, ${firstName}! Спасибо за обращение. Поможем подобрать ${scenarioLabel}.${officeSuffix}`
+  return `${firstName}, здравствуйте! Вы оставляли заявку на ${offer} в «ВозьмиМеня». Подскажите, даты ещё актуальны?${officeSuffix}`
 }
 
 export const parseLeadRevenue = (value: string): { ok: true; revenue: number | null } | { ok: false } => {
