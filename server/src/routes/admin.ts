@@ -105,8 +105,10 @@ router.patch('/bookings/:id/workflow', authMiddleware, async (req: Request, res:
       return res.status(404).json({ error: 'Заявка не найдена' })
     }
 
-    await bookingModel.updateWorkflow(req.params.id, parsed.data.result, parsed.data.revenue)
-    const updated = await bookingModel.findById(req.params.id)
+    const updated = await bookingModel.updateWorkflow(req.params.id, parsed.data.result, parsed.data.revenue)
+    if (!updated) {
+      return res.status(404).json({ error: 'Заявка не найдена' })
+    }
     res.json(updated)
   } catch (error) {
     console.error('Admin booking workflow update error:', error)
@@ -184,8 +186,10 @@ router.patch('/contact-leads/:id/workflow', authMiddleware, async (req: Request,
       return res.status(404).json({ error: 'Обращение не найдено' })
     }
 
-    await contactLeadModel.updateWorkflow(id, parsed.data.result, parsed.data.revenue)
-    const updated = await contactLeadModel.findById(id)
+    const updated = await contactLeadModel.updateWorkflow(id, parsed.data.result, parsed.data.revenue)
+    if (!updated) {
+      return res.status(404).json({ error: 'Обращение не найдено' })
+    }
     res.json(updated)
   } catch (error) {
     console.error('Admin contact lead workflow update error:', error)

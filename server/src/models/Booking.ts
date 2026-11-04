@@ -231,13 +231,17 @@ export class BookingModel {
     `, [status, id])
   }
 
-  async updateWorkflow(id: string, result: LeadResult, revenue?: number | null): Promise<void> {
-    await run(`
-      UPDATE bookings
-      SET lead_result = ?, lead_revenue = ?, last_contacted_at = CURRENT_TIMESTAMP,
-          updated_at = CURRENT_TIMESTAMP
-      WHERE id = ?
-    `, [result, revenue ?? null, id])
+  async updateWorkflow(id: string, result: LeadResult, revenue?: number | null): Promise<Booking | null> {
+    return database.withImmediateTransaction(async () => {
+      const update = await run(`
+        UPDATE bookings
+        SET lead_result = ?, lead_revenue = ?, last_contacted_at = CURRENT_TIMESTAMP,
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = ?
+      `, [result, revenue ?? null, id])
+
+      return update.changes > 0 ? this.findById(id) : null
+    })
   }
 
   async delete(id: string): Promise<void> {

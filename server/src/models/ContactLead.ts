@@ -185,13 +185,17 @@ export class ContactLeadModel {
     `, [status, id])
   }
 
-  async updateWorkflow(id: number, result: LeadResult, revenue?: number | null): Promise<void> {
-    await run(`
-      UPDATE contact_leads
-      SET lead_result = ?, lead_revenue = ?, last_contacted_at = CURRENT_TIMESTAMP,
-          updated_at = CURRENT_TIMESTAMP
-      WHERE id = ?
-    `, [result, revenue ?? null, id])
+  async updateWorkflow(id: number, result: LeadResult, revenue?: number | null): Promise<ContactLead | null> {
+    return database.withImmediateTransaction(async () => {
+      const update = await run(`
+        UPDATE contact_leads
+        SET lead_result = ?, lead_revenue = ?, last_contacted_at = CURRENT_TIMESTAMP,
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = ?
+      `, [result, revenue ?? null, id])
+
+      return update.changes > 0 ? this.findById(id) : null
+    })
   }
 
   async delete(id: number): Promise<void> {

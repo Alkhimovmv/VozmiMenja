@@ -270,4 +270,80 @@ describe('admin lead workflow routes', () => {
       .send({ result: 'thinking', revenue: 0 })
       .expect(200)
   })
+
+  it('returns each booking and contact workflow update from its own atomic write', async () => {
+    const [firstBooking, secondBooking] = await Promise.all([
+      request(app)
+        .patch('/admin/bookings/booking-office-one/workflow')
+        .set(auth(adminOneToken))
+        .send({ result: 'thinking', revenue: 1100 }),
+      request(app)
+        .patch('/admin/bookings/booking-office-one/workflow')
+        .set(auth(adminOneToken))
+        .send({ result: 'booked', revenue: 2200 }),
+    ])
+
+    expect(firstBooking.status).toBe(200)
+    expect(firstBooking.body).toMatchObject({ leadResult: 'thinking', leadRevenue: 1100 })
+    expect(secondBooking.status).toBe(200)
+    expect(secondBooking.body).toMatchObject({ leadResult: 'booked', leadRevenue: 2200 })
+
+    const [firstContact, secondContact] = await Promise.all([
+      request(app)
+        .patch(`/admin/contact-leads/${officeOneLeadId}/workflow`)
+        .set(auth(adminOneToken))
+        .send({ result: 'unreached', revenue: 3300 }),
+      request(app)
+        .patch(`/admin/contact-leads/${officeOneLeadId}/workflow`)
+        .set(auth(adminOneToken))
+        .send({ result: 'declined', revenue: 4400 }),
+    ])
+
+    expect(firstContact.status).toBe(200)
+    expect(firstContact.body).toMatchObject({ leadResult: 'unreached', leadRevenue: 3300 })
+    expect(secondContact.status).toBe(200)
+    expect(secondContact.body).toMatchObject({ leadResult: 'declined', leadRevenue: 4400 })
+  })
+
+  it('never returns 200 null when workflow updates race deletion', async () => {
+    const [bookingUpdate, bookingDelete] = await Promise.all([
+      request(app)
+        .patch('/admin/bookings/booking-office-one/workflow')
+        .set(auth(adminOneToken))
+        .send({ result: 'duplicate', revenue: 0 }),
+      request(app)
+        .delete('/admin/bookings/booking-office-one')
+        .set(auth(adminOneToken)),
+    ])
+
+    expect(bookingDelete.status).toBe(204)
+    expect([200, 404]).toContain(bookingUpdate.status)
+    if (bookingUpdate.status === 200) {
+      expect(bookingUpdate.body).toMatchObject({
+        id: 'booking-office-one',
+        leadResult: 'duplicate',
+        leadRevenue: 0,
+      })
+    }
+
+    const [contactUpdate, contactDelete] = await Promise.all([
+      request(app)
+        .patch(`/admin/contact-leads/${officeOneDeleteLeadId}/workflow`)
+        .set(auth(adminOneToken))
+        .send({ result: 'duplicate', revenue: 0 }),
+      request(app)
+        .delete(`/admin/contact-leads/${officeOneDeleteLeadId}`)
+        .set(auth(adminOneToken)),
+    ])
+
+    expect(contactDelete.status).toBe(204)
+    expect([200, 404]).toContain(contactUpdate.status)
+    if (contactUpdate.status === 200) {
+      expect(contactUpdate.body).toMatchObject({
+        id: officeOneDeleteLeadId,
+        leadResult: 'duplicate',
+        leadRevenue: 0,
+      })
+    }
+  })
 })
