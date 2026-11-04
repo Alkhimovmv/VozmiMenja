@@ -185,6 +185,23 @@ export const getMinimumDailyPrice = (pricing: PricingTier | undefined, fallback:
   return prices.length > 0 ? Math.round(Math.min(...prices)) : fallback;
 };
 
+// Цена за 1 сутки — основная публичная цена: её показывают title, сниппет, разметка и карточки.
+// Минимальный тариф длинной аренды нельзя выдавать за цену суток.
+export const getOneDayPrice = (pricing: PricingTier | undefined, fallback: number) =>
+  Number(pricing?.day1) || fallback;
+
+// Самая низкая цена за сутки при длинной аренде и срок, с которого она действует.
+// null, если длинная аренда не дешевле одних суток.
+export const getLongTermDailyPrice = (pricing: PricingTier | undefined, fallback: number) => {
+  const oneDay = getOneDayPrice(pricing, fallback);
+  const candidates = getPricingRows(pricing)
+    .filter((tier) => tier.days > 1)
+    .map((tier) => ({ dailyPrice: Math.round(tier.effectiveDailyPrice), days: tier.days }))
+    .filter((tier) => tier.dailyPrice > 0 && tier.dailyPrice < oneDay);
+  if (!candidates.length) return null;
+  return candidates.reduce((best, tier) => (tier.dailyPrice < best.dailyPrice ? tier : best));
+};
+
 export const getPeriodPrice = (pricing: PricingTier | undefined, periodDays: number, fallback: number) =>
   calculateRentalTotal(pricing, periodDays, fallback);
 

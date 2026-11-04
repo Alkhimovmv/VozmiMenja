@@ -8,7 +8,7 @@ import SEO from '../components/SEO'
 import { ArrowLeft, Check, ChevronRight, Shield, Clock } from 'lucide-react'
 import { getImageUrl } from '../lib/utils'
 import { trackEvent } from '../lib/analytics'
-import { getMinimumDailyPrice, getPricingRows } from '../utils/pricing'
+import { getLongTermDailyPrice, getOneDayPrice, getPricingRows } from '../utils/pricing'
 import { CONTACT_PHONE, CONTACT_PHONE_LABEL, getTelegramUrl, getWhatsAppUrl } from '../lib/contactLinks'
 import { equipmentPath } from '../lib/equipmentUrls'
 
@@ -691,9 +691,10 @@ export default function EquipmentDetailsPage() {
   const formatPrice = (price: number) =>
     new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', minimumFractionDigits: 0 }).format(price)
 
-  const getMinPrice = () => getMinimumDailyPrice(equipment.pricing, equipment.pricePerDay)
   const pricingTiers = getPricingRows(equipment.pricing)
-  const minPrice = getMinPrice()
+  // Основная цена — за 1 сутки; сниженный тариф длинной аренды показываем отдельно с его сроком.
+  const oneDayPrice = getOneDayPrice(equipment.pricing, equipment.pricePerDay)
+  const longTermPrice = getLongTermDailyPrice(equipment.pricing, equipment.pricePerDay)
   const canonicalPath = equipmentPath(equipment)
   const canonicalUrl = `https://vozmimenya.ru${canonicalPath}`
 
@@ -710,19 +711,31 @@ export default function EquipmentDetailsPage() {
       '@type': 'Offer',
       url: canonicalUrl,
       priceCurrency: 'RUB',
-      price: minPrice,
+      price: oneDayPrice,
       priceValidUntil: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
       availability: equipment.availableQuantity > 0
         ? 'https://schema.org/InStock'
         : 'https://schema.org/LimitedAvailability',
       seller: { '@id': 'https://vozmimenya.ru/#organization' },
       areaServed: { '@type': 'City', name: 'Москва' },
-      priceSpecification: {
-        '@type': 'UnitPriceSpecification',
-        price: minPrice,
-        priceCurrency: 'RUB',
-        unitText: 'сутки',
-      },
+      priceSpecification: [
+        {
+          '@type': 'UnitPriceSpecification',
+          price: oneDayPrice,
+          priceCurrency: 'RUB',
+          unitCode: 'DAY',
+          unitText: 'сутки',
+          referenceQuantity: { '@type': 'QuantitativeValue', value: 1, unitCode: 'DAY' },
+        },
+        ...(longTermPrice ? [{
+          '@type': 'UnitPriceSpecification',
+          price: longTermPrice.dailyPrice,
+          priceCurrency: 'RUB',
+          unitCode: 'DAY',
+          unitText: 'сутки',
+          eligibleQuantity: { '@type': 'QuantitativeValue', minValue: longTermPrice.days, unitCode: 'DAY' },
+        }] : []),
+      ],
     },
   }
 
@@ -757,8 +770,12 @@ export default function EquipmentDetailsPage() {
       },
     })),
   }
-  const seoTitle = `Аренда ${equipment.name} в Москве | от ${formatPrice(minPrice)}/сутки | Доставка в день заказа | ВозьмиМеня`
-  const seoDescription = `Аренда ${equipment.name} в Москве от ${formatPrice(minPrice)}/сутки | Доставка в день заказа | Постамат 24/7 | Подбор и бронь через Telegram`
+  // Совпадает со статическим title из generate-static-route-entrypoints.js.
+  const seoTitle = `Аренда ${equipment.name} в Москве — ${formatPrice(oneDayPrice)}/сутки | ВозьмиМеня`
+  const longTermText = longTermPrice
+    ? `, от ${formatPrice(longTermPrice.dailyPrice)}/сутки при аренде от ${longTermPrice.days} суток`
+    : ''
+  const seoDescription = `${equipment.name} в аренду в Москве: ${formatPrice(oneDayPrice)} за сутки${longTermText}. Самовывоз у м. Волжская и м. Динамо, доставка по Москве, бронь онлайн.`
   const seoKeywords = `аренда ${equipment.name}, прокат ${equipment.name}, ${equipment.name} аренда Москва, взять в аренду ${equipment.name}, ${equipment.category} аренда Москва, прокат ${equipment.category}`
 
   return (
@@ -841,13 +858,15 @@ export default function EquipmentDetailsPage() {
               {/* Main price */}
               <div className="flex items-start justify-between mb-1">
                 <p className="text-[11px] font-bold text-muted uppercase tracking-widest">Цена за сутки</p>
-                <div className="text-right">
-                  <p className="text-[11px] font-semibold text-muted">МИН.</p>
-                  <p className="text-primary font-bold text-sm">{formatPrice(getMinPrice())}/сут</p>
-                  <p className="text-[10px] text-muted">при аренде на месяц</p>
-                </div>
+                {longTermPrice && (
+                  <div className="text-right">
+                    <p className="text-[11px] font-semibold text-muted">МИН.</p>
+                    <p className="text-primary font-bold text-sm">{formatPrice(longTermPrice.dailyPrice)}/сут</p>
+                    <p className="text-[10px] text-muted">при аренде от {longTermPrice.days} суток</p>
+                  </div>
+                )}
               </div>
-              <p className="text-4xl font-bold text-ink mb-5">{formatPrice(equipment.pricePerDay)}</p>
+              <p className="text-4xl font-bold text-ink mb-5">{formatPrice(oneDayPrice)}</p>
 
               {/* Pricing tiers */}
               {pricingTiers.length > 0 && (

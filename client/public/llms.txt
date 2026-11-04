@@ -12,6 +12,7 @@
 - [Аренда техники у м. Динамо](https://vozmimenya.ru/arenda-tehniki-u-metro-dinamo): офис и постамат 24/7 на ул. Расковой, 1.
 - [Доставка](https://vozmimenya.ru/delivery): условия доставки и самовывоза по Москве.
 - [Контакты](https://vozmimenya.ru/contact): телефон, мессенджеры, адреса и способы связи.
+- [О компании](https://vozmimenya.ru/about): кто мы, какую технику сдаём и как работаем.
 
 ## Equipment categories
 
@@ -23,6 +24,11 @@
 - [Строительный пылесос после ремонта](https://vozmimenya.ru/arenda-stroitelnogo-pylesosa-posle-remonta-moskva): техника для строительной пыли и мусора.
 - [Моющий пылесос для дивана и ковра](https://vozmimenya.ru/arenda-moyushchego-pylesosa-dlya-divana-kovra-moskva): Karcher Puzzi для мебели, ковров, матрасов и авто.
 - [Пароочиститель для кухни, плитки и ванной](https://vozmimenya.ru/arenda-paroochistitelya-dlya-kuhni-plitki-vannoy-moskva): паровая уборка твёрдых поверхностей.
+- [Караоке-комплект](https://vozmimenya.ru/arenda-karaoke-komplekta-moskva): JBL PartyBox 320 или 710 и два беспроводных микрофона одной бронью.
+- [Микрофон для интервью](https://vozmimenya.ru/arenda-mikrofona-dlya-intervyu-moskva): беспроводные DJI Mic 2 для интервью, подкастов и съёмки видео.
+- [Техника для мероприятия](https://vozmimenya.ru/arenda-tehniki-dlya-meropriyatiya-moskva): колонки, микрофоны и камеры для праздника, выступления или съёмки.
+
+<!-- generated:prices -->
 
 ## Blog and guides
 

@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import { calculateRentalTotal, getPricingRows, getRentalPriceSummary } from './pricing'
+import { calculateRentalTotal, getLongTermDailyPrice, getOneDayPrice, getPricingRows, getRentalPriceSummary } from './pricing'
 import type { PricingTier } from '../types'
 
 const pricing: PricingTier = {
@@ -95,5 +95,24 @@ assert.equal(calculateRentalTotal(microphonePricing, 4, 500), 1600)
 assert.equal(calculateRentalTotal(microphonePricing, 7, 500), 2100)
 assert.equal(calculateRentalTotal(microphonePricing, 14, 500), 2800)
 assert.equal(calculateRentalTotal(microphonePricing, 30, 500), 3000)
+
+const goproPricing: PricingTier = {
+  day1_10to20: 1100,
+  day1: 1300,
+  days2: 900,
+  days3: 800,
+  days7: 600,
+  days14: 525,
+  days30: 360,
+  weekendDay: 0,
+  weekendDay10to20: 0,
+}
+
+// Публичная цена — за 1 сутки, а не минимальный месячный тариф.
+assert.equal(getOneDayPrice(goproPricing, 999), 1300)
+assert.equal(getOneDayPrice(undefined, 999), 999)
+assert.deepEqual(getLongTermDailyPrice(goproPricing, 1300), { dailyPrice: 360, days: 30 })
+assert.deepEqual(getLongTermDailyPrice(microphonePricing, 500), { dailyPrice: 100, days: 30 })
+assert.equal(getLongTermDailyPrice({ ...goproPricing, days2: 0, days3: 0, days7: 0, days14: 0, days30: 0 }, 1300), null)
 
 console.log('pricing tests passed')

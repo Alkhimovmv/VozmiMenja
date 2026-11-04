@@ -401,16 +401,22 @@ async function loadRemoteSeoData() {
   return { equipmentById, equipmentBySlug, articleBySlug }
 }
 
-function getMinimumPrice(item) {
-  const pricing = normalizePricing(item?.pricing)
-  const prices = Object.values(pricing).map(Number).filter((price) => price > 0)
-  if (prices.length > 0) return Math.min(...prices)
-  return Number(item?.pricePerDay || item?.price_per_day || 0)
-}
-
+// Основная публичная цена — за 1 сутки (как в client/src/utils/pricing.ts getOneDayPrice).
+// Минимальный тариф длинной аренды нельзя выдавать за цену суток в title, сниппете и разметке.
 function getOneDayPrice(item) {
   const pricing = normalizePricing(item?.pricing)
   return Number(pricing.day1) || Number(item?.pricePerDay || item?.price_per_day || 0)
+}
+
+// Самая низкая цена за сутки при длинной аренде и срок, с которого она действует.
+function getLongTermDailyPrice(item) {
+  const oneDay = getOneDayPrice(item)
+  const candidates = pricingRows(item)
+    .filter((tier) => tier.days > 1)
+    .map((tier) => ({ dailyPrice: Math.round(tier.effectiveDailyPrice), days: tier.days }))
+    .filter((tier) => tier.dailyPrice > 0 && tier.dailyPrice < oneDay)
+  if (!candidates.length) return null
+  return candidates.reduce((best, tier) => (tier.dailyPrice < best.dailyPrice ? tier : best))
 }
 
 function formatPrice(price) {
@@ -816,11 +822,17 @@ function buildProductSeo(route, item) {
     }
   }
 
-  const price = getMinimumPrice(item)
-  const priceText = price > 0 ? ` от ${formatPrice(price)} ₽/сутки` : ''
+  const price = getOneDayPrice(item)
+  const longTerm = getLongTermDailyPrice(item)
   const canonicalRoute = equipmentRoute(item)
-  const title = `Аренда ${item.name} в Москве${priceText} | ВозьмиМеня`
-  const description = truncate(`Аренда ${item.name} в Москве${priceText}. ${item.description || 'Проверенное оборудование, консультация, доставка и самовывоз.'}`, 165)
+  // Совпадает с seoTitle/seoDescription в EquipmentDetailsPage.tsx.
+  const title = price > 0
+    ? `Аренда ${item.name} в Москве — ${formatPrice(price)} ₽/сутки | ВозьмиМеня`
+    : `Аренда ${item.name} в Москве | ВозьмиМеня`
+  const longTermText = longTerm ? `, от ${formatPrice(longTerm.dailyPrice)} ₽/сутки при аренде от ${longTerm.days} суток` : ''
+  const description = price > 0
+    ? truncate(`${item.name} в аренду в Москве: ${formatPrice(price)} ₽ за сутки${longTermText}. Самовывоз у м. Волжская и м. Динамо, доставка по Москве, бронь онлайн.`, 200)
+    : truncate(`Аренда ${item.name} в Москве. ${item.description || 'Проверенное оборудование, консультация, доставка и самовывоз.'}`, 165)
   const image = Array.isArray(item.images) && item.images.length > 0 ? absoluteUrl(item.images[0]) : undefined
   const productImages = Array.isArray(item.images) && item.images.length > 0
     ? item.images.map(absoluteUrl)
@@ -849,12 +861,24 @@ function buildProductSeo(route, item) {
           availability: 'https://schema.org/InStock',
           areaServed: { '@type': 'City', name: 'Москва' },
           seller: { '@id': ORGANIZATION_ID },
-          priceSpecification: price ? {
-            '@type': 'UnitPriceSpecification',
-            price,
-            priceCurrency: 'RUB',
-            unitText: 'сутки',
-          } : undefined,
+          priceSpecification: price ? [
+            {
+              '@type': 'UnitPriceSpecification',
+              price,
+              priceCurrency: 'RUB',
+              unitCode: 'DAY',
+              unitText: 'сутки',
+              referenceQuantity: { '@type': 'QuantitativeValue', value: 1, unitCode: 'DAY' },
+            },
+            ...(longTerm ? [{
+              '@type': 'UnitPriceSpecification',
+              price: longTerm.dailyPrice,
+              priceCurrency: 'RUB',
+              unitCode: 'DAY',
+              unitText: 'сутки',
+              eligibleQuantity: { '@type': 'QuantitativeValue', minValue: longTerm.days, unitCode: 'DAY' },
+            }] : []),
+          ] : undefined,
         },
       },
       buildFaqJsonLd(faq),
@@ -1082,7 +1106,8 @@ function buildProductBody(item, remoteData) {
     return pageShell('Аренда оборудования в Москве', 'Карточка оборудования ВозьмиМеня: описание, тарифы, условия аренды, доставка и онлайн-бронирование техники в Москве.')
   }
 
-  const price = getMinimumPrice(item)
+  const price = getOneDayPrice(item)
+  const longTerm = getLongTermDailyPrice(item)
   const rows = pricingRows(item)
   const specs = item.specifications && typeof item.specifications === 'object'
     ? Object.entries(item.specifications).filter(([, value]) => value).slice(0, 8)
@@ -1091,7 +1116,7 @@ function buildProductBody(item, remoteData) {
   const faq = productFaq(item)
   const sections = [
     `<p>${escapeHtml(item.description || 'Проверенное оборудование для аренды в Москве.')}</p>`,
-    price > 0 ? `<p>Минимальная цена аренды: ${escapeHtml(formatPrice(price))} ₽ за сутки. Доступны доставка, самовывоз и онлайн-бронь.</p>` : '',
+    price > 0 ? `<p>Цена аренды: ${escapeHtml(formatPrice(price))} ₽ за сутки${longTerm ? `, при аренде от ${longTerm.days} суток — от ${escapeHtml(formatPrice(longTerm.dailyPrice))} ₽ за сутки` : ''}. Доступны доставка, самовывоз и онлайн-бронь.</p>` : '',
     rows.length ? `<h2>Тарифы аренды</h2><ul>${rows.map((row) => `<li>${escapeHtml(row.label)} — ${escapeHtml(formatPrice(row.value))} ₽${escapeHtml(row.suffix)}</li>`).join('')}</ul>` : '',
     specs.length ? `<h2>Характеристики</h2><dl>${specs.map(([key, value]) => `<dt>${escapeHtml(key)}</dt><dd>${escapeHtml(value)}</dd>`).join('')}</dl>` : '',
     faqSection(faq),
@@ -1350,6 +1375,81 @@ async function writeDistSitemap(routes, remoteData) {
   )
 }
 
+const AI_PRICES_MARKER = '<!-- generated:prices -->'
+
+function buildPriceList(remoteData) {
+  return [...remoteData.equipmentBySlug.values()]
+    .map((item) => {
+      const pricing = normalizePricing(item.pricing)
+      const oneDay = getOneDayPrice(item)
+      const longTerm = getLongTermDailyPrice(item)
+      const weekendDay = Number(pricing.weekendDay) || 0
+      return {
+        name: item.name,
+        category: item.category,
+        url: `${SITE_ORIGIN}${equipmentRoute(item)}`,
+        bookingUrl: `${SITE_ORIGIN}/booking?equipment=${encodeURIComponent(item.slug)}`,
+        pricePerDayRub: oneDay,
+        weekendPricePerDayRub: weekendDay > oneDay ? weekendDay : undefined,
+        longTerm: longTerm ? { pricePerDayRub: longTerm.dailyPrice, minDays: longTerm.days } : undefined,
+      }
+    })
+    .filter((item) => item.pricePerDayRub > 0)
+}
+
+function formatPriceListMarkdown(priceList, generatedAt) {
+  const byCategory = new Map()
+  for (const item of priceList) {
+    if (!byCategory.has(item.category)) byCategory.set(item.category, [])
+    byCategory.get(item.category).push(item)
+  }
+
+  const lines = [
+    `## Current rental prices (live catalog, ${generatedAt})`,
+    '',
+    'Prices are per 24 hours in RUB. Availability for specific dates and office is confirmed by a manager after a booking request; cite the product page for the latest price.',
+    '',
+  ]
+  for (const [category, items] of byCategory) {
+    lines.push(`### ${category}`, '')
+    for (const item of items) {
+      const extras = [
+        item.weekendPricePerDayRub ? `Fri–Sun ${formatPrice(item.weekendPricePerDayRub)} ₽/сутки` : '',
+        item.longTerm ? `from ${formatPrice(item.longTerm.pricePerDayRub)} ₽/сутки for ${item.longTerm.minDays}+ days` : '',
+      ].filter(Boolean).join('; ')
+      lines.push(`- [${item.name}](${item.url}): ${formatPrice(item.pricePerDayRub)} ₽ за сутки${extras ? ` (${extras})` : ''}. Booking: ${item.bookingUrl}`)
+    }
+    lines.push('')
+  }
+  return lines.join('\n').trimEnd()
+}
+
+// Подставляет актуальный прайс из API в AI-файлы dist/ вместо маркера из public/.
+// Без данных каталога маркер просто убирается: устаревшие цены хуже, чем их отсутствие.
+async function writeAiPriceFiles(remoteData) {
+  const priceList = buildPriceList(remoteData)
+  const generatedAt = new Date().toISOString().split('T')[0]
+  const markdown = priceList.length ? formatPriceListMarkdown(priceList, generatedAt) : ''
+
+  for (const fileName of ['llms.txt', 'llms-full.txt']) {
+    const filePath = path.join(distDir, fileName)
+    const content = await fs.readFile(filePath, 'utf8').catch(() => null)
+    if (content === null || !content.includes(AI_PRICES_MARKER)) continue
+    await fs.writeFile(filePath, content.replace(AI_PRICES_MARKER, markdown).replace(/\n{3,}/g, '\n\n'), 'utf8')
+  }
+
+  const summaryPath = path.join(distDir, 'ai-summary.json')
+  const summaryRaw = await fs.readFile(summaryPath, 'utf8').catch(() => null)
+  if (summaryRaw && priceList.length) {
+    const summary = JSON.parse(summaryRaw)
+    summary.pricesGeneratedAt = generatedAt
+    summary.priceList = priceList
+    await fs.writeFile(summaryPath, `${JSON.stringify(summary, null, 2)}\n`, 'utf8')
+  }
+
+  return priceList.length
+}
+
 async function main() {
   const indexHtml = await fs.readFile(distIndexPath, 'utf8')
   const remoteData = await loadRemoteSeoData()
@@ -1386,7 +1486,9 @@ async function main() {
 
   await fs.writeFile(distIndexPath, renderRouteHtml(indexHtml, '/', remoteData), 'utf8')
   await writeDistSitemap(routes, remoteData)
+  const pricedItems = await writeAiPriceFiles(remoteData)
 
+  console.log(`AI price list generated: ${pricedItems} items`)
   console.log(`Static route entrypoints generated: ${routes.length} routes, ${routes.length * 2 - 1} files`)
   console.log(`Legacy equipment aliases generated: ${getLegacyEquipmentRoutes(remoteData).length} routes`)
   console.log(`Static SEO sitemap generated: ${routes.filter((route) => {

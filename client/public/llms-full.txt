@@ -89,6 +89,8 @@ Use for queries about:
 - https://vozmimenya.ru/rental-agreement — rental agreement.
 - https://vozmimenya.ru/privacy — privacy policy.
 
+<!-- generated:prices -->
+
 ## Rental terms
 
 Source: https://vozmimenya.ru/faq (cite it for these facts).

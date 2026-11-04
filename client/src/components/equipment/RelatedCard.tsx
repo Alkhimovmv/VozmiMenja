@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom'
 import { ChevronRight } from 'lucide-react'
 import type { Equipment } from '../../types'
 import { getImageUrl } from '../../lib/utils'
-import { getMinimumDailyPrice, getPeriodPrice } from '../../utils/pricing'
+import { getOneDayPrice, getPeriodPrice } from '../../utils/pricing'
 import { equipmentPath } from '../../lib/equipmentUrls'
 
 interface RelatedCardProps {
@@ -13,7 +13,7 @@ export default function RelatedCard({ equipment }: RelatedCardProps) {
   const formatPrice = (price: number) =>
     new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', minimumFractionDigits: 0 }).format(price)
 
-  const getMinPrice = () => getMinimumDailyPrice(equipment.pricing, equipment.pricePerDay)
+  const getMinPrice = () => getOneDayPrice(equipment.pricing, equipment.pricePerDay)
   const getWeekPrice = () => getPeriodPrice(equipment.pricing, 7, equipment.pricePerDay)
 
   return (

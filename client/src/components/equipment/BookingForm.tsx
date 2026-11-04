@@ -9,7 +9,7 @@ import { trackEvent } from '../../lib/analytics'
 import { getApiErrorMessage } from '../../lib/apiError'
 import { getLeadContext, getTelegramUrl, getWhatsAppUrl } from '../../lib/contactLinks'
 import { getCommentPlaceholder, getScenarioPresets } from '../../lib/bookingFormGuidance'
-import { calculateBillableRentalDays, getMinimumDailyPrice, getPricingRows, getRentalPriceSummary } from '../../utils/pricing'
+import { calculateBillableRentalDays, getOneDayPrice, getPricingRows, getRentalPriceSummary } from '../../utils/pricing'
 
 interface BookingFormProps {
   equipment: Equipment
@@ -219,7 +219,7 @@ export default function BookingForm({ equipment, onClose }: BookingFormProps) {
   const formatPrice = (price: number) =>
     new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', minimumFractionDigits: 0 }).format(price)
 
-  const getMinPrice = () => getMinimumDailyPrice(equipment.pricing, equipment.pricePerDay)
+  const getMinPrice = () => getOneDayPrice(equipment.pricing, equipment.pricePerDay)
 
   const today = getDateInputValue(new Date())
 
