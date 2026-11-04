@@ -47,6 +47,18 @@ describe('lead attribution persistence', () => {
     expect(booking.scenario).toBe('travel-camera')
   })
 
+  it('maps a legacy booking scenario from its stored campaign', async () => {
+    await database.run(`
+      UPDATE bookings
+      SET scenario = '', utm_campaign = 'travel-camera', source_page = '/booking'
+      WHERE id = ?
+    `, ['booking-attribution'])
+
+    await expect(bookingModel.findById('booking-attribution')).resolves.toMatchObject({
+      scenario: 'travel-camera',
+    })
+  })
+
   it('persists contact context and maps sorted unique equipment IDs', async () => {
     const lead = await contactLeadModel.create({
       name: 'Иван',
@@ -105,6 +117,38 @@ describe('lead attribution persistence', () => {
     } as any)
 
     expect(duplicate?.id).toBe(created.id)
+  })
+
+  it('maps and matches a legacy contact scenario from its stored landing path', async () => {
+    const result = await database.run(`
+      INSERT INTO contact_leads (
+        name, phone, subject, message, scenario, utm_campaign, source_page, equipment_ids
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `, [
+      'Legacy karaoke',
+      '89995554422',
+      'Старый текст',
+      'Старое описание',
+      '',
+      'autumn-promo',
+      'https://vozmimenya.ru/arenda-karaoke-komplekta-moskva',
+      '["microphone","speaker"]',
+    ])
+
+    await expect(contactLeadModel.findById(result.lastID)).resolves.toMatchObject({
+      scenario: 'karaoke-kit',
+    })
+
+    const duplicate = await contactLeadModel.findRecentDuplicate({
+      name: 'Новый лид',
+      phone: '+7 999 555-44-22',
+      subject: 'Новый текст',
+      message: 'Новое описание',
+      scenario: 'karaoke-kit',
+      equipmentIds: ['speaker', 'microphone'],
+    })
+
+    expect(duplicate?.id).toBe(result.lastID)
   })
 
   it('keeps legacy subject and message duplicate matching without a scenario', async () => {

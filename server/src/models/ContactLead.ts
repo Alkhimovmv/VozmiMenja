@@ -143,7 +143,11 @@ export class ContactLeadModel {
       if (normalizePhone(candidate.phone) !== phone) return false
 
       if (scenario) {
-        const candidateScenario = normalizeLeadScenario(candidate.scenario)
+        const candidateScenario = normalizeLeadScenario(
+          candidate.scenario,
+          candidate.utm_campaign,
+          candidate.source_page,
+        )
         if (candidateScenario !== scenario) return false
 
         const candidateEquipmentIds = parseEquipmentIds(candidate.equipment_ids)
@@ -183,7 +187,7 @@ export class ContactLeadModel {
       utmMedium: row.utm_medium || undefined,
       utmCampaign: row.utm_campaign || undefined,
       utmContent: row.utm_content || undefined,
-      scenario: normalizeLeadScenario(row.scenario),
+      scenario: normalizeLeadScenario(row.scenario, row.utm_campaign, row.source_page),
       officeId: row.office_id ?? undefined,
       officeName: row.office_name || undefined,
       deliveryMethod: row.delivery_method || undefined,

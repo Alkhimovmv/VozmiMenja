@@ -281,7 +281,7 @@ export class BookingModel {
       utmMedium: row.utm_medium || undefined,
       utmCampaign: row.utm_campaign || undefined,
       utmContent: row.utm_content || undefined,
-      scenario: normalizeLeadScenario(row.scenario),
+      scenario: normalizeLeadScenario(row.scenario, row.utm_campaign, row.source_page),
       legalOfferAcceptedAt: row.legal_offer_accepted_at || undefined,
       legalAgreementAcceptedAt: row.legal_agreement_accepted_at || undefined,
       legalPrivacyAcceptedAt: row.legal_privacy_accepted_at || undefined,
