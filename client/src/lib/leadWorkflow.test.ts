@@ -65,6 +65,15 @@ for (const [scenario, values] of Object.entries(exactLegacyScenarios)) {
 
 assert.equal(resolveLeadScenario('karaoke-kit', 'произвольный текст'), 'karaoke-kit')
 
+for (const prototypeKey of ['toString', 'constructor', '__proto__']) {
+  assert.equal(resolveLeadScenario(prototypeKey), undefined)
+  assert.equal(getLeadScenarioLabel(prototypeKey), prototypeKey)
+  assert.equal(
+    buildLeadReply({ customerName: 'Иван Петров', scenario: prototypeKey }),
+    'Иван, здравствуйте! Вы оставляли заявку на оборудование в «ВозьмиМеня». Подскажите, даты ещё актуальны?',
+  )
+}
+
 assert.equal(
   buildLeadReply({ customerName: 'Иван Петров', scenario: 'puzzi-cleaning' }),
   'Иван, здравствуйте! Вы оставляли заявку на моющий пылесос для химчистки в «ВозьмиМеня». Подскажите, даты ещё актуальны?',

@@ -20,6 +20,9 @@ const SCENARIO_DISPLAY_LABELS: Record<LeadScenario, string> = {
   'travel-camera': 'Камера для поездки или съёмки',
 }
 
+const hasOwn = (object: object, key: PropertyKey) =>
+  Object.prototype.hasOwnProperty.call(object, key)
+
 export const LEGACY_LEAD_SCENARIO_VALUES: Readonly<Record<LeadScenario, readonly string[]>> = {
   'puzzi-cleaning': [
     'химчистка дивана/ковра. Нужна подсказка по химии и насадке.',
@@ -57,7 +60,7 @@ export const getLeadResultLabel = (result: LeadResult) => LEAD_RESULT_LABELS[res
 
 export const resolveLeadScenario = (...candidates: Array<string | null | undefined>): LeadScenario | undefined => {
   for (const candidate of candidates) {
-    if (candidate && candidate in SCENARIO_LABELS) return candidate as LeadScenario
+    if (candidate && hasOwn(SCENARIO_LABELS, candidate)) return candidate as LeadScenario
   }
 
   for (const candidate of candidates) {
@@ -71,7 +74,7 @@ export const resolveLeadScenario = (...candidates: Array<string | null | undefin
 
 export const getLeadScenarioLabel = (scenario?: LeadScenario | string) => {
   if (!scenario) return 'Не указано'
-  return scenario in SCENARIO_DISPLAY_LABELS
+  return hasOwn(SCENARIO_DISPLAY_LABELS, scenario)
     ? SCENARIO_DISPLAY_LABELS[scenario as LeadScenario]
     : scenario
 }
@@ -86,7 +89,7 @@ export const buildLeadReply = ({
   officeName?: string
 }) => {
   const firstName = customerName.trim().split(/\s+/)[0] || 'клиент'
-  const offer = scenario && scenario in SCENARIO_LABELS
+  const offer = scenario && hasOwn(SCENARIO_LABELS, scenario)
     ? SCENARIO_LABELS[scenario as LeadScenario]
     : 'оборудование'
   const officeSuffix = officeName?.trim() ? ` Офис: ${officeName.trim()}.` : ''
