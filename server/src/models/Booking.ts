@@ -200,6 +200,27 @@ export class BookingModel {
     return booking || null
   }
 
+  async findOrCreateRecent(
+    data: CreateBookingData & { id: string },
+    windowMinutes = 10,
+  ): Promise<{ booking: Booking; created: boolean }> {
+    return database.withImmediateTransaction(async () => {
+      const equipmentIds = data.equipmentIds?.length ? data.equipmentIds : [data.equipmentId]
+      const duplicate = await this.findRecentDuplicate({
+        equipmentIds,
+        customerPhone: data.customerPhone,
+        startDate: data.startDate,
+        endDate: data.endDate,
+        startTime: data.startTime || '10:00',
+        endTime: data.endTime || '10:00',
+        officeId: data.officeId || 1,
+      }, windowMinutes)
+      if (duplicate) return { booking: duplicate, created: false }
+
+      return { booking: await this.create(data), created: true }
+    })
+  }
+
   async updateStatus(id: string, status: Booking['status']): Promise<void> {
     await run(`
       UPDATE bookings

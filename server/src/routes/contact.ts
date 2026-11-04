@@ -46,16 +46,15 @@ router.post('/', publicLeadRateLimiter, async (req: Request, res: Response) => {
         validatedData.sourcePage,
       ),
     }
-    const duplicateLead = await contactLeadModel.findRecentDuplicate(leadData)
-    if (duplicateLead) {
+    const { lead, created } = await contactLeadModel.findOrCreateRecent(leadData)
+    if (!created) {
       return res.status(200).json({
         success: true,
         duplicate: true,
-        data: toPublicContactLead(duplicateLead),
+        data: toPublicContactLead(lead),
         message: 'Такое обращение уже получено',
       })
     }
-    const lead = await contactLeadModel.create(leadData)
 
     const contactData = {
       name: validatedData.name,

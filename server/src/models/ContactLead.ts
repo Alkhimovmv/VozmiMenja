@@ -1,4 +1,4 @@
-import { all, get, run } from './database'
+import { all, database, get, run } from './database'
 import { normalizeLeadScenario, type LeadScenario } from '../domain/leadAttribution'
 
 const normalizePhone = (phone: string): string => {
@@ -159,6 +159,18 @@ export class ContactLeadModel {
     })
 
     return row ? this.mapRow(row) : null
+  }
+
+  async findOrCreateRecent(
+    data: CreateContactLeadData,
+    windowMinutes = 10,
+  ): Promise<{ lead: ContactLead; created: boolean }> {
+    return database.withImmediateTransaction(async () => {
+      const duplicate = await this.findRecentDuplicate(data, windowMinutes)
+      if (duplicate) return { lead: duplicate, created: false }
+
+      return { lead: await this.create(data), created: true }
+    })
   }
 
   async updateStatus(id: number, status: ContactLead['status']): Promise<void> {

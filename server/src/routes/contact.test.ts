@@ -11,6 +11,7 @@ jest.mock('../middleware/publicLeadGuard', () => ({
 }))
 jest.mock('../models/ContactLead', () => ({
   contactLeadModel: {
+    findOrCreateRecent: jest.fn(),
     findRecentDuplicate: jest.fn(),
     create: jest.fn(),
   },
@@ -25,6 +26,7 @@ jest.mock('../services/vkNotify', () => ({
   vkNotifyService: { sendContactMessage: jest.fn() },
 }))
 
+const mockFindOrCreateRecent = jest.mocked(contactLeadModel.findOrCreateRecent)
 const mockFindRecentDuplicate = jest.mocked(contactLeadModel.findRecentDuplicate)
 const mockCreate = jest.mocked(contactLeadModel.create)
 const mockTelegramNotification = jest.mocked(telegramService.sendContactMessage)
@@ -47,7 +49,7 @@ const validPayload = {
 }
 
 describe('contact route', () => {
-  beforeEach(() => jest.clearAllMocks())
+  beforeEach(() => jest.resetAllMocks())
 
   it('validates optional attribution and contact context', () => {
     expect(contactMessageSchema.parse(validPayload)).toMatchObject({
@@ -65,23 +67,26 @@ describe('contact route', () => {
   })
 
   it('returns a duplicate before creating or sending notifications', async () => {
-    mockFindRecentDuplicate.mockResolvedValue({
-      id: 42,
-      status: 'pending',
-      name: 'Stored private name',
-      phone: '89990000000',
-      subject: 'rental',
-      message: 'Stored private message',
-      scenario: 'karaoke-kit',
-      equipmentIds: ['microphone', 'speaker'],
-      createdAt: '2030-01-01',
-      updatedAt: '2030-01-01',
+    mockFindOrCreateRecent.mockResolvedValue({
+      created: false,
+      lead: {
+        id: 42,
+        status: 'pending',
+        name: 'Stored private name',
+        phone: '89990000000',
+        subject: 'rental',
+        message: 'Stored private message',
+        scenario: 'karaoke-kit',
+        equipmentIds: ['microphone', 'speaker'],
+        createdAt: '2030-01-01',
+        updatedAt: '2030-01-01',
+      },
     })
     const app = express().use(express.json()).use('/contact', contactRouter)
 
     const response = await request(app).post('/contact').send(validPayload).expect(200)
 
-    expect(mockFindRecentDuplicate).toHaveBeenCalledWith(expect.objectContaining({
+    expect(mockFindOrCreateRecent).toHaveBeenCalledWith(expect.objectContaining({
       phone: '89990000000',
       utmContent: 'community-post',
       scenario: 'karaoke-kit',
@@ -92,5 +97,40 @@ describe('contact route', () => {
     expect(mockEmailNotification).not.toHaveBeenCalled()
     expect(mockVkNotification).not.toHaveBeenCalled()
     expect(response.body.data).toEqual({ id: 42, status: 'pending' })
+  })
+
+  it('sends notifications once for concurrent identical requests', async () => {
+    const lead = {
+      id: 77,
+      status: 'pending' as const,
+      name: 'Иван',
+      phone: '89990000000',
+      subject: 'rental',
+      message: 'Хочу арендовать комплект',
+      scenario: 'karaoke-kit' as const,
+      equipmentIds: ['microphone', 'speaker'],
+      createdAt: '2030-01-01',
+      updatedAt: '2030-01-01',
+    }
+    let call = 0
+    mockFindOrCreateRecent.mockImplementation(async () => ({
+      lead,
+      created: call++ === 0,
+    }))
+    const app = express().use(express.json()).use('/contact', contactRouter)
+
+    const responses = await Promise.all([
+      request(app).post('/contact').send(validPayload),
+      request(app).post('/contact').send(validPayload),
+    ])
+
+    expect(responses.map((response) => response.status)).toEqual([200, 200])
+    expect(responses.filter((response) => response.body.duplicate).length).toBe(1)
+    expect(mockFindOrCreateRecent).toHaveBeenCalledTimes(2)
+    expect(mockTelegramNotification).toHaveBeenCalledTimes(1)
+    expect(mockEmailNotification).toHaveBeenCalledTimes(1)
+    expect(mockVkNotification).toHaveBeenCalledTimes(1)
+    expect(mockFindRecentDuplicate).not.toHaveBeenCalled()
+    expect(mockCreate).not.toHaveBeenCalled()
   })
 })

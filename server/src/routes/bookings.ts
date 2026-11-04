@@ -115,25 +115,6 @@ router.post('/', publicLeadRateLimiter, async (req: Request, res: Response) => {
     // Бронь остается лидом для менеджера: свободный экземпляр и возможную
     // альтернативу система проверит при конвертации заявки в аренду.
 
-    const duplicateBooking = await bookingModel.findRecentDuplicate({
-      equipmentIds,
-      customerPhone: validatedData.customerPhone,
-      startDate: validatedData.startDate,
-      endDate: validatedData.endDate,
-      startTime: validatedData.startTime || '10:00',
-      endTime: validatedData.endTime || '10:00',
-      officeId: office.id,
-    })
-
-    if (duplicateBooking) {
-      return res.status(200).json({
-        success: true,
-        duplicate: true,
-        data: toPublicBooking(duplicateBooking),
-        message: 'Такая заявка уже получена',
-      })
-    }
-
     // Рассчитываем стоимость
     const diffDays = calculateBillableRentalDays(
       validatedData.startDate,
@@ -168,7 +149,7 @@ router.post('/', publicLeadRateLimiter, async (req: Request, res: Response) => {
       validatedData.utmCampaign,
       validatedData.sourcePage,
     )
-    const booking = await bookingModel.create({
+    const { booking, created } = await bookingModel.findOrCreateRecent({
       id: bookingId,
       ...validatedData,
       equipmentId: equipmentIds[0],
@@ -180,6 +161,15 @@ router.post('/', publicLeadRateLimiter, async (req: Request, res: Response) => {
       legalAcceptanceIp: validatedData.legal ? getRequestIp(req) : undefined,
       legalAcceptanceUserAgent: validatedData.legal ? req.get('user-agent') || '' : undefined
     })
+
+    if (!created) {
+      return res.status(200).json({
+        success: true,
+        duplicate: true,
+        data: toPublicBooking(booking),
+        message: 'Такая заявка уже получена',
+      })
+    }
 
     console.log('✅ Бронирование создано:', bookingId)
     console.log('📤 Отправка уведомления в Telegram...')

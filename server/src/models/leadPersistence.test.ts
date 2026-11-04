@@ -119,6 +119,60 @@ describe('lead attribution persistence', () => {
     expect(duplicate?.id).toBe(created.id)
   })
 
+  it('atomically creates one contact lead for concurrent identical requests', async () => {
+    const data = {
+      name: 'Параллельный лид',
+      phone: '89997776655',
+      subject: 'Караоке',
+      message: 'Нужен караоке комплект',
+      scenario: 'karaoke-kit' as const,
+      equipmentIds: ['speaker', 'microphone'],
+    }
+
+    const [first, second] = await Promise.all([
+      contactLeadModel.findOrCreateRecent(data),
+      contactLeadModel.findOrCreateRecent(data),
+    ])
+
+    expect([first.created, second.created].sort()).toEqual([false, true])
+    expect(first.lead.id).toBe(second.lead.id)
+    const row = await database.get(
+      'SELECT COUNT(*) AS count FROM contact_leads WHERE phone = ?',
+      ['89997776655'],
+    )
+    expect(row.count).toBe(1)
+  })
+
+  it('atomically creates one booking for concurrent identical requests', async () => {
+    const bookingData = (id: string) => ({
+      id,
+      equipmentId: 'camera',
+      equipmentIds: ['camera'],
+      customerName: 'Параллельный Клиент',
+      customerPhone: '89996665544',
+      startDate: '2031-02-10',
+      endDate: '2031-02-11',
+      startTime: '10:00',
+      endTime: '10:00',
+      officeId: 1,
+      officeName: 'Офис',
+      totalPrice: 1000,
+    })
+
+    const [first, second] = await Promise.all([
+      bookingModel.findOrCreateRecent(bookingData('concurrent-booking-1')),
+      bookingModel.findOrCreateRecent(bookingData('concurrent-booking-2')),
+    ])
+
+    expect([first.created, second.created].sort()).toEqual([false, true])
+    expect(first.booking.id).toBe(second.booking.id)
+    const row = await database.get(
+      'SELECT COUNT(*) AS count FROM bookings WHERE customer_phone = ?',
+      ['89996665544'],
+    )
+    expect(row.count).toBe(1)
+  })
+
   it('maps and matches a legacy contact scenario from its stored landing path', async () => {
     const result = await database.run(`
       INSERT INTO contact_leads (
