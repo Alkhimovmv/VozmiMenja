@@ -1,4 +1,4 @@
-import { database, run, get, all } from './database'
+import { run, get, all } from './database'
 import { ExpenseCategory, ExpenseType, getExpenseType } from '../domain/expenseCategories'
 
 export interface Expense {
@@ -22,8 +22,6 @@ export interface CreateExpenseData {
 }
 
 export class ExpenseModel {
-  private db = database.instance
-
   async findAll(options: {
     category?: string
     startDate?: string
@@ -78,17 +76,12 @@ export class ExpenseModel {
   }
 
   async create(data: CreateExpenseData): Promise<Expense> {
-    const result = await new Promise<number>((resolve, reject) => {
-      this.db.run(`
-        INSERT INTO expenses (description, amount, date, category, expense_type, office_id)
-        VALUES (?, ?, ?, ?, ?, ?)
-      `, [data.description, data.amount, data.date, data.category, getExpenseType(data.category), data.officeId || 1], function(err) {
-        if (err) reject(err)
-        else resolve(this.lastID)
-      })
-    })
+    const result = await run(`
+      INSERT INTO expenses (description, amount, date, category, expense_type, office_id)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `, [data.description, data.amount, data.date, data.category, getExpenseType(data.category), data.officeId || 1])
 
-    const expense = await this.findById(result)
+    const expense = await this.findById(result.lastID)
     if (!expense) {
       throw new Error('Failed to create expense')
     }

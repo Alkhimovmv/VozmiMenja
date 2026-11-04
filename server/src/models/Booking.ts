@@ -75,8 +75,6 @@ export interface CreateBookingData {
 }
 
 export class BookingModel {
-  private db = database.instance
-
   async findAll(): Promise<Booking[]> {
     const rows = await all(`
       SELECT b.*

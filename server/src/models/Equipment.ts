@@ -1,4 +1,4 @@
-import { database, run, get, all } from './database'
+import { run, get, all } from './database'
 
 const LEGACY_EQUIPMENT_SLUGS: Record<string, string> = {
   'nabor-besprovodnyh-mikrofonov-jbl-partybox': 'jbl-partybox-wireless-microphones',
@@ -45,8 +45,6 @@ export interface CreateEquipmentData {
 }
 
 export class EquipmentModel {
-  private db = database.instance
-
   private slugify(name: string): string {
     const translit: Record<string, string> = {
       а: 'a', б: 'b', в: 'v', г: 'g', д: 'd', е: 'e', ё: 'e', ж: 'zh', з: 'z', и: 'i', й: 'j',

@@ -31,8 +31,6 @@ export interface CreateRentalEquipmentData {
 }
 
 export class RentalEquipmentModel {
-  private db = database.instance
-
   async findAll(officeId?: number): Promise<RentalEquipment[]> {
     const rows = officeId !== undefined
       ? await all(`SELECT * FROM rental_equipment WHERE office_id = ? ORDER BY created_at DESC`, [officeId]) as any[]
@@ -58,28 +56,24 @@ export class RentalEquipmentModel {
   }
 
   async create(data: CreateRentalEquipmentData): Promise<RentalEquipment> {
-    const result = await new Promise<number>((resolve, reject) => {
-      this.db.run(`
-        INSERT INTO rental_equipment (
-          name, quantity, description, base_price, catalog_equipment_id, user_id, office_id
-        ) VALUES (?, ?, ?, ?, ?, ?, ?)
-      `, [
-        data.name,
-        data.quantity,
-        data.description || null,
-        data.basePrice,
-        data.catalogEquipmentId || null,
-        data.userId || null,
-        data.officeId || null,
-      ], function(err) {
-        if (err) reject(err)
-        else resolve(this.lastID)
-      })
-    })
+    const result = await run(`
+      INSERT INTO rental_equipment (
+        name, quantity, description, base_price, catalog_equipment_id, user_id, office_id
+      ) VALUES (?, ?, ?, ?, ?, ?, ?)
+    `, [
+      data.name,
+      data.quantity,
+      data.description || null,
+      data.basePrice,
+      data.catalogEquipmentId || null,
+      data.userId || null,
+      data.officeId || null,
+    ])
+    const equipmentId = result.lastID
 
-    await this.syncInstances(result, data.quantity, data.instances)
+    await this.syncInstances(equipmentId, data.quantity, data.instances)
 
-    const equipment = await this.findById(result)
+    const equipment = await this.findById(equipmentId)
     if (!equipment) throw new Error('Failed to create rental equipment')
     return equipment
   }
