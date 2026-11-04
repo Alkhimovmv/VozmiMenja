@@ -32,6 +32,25 @@ describe('admin lead workflow routes', () => {
 
   const auth = (token: string) => ({ Authorization: `Bearer ${token}` })
 
+  const createBookingFixture = (id: string, phone: string) => bookingModel.create({
+    id,
+    equipmentId: 'workflow-camera',
+    customerName: 'Concurrent Customer',
+    customerPhone: phone,
+    startDate: '2031-01-10',
+    endDate: '2031-01-11',
+    officeId: 1,
+    totalPrice: 1000,
+  })
+
+  const createContactFixture = (phone: string, message: string) => contactLeadModel.create({
+    name: 'Concurrent Lead',
+    phone,
+    subject: 'Rental',
+    message,
+    officeId: 1,
+  })
+
   beforeAll(async () => {
     process.env.DATABASE_PATH = databasePath
     jest.resetModules()
@@ -272,13 +291,17 @@ describe('admin lead workflow routes', () => {
   })
 
   it('returns each booking and contact workflow update from its own atomic write', async () => {
+    const bookingId = 'booking-concurrent-workflow'
+    const contactId = (await createContactFixture('89990000101', 'Concurrent workflow')).id
+    await createBookingFixture(bookingId, '89990000100')
+
     const [firstBooking, secondBooking] = await Promise.all([
       request(app)
-        .patch('/admin/bookings/booking-office-one/workflow')
+        .patch(`/admin/bookings/${bookingId}/workflow`)
         .set(auth(adminOneToken))
         .send({ result: 'thinking', revenue: 1100 }),
       request(app)
-        .patch('/admin/bookings/booking-office-one/workflow')
+        .patch(`/admin/bookings/${bookingId}/workflow`)
         .set(auth(adminOneToken))
         .send({ result: 'booked', revenue: 2200 }),
     ])
@@ -290,11 +313,11 @@ describe('admin lead workflow routes', () => {
 
     const [firstContact, secondContact] = await Promise.all([
       request(app)
-        .patch(`/admin/contact-leads/${officeOneLeadId}/workflow`)
+        .patch(`/admin/contact-leads/${contactId}/workflow`)
         .set(auth(adminOneToken))
         .send({ result: 'unreached', revenue: 3300 }),
       request(app)
-        .patch(`/admin/contact-leads/${officeOneLeadId}/workflow`)
+        .patch(`/admin/contact-leads/${contactId}/workflow`)
         .set(auth(adminOneToken))
         .send({ result: 'declined', revenue: 4400 }),
     ])
@@ -306,13 +329,17 @@ describe('admin lead workflow routes', () => {
   })
 
   it('never returns 200 null when workflow updates race deletion', async () => {
+    const bookingId = 'booking-workflow-delete-race'
+    const contactId = (await createContactFixture('89990000111', 'Workflow delete race')).id
+    await createBookingFixture(bookingId, '89990000110')
+
     const [bookingUpdate, bookingDelete] = await Promise.all([
       request(app)
-        .patch('/admin/bookings/booking-office-one/workflow')
+        .patch(`/admin/bookings/${bookingId}/workflow`)
         .set(auth(adminOneToken))
         .send({ result: 'duplicate', revenue: 0 }),
       request(app)
-        .delete('/admin/bookings/booking-office-one')
+        .delete(`/admin/bookings/${bookingId}`)
         .set(auth(adminOneToken)),
     ])
 
@@ -320,7 +347,7 @@ describe('admin lead workflow routes', () => {
     expect([200, 404]).toContain(bookingUpdate.status)
     if (bookingUpdate.status === 200) {
       expect(bookingUpdate.body).toMatchObject({
-        id: 'booking-office-one',
+        id: bookingId,
         leadResult: 'duplicate',
         leadRevenue: 0,
       })
@@ -328,11 +355,11 @@ describe('admin lead workflow routes', () => {
 
     const [contactUpdate, contactDelete] = await Promise.all([
       request(app)
-        .patch(`/admin/contact-leads/${officeOneDeleteLeadId}/workflow`)
+        .patch(`/admin/contact-leads/${contactId}/workflow`)
         .set(auth(adminOneToken))
         .send({ result: 'duplicate', revenue: 0 }),
       request(app)
-        .delete(`/admin/contact-leads/${officeOneDeleteLeadId}`)
+        .delete(`/admin/contact-leads/${contactId}`)
         .set(auth(adminOneToken)),
     ])
 
@@ -340,7 +367,7 @@ describe('admin lead workflow routes', () => {
     expect([200, 404]).toContain(contactUpdate.status)
     if (contactUpdate.status === 200) {
       expect(contactUpdate.body).toMatchObject({
-        id: officeOneDeleteLeadId,
+        id: contactId,
         leadResult: 'duplicate',
         leadRevenue: 0,
       })
