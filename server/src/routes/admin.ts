@@ -1,16 +1,17 @@
 import { Router, Request, Response } from 'express'
 import { isForeignKeyError } from '../utils/dbErrors'
-import { canAccessOffice, filterByOfficeAccess } from '../middleware/userFilter'
+import { canAccessOffice, filterByOfficeAccess, getUserOfficeIds } from '../middleware/userFilter'
 import { createPublicLeadRateLimiter } from '../middleware/publicLeadGuard'
 import { upload } from '../middleware/upload'
 import { authMiddleware, superAdminMiddleware, signToken } from '../middleware/auth'
 import { adminUserModel } from '../models/AdminUser'
 import { bookingModel, Booking } from '../models/Booking'
 import { contactLeadModel, ContactLead } from '../models/ContactLead'
+import { leadReportModel } from '../models/LeadReport'
 import { schedulerService } from '../services/scheduler'
 import { emailBackupService } from '../services/emailBackup'
 import { leadWorkflowSchema } from '../domain/leadWorkflow'
-import { buildLeadReport, type LeadReportInput } from '../domain/leadReport'
+import { buildLeadReport, getLeadReportWindow, type LeadReportInput } from '../domain/leadReport'
 
 const router = Router()
 
@@ -73,29 +74,19 @@ router.get('/bookings', authMiddleware, async (req: Request, res: Response) => {
 
 router.get('/lead-report', authMiddleware, async (req: Request, res: Response) => {
   try {
-    const [bookings, contactLeads] = await Promise.all([
-      filterByOfficeAccess(req, await bookingModel.findAll(), (booking) => booking.officeId),
-      filterByOfficeAccess(req, await contactLeadModel.findAll(), (lead) => lead.officeId),
-    ])
-    const inputs: LeadReportInput[] = [
-      ...bookings.map((booking) => ({
-        kind: 'booking' as const,
-        createdAt: booking.createdAt,
-        utmSource: booking.utmSource,
-        utmCampaign: booking.utmCampaign,
-        leadResult: booking.leadResult,
-        revenue: booking.leadRevenue ?? (booking.leadResult === 'booked' ? booking.totalPrice : 0),
-      })),
-      ...contactLeads.map((lead) => ({
-        kind: 'contact' as const,
-        createdAt: lead.createdAt,
-        utmSource: lead.utmSource,
-        utmCampaign: lead.utmCampaign,
-        leadResult: lead.leadResult,
-        revenue: lead.leadRevenue ?? 0,
-      })),
-    ]
     const generatedAt = new Date()
+    const officeIds = await getUserOfficeIds(req)
+    const records = await leadReportModel.findSince(getLeadReportWindow(generatedAt).baselineStart, officeIds)
+    const inputs: LeadReportInput[] = records.map((record) => ({
+      kind: record.kind,
+      createdAt: record.createdAt,
+      utmSource: record.utmSource,
+      utmCampaign: record.utmCampaign,
+      leadResult: record.leadResult,
+      revenue: record.leadRevenue ?? (record.kind === 'booking' && record.leadResult === 'booked'
+        ? record.totalPrice
+        : 0),
+    }))
 
     res.json({
       generatedAt: generatedAt.toISOString(),

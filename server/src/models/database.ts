@@ -617,6 +617,10 @@ class Database {
     `)
 
     await run(`
+      CREATE INDEX IF NOT EXISTS idx_bookings_created_at ON bookings(created_at);
+    `)
+
+    await run(`
       CREATE INDEX IF NOT EXISTS idx_bookings_campaign_created
       ON bookings(utm_source, utm_campaign, created_at);
     `)

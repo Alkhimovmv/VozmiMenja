@@ -56,6 +56,19 @@ const reportHtml = renderReport({
     baselineConfirmedRentals: 1,
     baselineRevenue: 5_000,
     baselineConversion: 50,
+  }, {
+    source: 'yandex',
+    campaign: 'spring',
+    currentLeads: 1,
+    currentStartedBookings: 0,
+    currentConfirmedRentals: 0,
+    currentRevenue: 0,
+    currentConversion: 0,
+    baselineLeads: 3,
+    baselineStartedBookings: 2,
+    baselineConfirmedRentals: 1,
+    baselineRevenue: 4_000,
+    baselineConversion: 33.3,
   }],
 });
 assert.match(reportHtml, /Отчёт по каналам и предложениям/);
@@ -66,6 +79,8 @@ assert.match(reportHtml, /15[\s\S]*₽/);
 assert.match(reportHtml, /50[\s\S]*%/);
 assert.match(reportHtml, /scope="colgroup"[^>]*col[Ss]pan="5"[^>]*>Текущие 14 дней</);
 assert.match(reportHtml, /scope="colgroup"[^>]*col[Ss]pan="5"[^>]*>Предыдущие 14 дней</);
+assert.match(reportHtml, /id="lead-report-row-0"[^>]*scope="row"[^>]*>yandex<span[^>]*>Кампания: winter</);
+assert.match(reportHtml, /id="lead-report-row-1"[^>]*scope="row"[^>]*>yandex<span[^>]*>Кампания: spring</);
 
 const expectedColumnOrder = [
   'current-leads',
@@ -84,12 +99,14 @@ let previousCellIndex = -1;
 for (const columnId of expectedColumnOrder) {
   const columnIndex = reportHtml.indexOf(`id="${columnId}"`);
   const period = columnId.startsWith('current-') ? 'current' : 'baseline';
-  const cellIndex = reportHtml.indexOf(`headers="${period}-period ${columnId}"`);
+  const cellIndex = reportHtml.indexOf(`headers="lead-report-row-0 ${period}-period ${columnId}"`);
   assert.ok(columnIndex > previousColumnIndex, `${columnId} must be a separate column in report order`);
   assert.ok(cellIndex > previousCellIndex, `${columnId} data cell must follow the column order`);
   previousColumnIndex = columnIndex;
   previousCellIndex = cellIndex;
 }
+assert.match(reportHtml, /headers="lead-report-row-1 current-period current-leads"/);
+assert.match(reportHtml, /headers="lead-report-row-1 baseline-period baseline-revenue"/);
 
 const failedClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
 await failedClient.prefetchQuery({

@@ -1,5 +1,17 @@
 const PERIOD_DAYS = 14
-const DAY_MS = 24 * 60 * 60 * 1000
+const REPORT_TIME_ZONE = 'Europe/Moscow'
+
+interface CalendarDate {
+  year: number
+  month: number
+  day: number
+}
+
+export interface LeadReportWindow {
+  baselineStart: Date
+  currentStart: Date
+  end: Date
+}
 
 export interface LeadReportInput {
   kind: 'booking' | 'contact'
@@ -56,14 +68,87 @@ const conversion = (confirmed: number, leads: number) => (
 
 const compareText = (left: string, right: string) => left.localeCompare(right, 'ru')
 
+const zonedDateParts = (date: Date): CalendarDate => {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: REPORT_TIME_ZONE,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(date)
+  const value = (type: Intl.DateTimeFormatPartTypes) => Number(parts.find((part) => part.type === type)?.value)
+
+  return { year: value('year'), month: value('month'), day: value('day') }
+}
+
+const shiftCalendarDate = ({ year, month, day }: CalendarDate, days: number): CalendarDate => {
+  const shifted = new Date(Date.UTC(year, month - 1, day + days))
+  return {
+    year: shifted.getUTCFullYear(),
+    month: shifted.getUTCMonth() + 1,
+    day: shifted.getUTCDate(),
+  }
+}
+
+const timeZoneOffsetMs = (date: Date): number => {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: REPORT_TIME_ZONE,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hourCycle: 'h23',
+  }).formatToParts(date)
+  const value = (type: Intl.DateTimeFormatPartTypes) => Number(parts.find((part) => part.type === type)?.value)
+  const representedAsUtc = Date.UTC(
+    value('year'),
+    value('month') - 1,
+    value('day'),
+    value('hour'),
+    value('minute'),
+    value('second'),
+  )
+
+  return representedAsUtc - Math.trunc(date.getTime() / 1000) * 1000
+}
+
+const moscowMidnight = ({ year, month, day }: CalendarDate): Date => {
+  const wallClockUtc = Date.UTC(year, month - 1, day)
+  const firstGuess = new Date(wallClockUtc)
+  const candidate = new Date(wallClockUtc - timeZoneOffsetMs(firstGuess))
+
+  return new Date(wallClockUtc - timeZoneOffsetMs(candidate))
+}
+
+export function getLeadReportWindow(now: Date = new Date()): LeadReportWindow {
+  const end = new Date(now)
+  const today = zonedDateParts(end)
+  const currentDate = shiftCalendarDate(today, -(PERIOD_DAYS - 1))
+  const baselineDate = shiftCalendarDate(currentDate, -PERIOD_DAYS)
+
+  return {
+    baselineStart: moscowMidnight(baselineDate),
+    currentStart: moscowMidnight(currentDate),
+    end,
+  }
+}
+
+const parseCreatedAt = (value: string): number => {
+  const sqliteUtc = /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}(?:\.\d+)?$/
+  const normalized = sqliteUtc.test(value) ? `${value.replace(' ', 'T')}Z` : value
+  return new Date(normalized).getTime()
+}
+
 export function buildLeadReport(inputs: LeadReportInput[], now: Date = new Date()): LeadReportRow[] {
-  const nowMs = now.getTime()
-  const currentStart = nowMs - PERIOD_DAYS * DAY_MS
-  const baselineStart = nowMs - PERIOD_DAYS * 2 * DAY_MS
+  const window = getLeadReportWindow(now)
+  const nowMs = window.end.getTime()
+  const currentStart = window.currentStart.getTime()
+  const baselineStart = window.baselineStart.getTime()
   const groups = new Map<string, ReportTotals>()
 
   for (const input of inputs) {
-    const createdAt = new Date(input.createdAt).getTime()
+    const createdAt = parseCreatedAt(input.createdAt)
     if (!Number.isFinite(createdAt) || createdAt < baselineStart || createdAt > nowMs) continue
 
     const period: Period = createdAt >= currentStart ? 'current' : 'baseline'

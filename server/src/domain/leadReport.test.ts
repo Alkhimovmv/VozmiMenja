@@ -1,7 +1,17 @@
-import { buildLeadReport, type LeadReportInput } from './leadReport'
+import { buildLeadReport, getLeadReportWindow, type LeadReportInput } from './leadReport'
 
 describe('buildLeadReport', () => {
   const now = new Date('2030-01-29T12:00:00.000Z')
+  const previousTimezone = process.env.TZ
+
+  beforeAll(() => {
+    process.env.TZ = 'Europe/Moscow'
+  })
+
+  afterAll(() => {
+    if (previousTimezone === undefined) delete process.env.TZ
+    else process.env.TZ = previousTimezone
+  })
 
   const report = (inputs: LeadReportInput[]) => buildLeadReport(inputs, now)
 
@@ -53,26 +63,36 @@ describe('buildLeadReport', () => {
     }])
   })
 
-  it('puts the shared boundary in current only and includes both outer boundaries', () => {
+  it('uses Moscow calendar midnights for current and baseline windows', () => {
+    const window = getLeadReportWindow(now)
+
+    expect(window.currentStart.toISOString()).toBe('2030-01-15T21:00:00.000Z')
+    expect(window.baselineStart.toISOString()).toBe('2030-01-01T21:00:00.000Z')
+    expect(window.end.toISOString()).toBe(now.toISOString())
+  })
+
+  it('parses SQLite naive timestamps as UTC and assigns exact Moscow boundaries once', () => {
     const rows = report([
-      { kind: 'contact', createdAt: '2030-01-29T12:00:00.000Z', utmSource: 'now' },
-      { kind: 'contact', createdAt: '2030-01-15T12:00:00.000Z', utmSource: 'boundary' },
-      { kind: 'contact', createdAt: '2030-01-01T12:00:00.000Z', utmSource: 'oldest' },
+      { kind: 'contact', createdAt: '2030-01-29 12:00:00', utmSource: 'now' },
+      { kind: 'contact', createdAt: '2030-01-15 21:00:00', utmSource: 'current-boundary' },
+      { kind: 'contact', createdAt: '2030-01-15 20:59:59', utmSource: 'baseline-last-second' },
+      { kind: 'contact', createdAt: '2030-01-01 21:00:00', utmSource: 'baseline-boundary' },
     ])
 
     expect(rows).toEqual(expect.arrayContaining([
       expect.objectContaining({ source: 'now', currentLeads: 1, baselineLeads: 0 }),
-      expect.objectContaining({ source: 'boundary', currentLeads: 1, baselineLeads: 0 }),
-      expect.objectContaining({ source: 'oldest', currentLeads: 0, baselineLeads: 1 }),
+      expect.objectContaining({ source: 'current-boundary', currentLeads: 1, baselineLeads: 0 }),
+      expect.objectContaining({ source: 'baseline-last-second', currentLeads: 0, baselineLeads: 1 }),
+      expect.objectContaining({ source: 'baseline-boundary', currentLeads: 0, baselineLeads: 1 }),
     ]))
-    expect(rows.reduce((sum, row) => sum + row.currentLeads + row.baselineLeads, 0)).toBe(3)
+    expect(rows.reduce((sum, row) => sum + row.currentLeads + row.baselineLeads, 0)).toBe(4)
   })
 
   it('ignores invalid, future, and older dates and supplies attribution fallbacks', () => {
     const rows = report([
       { kind: 'contact', createdAt: 'not-a-date' },
       { kind: 'contact', createdAt: '2030-01-29T12:00:00.001Z' },
-      { kind: 'contact', createdAt: '2030-01-01T11:59:59.999Z' },
+      { kind: 'contact', createdAt: '2030-01-01T20:59:59.999Z' },
       { kind: 'contact', createdAt: '2030-01-28T12:00:00.000Z', utmSource: ' ', utmCampaign: '' },
     ])
 

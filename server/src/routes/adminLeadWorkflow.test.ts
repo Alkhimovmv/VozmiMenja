@@ -298,28 +298,57 @@ describe('admin lead workflow routes', () => {
       SET utm_source = 'legacy', utm_campaign = 'callback', lead_result = 'booked', lead_revenue = 700
       WHERE id = ?
     `, [legacyLeadId])
+    await database.run(`
+      UPDATE contact_leads
+      SET utm_source = 'too-old', created_at = '2020-01-01 00:00:00'
+      WHERE id = ?
+    `, [officeOneDeleteLeadId])
 
-    const response = await request(app)
-      .get('/admin/lead-report')
-      .set(auth(adminOneToken))
-      .expect(200)
+    const bookingFindAll = jest.spyOn(bookingModel, 'findAll').mockRejectedValue(new Error('lead report must not hydrate bookings'))
+    const contactFindAll = jest.spyOn(contactLeadModel, 'findAll').mockRejectedValue(new Error('lead report must not hydrate contacts'))
 
-    expect(response.body).toMatchObject({
-      generatedAt: expect.any(String),
-      periodDays: 14,
-    })
-    expect(new Date(response.body.generatedAt).toISOString()).toBe(response.body.generatedAt)
-    expect(response.body.rows.map((row: { source: string }) => row.source)).toEqual(expect.arrayContaining([
-      'office-one',
-      'legacy',
-    ]))
-    expect(response.body.rows.map((row: { source: string }) => row.source)).not.toContain('office-two')
-    expect(response.body.rows.find((row: { source: string }) => row.source === 'office-one')).toMatchObject({
-      currentLeads: 1,
-      currentStartedBookings: 1,
-      currentConfirmedRentals: 1,
-      currentRevenue: 1000,
-    })
+    try {
+      const response = await request(app)
+        .get('/admin/lead-report')
+        .set(auth(adminOneToken))
+        .expect(200)
+
+      expect(response.body).toMatchObject({
+        generatedAt: expect.any(String),
+        periodDays: 14,
+      })
+      expect(new Date(response.body.generatedAt).toISOString()).toBe(response.body.generatedAt)
+      expect(response.body.rows.map((row: { source: string }) => row.source)).toEqual(expect.arrayContaining([
+        'office-one',
+        'legacy',
+      ]))
+      expect(response.body.rows.map((row: { source: string }) => row.source)).not.toContain('office-two')
+      expect(response.body.rows.map((row: { source: string }) => row.source)).not.toContain('too-old')
+      expect(response.body.rows.find((row: { source: string }) => row.source === 'office-one')).toMatchObject({
+        currentLeads: 1,
+        currentStartedBookings: 1,
+        currentConfirmedRentals: 1,
+        currentRevenue: 1000,
+      })
+      expect(bookingFindAll).not.toHaveBeenCalled()
+      expect(contactFindAll).not.toHaveBeenCalled()
+    } finally {
+      bookingFindAll.mockRestore()
+      contactFindAll.mockRestore()
+    }
+  })
+
+  it('has direct created-at indexes for both lead report sources', async () => {
+    const indexes = await database.all(`
+      SELECT name FROM sqlite_master
+      WHERE type = 'index' AND name IN ('idx_bookings_created_at', 'idx_contact_leads_created_at')
+      ORDER BY name
+    `)
+
+    expect(indexes.map((index: { name: string }) => index.name)).toEqual([
+      'idx_bookings_created_at',
+      'idx_contact_leads_created_at',
+    ])
   })
 
   it('returns all offices in the unmasked superadmin lead report', async () => {
@@ -349,6 +378,21 @@ describe('admin lead workflow routes', () => {
 
     expect(response.body.rows.map((row: { source: string }) => row.source)).toContain('office-two')
     expect(response.body.rows.map((row: { source: string }) => row.source)).not.toContain('office-one')
+  })
+
+  it('returns no lead report rows for an admin without offices', async () => {
+    const noOfficeAdmin = await database.run(`
+      INSERT INTO admin_users (phone, password_hash, role, name)
+      VALUES ('79990000009', 'not-used', 'admin', 'No Office')
+    `)
+    const noOfficeToken = signToken({ userId: noOfficeAdmin.lastID, phone: '79990000009', role: 'admin' })
+
+    const response = await request(app)
+      .get('/admin/lead-report')
+      .set(auth(noOfficeToken))
+      .expect(200)
+
+    expect(response.body.rows).toEqual([])
   })
 
   it('requires authentication for the lead report', async () => {

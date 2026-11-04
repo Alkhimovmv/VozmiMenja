@@ -1,6 +1,7 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { bookingsApi, type LeadReportRow } from '../../api/admin/bookings';
+import { ADMIN_LEAD_REPORT_QUERY_KEY } from '../../lib/adminLeadReport';
 
 const rubFormatter = new Intl.NumberFormat('ru-RU', {
   style: 'currency',
@@ -19,30 +20,35 @@ function MetricCell({ value, headers }: { value: string | number; headers: strin
   );
 }
 
-function ReportRow({ row }: { row: LeadReportRow }) {
+function ReportRow({ row, rowId }: { row: LeadReportRow; rowId: string }) {
+  const metricHeaders = (period: 'current' | 'baseline', metric: string) => (
+    `${rowId} ${period}-period ${period}-${metric}`
+  );
+
   return (
     <tr className="border-t border-slate-200/80 bg-white transition-colors hover:bg-amber-50/40">
-      <th scope="row" className="px-3 py-3 text-left align-top font-bold text-slate-900">
+      <th id={rowId} scope="row" className="px-3 py-3 text-left align-top font-bold text-slate-900">
         {row.source}
+        <span className="sr-only">Кампания: {row.campaign}</span>
       </th>
       <td className="max-w-52 break-words px-3 py-3 align-top text-slate-700">{row.campaign}</td>
-      <MetricCell value={row.currentLeads} headers="current-period current-leads" />
-      <MetricCell value={row.currentStartedBookings} headers="current-period current-started" />
-      <MetricCell value={row.currentConfirmedRentals} headers="current-period current-confirmed" />
-      <MetricCell value={formatPercent(row.currentConversion)} headers="current-period current-conversion" />
-      <MetricCell value={formatRub(row.currentRevenue)} headers="current-period current-revenue" />
-      <MetricCell value={row.baselineLeads} headers="baseline-period baseline-leads" />
-      <MetricCell value={row.baselineStartedBookings} headers="baseline-period baseline-started" />
-      <MetricCell value={row.baselineConfirmedRentals} headers="baseline-period baseline-confirmed" />
-      <MetricCell value={formatPercent(row.baselineConversion)} headers="baseline-period baseline-conversion" />
-      <MetricCell value={formatRub(row.baselineRevenue)} headers="baseline-period baseline-revenue" />
+      <MetricCell value={row.currentLeads} headers={metricHeaders('current', 'leads')} />
+      <MetricCell value={row.currentStartedBookings} headers={metricHeaders('current', 'started')} />
+      <MetricCell value={row.currentConfirmedRentals} headers={metricHeaders('current', 'confirmed')} />
+      <MetricCell value={formatPercent(row.currentConversion)} headers={metricHeaders('current', 'conversion')} />
+      <MetricCell value={formatRub(row.currentRevenue)} headers={metricHeaders('current', 'revenue')} />
+      <MetricCell value={row.baselineLeads} headers={metricHeaders('baseline', 'leads')} />
+      <MetricCell value={row.baselineStartedBookings} headers={metricHeaders('baseline', 'started')} />
+      <MetricCell value={row.baselineConfirmedRentals} headers={metricHeaders('baseline', 'confirmed')} />
+      <MetricCell value={formatPercent(row.baselineConversion)} headers={metricHeaders('baseline', 'conversion')} />
+      <MetricCell value={formatRub(row.baselineRevenue)} headers={metricHeaders('baseline', 'revenue')} />
     </tr>
   );
 }
 
 export default function LeadCampaignReport() {
   const { data, isLoading, isError } = useQuery({
-    queryKey: ['admin-lead-report'],
+    queryKey: ADMIN_LEAD_REPORT_QUERY_KEY,
     queryFn: bookingsApi.getLeadReport,
     retry: false,
   });
@@ -104,8 +110,8 @@ export default function LeadCampaignReport() {
               </tr>
             </thead>
             <tbody>
-              {data.rows.map((row) => (
-                <ReportRow key={`${row.source}\u0000${row.campaign}`} row={row} />
+              {data.rows.map((row, index) => (
+                <ReportRow key={`${row.source}\u0000${row.campaign}`} row={row} rowId={`lead-report-row-${index}`} />
               ))}
             </tbody>
           </table>

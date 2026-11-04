@@ -29,6 +29,7 @@ import {
   parseLeadRevenue,
   resolveLeadScenario,
 } from '../../lib/leadWorkflow';
+import { invalidateAdminLeadReport } from '../../lib/adminLeadReport';
 
 const LEAD_RESULTS: LeadResult[] = ['unreached', 'thinking', 'booked', 'declined', 'duplicate'];
 
@@ -301,8 +302,11 @@ export default function SiteBookingsPage() {
 
   const deleteBookingMutation = useMutation({
     mutationFn: bookingsApi.delete,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin-bookings'] });
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['admin-bookings'] }),
+        invalidateAdminLeadReport(queryClient),
+      ]);
       toast.success('Заявка удалена');
     },
     onError: (error: unknown) => {
@@ -312,8 +316,11 @@ export default function SiteBookingsPage() {
 
   const deleteContactLeadMutation = useMutation({
     mutationFn: contactLeadsApi.delete,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin-contact-leads'] });
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['admin-contact-leads'] }),
+        invalidateAdminLeadReport(queryClient),
+      ]);
       toast.success('Обращение удалено');
     },
     onError: (error: unknown) => {
@@ -327,7 +334,7 @@ export default function SiteBookingsPage() {
     onSuccess: async () => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['admin-bookings'] }),
-        queryClient.invalidateQueries({ queryKey: ['admin-lead-report'], exact: false }),
+        invalidateAdminLeadReport(queryClient),
       ]);
       toast.success('Результат контакта сохранён');
     },
@@ -342,7 +349,7 @@ export default function SiteBookingsPage() {
     onSuccess: async () => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['admin-contact-leads'] }),
-        queryClient.invalidateQueries({ queryKey: ['admin-lead-report'], exact: false }),
+        invalidateAdminLeadReport(queryClient),
       ]);
       toast.success('Результат контакта сохранён');
     },
