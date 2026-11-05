@@ -35,4 +35,13 @@ assert.deepEqual(getPricingConsistencyIssues({
   days3: 2400,
 }, 1000), [])
 
+const missingLongTariffs = getPricingConsistencyIssues({
+  ...validPricing,
+  days7: 600,
+  days14: 0,
+  days30: 0,
+}, 1000)
+
+assert.equal(missingLongTariffs.some((issue) => issue.code === 'tier-increase-14'), true)
+
 console.log('pricingConsistency tests passed')

@@ -1,17 +1,9 @@
 import type { PricingTier } from '../types'
+import { getEffectiveDailyPrice } from '../utils/pricing'
 
 export type PricingConsistencyIssue = {
   code: string
   message: string
-}
-
-const positive = (value: number | undefined) => Number(value) > 0
-
-const effectiveDailyPrice = (pricing: PricingTier, value: number | undefined, days: number) => {
-  const numericValue = Number(value) || 0
-  return days > 1 && pricing.day1 > 0 && numericValue > pricing.day1
-    ? numericValue / days
-    : numericValue
 }
 
 export const getPricingConsistencyIssues = (
@@ -55,20 +47,20 @@ export const getPricingConsistencyIssues = (
   }
 
   const tiers = [
-    { label: '1 сутки', days: 1, value: pricing.day1 },
-    { label: '2 суток', days: 2, value: pricing.days2 },
-    { label: '3 суток', days: 3, value: pricing.days3 },
-    { label: '4 суток', days: 4, value: pricing.days4 },
-    { label: '7 суток', days: 7, value: pricing.days7 },
-    { label: '14 суток', days: 14, value: pricing.days14 },
-    { label: '30 суток', days: 30, value: pricing.days30 },
-  ].filter((tier) => positive(tier.value))
+    { label: '1 сутки', days: 1 },
+    { label: '2 суток', days: 2 },
+    { label: '3 суток', days: 3 },
+    { label: '4 суток', days: 4 },
+    { label: '7 суток', days: 7 },
+    { label: '14 суток', days: 14 },
+    { label: '30 суток', days: 30 },
+  ]
 
   for (let index = 1; index < tiers.length; index += 1) {
     const previous = tiers[index - 1]
     const current = tiers[index]
-    const previousDaily = effectiveDailyPrice(pricing, previous.value, previous.days)
-    const currentDaily = effectiveDailyPrice(pricing, current.value, current.days)
+    const previousDaily = getEffectiveDailyPrice(pricing, previous.days, savedPricePerDay)
+    const currentDaily = getEffectiveDailyPrice(pricing, current.days, savedPricePerDay)
 
     if (currentDaily > previousDaily) {
       issues.push({
