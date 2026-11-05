@@ -204,6 +204,9 @@ export default function CategoryCamerasPage() {
               <Link to="/equipment/insta360-x5" className="px-4 py-2 bg-[#F8FAFC] text-gray-700 rounded-xl text-sm font-semibold border border-gray-100 hover:text-[#2563EB] transition-colors">
                 Insta360 X5
               </Link>
+              <Link to="/arenda-tehniki-na-mesyac-moskva" className="px-4 py-2 bg-[#F8FAFC] text-gray-700 rounded-xl text-sm font-semibold border border-gray-100 hover:text-[#2563EB] transition-colors">
+                Камера на месяц — дешевле за сутки
+              </Link>
             </div>
           </div>
         </div>

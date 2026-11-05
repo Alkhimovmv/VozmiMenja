@@ -1049,6 +1049,7 @@ function pageShell(title, description, sections = []) {
       { href: '/arenda-gopro-moskva', label: 'Аренда GoPro и камер' },
       { href: '/arenda-audiooborudovaniya-moskva', label: 'Аренда колонок и аудиооборудования' },
       { href: '/booking', label: 'Оформить бронь онлайн' },
+      { href: '/arenda-tehniki-na-mesyac-moskva', label: 'Аренда техники на месяц — тарифы' },
       { href: '/blog', label: 'Блог и гайды по аренде техники' },
       { href: '/contact', label: 'Контакты и самовывоз' },
     ])}</nav>`,
@@ -1133,7 +1134,7 @@ function buildProductBody(item, remoteData) {
   const faq = productFaq(item)
   const sections = [
     `<p>${escapeHtml(item.description || 'Проверенное оборудование для аренды в Москве.')}</p>`,
-    price > 0 ? `<p>Цена аренды: ${escapeHtml(formatPrice(price))} ₽ за сутки${longTerm ? `, при аренде от ${longTerm.days} суток — от ${escapeHtml(formatPrice(longTerm.dailyPrice))} ₽ за сутки` : ''}. Доступны доставка, самовывоз и онлайн-бронь.</p>` : '',
+    price > 0 ? `<p>Цена аренды: ${escapeHtml(formatPrice(price))} ₽ за сутки${longTerm ? `, при аренде от ${longTerm.days} суток — от ${escapeHtml(formatPrice(longTerm.dailyPrice))} ₽ за сутки (<a href="/arenda-tehniki-na-mesyac-moskva">тарифы на месяц</a>)` : ''}. Доступны доставка, самовывоз и онлайн-бронь.</p>` : '',
     rows.length ? `<h2>Тарифы аренды</h2><ul>${rows.map((row) => `<li>${escapeHtml(row.label)} — ${escapeHtml(formatPrice(row.value))} ₽${escapeHtml(row.suffix)}</li>`).join('')}</ul>` : '',
     specs.length ? `<h2>Характеристики</h2><dl>${specs.map(([key, value]) => `<dt>${escapeHtml(key)}</dt><dd>${escapeHtml(value)}</dd>`).join('')}</dl>` : '',
     faqSection(faq),

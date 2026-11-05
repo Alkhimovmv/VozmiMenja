@@ -859,11 +859,15 @@ export default function EquipmentDetailsPage() {
               <div className="flex items-start justify-between mb-1">
                 <p className="text-[11px] font-bold text-muted uppercase tracking-widest">Цена за сутки</p>
                 {longTermPrice && (
-                  <div className="text-right">
+                  <Link
+                    to="/arenda-tehniki-na-mesyac-moskva"
+                    onClick={() => trackEvent('monthly_rental_link_click', { source: 'equipment_price_card', equipment_id: equipment.id })}
+                    className="text-right group"
+                  >
                     <p className="text-[11px] font-semibold text-muted">МИН.</p>
                     <p className="text-primary font-bold text-sm">{formatPrice(longTermPrice.dailyPrice)}/сут</p>
-                    <p className="text-[10px] text-muted">при аренде от {longTermPrice.days} суток</p>
-                  </div>
+                    <p className="text-[10px] text-muted group-hover:text-primary group-hover:underline">при аренде от {longTermPrice.days} суток</p>
+                  </Link>
                 )}
               </div>
               <p className="text-4xl font-bold text-ink mb-5">{formatPrice(oneDayPrice)}</p>

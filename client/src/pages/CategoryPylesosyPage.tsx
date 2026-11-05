@@ -227,6 +227,9 @@ export default function CategoryPylesosyPage() {
               <Link to="/equipment/karcher-sc4" className="px-4 py-2 bg-[#F8FAFC] text-gray-700 rounded-xl text-sm font-semibold border border-gray-100 hover:text-[#2563EB] transition-colors">
                 Karcher SC4
               </Link>
+              <Link to="/arenda-tehniki-na-mesyac-moskva" className="px-4 py-2 bg-[#F8FAFC] text-gray-700 rounded-xl text-sm font-semibold border border-gray-100 hover:text-[#2563EB] transition-colors">
+                Аренда на месяц — дешевле за сутки
+              </Link>
             </div>
           </div>
         </div>
