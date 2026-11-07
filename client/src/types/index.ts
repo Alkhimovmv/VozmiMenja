@@ -53,6 +53,8 @@ export interface PublicEquipment {
   quantity: number
   availableQuantity: number
   images: string[]
+  // WebP-копии 400/800 px для srcset по пути фото из images; есть только у фото, для которых сервер их создал
+  imageVariants?: Record<string, Array<{ width: number; url: string }>>
   description: string
   specifications: Record<string, string>
   createdAt: string

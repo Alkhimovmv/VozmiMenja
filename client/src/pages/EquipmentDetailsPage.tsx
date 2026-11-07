@@ -6,7 +6,7 @@ import BookingForm from '../components/equipment/BookingForm'
 import RelatedCard from '../components/equipment/RelatedCard'
 import SEO from '../components/SEO'
 import { ArrowLeft, Check, ChevronRight, Shield, Clock } from 'lucide-react'
-import { getImageUrl } from '../lib/utils'
+import { fetchPriorityAttr, getImageSrcSet, getImageUrl } from '../lib/utils'
 import { trackEvent } from '../lib/analytics'
 import { getLongTermDailyPrice, getOneDayPrice, getPricingRows } from '../utils/pricing'
 import { CONTACT_PHONE, CONTACT_PHONE_LABEL, getTelegramUrl, getWhatsAppUrl } from '../lib/contactLinks'
@@ -817,7 +817,7 @@ export default function EquipmentDetailsPage() {
                 className="w-full h-full object-contain bg-white"
                 loading="eager"
                 decoding="async"
-                fetchPriority="high"
+                {...fetchPriorityAttr('high')}
               />
             </div>
             {equipment.images.length > 1 && (
@@ -832,6 +832,8 @@ export default function EquipmentDetailsPage() {
                   >
                     <img
                       src={getImageUrl(image)}
+                      srcSet={getImageSrcSet(equipment.imageVariants?.[image])}
+                      sizes="80px"
                       alt={`${equipment.name} ${index + 1}`}
                       className="w-full h-full object-contain bg-white"
                       loading="lazy"

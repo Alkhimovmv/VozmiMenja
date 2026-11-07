@@ -24,3 +24,12 @@ export const getImageUrl = (imagePath: string): string => {
   // Если просто имя файла (legacy)
   return `${API_SERVER_URL}/uploads/${normalizedPath}`
 }
+
+// React 18 не знает camelCase-свойство fetchPriority и молча выбрасывает его из DOM.
+// Атрибут в нижнем регистре браузер понимает; приведение типа — только для TypeScript.
+export const fetchPriorityAttr = (priority: 'high' | 'low' | 'auto') =>
+  ({ fetchpriority: priority }) as unknown as Record<string, never>
+
+// srcset из уменьшенных копий фото. undefined, если копий нет: тогда браузер берёт src (оригинал).
+export const getImageSrcSet = (variants?: Array<{ width: number; url: string }>): string | undefined =>
+  variants?.length ? variants.map((variant) => `${getImageUrl(variant.url)} ${variant.width}w`).join(', ') : undefined

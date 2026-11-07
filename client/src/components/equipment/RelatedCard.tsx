@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom'
 import { ChevronRight } from 'lucide-react'
 import type { Equipment } from '../../types'
-import { getImageUrl } from '../../lib/utils'
+import { getImageSrcSet, getImageUrl } from '../../lib/utils'
 import { getOneDayPrice, getPeriodPrice } from '../../utils/pricing'
 import { equipmentPath } from '../../lib/equipmentUrls'
 
@@ -25,6 +25,8 @@ export default function RelatedCard({ equipment }: RelatedCardProps) {
       <div className="relative bg-white aspect-[4/3] overflow-hidden">
         <img
           src={getImageUrl(equipment.images[0])}
+          srcSet={getImageSrcSet(equipment.imageVariants?.[equipment.images[0]])}
+          sizes="(min-width: 1024px) 300px, (min-width: 640px) 50vw, 100vw"
           alt={equipment.name}
           className="w-full h-full object-contain bg-white group-hover:scale-105 transition-transform duration-300"
           loading="lazy"

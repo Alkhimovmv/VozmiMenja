@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express'
 import { isForeignKeyError } from '../utils/dbErrors'
 import { optimizeImageFile } from '../services/imageOptimizer'
+import { generateImageVariants } from '../services/imageVariants'
 import { canAccessOffice, filterByOfficeAccess, getUserOfficeIds } from '../middleware/userFilter'
 import { createPublicLeadRateLimiter } from '../middleware/publicLeadGuard'
 import { upload } from '../middleware/upload'
@@ -344,9 +345,15 @@ router.post('/upload', authMiddleware, upload.array('images', 10), async (req: R
     }
     // Фото с телефона весят мегабайты, а карточка показывает их в несколько сотен пикселей.
     // Ошибка оптимизации не должна ломать загрузку: в худшем случае остаётся исходный файл.
-    await Promise.all(req.files.map((file) => optimizeImageFile(file.path).catch((error) => {
-      console.warn(`Image optimization skipped for ${file.filename}:`, error?.message || error)
-    })))
+    await Promise.all(req.files.map(async (file) => {
+      await optimizeImageFile(file.path).catch((error) => {
+        console.warn(`Image optimization skipped for ${file.filename}:`, error?.message || error)
+      })
+      // Копии 400/800 px для srcset карточек; без них фронт просто покажет оригинал.
+      await generateImageVariants(file.path).catch((error) => {
+        console.warn(`Image variants skipped for ${file.filename}:`, error?.message || error)
+      })
+    }))
     const imageUrls = req.files.map(file => `/uploads/${file.filename}`)
     res.json({ success: true, data: imageUrls })
   } catch (error) {

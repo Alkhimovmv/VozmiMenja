@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import type { Equipment } from '../../types'
-import { getImageUrl } from '../../lib/utils'
+import { fetchPriorityAttr, getImageSrcSet, getImageUrl } from '../../lib/utils'
 import { trackEvent } from '../../lib/analytics'
 import BookingForm from './BookingForm'
 import { equipmentPath } from '../../lib/equipmentUrls'
@@ -31,6 +31,8 @@ export default function EquipmentCard({ equipment, priority = false }: Equipment
           <Link to={detailsHref} className="h-24 w-24 flex-shrink-0 overflow-hidden rounded-lg bg-white">
             <img
               src={getImageUrl(equipment.images[0])}
+              srcSet={getImageSrcSet(equipment.imageVariants?.[equipment.images[0]])}
+              sizes="96px"
               alt={`Аренда ${equipment.name}`}
               className="h-full w-full object-contain"
               loading={priority ? 'eager' : 'lazy'}
@@ -69,11 +71,13 @@ export default function EquipmentCard({ equipment, priority = false }: Equipment
         <Link to={detailsHref} className="block aspect-[4/3] overflow-hidden border-b border-gray-100 bg-white">
           <img
             src={getImageUrl(equipment.images[0])}
+            srcSet={getImageSrcSet(equipment.imageVariants?.[equipment.images[0]])}
+            sizes="(min-width: 1280px) 300px, (min-width: 768px) 33vw, 100vw"
             alt={`Аренда ${equipment.name}`}
             className="h-full w-full object-contain p-2"
             loading={priority ? 'eager' : 'lazy'}
             decoding="async"
-            fetchPriority={priority ? 'high' : 'auto'}
+            {...fetchPriorityAttr(priority ? 'high' : 'auto')}
           />
         </Link>
         <div className="p-4">

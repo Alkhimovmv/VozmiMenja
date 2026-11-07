@@ -2,6 +2,7 @@ import { execFileSync } from 'child_process'
 import fs from 'fs/promises'
 import path from 'path'
 import { optimizeImageFile } from '../services/imageOptimizer'
+import { generateImageVariants, isVariantFile } from '../services/imageVariants'
 
 // Пережимает уже загруженные фото в server/uploads тем же форматом и с тем же именем —
 // ссылки в базе не меняются. По умолчанию только показывает, сколько сэкономится.
@@ -10,6 +11,8 @@ import { optimizeImageFile } from '../services/imageOptimizer'
 // Файлы, которые лежат в git, по умолчанию пропускаются: их оптимизированные версии приходят
 // через git pull, а локальная правка отслеживаемого файла сломала бы следующий pull при деплое.
 // --include-tracked — обработать и их (только в рабочей копии разработчика, с последующим коммитом).
+// Затем для всех оригиналов (включая файлы из git) создаются недостающие копии 400/800 px WebP
+// для srcset — это новые файлы в игнорируемой папке, на git pull они не влияют.
 const uploadsDir = process.env.UPLOADS_DIR ? path.resolve(process.env.UPLOADS_DIR) : path.resolve(__dirname, '../../uploads')
 const originalsDir = path.join(uploadsDir, '_originals')
 const apply = process.argv.includes('--apply')
@@ -29,10 +32,11 @@ const kb = (bytes: number) => `${Math.round(bytes / 1024)} КБ`
 async function main() {
   const entries = await fs.readdir(uploadsDir, { withFileTypes: true })
   const tracked = includeTracked ? new Set<string>() : getGitTrackedNames()
-  const files = entries
-    .filter((entry) => entry.isFile() && !tracked.has(entry.name))
+  const originals = entries
+    .filter((entry) => entry.isFile() && !isVariantFile(entry.name) && !entry.name.includes('.tmp-'))
     .map((entry) => path.join(uploadsDir, entry.name))
-  if (tracked.size) console.log(`Пропущено файлов из git: ${tracked.size} (обновляются через git pull)`)
+  const files = originals.filter((file) => !tracked.has(path.basename(file)))
+  if (tracked.size) console.log(`Пережатие пропускает файлов из git: ${tracked.size} (обновляются через git pull)`)
   if (apply) await fs.mkdir(originalsDir, { recursive: true })
 
   let before = 0
@@ -67,8 +71,18 @@ async function main() {
     }
   }
 
+  let variants = 0
+  for (const file of originals) {
+    try {
+      variants += (await generateImageVariants(file, { dryRun: !apply })).length
+    } catch (error: any) {
+      console.warn(`⚠️ Копии для ${path.basename(file)} не созданы: ${error?.message || error}`)
+    }
+  }
+
   console.log(`\n${apply ? 'Оптимизировано' : 'Можно оптимизировать'}: ${changed} из ${files.length} файлов, ${kb(before)} → ${kb(after)}`)
-  if (!apply && changed > 0) console.log('Запустите с --apply, чтобы применить. Оригиналы сохранятся в uploads/_originals/.')
+  console.log(`${apply ? 'Создано' : 'Будет создано'} копий для srcset: ${variants}`)
+  if (!apply && (changed > 0 || variants > 0)) console.log('Запустите с --apply, чтобы применить. Оригиналы сохранятся в uploads/_originals/.')
 }
 
 main().catch((error) => {

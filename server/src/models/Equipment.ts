@@ -1,4 +1,12 @@
 import { run, get, all } from './database'
+import { getImageVariants, type ImageVariant } from '../services/imageVariants'
+
+function buildImageVariants(images: string[]): Record<string, ImageVariant[]> | undefined {
+  const entries = images
+    .map((image) => [image, getImageVariants(image)] as const)
+    .filter(([, variants]) => variants.length > 0)
+  return entries.length ? Object.fromEntries(entries) : undefined
+}
 
 const LEGACY_EQUIPMENT_SLUGS: Record<string, string> = {
   'nabor-besprovodnyh-mikrofonov-jbl-partybox': 'jbl-partybox-wireless-microphones',
@@ -27,6 +35,8 @@ export interface Equipment {
   quantity: number
   availableQuantity: number
   images: string[]
+  // Уменьшенные WebP-копии для srcset, ключ — путь фото из images. Только реально существующие файлы.
+  imageVariants?: Record<string, ImageVariant[]>
   description: string
   specifications: Record<string, string | undefined>
   createdAt: string
@@ -287,6 +297,7 @@ export class EquipmentModel {
   }
 
   private mapRow(row: any): Equipment {
+    const images: string[] = JSON.parse(row.images)
     return {
       id: row.id,
       slug: this.slugify(row.name),
@@ -296,7 +307,8 @@ export class EquipmentModel {
       pricing: row.pricing ? JSON.parse(row.pricing) : undefined,
       quantity: row.quantity,
       availableQuantity: row.available_quantity,
-      images: JSON.parse(row.images),
+      images,
+      imageVariants: buildImageVariants(images),
       description: row.description,
       specifications: JSON.parse(row.specifications),
       createdAt: row.created_at,
