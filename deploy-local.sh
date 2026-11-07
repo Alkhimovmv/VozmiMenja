@@ -26,6 +26,8 @@ NC='\033[0m' # No Color
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 PROJECT_DIR="$SCRIPT_DIR"
 NODE_VERSION="20"
+SITEMAP_SNAPSHOT_DIR=""
+SITEMAP_HAD_SOURCE=0
 
 # ================================================================================
 # Функции вывода сообщений
@@ -48,6 +50,38 @@ print_warning() {
 
 print_error() {
     echo -e "${RED}❌ $1${NC}"
+}
+
+# ================================================================================
+# Временный снимок sitemap
+# ================================================================================
+snapshot_generated_sitemap() {
+    local sitemap_path="$PROJECT_DIR/client/public/sitemap.xml"
+
+    restore_generated_sitemap
+    SITEMAP_SNAPSHOT_DIR=$(mktemp -d "${TMPDIR:-/tmp}/vozmimenya-sitemap.XXXXXX")
+    SITEMAP_HAD_SOURCE=0
+
+    if [ -f "$sitemap_path" ]; then
+        cp -p "$sitemap_path" "$SITEMAP_SNAPSHOT_DIR/sitemap.xml"
+        SITEMAP_HAD_SOURCE=1
+    fi
+}
+
+restore_generated_sitemap() {
+    [ -n "$SITEMAP_SNAPSHOT_DIR" ] || return 0
+
+    local sitemap_path="$PROJECT_DIR/client/public/sitemap.xml"
+    if [ "$SITEMAP_HAD_SOURCE" -eq 1 ]; then
+        cp -p "$SITEMAP_SNAPSHOT_DIR/sitemap.xml" "$sitemap_path"
+    else
+        rm -f "$sitemap_path"
+    fi
+
+    rm -f "$SITEMAP_SNAPSHOT_DIR/sitemap.xml"
+    rmdir "$SITEMAP_SNAPSHOT_DIR"
+    SITEMAP_SNAPSHOT_DIR=""
+    SITEMAP_HAD_SOURCE=0
 }
 
 # ================================================================================
@@ -258,6 +292,10 @@ build_projects() {
     print_step "Сборка проектов"
 
     cd $PROJECT_DIR
+    # Генератор обновляет tracked client/public/sitemap.xml перед frontend-сборкой.
+    # Возвращаем исходник после копирования dist, чтобы следующий git pull не блокировался.
+    snapshot_generated_sitemap
+    trap restore_generated_sitemap EXIT
 
     # VozmiMenja Server (включая интегрированную админку)
     if [ -d "server" ] && [ -f "server/package.json" ]; then
@@ -318,6 +356,9 @@ build_projects() {
             print_success "Frontend развернут в /var/www/html/vozmimenya.ru"
         fi
     fi
+
+    restore_generated_sitemap
+    trap - EXIT
 
     print_success "Все проекты собраны"
 }
@@ -572,5 +613,7 @@ main() {
     esac
 }
 
-# Запуск
-main "$@"
+# Запуск при прямом вызове; guard позволяет тестировать функции без запуска deploy.
+if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
+    main "$@"
+fi

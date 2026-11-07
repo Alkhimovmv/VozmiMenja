@@ -17,7 +17,8 @@
     "smoke:public:prod": "npm run smoke:public:prod --workspace=server",
     "smoke:seo": "npm run smoke:seo --workspace=server",
     "smoke:seo:prod": "npm run smoke:seo:prod --workspace=server",
-    "test": "npm run test --workspace=client && npm run test --workspace=server",
+    "test": "npm run test --workspace=client && npm run test --workspace=server && npm run test:deploy",
+    "test:deploy": "bash scripts/test-deploy-sitemap-restore.sh",
     "lint": "npm run lint --workspace=client && npm run lint --workspace=server",
     "typecheck": "npm run typecheck --workspace=client && npm run typecheck --workspace=server"
   },
