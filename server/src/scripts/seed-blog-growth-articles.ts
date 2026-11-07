@@ -1,7 +1,8 @@
 import sqlite3 from 'sqlite3'
 import path from 'path'
+import { applyArticleRefresh } from '../domain/articleRefresh'
 
-const dbPath = path.join(__dirname, '../../database.sqlite')
+const dbPath = process.env.DATABASE_PATH ? path.resolve(process.env.DATABASE_PATH) : path.join(__dirname, '../../database.sqlite')
 
 interface BlogArticleSeed {
   title: string
@@ -847,6 +848,12 @@ async function seedBlogGrowthArticles() {
       else resolve()
     })
   })
+  const get = <T>(sql: string, params: unknown[] = []) => new Promise<T | undefined>((resolve, reject) => {
+    db.get(sql, params, (error, row) => {
+      if (error) reject(error)
+      else resolve(row as T | undefined)
+    })
+  })
 
   try {
     console.log('🔄 Добавление SEO-статей для роста блога...')
@@ -888,22 +895,19 @@ async function seedBlogGrowthArticles() {
     console.log(`✅ Готово: обработано статей ${articles.length}`)
 
     console.log('🔄 Обновление внутренней перелинковки старых статей...')
+    // Правила применяются идемпотентно (см. domain/articleRefresh): дата обновления меняется,
+    // только если текст реально изменился, а накопленные ранее повторы абзацев схлопываются.
+    let refreshedArticles = 0
     for (const refresh of articleRefreshes) {
-      for (const replacement of refresh.replacements) {
-        await run(`
-          UPDATE articles
-          SET content = replace(content, ?, ?),
-              updated_at = CURRENT_TIMESTAMP
-          WHERE slug = ?
-            AND instr(content, ?) > 0
-        `, [
-          replacement.from,
-          replacement.to,
-          refresh.slug,
-          replacement.from,
-        ])
-      }
+      const row = await get<{ content: string }>('SELECT content FROM articles WHERE slug = ?', [refresh.slug])
+      if (!row) continue
+      const nextContent = applyArticleRefresh(row.content, refresh.replacements)
+      if (nextContent === row.content) continue
+      await run('UPDATE articles SET content = ?, updated_at = CURRENT_TIMESTAMP WHERE slug = ?', [nextContent, refresh.slug])
+      refreshedArticles++
+      console.log(`   обновлена статья ${refresh.slug}: ${row.content.length} → ${nextContent.length} символов`)
     }
+    console.log(`✅ Обновлено статей: ${refreshedArticles}`)
     console.log(`✅ Готово: проверено refresh-правил ${articleRefreshes.length}`)
   } finally {
     await new Promise<void>((resolve, reject) => {
