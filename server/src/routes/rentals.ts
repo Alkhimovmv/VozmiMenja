@@ -14,6 +14,7 @@ import {
   validateOfficeEquipmentSelection,
 } from '../domain/officeEquipmentSelection'
 import { normalizeLocalRentalDate } from '../domain/rentalDate'
+import { rentalCommentSchema } from '../domain/rentalInputRules'
 
 const router = Router()
 
@@ -99,7 +100,7 @@ const createRentalSchema = z.object({
   delivery_price: z.number().min(0).optional().nullable(),
   delivery_costs: z.number().min(0).optional().nullable(),
   source: z.enum(RENTAL_SOURCES, { message: 'Некорректный источник аренды' }).optional().default('авито'),
-  comment: z.string().max(1000).optional(),
+  comment: rentalCommentSchema.optional(),
   office_id: z.number().int().positive().optional().default(1)
 }).refine((data) => data.end_date > data.start_date, {
   message: 'Дата окончания должна быть позже даты начала',
@@ -119,7 +120,7 @@ const updateRentalSchema = z.object({
   delivery_price: z.number().min(0).optional().nullable(),
   delivery_costs: z.number().min(0).optional().nullable(),
   source: z.enum(RENTAL_SOURCES, { message: 'Некорректный источник аренды' }).optional(),
-  comment: z.string().max(1000).optional().nullable(),
+  comment: rentalCommentSchema.optional().nullable(),
   office_id: z.number().int().positive().optional(),
   status: z.enum(['pending', 'active', 'completed', 'overdue']).optional()
 })

@@ -3,147 +3,34 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { bookingsApi } from '../../api/admin/bookings';
 import { contactLeadsApi } from '../../api/admin/contactLeads';
-import { customersApi } from '../../api/admin/customers';
 import { equipmentApi } from '../../api/admin/equipment';
 import { officesApi } from '../../api/admin/offices';
 import { rentalsApi } from '../../api/admin/rentals';
 import RentalModal from '../../components/admin/RentalModal';
-import LeadCampaignReport from '../../components/admin/LeadCampaignReport';
 import { useAuthenticatedQuery } from '../../hooks/useAuthenticatedQuery';
 import { useOffice } from '../../hooks/useOffice';
-import type { Booking, ContactLead, CreateRentalDto, LeadResult, LeadScenario } from '../../types';
-import type { Customer, RentalEquipment } from '../../types/admin';
+import type { Booking, ContactLead, CreateRentalDto } from '../../types';
+import type { RentalEquipment } from '../../types/admin';
 import { getApiErrorMessage } from '../../lib/apiError';
 import {
   buildRentalFromBooking,
   extractBookingRentalTimes,
   formatBookingDateTime,
-  formatLeadSource,
-  formatSourcePage,
   getBookingEquipmentNames,
-  normalizeAdminPhone,
   resolveBookingEquipmentMappings,
 } from '../../lib/adminLeadConversion';
-import {
-  buildLeadReply,
-  getLeadResultLabel,
-  getLeadScenarioLabel,
-  parseLeadRevenue,
-  resolveLeadScenario,
-} from '../../lib/leadWorkflow';
 import { invalidateAdminLeadReport } from '../../lib/adminLeadReport';
 import {
   getBookingUrgency,
-  getCustomerSegment,
   sortBookingsByOperationalPriority,
   type BookingUrgency,
-  type CustomerSegment,
 } from '../../lib/adminBookingPriorities';
-
-const LEAD_RESULTS: LeadResult[] = ['unreached', 'thinking', 'booked', 'declined', 'duplicate'];
-
-const formatDeliveryMethod = (method?: 'pickup' | 'delivery') => {
-  if (method === 'pickup') return 'Самовывоз';
-  if (method === 'delivery') return 'Доставка';
-  return 'Не указано';
-};
-
-const formatPreferredContact = (contact?: string) => {
-  const labels: Record<string, string> = {
-    phone: 'Телефон',
-    telegram: 'Telegram',
-    whatsapp: 'WhatsApp',
-  };
-  return contact ? labels[contact] || contact : 'Не указано';
-};
-
-function LeadOutcomeControls({
-  selectedResult,
-  isPending,
-  onSelect,
-}: {
-  selectedResult?: LeadResult;
-  isPending: boolean;
-  onSelect: (result: LeadResult) => void;
-}) {
-  return (
-    <div className="mt-3">
-      <p className="text-xs font-bold uppercase tracking-wide text-gray-500">Результат контакта</p>
-      <div className="mt-2 flex flex-wrap gap-2" role="group" aria-label="Результат контакта">
-        {LEAD_RESULTS.map((result) => {
-          const isSelected = selectedResult === result;
-          const label = getLeadResultLabel(result);
-          return (
-            <button
-              key={result}
-              type="button"
-              title={`Сохранить результат: ${label}`}
-              aria-pressed={isSelected}
-              disabled={isPending}
-              onClick={() => onSelect(result)}
-              className={`rounded-lg border px-3 py-2 text-xs font-bold transition disabled:cursor-not-allowed disabled:opacity-50 ${
-                isSelected
-                  ? 'border-indigo-700 bg-indigo-700 text-white'
-                  : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-100'
-              }`}
-            >
-              {label}
-            </button>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
-function LeadContext({
-  source,
-  utmCampaign,
-  scenario,
-  officeName,
-  deliveryMethod,
-  preferredContact,
-}: {
-  source: string;
-  utmCampaign?: string;
-  scenario?: LeadScenario;
-  officeName?: string;
-  deliveryMethod?: 'pickup' | 'delivery';
-  preferredContact?: string;
-}) {
-  const fields = [
-    ['Источник', source],
-    ['UTM-кампания', utmCampaign || 'Не указано'],
-    ['Сценарий', getLeadScenarioLabel(scenario)],
-    ['Офис', officeName || 'Не указано'],
-    ['Получение', formatDeliveryMethod(deliveryMethod)],
-    ['Предпочтительная связь', formatPreferredContact(preferredContact)],
-  ];
-
-  return (
-    <dl className="mt-3 grid gap-2 text-xs sm:grid-cols-2 xl:grid-cols-3">
-      {fields.map(([label, value]) => (
-        <div key={label} className="rounded-lg bg-gray-50 px-3 py-2 ring-1 ring-gray-100">
-          <dt className="font-bold text-gray-500">{label}</dt>
-          <dd className="mt-0.5 break-words font-semibold text-gray-800">{value}</dd>
-        </div>
-      ))}
-    </dl>
-  );
-}
 
 const URGENCY_BADGES: Record<BookingUrgency, { label: string; className: string }> = {
   past: { label: 'Дата прошла', className: 'bg-red-100 text-red-800 ring-red-200' },
   today: { label: 'Сегодня', className: 'bg-orange-100 text-orange-800 ring-orange-200' },
   tomorrow: { label: 'Завтра', className: 'bg-yellow-100 text-yellow-800 ring-yellow-200' },
   later: { label: 'Позже', className: 'bg-slate-100 text-slate-700 ring-slate-200' },
-};
-
-const CUSTOMER_SEGMENT_BADGES: Record<CustomerSegment, { label: string; className: string }> = {
-  new: { label: 'Новый клиент', className: 'bg-gray-100 text-gray-700 ring-gray-200' },
-  single: { label: 'Уже арендовал 1 раз', className: 'bg-cyan-50 text-cyan-800 ring-cyan-200' },
-  repeat: { label: 'Повторный клиент', className: 'bg-blue-50 text-blue-800 ring-blue-200' },
-  loyal: { label: 'Постоянный клиент', className: 'bg-indigo-50 text-indigo-800 ring-indigo-200' },
 };
 
 const formatContactSubject = (subject: string) => {
@@ -155,21 +42,15 @@ const formatContactSubject = (subject: string) => {
   return labels[subject] || subject;
 };
 
-const extractBookingContext = (comment?: string) => {
-  if (!comment) {
-    return { scenario: null as string | null, managerHint: null as string | null, customerNote: null as string | null };
-  }
+const extractCustomerNote = (comment?: string) => {
+  if (!comment) return null;
 
   const lines = comment.split('\n').map((line) => line.trim()).filter(Boolean);
-  const scenarioLine = lines.find((line) => line.toLowerCase().startsWith('сценарий:'));
-  const managerLine = lines.find((line) => line.toLowerCase().startsWith('подсказка менеджеру:'));
-  const rest = lines.filter((line) => line !== scenarioLine && line !== managerLine).join('\n');
-
-  return {
-    scenario: scenarioLine ? scenarioLine.replace(/^сценарий:\s*/i, '') : null,
-    managerHint: managerLine ? managerLine.replace(/^подсказка менеджеру:\s*/i, '') : null,
-    customerNote: rest || (scenarioLine || managerLine ? null : comment),
-  };
+  const customerLines = lines.filter((line) => (
+    !line.toLowerCase().startsWith('сценарий:')
+    && !line.toLowerCase().startsWith('подсказка менеджеру:')
+  ));
+  return customerLines.join('\n') || null;
 };
 
 const formatBookingAge = (createdAt: string) => {
@@ -201,24 +82,6 @@ const formatBookingPeriod = (booking: Booking) => {
   const start = `${formatBookingDate(booking.startDate)} ${booking.startTime || '10:00'}`;
   const end = `${formatBookingDate(booking.endDate)} ${booking.endTime || '10:00'}`;
   return `${start} — ${end}`;
-};
-
-const copyTextToClipboard = async (text: string) => {
-  if (navigator.clipboard?.writeText) {
-    await navigator.clipboard.writeText(text);
-    return;
-  }
-
-  const textarea = document.createElement('textarea');
-  textarea.value = text;
-  textarea.setAttribute('readonly', '');
-  textarea.style.position = 'fixed';
-  textarea.style.top = '-9999px';
-  document.body.appendChild(textarea);
-  textarea.select();
-  const copied = typeof document.execCommand === 'function' && document.execCommand('copy');
-  textarea.remove();
-  if (!copied) throw new Error('Clipboard API is unavailable');
 };
 
 const getErrorMessage = (error: unknown) =>
@@ -254,21 +117,6 @@ export default function SiteBookingsPage() {
   });
   const { data: equipment = [] } = useAuthenticatedQuery<RentalEquipment[]>(['equipment-rental', currentOfficeId], () => equipmentApi.getForRental(currentOfficeId));
   const { data: offices = [] } = useAuthenticatedQuery(['offices'], officesApi.getAll);
-  const { data: customers = [] } = useAuthenticatedQuery<Customer[]>({
-    queryKey: ['customers-all'],
-    queryFn: () => customersApi.getAll(),
-    staleTime: 30_000,
-  });
-
-  const rentalCountByPhone = useMemo(() => {
-    const counts = new Map<string, number>();
-    customers.forEach((customer) => {
-      const phone = normalizeAdminPhone(customer.customer_phone);
-      counts.set(phone, Math.max(counts.get(phone) || 0, customer.rental_count));
-    });
-    return counts;
-  }, [customers]);
-
   const openBookings = useMemo(
     () => sortBookingsByOperationalPriority(
       bookings.filter((booking) => booking.status === 'pending' || booking.status === 'confirmed'),
@@ -361,36 +209,6 @@ export default function SiteBookingsPage() {
     },
   });
 
-  const bookingWorkflowMutation = useMutation({
-    mutationFn: ({ id, result, revenue }: { id: string; result: LeadResult; revenue: number | null }) =>
-      bookingsApi.updateWorkflow(id, { result, revenue }),
-    onSuccess: async () => {
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['admin-bookings'] }),
-        invalidateAdminLeadReport(queryClient),
-      ]);
-      toast.success('Результат контакта сохранён');
-    },
-    onError: (error: unknown) => {
-      toast.error(getApiErrorMessage(error, 'Не удалось сохранить результат контакта'));
-    },
-  });
-
-  const contactLeadWorkflowMutation = useMutation({
-    mutationFn: ({ id, result, revenue }: { id: number; result: LeadResult; revenue: number | null }) =>
-      contactLeadsApi.updateWorkflow(id, { result, revenue }),
-    onSuccess: async () => {
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['admin-contact-leads'] }),
-        invalidateAdminLeadReport(queryClient),
-      ]);
-      toast.success('Результат контакта сохранён');
-    },
-    onError: (error: unknown) => {
-      toast.error(getApiErrorMessage(error, 'Не удалось сохранить результат контакта'));
-    },
-  });
-
   const handleCreateRentalFromBooking = async (booking: Booking) => {
     setConvertingBookingId(booking.id);
     const targetOfficeId = booking.officeId || currentOfficeId;
@@ -464,57 +282,6 @@ export default function SiteBookingsPage() {
     }
   };
 
-  const handleCopyNumber = async (text: string) => {
-    try {
-      await copyTextToClipboard(text);
-      toast.success('Номер скопирован');
-    } catch {
-      toast.error('Не удалось скопировать номер');
-    }
-  };
-
-  const handleCopyLeadReply = async ({
-    customerName,
-    scenario,
-    officeName,
-  }: {
-    customerName: string;
-    scenario?: LeadScenario;
-    officeName?: string;
-  }) => {
-    try {
-      await copyTextToClipboard(buildLeadReply({ customerName, scenario, officeName }));
-      toast.success('Ответ скопирован');
-    } catch {
-      toast.error('Не удалось скопировать ответ');
-    }
-  };
-
-  const handleBookingLeadResult = (booking: Booking, result: LeadResult) => {
-    bookingWorkflowMutation.mutate({
-      id: booking.id,
-      result,
-      revenue: result === 'booked' ? booking.totalPrice : null,
-    });
-  };
-
-  const handleContactLeadResult = (lead: ContactLead, result: LeadResult) => {
-    let revenue: number | null = null;
-
-    if (result === 'booked') {
-      const input = window.prompt('Введите выручку по бронированию (можно оставить пустым)', '');
-      if (input === null) return;
-      const parsed = parseLeadRevenue(input);
-      if (!parsed.ok) {
-        toast.error('Выручка должна быть числом от 0 до 10 000 000');
-        return;
-      }
-      revenue = parsed.revenue;
-    }
-
-    contactLeadWorkflowMutation.mutate({ id: lead.id, result, revenue });
-  };
-
   const handleDeleteBooking = (booking: Booking) => {
     if (!window.confirm(`Удалить заявку ${booking.customerName}? Это действие нельзя отменить.`)) return;
     deleteBookingMutation.mutate(booking.id);
@@ -571,9 +338,6 @@ export default function SiteBookingsPage() {
             {activeCount} активных из {totalCount}{isContactLeadsLoading ? ' · обращения загружаются' : ''}
           </div>
         </div>
-        <div className="mt-4">
-          <LeadCampaignReport />
-        </div>
         <div className="mt-4 flex flex-wrap gap-2">
           <button
             type="button"
@@ -606,12 +370,9 @@ export default function SiteBookingsPage() {
           {visibleBookings.map((booking) => (
             <div key={booking.id} className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-amber-100">
               {(() => {
-                const bookingContext = extractBookingContext(booking.comment);
+                const customerNote = extractCustomerNote(booking.comment);
                 const equipmentNames = getBookingEquipmentNames(booking);
-                const resolvedScenario = resolveLeadScenario(booking.scenario, bookingContext.scenario);
                 const urgency = URGENCY_BADGES[getBookingUrgency(booking.startDate)];
-                const rentalCount = rentalCountByPhone.get(normalizeAdminPhone(booking.customerPhone)) || 0;
-                const customerSegment = CUSTOMER_SEGMENT_BADGES[getCustomerSegment(rentalCount)];
                 return (
               <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                 <div className="min-w-0">
@@ -639,9 +400,6 @@ export default function SiteBookingsPage() {
                     <span className="rounded-full bg-amber-50 px-2.5 py-1 text-xs font-bold text-amber-700">
                       {formatBookingAge(booking.createdAt)}
                     </span>
-                    <span className={`rounded-full px-2.5 py-1 text-xs font-bold ring-1 ${customerSegment.className}`}>
-                      {customerSegment.label}{rentalCount >= 2 ? ` · ${rentalCount}` : ''}
-                    </span>
                     <span className="text-sm font-bold text-gray-900">
                       {equipmentNames.length > 0 ? equipmentNames.join(', ') : booking.equipmentId}
                     </span>
@@ -651,83 +409,19 @@ export default function SiteBookingsPage() {
                     <a href={`tel:${booking.customerPhone}`} className="font-semibold text-indigo-600 hover:underline">{booking.customerPhone}</a>
                     <span>{formatBookingPeriod(booking)}</span>
                     <span className="font-semibold text-gray-900">{booking.totalPrice}₽</span>
+                    {booking.officeName && <span>Офис: {booking.officeName}</span>}
+                    <span>{booking.deliveryMethod === 'delivery' ? 'Доставка' : 'Самовывоз'}</span>
                   </div>
-                  <div className="mt-2 flex flex-wrap gap-2 text-xs">
-                    <span className="rounded-full bg-gray-100 px-2.5 py-1 font-semibold text-gray-700">
-                      Страница: {formatSourcePage(booking.sourcePage)}
-                    </span>
-                  </div>
-                  <LeadContext
-                    source={formatLeadSource(booking)}
-                    utmCampaign={booking.utmCampaign}
-                    scenario={resolvedScenario}
-                    officeName={booking.officeName}
-                    deliveryMethod={booking.deliveryMethod}
-                    preferredContact={booking.preferredContact}
-                  />
                   {booking.deliveryAddress && (
-                    <div className="mt-3 grid gap-2 md:grid-cols-2">
-                      {booking.deliveryAddress && (
-                        <div className="rounded-xl bg-violet-50 px-3 py-2 text-sm text-violet-900 ring-1 ring-violet-100">
-                          <span className="block text-xs font-bold uppercase tracking-wide text-violet-600">Адрес доставки</span>
-                          {booking.deliveryAddress}
-                        </div>
-                      )}
+                    <div className="mt-2 rounded-xl bg-violet-50 px-3 py-2 text-sm text-violet-900 ring-1 ring-violet-100">
+                      <span className="font-bold text-violet-700">Адрес: </span>{booking.deliveryAddress}
                     </div>
                   )}
-                  {(bookingContext.scenario || bookingContext.managerHint) && (
-                    <div className="mt-3 grid gap-2 md:grid-cols-2">
-                      {bookingContext.scenario && (
-                        <div className="rounded-xl bg-indigo-50 px-3 py-2 text-sm text-indigo-900 ring-1 ring-indigo-100">
-                          <span className="block text-xs font-bold uppercase tracking-wide text-indigo-500">Сценарий</span>
-                          {bookingContext.scenario}
-                        </div>
-                      )}
-                      {bookingContext.managerHint && (
-                        <div className="rounded-xl bg-emerald-50 px-3 py-2 text-sm text-emerald-900 ring-1 ring-emerald-100">
-                          <span className="block text-xs font-bold uppercase tracking-wide text-emerald-600">Проверить комплект</span>
-                          {bookingContext.managerHint}
-                        </div>
-                      )}
-                    </div>
-                  )}
-                  {bookingContext.customerNote && (
+                  {customerNote && (
                     <p className="mt-2 max-w-3xl whitespace-pre-wrap rounded-xl bg-amber-50 px-3 py-2 text-sm text-gray-700 ring-1 ring-amber-100">
-                      {bookingContext.customerNote}
+                      {customerNote}
                     </p>
                   )}
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    <a
-                      href={`tel:${booking.customerPhone}`}
-                      className="rounded-lg bg-gray-900 px-3 py-2 text-xs font-bold text-white hover:bg-gray-800"
-                    >
-                      Позвонить
-                    </a>
-                    <button
-                      type="button"
-                      onClick={() => void handleCopyNumber(booking.customerPhone)}
-                      className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-100"
-                    >
-                      Скопировать номер
-                    </button>
-                    <button
-                      type="button"
-                      title="Скопировать готовый ответ клиенту"
-                      onClick={() => void handleCopyLeadReply({
-                        customerName: booking.customerName,
-                        scenario: resolvedScenario,
-                        officeName: booking.officeName,
-                      })}
-                      className="rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-2 text-xs font-bold text-indigo-700 hover:bg-indigo-100"
-                    >
-                      Скопировать ответ
-                    </button>
-                  </div>
-                  <LeadOutcomeControls
-                    selectedResult={booking.leadResult}
-                    isPending={bookingWorkflowMutation.isPending}
-                    onSelect={(result) => handleBookingLeadResult(booking, result)}
-                  />
                 </div>
 
                 <div className="flex flex-col gap-2 sm:flex-row">
@@ -786,62 +480,9 @@ export default function SiteBookingsPage() {
                     <a href={`tel:${lead.phone}`} className="font-semibold text-indigo-600 hover:underline">{lead.phone}</a>
                     {lead.email && <a href={`mailto:${lead.email}`} className="font-semibold text-indigo-600 hover:underline">{lead.email}</a>}
                   </div>
-                  <div className="mt-2 flex flex-wrap gap-2 text-xs">
-                    <span className="rounded-full bg-gray-100 px-2.5 py-1 font-semibold text-gray-700">
-                      Страница: {formatSourcePage(lead.sourcePage)}
-                    </span>
-                  </div>
-                  <LeadContext
-                    source={formatLeadSource(lead)}
-                    utmCampaign={lead.utmCampaign}
-                    scenario={resolveLeadScenario(lead.scenario)}
-                    officeName={lead.officeName}
-                    deliveryMethod={lead.deliveryMethod}
-                    preferredContact={lead.preferredContact}
-                  />
                   <p className="mt-2 max-w-3xl whitespace-pre-wrap rounded-xl bg-amber-50 px-3 py-2 text-sm text-gray-700 ring-1 ring-amber-100">
                     {lead.message}
                   </p>
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    <a
-                      href={`tel:${lead.phone}`}
-                      className="rounded-lg bg-gray-900 px-3 py-2 text-xs font-bold text-white hover:bg-gray-800"
-                    >
-                      Позвонить
-                    </a>
-                    <button
-                      type="button"
-                      onClick={() => void handleCopyNumber(lead.phone)}
-                      className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-100"
-                    >
-                      Скопировать номер
-                    </button>
-                    <button
-                      type="button"
-                      title="Скопировать готовый ответ клиенту"
-                      onClick={() => void handleCopyLeadReply({
-                        customerName: lead.name,
-                        scenario: resolveLeadScenario(lead.scenario),
-                        officeName: lead.officeName,
-                      })}
-                      className="rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-2 text-xs font-bold text-indigo-700 hover:bg-indigo-100"
-                    >
-                      Скопировать ответ
-                    </button>
-                    {lead.email && (
-                      <a
-                        href={`mailto:${lead.email}`}
-                        className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-100"
-                      >
-                        Email
-                      </a>
-                    )}
-                  </div>
-                  <LeadOutcomeControls
-                    selectedResult={lead.leadResult}
-                    isPending={contactLeadWorkflowMutation.isPending}
-                    onSelect={(result) => handleContactLeadResult(lead, result)}
-                  />
                 </div>
 
                 <div className="flex flex-col gap-2 sm:flex-row">
