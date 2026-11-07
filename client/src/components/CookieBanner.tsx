@@ -23,9 +23,8 @@ export default function CookieBanner() {
     <div className="fixed bottom-16 sm:bottom-4 left-0 right-0 z-40 flex justify-center px-4 pointer-events-none">
       <div className="bg-gray-900 text-white rounded-2xl shadow-xl p-4 max-w-xl w-full flex items-start gap-4 pointer-events-auto">
         <div className="flex-1 text-xs text-gray-300 leading-relaxed">
-          Мы используем cookie-файлы и метрические системы, включая Яндекс.Метрику, для корректной работы сайта,
-          анализа трафика и обработки пользовательских действий, которые могут относиться к персональным данным.
-          Продолжая использование сайта, вы подтверждаете согласие с{' '}
+          Мы используем cookie и Яндекс.Метрику для работы сайта и аналитики.
+          Продолжая пользоваться сайтом, вы соглашаетесь с{' '}
           <Link to="/privacy" className="text-blue-400 hover:underline">Политикой обработки персональных данных</Link>{' '}
           и{' '}
           <Link to="/cookies" className="text-blue-400 hover:underline">Политикой использования cookie</Link>.
