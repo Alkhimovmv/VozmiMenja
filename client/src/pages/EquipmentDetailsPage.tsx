@@ -4,8 +4,9 @@ import { useEquipment, useEquipmentById } from '../hooks/useEquipment'
 import LoadingSpinner from '../components/ui/LoadingSpinner'
 import BookingForm from '../components/equipment/BookingForm'
 import RelatedCard from '../components/equipment/RelatedCard'
+import EquipmentTrustStrip from '../components/equipment/EquipmentTrustStrip'
 import SEO from '../components/SEO'
-import { ArrowLeft, Check, ChevronRight, Shield, Clock } from 'lucide-react'
+import { ArrowLeft, Check, ChevronRight, Clock } from 'lucide-react'
 import { fetchPriorityAttr, getImageSrcSet, getImageUrl } from '../lib/utils'
 import { trackEvent } from '../lib/analytics'
 import { getLongTermDailyPrice, getOneDayPrice, getPricingRows } from '../utils/pricing'
@@ -907,17 +908,12 @@ export default function EquipmentDetailsPage() {
                 <ChevronRight className="w-5 h-5" />
               </button>
 
-              {/* Trust badges */}
-              <div className="flex items-center justify-center gap-4 mt-3">
-                <span className="flex items-center gap-1 text-xs text-muted">
-                  <Shield className="w-3.5 h-3.5 text-emerald-500" />
-                  Гарантия чистоты
-                </span>
-                <span className="flex items-center gap-1 text-xs text-muted">
-                  <Clock className="w-3.5 h-3.5 text-primary" />
-                  Перезвоним за 15 мин
-                </span>
-              </div>
+              <EquipmentTrustStrip
+                onReviewsClick={() => trackEvent('yandex_maps_click', {
+                  source: 'equipment_reviews',
+                  equipment_id: equipment.id,
+                })}
+              />
 
               {/* Conditions hint */}
               <div className="mt-3 text-center text-xs text-muted">
