@@ -414,14 +414,20 @@ function getOneDayPrice(item) {
   return Number(pricing.day1) || Number(item?.pricePerDay || item?.price_per_day || 0)
 }
 
-// Цена за сутки при аренде от 30 суток (как getLongTermDailyPrice в client/src/utils/pricing.ts):
-// только месячный тариф, потому что для срока от 30 суток расчёт брони всегда берёт days30.
+// Цена за сутки для длинной аренды (как getLongTermDailyPrice в client/src/utils/pricing.ts).
+// Пустой тариф наследует ближайший предыдущий заполненный тариф.
 function getLongTermDailyPrice(item) {
   const oneDay = getOneDayPrice(item)
-  const monthly = pricingRows(item).find((tier) => tier.key === 'days30')
-  if (!monthly) return null
-  const dailyPrice = Math.round(monthly.effectiveDailyPrice)
-  return dailyPrice > 0 && dailyPrice < oneDay ? { dailyPrice, days: 30 } : null
+  const pricing = normalizePricing(item?.pricing)
+  const longTerm = durationTierDefinitions
+    .map((tier) => ({ ...tier, value: Number(pricing[tier.key]) || 0 }))
+    .filter((tier) => tier.value > 0)
+    .at(-1)
+  if (!longTerm) return null
+  const dailyPrice = Math.round(isPackagePrice(pricing, longTerm.value, longTerm.days)
+    ? longTerm.value / longTerm.days
+    : longTerm.value)
+  return dailyPrice > 0 && dailyPrice < oneDay ? { dailyPrice, days: longTerm.days } : null
 }
 
 function formatPrice(price) {
@@ -452,6 +458,10 @@ const pricingTierDefinitions = [
   { key: 'days14', days: 14, label: '14 суток', suffix: '/сутки' },
   { key: 'days30', days: 30, label: '30 суток', suffix: '/сутки' },
 ]
+
+const durationTierDefinitions = pricingTierDefinitions.filter((tier) => (
+  !['weekendDay10to20', 'weekendDay', 'day1_10to20'].includes(tier.key)
+))
 
 function isPackagePrice(pricing, value, periodDays) {
   return periodDays > 1 && Number(pricing.day1) > 0 && value > Number(pricing.day1)

@@ -80,6 +80,23 @@ describe('calculateRentalTotal', () => {
     expect(calculateRentalTotal(microphonePricing, 30, 500)).toBe(3000)
   })
 
+  it('inherits the nearest previous filled tier for longer rentals', () => {
+    const weeklyOnlyPricing: PricingTier = {
+      day1_10to20: 0,
+      day1: 780,
+      days2: 0,
+      days3: 0,
+      days7: 643,
+      days14: 0,
+      days30: 0,
+      weekendDay: 1180,
+      weekendDay10to20: 0,
+    }
+
+    expect(calculateRentalTotal(weeklyOnlyPricing, 14, 780)).toBe(9002)
+    expect(calculateRentalTotal(weeklyOnlyPricing, 30, 780)).toBe(19290)
+  })
+
   it('uses same-day 10 to 20 price when the rental stays inside that window', () => {
     expect(calculateRentalTotal(pricing, 1, 1000, {
       startDate: '2026-09-14',

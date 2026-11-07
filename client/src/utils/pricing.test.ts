@@ -114,9 +114,10 @@ assert.equal(getOneDayPrice(undefined, 999), 999)
 assert.deepEqual(getLongTermDailyPrice(goproPricing, 1300), { dailyPrice: 360, days: 30 })
 assert.deepEqual(getLongTermDailyPrice(microphonePricing, 500), { dailyPrice: 100, days: 30 })
 assert.equal(getLongTermDailyPrice({ ...goproPricing, days2: 0, days3: 0, days7: 0, days14: 0, days30: 0 }, 1300), null)
-// Недельный тариф без месячного не действует на 30 суток — подсказку «от … при аренде от 30 суток» не показываем.
+// Пустые длинные тарифы наследуют ближайший предыдущий заполненный тариф.
 const weeklyOnlyPricing: PricingTier = { day1_10to20: 0, day1: 780, days2: 0, days3: 0, days7: 643, days14: 0, days30: 0, weekendDay: 1180, weekendDay10to20: 0 }
-assert.equal(getLongTermDailyPrice(weeklyOnlyPricing, 780), null)
-assert.equal(calculateRentalTotal(weeklyOnlyPricing, 30, 780), 23400)
+assert.deepEqual(getLongTermDailyPrice(weeklyOnlyPricing, 780), { dailyPrice: 643, days: 7 })
+assert.equal(calculateRentalTotal(weeklyOnlyPricing, 14, 780), 9002)
+assert.equal(calculateRentalTotal(weeklyOnlyPricing, 30, 780), 19290)
 
 console.log('pricing tests passed')

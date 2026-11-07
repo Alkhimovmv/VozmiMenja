@@ -42,6 +42,7 @@ const missingLongTariffs = getPricingConsistencyIssues({
   days30: 0,
 }, 1000)
 
-assert.equal(missingLongTariffs.some((issue) => issue.code === 'tier-increase-14'), true)
+assert.equal(missingLongTariffs.some((issue) => issue.code === 'tier-increase-14'), false)
+assert.equal(missingLongTariffs.some((issue) => issue.code === 'tier-increase-30'), false)
 
 console.log('pricingConsistency tests passed')
