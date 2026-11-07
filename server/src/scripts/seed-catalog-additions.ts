@@ -4,6 +4,7 @@ const PRODUCT_ID = 'jbl-partybox-wireless-microphones'
 const PRODUCT_NAME = 'Микрофоны JBL'
 const LEGACY_PRODUCT_NAME = 'Набор беспроводных микрофонов JBL PartyBox'
 const PURCHASE_PRICE = 10_000
+const PRODUCT_IMAGES = ['/uploads/jbl-partybox-wireless-microphones.jpg']
 
 const pricing = {
   day1_10to20: 0,
@@ -51,12 +52,18 @@ async function seedCatalogAdditions() {
       JSON.stringify(pricing),
       4,
       4,
-      JSON.stringify([
-        'https://c.dns-shop.ru/thumb/st1/fit/500/500/3fa4cd7577856bf4a805c22eb92261fa/17308335de239047ccd63d1e5fac39c2a8b8cc0a7ac5a765314d08def597f832.jpg',
-      ]),
+      JSON.stringify(PRODUCT_IMAGES),
       description,
       JSON.stringify(specifications),
     ])
+
+    // Однократно переносим старую внешнюю картинку DNS в локальное хранилище.
+    // Уже загруженное владельцем локальное фото не перезаписываем.
+    await run(`
+      UPDATE equipment
+      SET images = ?, updated_at = CURRENT_TIMESTAMP
+      WHERE id = ? AND images LIKE '%dns-shop.ru%'
+    `, [JSON.stringify(PRODUCT_IMAGES), PRODUCT_ID])
 
     const offices = await all(`
       SELECT id, name
