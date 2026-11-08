@@ -17,6 +17,13 @@ interface LayoutProps {
 
 const OFFICE_ID_KEY = 'selectedOfficeId';
 
+const siteManagementItems = [
+  { path: '/admin/booking-funnel', label: 'Воронка брони', icon: '↘️' },
+  { path: '/admin/articles', label: 'Управление блогом', icon: '📝' },
+  { path: '/admin/site-prices', label: 'Цены на сайте', icon: '🏷️' },
+  { path: '/admin/offices', label: 'Настройка офисов', icon: '🏢' },
+];
+
 const Layout: React.FC<LayoutProps> = ({ children }) => {
   const location = useLocation();
   const { logout, isSuperAdmin, viewAsUserId, setViewAsUserId, hasSelectedAccount } = useAuth();
@@ -28,6 +35,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     return false;
   });
   const [accountDropdownOpen, setAccountDropdownOpen] = useState(false);
+  const [siteManagementOpen, setSiteManagementOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const [currentOfficeId, setCurrentOfficeIdState] = useState<number>(() => {
@@ -78,6 +86,14 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     return () => window.removeEventListener('resize', checkScreenSize);
   }, []);
 
+  useEffect(() => {
+    if (isCompactMode) {
+      setSiteManagementOpen(false);
+    } else if (siteManagementItems.some((item) => location.pathname.startsWith(item.path))) {
+      setSiteManagementOpen(true);
+    }
+  }, [isCompactMode, location.pathname]);
+
   // Закрытие дропдауна при клике снаружи
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -103,14 +119,10 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     { path: '/admin/finances', label: 'Финансы', icon: '💰' },
     { path: '/admin/lockers', label: 'Ячейки постомата', icon: '🔐' },
     { path: '/admin/bookings', label: 'Заявки с сайта', icon: '✉️' },
-    { path: '/admin/booking-funnel', label: 'Воронка брони', icon: '↘️' },
-    { path: '/admin/articles', label: 'Блог', icon: '📝' },
   ];
 
   const bottomMenuItems = [
     { path: '/admin/equipment', label: 'Оборудование', icon: '🎥' },
-    { path: '/admin/site-prices', label: 'Цены на сайте', icon: '🏷️' },
-    { path: '/admin/offices', label: 'Настройка офисов', icon: '🏢' },
     ...(isSuperAdmin ? [{ path: '/admin/users', label: 'Аккаунты', icon: '👤' }] : []),
   ];
 
@@ -173,6 +185,53 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                 {!isCompactMode && <span className="text-sm">{item.label}</span>}
               </Link>
             ))}
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setSiteManagementOpen((open) => !open)}
+                className={`flex ${isCompactMode ? 'justify-center px-2' : 'items-center px-4'} w-full py-3 text-sm font-medium rounded-md transition-colors ${
+                  siteManagementItems.some((item) => isActive(item.path))
+                    ? 'bg-indigo-100 text-indigo-700'
+                    : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+                }`}
+                title="Сайт и настройки"
+                aria-expanded={siteManagementOpen}
+              >
+                <span className={`${isCompactMode ? 'text-xl' : 'text-lg mr-3'}`}>⚙️</span>
+                {!isCompactMode && (
+                  <>
+                    <span className="flex-1 text-left text-sm">Сайт и настройки</span>
+                    <span className="text-xs" aria-hidden="true">{siteManagementOpen ? '▲' : '▼'}</span>
+                  </>
+                )}
+              </button>
+
+              {siteManagementOpen && (
+                <div className={isCompactMode
+                  ? 'absolute bottom-0 left-full z-50 ml-2 w-56 rounded-xl border border-gray-200 bg-white p-2 shadow-xl'
+                  : 'mt-1 space-y-1 border-l-2 border-indigo-100 pl-3'
+                }>
+                  {siteManagementItems.map((item) => (
+                    <Link
+                      key={item.path}
+                      to={item.path}
+                      className={`flex items-center rounded-md px-3 py-2 text-sm transition-colors ${
+                        isActive(item.path)
+                          ? 'bg-indigo-100 font-medium text-indigo-700'
+                          : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+                      }`}
+                      title={item.label}
+                      onClick={() => {
+                        if (isCompactMode) setSiteManagementOpen(false);
+                      }}
+                    >
+                      <span className="mr-2 text-base">{item.icon}</span>
+                      <span>{item.label}</span>
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </div>
             <button
               onClick={() => logout()}
               className={`flex ${isCompactMode ? 'justify-center px-2' : 'items-center px-4'} w-full py-3 text-sm font-medium text-gray-600 rounded-md hover:bg-gray-100 hover:text-gray-900`}

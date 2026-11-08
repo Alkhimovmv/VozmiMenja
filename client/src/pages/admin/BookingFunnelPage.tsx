@@ -3,7 +3,7 @@ import { analyticsApi, type BookingFunnelReport } from '../../api/admin/analytic
 import { useAuthenticatedQuery } from '../../hooks/useAuthenticatedQuery'
 import { buildBookingFunnelRows } from '../../lib/bookingFunnel'
 
-const periods = [7, 30] as const
+const periods = [7, 30, 90] as const
 
 export default function BookingFunnelPage() {
   const [days, setDays] = useState<(typeof periods)[number]>(30)
