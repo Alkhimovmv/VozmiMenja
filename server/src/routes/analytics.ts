@@ -6,6 +6,7 @@ import { all } from '../models/database'
 import { authMiddleware } from '../middleware/auth'
 import { getUserOfficeIds } from '../middleware/userFilter'
 import { resolveOfficeScope } from '../domain/officeScope'
+import { getPublicContentPriceAuditReport } from '../services/publicContentPriceAuditReport'
 
 const router = Router()
 
@@ -99,6 +100,16 @@ router.get('/booking-funnel', authMiddleware, async (req: Request, res: Response
   } catch (error) {
     console.error('Error getting booking funnel:', error)
     return res.status(500).json({ error: 'Ошибка получения воронки бронирования' })
+  }
+})
+
+// GET /api/admin/analytics/content-price-audit - расхождения каталога и публичного контента
+router.get('/content-price-audit', authMiddleware, async (_req: Request, res: Response) => {
+  try {
+    return res.json(await getPublicContentPriceAuditReport())
+  } catch (error) {
+    console.error('Error auditing public content prices:', error)
+    return res.status(500).json({ error: 'Ошибка проверки цен в публичном контенте' })
   }
 })
 

@@ -18,7 +18,22 @@ export type BookingFunnelReport = {
   };
 };
 
+export type ContentPriceAuditReport = {
+  checkedAt: string;
+  equipmentCount: number;
+  articleCount: number;
+  issues: Array<{
+    location: string;
+    message: string;
+  }>;
+};
+
 export const analyticsApi = {
+  getContentPriceAudit: async (): Promise<ContentPriceAuditReport> => {
+    const response = await apiClient.get('/analytics/content-price-audit');
+    return response.data;
+  },
+
   getBookingFunnel: async (days = 30): Promise<BookingFunnelReport> => {
     const response = await apiClient.get(`/analytics/booking-funnel?days=${days}`);
     return response.data;
