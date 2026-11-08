@@ -4,7 +4,7 @@
 
 ## 2026-11-09
 
-- Внешний мониторинг: `.github/workflows/uptime.yml` раз в 10 минут проверяет из GitHub Actions главную, `/booking`, `sitemap.xml`, `api/health`, каталог API и срок SSL обоих доменов (`scripts/monitoring/uptime-check.mjs`, 3 попытки на проверку, предупреждение за 14 дней до истечения сертификата). Уведомление в Telegram только при смене состояния («упало» / «восстановилось»), нужны секреты `MONITOR_TELEGRAM_BOT_TOKEN` и `MONITOR_TELEGRAM_CHAT_ID`; без них упавший запуск виден в GitHub и приходит письмом.
+- Внешний мониторинг: `.github/workflows/uptime.yml` раз в сутки (06:00 МСК, по решению владельца) проверяет из GitHub Actions главную, `/booking`, `sitemap.xml`, `api/health`, каталог API и срок SSL обоих доменов (`scripts/monitoring/uptime-check.mjs`, 3 попытки на проверку, предупреждение за 14 дней до истечения сертификата). Уведомление во VK (Telegram не используется из-за VPN) только при смене состояния («упало» / «восстановилось»), нужны секреты `MONITOR_VK_TOKEN` и `MONITOR_VK_PEER_ID`; без них упавший запуск виден в GitHub и приходит письмом.
 
 ## 2026-11-08
 

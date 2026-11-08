@@ -1,13 +1,14 @@
 name: Uptime
 
-# Внешний мониторинг vozmimenya.ru: сайт, API, каталог, бронь, sitemap и SSL раз в 10 минут.
-# Уведомление в Telegram только при смене состояния: «упало» и «восстановилось».
-# Нужны секреты репозитория MONITOR_TELEGRAM_BOT_TOKEN и MONITOR_TELEGRAM_CHAT_ID;
-# без них падение всё равно видно как упавший запуск (GitHub пришлёт письмо).
+# Внешний мониторинг vozmimenya.ru: сайт, API, каталог, бронь, sitemap и SSL раз в сутки (06:00 МСК).
+# Уведомление во VK только при смене состояния: «упало» и «восстановилось».
+# Нужны секреты репозитория MONITOR_VK_TOKEN и MONITOR_VK_PEER_ID (те же VK_BOT_TOKEN и VK_PEER_ID,
+# что у уведомлений о заявках на сервере). Без них падение всё равно видно как упавший запуск —
+# GitHub присылает письмо владельцу репозитория.
 
 on:
   schedule:
-    - cron: '*/10 * * * *'
+    - cron: '0 3 * * *'
   workflow_dispatch:
 
 permissions:
@@ -51,17 +52,17 @@ jobs:
           echo "conclusion=$conclusion" >> "$GITHUB_OUTPUT"
           echo "Предыдущий запуск: $conclusion"
 
-      - name: Notify Telegram
+      - name: Notify VK
         env:
-          BOT_TOKEN: ${{ secrets.MONITOR_TELEGRAM_BOT_TOKEN }}
-          CHAT_ID: ${{ secrets.MONITOR_TELEGRAM_CHAT_ID }}
+          VK_TOKEN: ${{ secrets.MONITOR_VK_TOKEN }}
+          VK_PEER_ID: ${{ secrets.MONITOR_VK_PEER_ID }}
           OUTCOME: ${{ steps.checks.outcome }}
           PREVIOUS: ${{ steps.previous.outputs.conclusion }}
           PROBLEMS: ${{ steps.checks.outputs.problems }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
-          if [ -z "$BOT_TOKEN" ] || [ -z "$CHAT_ID" ]; then
-            echo "Секреты Telegram не заданы — уведомление пропущено"
+          if [ -z "$VK_TOKEN" ] || [ -z "$VK_PEER_ID" ]; then
+            echo "Секреты VK не заданы — уведомление пропущено (письмо от GitHub придёт при упавшем запуске)"
             exit 0
           fi
           if [ "$OUTCOME" = "failure" ] && [ "$PREVIOUS" != "failure" ]; then
@@ -72,11 +73,19 @@ jobs:
             echo "Состояние не изменилось ($PREVIOUS → $OUTCOME) — без уведомления"
             exit 0
           fi
-          curl -fsS -X POST "https://api.telegram.org/bot${BOT_TOKEN}/sendMessage" \
-            --data-urlencode "chat_id=${CHAT_ID}" \
-            --data-urlencode "text=${text}" \
-            --data-urlencode "disable_web_page_preview=true" > /dev/null
-          echo "Уведомление отправлено"
+          # VK API отвечает HTTP 200 и при ошибке, поэтому проверяем поле error в ответе.
+          response=$(curl -sS -X POST "https://api.vk.com/method/messages.send" \
+            --data-urlencode "access_token=${VK_TOKEN}" \
+            --data-urlencode "peer_id=${VK_PEER_ID}" \
+            --data-urlencode "random_id=$(date +%s%N | cut -c1-15)" \
+            --data-urlencode "message=${text}" \
+            --data-urlencode "dont_parse_links=1" \
+            --data-urlencode "v=5.199")
+          if echo "$response" | grep -q '"error"'; then
+            echo "VK вернул ошибку: $(echo "$response" | sed 's/"access_token":"[^"]*"//')"
+            exit 1
+          fi
+          echo "Уведомление во VK отправлено"
 
       - name: Fail run when checks failed
         if: steps.checks.outcome == 'failure'
