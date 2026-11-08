@@ -4,7 +4,7 @@ import toast from 'react-hot-toast'
 import SEO from '../components/SEO'
 import { useCreateBooking, useEquipment, usePublicOffices } from '../hooks/useEquipment'
 import { calculateBillableRentalDays } from '../utils/pricing'
-import { trackEvent } from '../lib/analytics'
+import { trackBookingFunnelStage, trackEvent } from '../lib/analytics'
 import { getApiErrorMessage } from '../lib/apiError'
 import { getLeadContext } from '../lib/contactLinks'
 import {
@@ -90,6 +90,7 @@ export default function SelfServiceBookingPage() {
   const { data: equipmentResponse, isLoading } = useEquipment({ limit: 100 })
   const { data: officesResponse, isLoading: isOfficesLoading } = usePublicOffices()
   const createBookingMutation = useCreateBooking()
+  const formStartedTracked = useRef(false)
 
   const equipment = useMemo(() => equipmentResponse?.data || [], [equipmentResponse?.data])
   const offices = useMemo(() => officesResponse?.data || [], [officesResponse?.data])
@@ -165,6 +166,10 @@ export default function SelfServiceBookingPage() {
   const allLegalAccepted = formData.offerAccepted && formData.agreementAccepted && formData.privacyAccepted
 
   useEffect(() => {
+    trackBookingFunnelStage('booking_view')
+  }, [])
+
+  useEffect(() => {
     if (initialSelectionApplied.current || equipment.length === 0) return
     initialSelectionApplied.current = true
 
@@ -177,11 +182,17 @@ export default function SelfServiceBookingPage() {
 
     setFormData((prev) => ({ ...prev, equipmentIds }))
     trackEvent('booking_kit_preselected', { equipment_ids: equipmentIds })
+    trackBookingFunnelStage('equipment_selected', { equipmentId: equipmentIds[0] })
   }, [equipment, searchParams])
 
   const handleChange = (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value, type } = event.target
     const checked = type === 'checkbox' ? (event.target as HTMLInputElement).checked : undefined
+
+    if (!formStartedTracked.current) {
+      formStartedTracked.current = true
+      trackBookingFunnelStage('form_started')
+    }
 
     setFormData((prev) => ({
       ...prev,
@@ -203,6 +214,7 @@ export default function SelfServiceBookingPage() {
         : [...prev.equipmentIds, equipmentId],
       nextEquipmentId: '',
     }))
+    trackBookingFunnelStage('equipment_selected', { equipmentId })
   }
 
   const handleAddEquipment = (event: React.ChangeEvent<HTMLSelectElement>) => {
@@ -306,6 +318,7 @@ export default function SelfServiceBookingPage() {
         total_price: totalPrice,
         total_days: rentalDays,
       })
+      trackBookingFunnelStage('booking_submitted', { equipmentId: selectedEquipment.id })
 
       toast.success('Заявка на бронь отправлена')
       const bookingIds = response.data.id ? [response.data.id] : []

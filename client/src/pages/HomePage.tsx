@@ -228,7 +228,7 @@ export default function HomePage() {
             <p className="text-2xl font-extrabold text-white leading-snug mb-1 font-[Manrope]">
               Техника <span className="text-[#60A5FA]">напрокат</span> в Москве
             </p>
-            <p className="text-slate-400 text-xs mb-4">Пылесосы, камеры, колонки. От 400 ₽/день, постамат 24/7.</p>
+            <p className="text-slate-400 text-xs mb-4">Техника для уборки, камеры, колонки. От 400 ₽/день, постамат 24/7.</p>
             <div className="flex flex-wrap gap-2">
               <Link
                 to="/booking?when=today&utm_source=site&utm_medium=home&utm_campaign=urgent-booking"

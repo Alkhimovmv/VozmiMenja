@@ -23,6 +23,10 @@ const equipmentPerformanceQuerySchema = z.object({
   officeId: z.coerce.number().int().positive().optional(),
 })
 
+const bookingFunnelQuerySchema = z.object({
+  days: z.coerce.number().int().min(1).max(365).default(30),
+})
+
 type LeadSourceReportRow = {
   source_page: string
   referrer: string
@@ -60,6 +64,41 @@ router.get('/monthly-revenue', authMiddleware, async (req: Request, res: Respons
   } catch (error) {
     console.error('Error getting monthly revenue:', error)
     res.status(500).json({ error: 'Ошибка получения месячной выручки' })
+  }
+})
+
+// GET /api/admin/analytics/booking-funnel - анонимная воронка оформления брони
+router.get('/booking-funnel', authMiddleware, async (req: Request, res: Response) => {
+  const parsed = bookingFunnelQuerySchema.safeParse(req.query)
+  if (!parsed.success) {
+    return res.status(400).json({ error: 'Некорректный период воронки' })
+  }
+
+  try {
+    const [row] = await all(`
+      SELECT
+        COUNT(DISTINCT CASE WHEN event_name = 'equipment_view' THEN session_id END) AS equipment_view,
+        COUNT(DISTINCT CASE WHEN event_name = 'booking_view' THEN session_id END) AS booking_view,
+        COUNT(DISTINCT CASE WHEN event_name = 'equipment_selected' THEN session_id END) AS equipment_selected,
+        COUNT(DISTINCT CASE WHEN event_name = 'form_started' THEN session_id END) AS form_started,
+        COUNT(DISTINCT CASE WHEN event_name = 'booking_submitted' THEN session_id END) AS booking_submitted
+      FROM booking_funnel_events
+      WHERE created_at >= datetime('now', ?)
+    `, [`-${parsed.data.days} days`]) as Array<Record<string, number>>
+
+    return res.json({
+      days: parsed.data.days,
+      stages: {
+        equipmentView: Number(row?.equipment_view) || 0,
+        bookingView: Number(row?.booking_view) || 0,
+        equipmentSelected: Number(row?.equipment_selected) || 0,
+        formStarted: Number(row?.form_started) || 0,
+        bookingSubmitted: Number(row?.booking_submitted) || 0,
+      },
+    })
+  } catch (error) {
+    console.error('Error getting booking funnel:', error)
+    return res.status(500).json({ error: 'Ошибка получения воронки бронирования' })
   }
 })
 

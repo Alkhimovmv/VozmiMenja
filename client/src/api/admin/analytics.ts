@@ -7,7 +7,23 @@ import type {
 
 const equipmentPerformancePeriods: EquipmentPerformancePeriod[] = [30, 90, 365];
 
+export type BookingFunnelReport = {
+  days: number;
+  stages: {
+    equipmentView: number;
+    bookingView: number;
+    equipmentSelected: number;
+    formStarted: number;
+    bookingSubmitted: number;
+  };
+};
+
 export const analyticsApi = {
+  getBookingFunnel: async (days = 30): Promise<BookingFunnelReport> => {
+    const response = await apiClient.get(`/analytics/booking-funnel?days=${days}`);
+    return response.data;
+  },
+
   getMonthlyRevenue: async (officeId?: number): Promise<MonthlyRevenue[]> => {
     const params = officeId ? `?officeId=${officeId}` : '';
     const response = await apiClient.get(`/analytics/monthly-revenue${params}`);

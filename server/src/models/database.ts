@@ -164,6 +164,27 @@ class Database {
       }
     }
 
+    // Анонимная продуктовая воронка самостоятельной брони. Храним только
+    // технический id сессии и этап — без телефона, ФИО и других персональных данных.
+    await run(`
+      CREATE TABLE IF NOT EXISTS booking_funnel_events (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        session_id TEXT NOT NULL,
+        event_name TEXT NOT NULL CHECK (event_name IN (
+          'equipment_view',
+          'booking_view',
+          'equipment_selected',
+          'form_started',
+          'booking_submitted'
+        )),
+        page_path TEXT,
+        equipment_id TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(session_id, event_name)
+      )
+    `)
+    await run(`CREATE INDEX IF NOT EXISTS idx_booking_funnel_created_at ON booking_funnel_events(created_at)`)
+
     // Таблица для оборудования (RentAdmin)
     await run(`
       CREATE TABLE IF NOT EXISTS rental_equipment (

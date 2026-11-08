@@ -309,6 +309,7 @@ build_projects() {
         sudo -u $SUDO_USER npm run seed:catalog-additions
         sudo -u $SUDO_USER npm run migrate:catalog-equipment-links
         sudo -u $SUDO_USER npm run seed:blog-growth
+        sudo -u $SUDO_USER npm run audit:content-prices
         sudo -u $SUDO_USER npm run sitemap
 
         # Удаление dev зависимостей после сборки

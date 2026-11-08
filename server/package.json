@@ -16,6 +16,8 @@
     "optimize:uploads:prod": "node dist/scripts/optimize-uploads.js",
     "seed:blog-growth": "tsx src/scripts/seed-blog-growth-articles.ts",
     "seed:blog-growth:prod": "node dist/scripts/seed-blog-growth-articles.js",
+    "audit:content-prices": "tsx src/scripts/audit-public-content-prices.ts",
+    "audit:content-prices:prod": "node dist/scripts/audit-public-content-prices.js",
     "seed:catalog-additions": "tsx src/scripts/seed-catalog-additions.ts",
     "seed:catalog-additions:prod": "node dist/scripts/seed-catalog-additions.js",
     "smoke:public": "tsx src/scripts/smoke-public-urls.ts",

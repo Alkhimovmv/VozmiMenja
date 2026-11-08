@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { useEquipment, useEquipmentById } from '../hooks/useEquipment'
 import LoadingSpinner from '../components/ui/LoadingSpinner'
@@ -8,7 +8,7 @@ import EquipmentTrustStrip from '../components/equipment/EquipmentTrustStrip'
 import SEO from '../components/SEO'
 import { ArrowLeft, Check, ChevronRight, Clock } from 'lucide-react'
 import { fetchPriorityAttr, getImageSrcSet, getImageUrl } from '../lib/utils'
-import { trackEvent } from '../lib/analytics'
+import { trackBookingFunnelStage, trackEvent } from '../lib/analytics'
 import { getLongTermDailyPrice, getOneDayPrice, getPricingRows } from '../utils/pricing'
 import { CONTACT_PHONE, CONTACT_PHONE_LABEL, getTelegramUrl, getWhatsAppUrl } from '../lib/contactLinks'
 import { equipmentPath } from '../lib/equipmentUrls'
@@ -663,6 +663,10 @@ export default function EquipmentDetailsPage() {
   const [showBookingForm, setShowBookingForm] = useState(false)
 
   const equipment = data?.data
+  useEffect(() => {
+    if (!equipment) return
+    trackBookingFunnelStage('equipment_view', { equipmentId: equipment.id })
+  }, [equipment])
   const { data: relatedData } = useEquipment(
     equipment ? { limit: 3, category: equipment.category } : undefined
   )
