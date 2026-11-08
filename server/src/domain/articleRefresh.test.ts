@@ -41,6 +41,16 @@ describe('applyArticleRefresh', () => {
     expect(applyArticleRefresh(result, [plain])).toBe(result)
   })
 
+  it('does not repeat a replacement that appends to a non-paragraph fragment', () => {
+    const row = { from: '| Поломка | Ремонт |', to: '| Поломка | Ремонт |\n| Просрочка | Двойная ставка |' }
+    const content = '| Нарушение | Штраф |\n| Поломка | Ремонт |'
+
+    const once = applyArticleRefresh(content, [row])
+
+    expect(once).toBe('| Нарушение | Штраф |\n| Поломка | Ремонт |\n| Просрочка | Двойная ставка |')
+    expect(applyArticleRefresh(once, [row])).toBe(once)
+  })
+
   it('leaves unrelated content untouched', () => {
     expect(applyArticleRefresh('Другая статья.', [rule])).toBe('Другая статья.')
   })

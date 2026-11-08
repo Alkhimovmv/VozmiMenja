@@ -17,7 +17,8 @@ export function applyArticleRefresh(content: string, replacements: ArticleReplac
   let next = content
 
   for (const { from, to } of replacements) {
-    if (to.startsWith(from) && to.length > from.length) {
+    // Режим «дописать абзац»: добавка после `from` начинается с нового абзаца.
+    if (to.startsWith(from) && to.slice(from.length).startsWith('\n\n')) {
       if (!next.includes(from)) continue
       const leads = to.slice(from.length)
         .split('\n\n')
@@ -29,6 +30,9 @@ export function applyArticleRefresh(content: string, replacements: ArticleReplac
         .join('\n\n')
       next = withoutInjected.replace(from, to)
     } else if (next.includes(from)) {
+      // Если замена содержит исходный текст (например, дописывает строку таблицы) и уже применена,
+      // повторная замена размножила бы добавку на каждом деплое.
+      if (to.includes(from) && next.includes(to)) continue
       next = next.split(from).join(to)
     }
   }
