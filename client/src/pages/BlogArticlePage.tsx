@@ -4,9 +4,10 @@ import { Article } from '../types'
 import { articlesApi } from '../api/articles'
 import SEO from '../components/SEO'
 import { Calendar, Eye, User, ArrowLeft, Tag } from 'lucide-react'
-import ReactMarkdown from 'react-markdown'
+import ReactMarkdown, { type Components } from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { trackEvent } from '../lib/analytics'
+import { getImageUrl } from '../lib/utils'
 import { CONTACT_PHONE, CONTACT_PHONE_LABEL, getTelegramUrl } from '../lib/contactLinks'
 
 const rentalCtas = {
@@ -86,6 +87,19 @@ function extractFaqFromMarkdown(content: string) {
         .trim(),
     }))
     .filter((item) => item.question && item.answer)
+}
+
+// Фото техники в тексте статьи: /uploads/... отдаёт сервер API, поэтому путь проходит через getImageUrl.
+const markdownComponents: Components = {
+  img: ({ src, alt }) => (src ? (
+    <img
+      src={getImageUrl(String(src))}
+      alt={alt || ''}
+      loading="lazy"
+      decoding="async"
+      className="mx-auto my-6 block max-h-[440px] w-auto max-w-full rounded-2xl border border-gray-100 bg-white object-contain"
+    />
+  ) : null),
 }
 
 export default function BlogArticlePage() {
@@ -280,9 +294,8 @@ export default function BlogArticlePage() {
             prose-ul:my-3 prose-ol:my-3
             prose-li:text-gray-600
             prose-blockquote:border-l-4 prose-blockquote:border-[#2563EB] prose-blockquote:bg-blue-50 prose-blockquote:py-2 prose-blockquote:px-4 prose-blockquote:rounded-r-xl
-            prose-code:text-[#2563EB] prose-code:bg-gray-100 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:text-sm
-            prose-img:hidden">
-            <ReactMarkdown remarkPlugins={[remarkGfm]}>{article.content}</ReactMarkdown>
+            prose-code:text-[#2563EB] prose-code:bg-gray-100 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:text-sm">
+            <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>{article.content}</ReactMarkdown>
           </div>
 
           {/* Tags */}

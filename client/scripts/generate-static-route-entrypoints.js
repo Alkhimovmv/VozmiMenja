@@ -1108,6 +1108,7 @@ function articleLinks(remoteData, limit = 8) {
 
 function markdownToPlainSections(content) {
   const clean = stripHtml(content || '')
+    .replace(/!\[[^\]]*\]\([^)]+\)/g, ' ')
     .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
     .replace(/```[\s\S]*?```/g, ' ')
     .replace(/[#*_`>|-]+/g, ' ')

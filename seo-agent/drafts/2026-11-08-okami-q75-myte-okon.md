@@ -1,5 +1,5 @@
 ---
-status: draft — ждёт проверки владельца, в seed не добавлена
+status: опубликовано через server/src/scripts/blog-articles-2026-11.ts (одобрено владельцем 08.11.2026)
 slug: robot-mojshchik-okon-v-arendu-okami-q75
 title: Робот-мойщик окон в аренду: как вымыть окна без стремянки
 category: Пылесосы, уборка и клининг

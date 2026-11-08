@@ -1,6 +1,7 @@
 import sqlite3 from 'sqlite3'
 import path from 'path'
 import { applyArticleRefresh } from '../domain/articleRefresh'
+import { novemberArticles } from './blog-articles-2026-11'
 
 const dbPath = process.env.DATABASE_PATH ? path.resolve(process.env.DATABASE_PATH) : path.join(__dirname, '../../database.sqlite')
 
@@ -973,7 +974,7 @@ async function seedBlogGrowthArticles() {
   try {
     console.log('🔄 Добавление SEO-статей для роста блога...')
 
-    for (const article of articles) {
+    for (const article of [...articles, ...novemberArticles]) {
       await run(`
         INSERT INTO articles (
           title, slug, excerpt, content, image_url, category, tags, author, published
@@ -1007,7 +1008,7 @@ async function seedBlogGrowthArticles() {
       ])
     }
 
-    console.log(`✅ Готово: обработано статей ${articles.length}`)
+    console.log(`✅ Готово: обработано статей ${articles.length + novemberArticles.length}`)
 
     console.log('🔄 Обновление внутренней перелинковки старых статей...')
     // Правила применяются идемпотентно (см. domain/articleRefresh): дата обновления меняется,
