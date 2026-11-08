@@ -49,6 +49,7 @@ Thumbs.db
 # Temporary folders
 tmp/
 temp/
+.worktrees/
 
 # Database (исключаем все базы данных)
 *.db
