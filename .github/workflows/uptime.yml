@@ -1,0 +1,83 @@
+name: Uptime
+
+# Внешний мониторинг vozmimenya.ru: сайт, API, каталог, бронь, sitemap и SSL раз в 10 минут.
+# Уведомление в Telegram только при смене состояния: «упало» и «восстановилось».
+# Нужны секреты репозитория MONITOR_TELEGRAM_BOT_TOKEN и MONITOR_TELEGRAM_CHAT_ID;
+# без них падение всё равно видно как упавший запуск (GitHub пришлёт письмо).
+
+on:
+  schedule:
+    - cron: '*/10 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: uptime
+  cancel-in-progress: false
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout monitoring script
+        uses: actions/checkout@v4
+        with:
+          sparse-checkout: scripts/monitoring
+          sparse-checkout-cone-mode: false
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Run checks
+        id: checks
+        continue-on-error: true
+        run: node scripts/monitoring/uptime-check.mjs
+
+      - name: Previous state
+        id: previous
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # Последний завершённый запуск этого workflow (текущий ещё выполняется).
+          conclusion=$(curl -fsS -H "Authorization: Bearer $GH_TOKEN" \
+            "https://api.github.com/repos/${{ github.repository }}/actions/workflows/uptime.yml/runs?status=completed&per_page=1" \
+            | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>{const r=JSON.parse(s).workflow_runs[0];console.log(r?r.conclusion:'none')})" || echo none)
+          echo "conclusion=$conclusion" >> "$GITHUB_OUTPUT"
+          echo "Предыдущий запуск: $conclusion"
+
+      - name: Notify Telegram
+        env:
+          BOT_TOKEN: ${{ secrets.MONITOR_TELEGRAM_BOT_TOKEN }}
+          CHAT_ID: ${{ secrets.MONITOR_TELEGRAM_CHAT_ID }}
+          OUTCOME: ${{ steps.checks.outcome }}
+          PREVIOUS: ${{ steps.previous.outputs.conclusion }}
+          PROBLEMS: ${{ steps.checks.outputs.problems }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          if [ -z "$BOT_TOKEN" ] || [ -z "$CHAT_ID" ]; then
+            echo "Секреты Telegram не заданы — уведомление пропущено"
+            exit 0
+          fi
+          if [ "$OUTCOME" = "failure" ] && [ "$PREVIOUS" != "failure" ]; then
+            text=$(printf '🔴 vozmimenya.ru: проблема\n\n%s\n\n%s' "$PROBLEMS" "$RUN_URL")
+          elif [ "$OUTCOME" = "success" ] && [ "$PREVIOUS" = "failure" ]; then
+            text=$(printf '🟢 vozmimenya.ru: всё снова работает\n\n%s' "$RUN_URL")
+          else
+            echo "Состояние не изменилось ($PREVIOUS → $OUTCOME) — без уведомления"
+            exit 0
+          fi
+          curl -fsS -X POST "https://api.telegram.org/bot${BOT_TOKEN}/sendMessage" \
+            --data-urlencode "chat_id=${CHAT_ID}" \
+            --data-urlencode "text=${text}" \
+            --data-urlencode "disable_web_page_preview=true" > /dev/null
+          echo "Уведомление отправлено"
+
+      - name: Fail run when checks failed
+        if: steps.checks.outcome == 'failure'
+        run: exit 1
