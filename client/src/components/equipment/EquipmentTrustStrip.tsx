@@ -2,10 +2,12 @@ import { Clock, Star } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import business from '../../content/business.json'
 
+// Рейтинг Яндекс Карт есть только у офиса с карточкой; без него полоса доверия не показывается.
 const primaryOfficeReviews = business.offices[0].yandexMaps
-const reviewsUrl = `${primaryOfficeReviews.url}reviews/`
 
 export default function EquipmentTrustStrip({ onReviewsClick }: { onReviewsClick?: () => void }) {
+  if (!primaryOfficeReviews) return null
+  const reviewsUrl = `${primaryOfficeReviews.url}reviews/`
   const rating = primaryOfficeReviews.ratingValue.toFixed(1).replace('.', ',')
 
   return (
