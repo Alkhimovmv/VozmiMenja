@@ -166,4 +166,21 @@ describe('Yandex Business location feed', () => {
     expect(XMLValidator.validate(xml)).toBe(true)
     expect(xml).toContain('<description>valid text</description>')
   })
+
+  it('keeps every published description within the 250-character Yandex card limit', () => {
+    const xml = buildYandexBusinessFeed({
+      location: getYandexBusinessLocation('volzhskaya'),
+      equipment: [
+        makeEquipment({
+          description: `${'Камера для профессиональной съёмки без оператора '.repeat(8)}Финальный текст`,
+        }),
+      ],
+      inventory: [makeInventory()],
+    })
+    const description = xml.match(/<description>(.*?)<\/description>/)?.[1] ?? ''
+
+    expect(description.length).toBeLessThanOrEqual(250)
+    expect(description).toMatch(/…$/u)
+    expect(description).not.toMatch(/\s{2,}/)
+  })
 })

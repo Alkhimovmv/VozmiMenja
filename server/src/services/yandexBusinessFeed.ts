@@ -26,6 +26,7 @@ export interface YandexBusinessFeedDiagnostic {
 
 const SITE_URL = 'https://vozmimenya.ru'
 const API_URL = 'https://api.vozmimenya.ru'
+const YANDEX_DESCRIPTION_MAX_LENGTH = 250
 
 const LOCATIONS: Record<YandexBusinessLocationSlug, YandexBusinessLocation> = {
   volzhskaya: {
@@ -70,6 +71,24 @@ const escapeXml = (value: string | number): string => stripInvalidXmlCharacters(
   .replace(/>/g, '&gt;')
   .replace(/"/g, '&quot;')
   .replace(/'/g, '&apos;')
+
+const buildYandexDescription = (value: string): string => {
+  const normalized = value.replace(/\s+/gu, ' ').trim()
+  if (Array.from(normalized).length <= YANDEX_DESCRIPTION_MAX_LENGTH) return normalized
+
+  const candidate = Array.from(normalized)
+    .slice(0, YANDEX_DESCRIPTION_MAX_LENGTH - 1)
+    .join('')
+    .trimEnd()
+  const sentenceEnd = [...candidate.matchAll(/[.!?](?=\s|$)/gu)].at(-1)
+  if (sentenceEnd?.index !== undefined && sentenceEnd.index + 1 >= YANDEX_DESCRIPTION_MAX_LENGTH * 0.6) {
+    return candidate.slice(0, sentenceEnd.index + 1)
+  }
+
+  const lastSpace = candidate.lastIndexOf(' ')
+  const wordSafeCandidate = lastSpace > 0 ? candidate.slice(0, lastSpace) : candidate
+  return `${wordSafeCandidate.replace(/[,:;.!?–—-]+$/u, '').trimEnd()}…`
+}
 
 const normalizeName = (value: string): string => value
   .trim()
@@ -173,7 +192,8 @@ export const buildYandexBusinessFeed = ({
     const vendor = getVendor(item.name)
     const category = getCategory(item.category)
     const name = item.name.trim()
-    const description = item.description.trim()
+    const rawDescription = item.description.trim()
+    const description = buildYandexDescription(rawDescription)
 
     const reject = (reason: string): [] => {
       onDiagnostic({ equipmentId: item.id, reason })
@@ -185,7 +205,7 @@ export const buildYandexBusinessFeed = ({
     if (!isValidPrice(item.pricePerDay)) return reject('invalid_price')
     if (!isValidOfferId(item.id)) return reject('invalid_offer_id')
     if (!name || name.length > 250) return reject('invalid_name')
-    if (description.length > 3000) return reject('invalid_description')
+    if (rawDescription.length > 3000) return reject('invalid_description')
     if (!item.slug) return reject('missing_slug')
 
     const productUrl = `${SITE_URL}/equipment/${encodeURIComponent(item.slug)}?${trackingQuery}`
