@@ -8,6 +8,10 @@ export interface Article {
   excerpt: string
   content: string
   image_url: string | null
+  // Публичный API: webp-копии обложки и её размеры (для srcset и width/height без сдвига текста).
+  image_variants?: Array<{ width: number; url: string }>
+  image_width?: number
+  image_height?: number
   category: string
   tags: string | null
   author: string

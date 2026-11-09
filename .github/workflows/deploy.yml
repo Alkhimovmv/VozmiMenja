@@ -47,6 +47,17 @@ jobs:
         working-directory: ./client
         run: npm run build
 
+      # Сравниваем новый sitemap с ещё опубликованным: эти URL после деплоя уйдут в IndexNow.
+      - name: Collect changed URLs for IndexNow
+        run: node scripts/indexnow-submit.mjs diff --new client/dist/sitemap.xml --old-url https://vozmimenya.ru/sitemap.xml --out indexnow-urls.txt
+
+      - name: Keep IndexNow URL list
+        uses: actions/upload-artifact@v4
+        with:
+          name: indexnow-urls
+          path: indexnow-urls.txt
+          retention-days: 7
+
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
@@ -77,3 +88,26 @@ jobs:
 
       - name: Verify seeded article release
         run: node scripts/smoke-seeded-articles.mjs --attempts 12 --interval-ms 10000
+
+  # Яндекс и Bing (Copilot) узнают об изменённых страницах сразу, а не при следующем обходе.
+  # Сбой отправки не откатывает и не помечает деплой упавшим.
+  indexnow:
+    runs-on: ubuntu-latest
+    needs: verify
+    continue-on-error: true
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Download IndexNow URL list
+        uses: actions/download-artifact@v4
+        with:
+          name: indexnow-urls
+
+      - name: Submit changed URLs to IndexNow
+        run: node scripts/indexnow-submit.mjs submit --file indexnow-urls.txt --key-file client/public/62993ccc1ac672e0d223b701894ea14b.txt

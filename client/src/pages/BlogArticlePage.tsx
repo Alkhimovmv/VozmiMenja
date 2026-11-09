@@ -7,7 +7,7 @@ import { Calendar, Eye, User, ArrowLeft, Tag } from 'lucide-react'
 import ReactMarkdown, { type Components } from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { trackEvent } from '../lib/analytics'
-import { getImageUrl } from '../lib/utils'
+import { fetchPriorityAttr, getImageSrcSet, getImageUrl } from '../lib/utils'
 import { CONTACT_PHONE, CONTACT_PHONE_LABEL, getTelegramUrl } from '../lib/contactLinks'
 import { extractArticleBookingLinks } from '../lib/blogBookingCta'
 import { getStaticArticle } from '../lib/staticData'
@@ -107,6 +107,17 @@ const markdownComponents: Components = {
       <table className="my-0 min-w-[640px] border-collapse">{children}</table>
     </div>
   ),
+}
+
+// Должно совпадать с обложкой в статике (client/scripts/generate-static-route-entrypoints.js),
+// чтобы браузер переиспользовал уже загруженный файл. Колонка статьи — max-w-4xl с px-4.
+const ARTICLE_COVER_SIZES = '(min-width: 896px) 864px, calc(100vw - 32px)'
+
+// webp-копии + сам оригинал с его шириной: на широком экране браузер не растягивает копию 800 px.
+const getArticleCoverSrcSet = (article: Article) => {
+  const variants = getImageSrcSet(article.image_variants)
+  if (!variants) return undefined
+  return article.image_url && article.image_width ? `${variants}, ${getImageUrl(article.image_url)} ${article.image_width}w` : variants
 }
 
 export default function BlogArticlePage() {
@@ -254,7 +265,18 @@ export default function BlogArticlePage() {
 
           {article.image_url && (
             <div className="mb-8 rounded-2xl overflow-hidden">
-              <img src={article.image_url} alt={article.title} className="w-full h-auto" />
+              <img
+                src={article.image_url}
+                srcSet={getArticleCoverSrcSet(article)}
+                sizes={ARTICLE_COVER_SIZES}
+                width={article.image_width}
+                height={article.image_height}
+                alt={article.title}
+                className="w-full h-auto"
+                loading="eager"
+                decoding="async"
+                {...fetchPriorityAttr('high')}
+              />
             </div>
           )}
 

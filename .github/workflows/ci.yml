@@ -44,3 +44,6 @@ jobs:
 
       - name: Client lint
         run: npm run lint --workspace=client
+
+      - name: Release script tests
+        run: npm run test:article-release && npm run test:indexnow

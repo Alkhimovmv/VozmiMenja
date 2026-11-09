@@ -21,6 +21,7 @@
     "smoke:articles:prod": "node scripts/smoke-seeded-articles.mjs --attempts 12 --interval-ms 10000",
     "test": "npm run test --workspace=client && npm run test --workspace=server && npm run test:deploy",
     "test:article-release": "node --test scripts/seeded-article-contract.test.mjs",
+    "test:indexnow": "node --test scripts/indexnow.test.mjs",
     "test:deploy": "bash scripts/test-deploy-sitemap-restore.sh",
     "lint": "npm run lint --workspace=client && npm run lint --workspace=server",
     "typecheck": "npm run typecheck --workspace=client && npm run typecheck --workspace=server"

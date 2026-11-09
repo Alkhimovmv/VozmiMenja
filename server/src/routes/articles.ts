@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express'
 import { articleModel, CreateArticleData } from '../models/Article'
 import { authMiddleware } from '../middleware/auth'
 import { DEFAULT_ARTICLE_AUTHOR } from '../domain/articleAuthor'
+import { getImageDimensions, getImageVariants } from '../services/imageVariants'
 
 const router = Router()
 
@@ -24,13 +25,28 @@ function toSnakeCase(article: any) {
   }
 }
 
+// Публичный ответ: плюс webp-копии обложки для srcset и её размеры для width/height (без сдвига текста).
+async function toPublicArticle(article: any) {
+  const base = toSnakeCase(article)
+  if (!article.imageUrl) return base
+  const variants = getImageVariants(article.imageUrl)
+  const dimensions = await getImageDimensions(article.imageUrl)
+  return {
+    ...base,
+    ...(variants.length ? { image_variants: variants } : {}),
+    ...(dimensions ? { image_width: dimensions.width, image_height: dimensions.height } : {}),
+  }
+}
+
+const toPublicArticles = (articles: any[]) => Promise.all(articles.map(toPublicArticle))
+
 // PUBLIC ROUTES (без аутентификации)
 
 // GET /api/articles - Получить все опубликованные статьи
 router.get('/', async (req: Request, res: Response) => {
   try {
     const articles = await articleModel.findAll(true) // только опубликованные
-    res.json(articles.map(toSnakeCase))
+    res.json(await toPublicArticles(articles))
   } catch (error) {
     console.error('Error getting articles:', error)
     res.status(500).json({ error: 'Ошибка получения статей' })
@@ -47,7 +63,7 @@ router.get('/slug/:slug', async (req: Request, res: Response) => {
       return
     }
 
-    res.json(toSnakeCase(article))
+    res.json(await toPublicArticle(article))
   } catch (error) {
     console.error('Error getting article by slug:', error)
     res.status(500).json({ error: 'Ошибка получения статьи' })
@@ -58,7 +74,7 @@ router.get('/slug/:slug', async (req: Request, res: Response) => {
 router.get('/category/:category', async (req: Request, res: Response) => {
   try {
     const articles = await articleModel.findByCategory(req.params.category, true)
-    res.json(articles.map(toSnakeCase))
+    res.json(await toPublicArticles(articles))
   } catch (error) {
     console.error('Error getting articles by category:', error)
     res.status(500).json({ error: 'Ошибка получения статей' })
@@ -70,7 +86,7 @@ router.get('/popular', async (req: Request, res: Response) => {
   try {
     const limit = req.query.limit ? parseInt(req.query.limit as string) : 5
     const articles = await articleModel.findPopular(limit)
-    res.json(articles.map(toSnakeCase))
+    res.json(await toPublicArticles(articles))
   } catch (error) {
     console.error('Error getting popular articles:', error)
     res.status(500).json({ error: 'Ошибка получения популярных статей' })
@@ -82,7 +98,7 @@ router.get('/recent', async (req: Request, res: Response) => {
   try {
     const limit = req.query.limit ? parseInt(req.query.limit as string) : 5
     const articles = await articleModel.findRecent(limit)
-    res.json(articles.map(toSnakeCase))
+    res.json(await toPublicArticles(articles))
   } catch (error) {
     console.error('Error getting recent articles:', error)
     res.status(500).json({ error: 'Ошибка получения последних статей' })

@@ -20,7 +20,7 @@ export default function CookieBanner() {
   if (!visible) return null
 
   return (
-    <div className="fixed bottom-16 sm:bottom-4 left-0 right-0 z-40 flex justify-center px-2 sm:px-4 pointer-events-none">
+    <div className="fixed bottom-16 sm:bottom-4 left-0 right-0 z-[60] flex justify-center px-2 sm:px-4 pointer-events-none">
       <div className="bg-gray-900 text-white rounded-xl sm:rounded-2xl shadow-xl px-3 py-2.5 sm:p-4 max-w-xl w-full flex items-center sm:items-start gap-3 sm:gap-4 pointer-events-auto">
         <div className="flex-1 text-[11px] sm:text-xs text-gray-300 leading-snug sm:leading-relaxed">
           Мы используем cookie и Яндекс.Метрику для работы сайта и аналитики.

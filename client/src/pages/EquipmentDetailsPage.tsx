@@ -13,6 +13,7 @@ import { trackBookingFunnelStage, trackEvent } from '../lib/analytics'
 import { getLongTermDailyPrice, getOneDayPrice, getPricingRows } from '../utils/pricing'
 import { CONTACT_PHONE, CONTACT_PHONE_LABEL, getTelegramUrl, getWhatsAppUrl } from '../lib/contactLinks'
 import { equipmentPath } from '../lib/equipmentUrls'
+import equipmentBrands from '../content/equipmentBrands.json'
 
 function getEquipmentModelFaq(name: string) {
   const normalizedName = name.toLowerCase()
@@ -711,14 +712,17 @@ export default function EquipmentDetailsPage() {
   const canonicalPath = equipmentPath(equipment)
   const canonicalUrl = `https://vozmimenya.ru${canonicalPath}`
 
+  const equipmentBrand = equipmentBrands.find((brand) => equipment.name.toLowerCase().includes(brand.toLowerCase()))
   const productStructuredData = {
     '@context': 'https://schema.org',
     '@type': 'Product',
     name: `Аренда ${equipment.name}`,
     description: equipment.description,
-    image: equipment.images.map((img) => `https://vozmimenya.ru${getImageUrl(img)}`),
+    // getImageUrl уже отдаёт полный адрес API для /uploads; относительные пути достраиваем от сайта.
+    image: equipment.images.map((img) => new URL(getImageUrl(img), 'https://vozmimenya.ru').toString()),
     category: equipment.category,
-    brand: { '@type': 'Brand', name: equipment.name.split(' ')[0] },
+    brand: equipmentBrand ? { '@type': 'Brand', name: equipmentBrand } : undefined,
+    sku: equipment.slug || String(equipment.id),
     itemCondition: 'https://schema.org/UsedCondition',
     offers: {
       '@type': 'Offer',

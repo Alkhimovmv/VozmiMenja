@@ -14,6 +14,16 @@ interface SEOProps {
   structuredData?: Record<string, unknown> | Record<string, unknown>[]
 }
 
+const TITLE_MAX_LENGTH = 70
+const BRAND_SUFFIX = ' | ВозьмиМеня'
+
+// Бренд в конце title добавляем, только если он помещается в сниппет; то же правило в generate-static-route-entrypoints.js.
+function fitSiteTitle(title: string) {
+  const withBrand = title.includes('ВозьмиМеня') ? title : `${title}${BRAND_SUFFIX}`
+  if (withBrand.length <= TITLE_MAX_LENGTH) return withBrand
+  return withBrand.endsWith(BRAND_SUFFIX) ? withBrand.slice(0, -BRAND_SUFFIX.length) : withBrand
+}
+
 export default function SEO({
   title = 'ВозьмиМеня - Аренда профессионального оборудования в Москве',
   description = 'Аренда техники в Москве: колонки JBL, экшн-камеры, моющие и строительные пылесосы, пароочистители. Постамат 24/7 у м. Волжская и м. Динамо, доставка по Москве.',
@@ -24,7 +34,7 @@ export default function SEO({
   noIndex = false,
   structuredData
 }: SEOProps) {
-  const siteTitle = title.includes('ВозьмиМеня') ? title : `${title} | ВозьмиМеня`
+  const siteTitle = fitSiteTitle(title)
 
   return (
     <Helmet>

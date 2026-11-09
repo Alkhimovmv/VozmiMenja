@@ -2,7 +2,7 @@ import fs from 'fs/promises'
 import os from 'os'
 import path from 'path'
 import sharp from 'sharp'
-import { clearImageVariantsCache, generateImageVariants, getImageVariants, isVariantFile, variantFileName } from './imageVariants'
+import { clearImageVariantsCache, generateImageVariants, getImageDimensions, getImageVariants, isVariantFile, variantFileName } from './imageVariants'
 
 describe('image variants', () => {
   let dir: string
@@ -30,6 +30,14 @@ describe('image variants', () => {
     const meta = await sharp(path.join(dir, 'photo-w400.webp')).metadata()
     expect(meta.format).toBe('webp')
     expect(meta.width).toBe(400)
+  })
+
+  it('returns original dimensions for an uploads URL and undefined for missing files', async () => {
+    await createImage('cover.jpg', 1200)
+
+    expect(await getImageDimensions('https://api.vozmimenya.ru/uploads/cover.jpg', dir)).toEqual({ width: 1200, height: 900 })
+    expect(await getImageDimensions('/uploads/missing.jpg', dir)).toBeUndefined()
+    expect(await getImageDimensions('https://example.com/cover.jpg', dir)).toBeUndefined()
   })
 
   it('does not upscale and does not recreate existing copies', async () => {

@@ -188,6 +188,8 @@ const business = JSON.parse(await fs.readFile(path.join(clientDir, 'src/content/
 const faqContent = JSON.parse(await fs.readFile(path.join(clientDir, 'src/content/faq.json'), 'utf8'))
 // Реквизиты и текст оферты — общий источник с RequisitesPage.tsx и OfferPage.tsx.
 const legal = JSON.parse(await fs.readFile(path.join(clientDir, 'src/content/legal.json'), 'utf8'))
+// Бренды техники для Product.brand; тот же список читает EquipmentDetailsPage.tsx.
+const equipmentBrands = JSON.parse(await fs.readFile(path.join(clientDir, 'src/content/equipmentBrands.json'), 'utf8'))
 // Общие title/description со страницами React (src/content/seoMeta.json), чтобы сниппеты не расходились.
 // Постоянные редиректы (старый путь -> новый). GitHub Pages не умеет серверный 301,
 // поэтому для старых путей пишем страницу с мгновенным meta refresh и canonical на новый адрес.
@@ -549,10 +551,20 @@ function buildBreadcrumbJsonLd(route, meta) {
     })
   }
 
+  // Карточка товара: Главная → категория → модель, как видимые крошки в EquipmentDetailsPage.tsx.
+  for (const parent of meta.breadcrumbParents || []) {
+    items.push({
+      '@type': 'ListItem',
+      position: items.length + 1,
+      name: parent.name,
+      item: `${SITE_ORIGIN}${parent.href}`,
+    })
+  }
+
   items.push({
     '@type': 'ListItem',
     position: items.length + 1,
-    name: routeLabel(route, meta),
+    name: meta.breadcrumbName || routeLabel(route, meta),
     item: routeCanonical(meta, route),
   })
 
@@ -864,12 +876,16 @@ function buildProductSeo(route, item) {
     ? item.images.map(absoluteUrl)
     : image ? [image] : undefined
   const faq = productFaq(item)
+  const brand = equipmentBrands.find((name) => String(item.name || '').toLowerCase().includes(name.toLowerCase()))
+  const categoryHub = articleCategoryHubs.find((hub) => hub.match.test(item.category || ''))
 
   return {
     title,
     description,
     image,
     type: 'product',
+    breadcrumbName: item.name,
+    breadcrumbParents: categoryHub && item.category ? [{ name: item.category, href: categoryHub.href }] : [],
     jsonLd: [
       {
         '@context': 'https://schema.org',
@@ -877,6 +893,8 @@ function buildProductSeo(route, item) {
         name: item.name,
         description,
         image: productImages,
+        brand: brand ? { '@type': 'Brand', name: brand } : undefined,
+        sku: item.slug || String(item.id),
         category: item.category,
         offers: {
           '@type': 'Offer',
@@ -921,7 +939,8 @@ function buildArticleSeo(route, article) {
     }
   }
 
-  const title = `${article.title} | Блог ВозьмиМеня`
+  // Как SEO.tsx в BlogArticlePage: заголовок статьи + бренд, если помещается (fitSiteTitle в buildSeoTags).
+  const title = article.title
   const description = truncate(article.excerpt || article.content || title, 165)
   const image = article.image_url ? absoluteUrl(article.image_url) : undefined
 
@@ -993,9 +1012,20 @@ function cleanManagedSeoTags(html) {
     .replace(/<link\b(?=[^>]*\brel=["']canonical["'])[^>]*>\s*/gi, '')
 }
 
+const TITLE_MAX_LENGTH = 70
+const BRAND_SUFFIX = ' | ВозьмиМеня'
+
+// То же правило, что fitSiteTitle в src/components/SEO.tsx: бренд в конце title — только если помещается в сниппет.
+function fitSiteTitle(title) {
+  const value = String(title || '')
+  const withBrand = value.includes('ВозьмиМеня') ? value : `${value}${BRAND_SUFFIX}`
+  if (withBrand.length <= TITLE_MAX_LENGTH) return withBrand
+  return withBrand.endsWith(BRAND_SUFFIX) ? withBrand.slice(0, -BRAND_SUFFIX.length) : withBrand
+}
+
 function buildSeoTags(route, meta) {
   const canonical = routeCanonical(meta, route)
-  const title = escapeHtml(meta.title)
+  const title = escapeHtml(fitSiteTitle(meta.title))
   const description = escapeHtml(meta.description)
   const image = escapeHtml(meta.image || `${SITE_ORIGIN}/og-image.jpg`)
   const type = meta.type === 'article' ? 'article' : meta.type === 'product' ? 'product' : 'website'
@@ -1097,27 +1127,69 @@ function productLinks(remoteData, predicate = () => true, limit = 8) {
     .map((item) => ({ href: equipmentRoute(item), label: item.name }))
 }
 
+const nameIncludes = (...parts) => (item) => parts.some((part) => String(item.name || '').toLowerCase().includes(part))
+const categoryIncludes = (...parts) => (item) => parts.some((part) => String(item.category || '').includes(part))
+
+// Модели под сценарий посадочной: из них строится таблица цен. primary — основная техника сценария,
+// по ней считаем «от N ₽» (сушилка или микрофоны в таблице не должны занижать цену пылесоса или колонки).
+const scenarioProductConfig = {
+  '/arenda-stroitelnogo-pylesosa-posle-remonta-moskva': { match: nameIncludes('wd5', 'sc4', 'vacmaster'), primary: nameIncludes('wd5') },
+  '/arenda-moyushchego-pylesosa-dlya-divana-kovra-moskva': { match: nameIncludes('puzzi', 'vacmaster'), primary: nameIncludes('puzzi') },
+  '/arenda-paroochistitelya-dlya-kuhni-plitki-vannoy-moskva': { match: nameIncludes('sc4') },
+  '/arenda-kolonki-dlya-vecherinki-moskva': { match: nameIncludes('partybox', 'микрофоны jbl'), primary: nameIncludes('partybox') },
+  '/arenda-karaoke-komplekta-moskva': { match: nameIncludes('partybox', 'микрофоны jbl'), primary: () => false },
+  '/arenda-mikrofona-dlya-intervyu-moskva': { match: nameIncludes('mic 2') },
+  '/arenda-tehniki-dlya-meropriyatiya-moskva': { match: categoryIncludes('Аудио', 'Камер') },
+}
+
+function scenarioProducts(route, remoteData) {
+  const config = scenarioProductConfig[route]
+  if (!config) return []
+  return [...remoteData.equipmentBySlug.values()]
+    .filter((item) => getOneDayPrice(item) > 0 && config.match(item))
+    // Основная техника сценария — первой, сопутствующая (сушилка, микрофоны) — ниже.
+    .sort((a, b) => Number(Boolean(config.primary?.(b))) - Number(Boolean(config.primary?.(a))) || getOneDayPrice(a) - getOneDayPrice(b))
+}
+
+function scenarioMinPrice(route, items) {
+  const primary = scenarioProductConfig[route]?.primary
+  const prices = (primary ? items.filter(primary) : items).map(getOneDayPrice)
+  return prices.length ? Math.min(...prices) : null
+}
+
+// Таблица «модель → 1 сутки → Пт–Вс → долгая аренда» и строка «от N ₽» — цифры, которые цитирует AI-поиск.
+function scenarioPriceSection(items, heading, minPrice) {
+  if (!items.length) return ''
+  const hasWeekend = items.some((item) => Number(normalizePricing(item.pricing).weekendDay) > 0)
+  const rows = items.map((item) => {
+    const weekend = Number(normalizePricing(item.pricing).weekendDay) || 0
+    const longTerm = getLongTermDailyPrice(item)
+    return `<tr><td><a href="${escapeHtml(equipmentRoute(item))}">${escapeHtml(item.name)}</a></td><td>${escapeHtml(formatPrice(getOneDayPrice(item)))} ₽</td>${hasWeekend ? `<td>${weekend ? `${escapeHtml(formatPrice(weekend))} ₽` : '—'}</td>` : ''}<td>${longTerm ? `от ${escapeHtml(formatPrice(longTerm.dailyPrice))} ₽ (от ${longTerm.days} суток)` : '—'}</td></tr>`
+  }).join('')
+  const fromText = minPrice ? `Цены: от ${escapeHtml(formatPrice(minPrice))} ₽ в сутки. ` : ''
+  return `<h2>${escapeHtml(heading)}</h2><p>${fromText}Доставка по Москве за 2–4 часа или бесплатный самовывоз через постамат 24/7.</p><table><thead><tr><th>Модель</th><th>1 сутки</th>${hasWeekend ? '<th>Пт–Вс, за сутки</th>' : ''}<th>Долгая аренда, за сутки</th></tr></thead><tbody>${rows}</tbody></table>`
+}
+
+function scenarioPriceBlock(route, remoteData, heading) {
+  const items = scenarioProducts(route, remoteData)
+  return scenarioPriceSection(items, heading, scenarioMinPrice(route, items))
+}
+
+// Стоимость караоке-комплекта: колонка + беспроводные микрофоны JBL за 1 сутки.
+function karaokeKitPrices(remoteData) {
+  const items = [...remoteData.equipmentBySlug.values()]
+  const microphones = items.find(nameIncludes('микрофоны jbl'))
+  const speakers = items.filter(nameIncludes('partybox')).sort((a, b) => getOneDayPrice(a) - getOneDayPrice(b))
+  if (!microphones || !speakers.length || !getOneDayPrice(microphones)) return ''
+  const kitPrice = (speaker) => getOneDayPrice(speaker) + getOneDayPrice(microphones)
+  const kits = speakers.map((speaker) => `<li>${escapeHtml(speaker.name)} + ${escapeHtml(microphones.name)} — ${escapeHtml(formatPrice(kitPrice(speaker)))} ₽ за сутки</li>`).join('')
+  return `<h2>Сколько стоит караоке-комплект</h2><p>Комплект — от ${escapeHtml(formatPrice(kitPrice(speakers[0])))} ₽ в сутки.</p><ul>${kits}</ul>`
+}
+
 function productsByCategory(remoteData, predicate, limit = 8) {
   return [...remoteData.equipmentBySlug.values()]
     .filter(predicate)
     .slice(0, limit)
-}
-
-function routeProductLinks(route, remoteData, limit = 8) {
-  const predicates = {
-    '/arenda-pylesosov-moskva': (item) => String(item.category || '').includes('Пылесос') || String(item.category || '').includes('клининг'),
-    '/arenda-stroitelnogo-pylesosa-posle-remonta-moskva': (item) => String(item.name || '').toLowerCase().includes('wd') || String(item.category || '').includes('Пылесос'),
-    '/arenda-moyushchego-pylesosa-dlya-divana-kovra-moskva': (item) => String(item.name || '').toLowerCase().includes('puzzi'),
-    '/arenda-paroochistitelya-dlya-kuhni-plitki-vannoy-moskva': (item) => String(item.name || '').toLowerCase().includes('sc4') || String(item.name || '').toLowerCase().includes('пар'),
-    '/arenda-gopro-moskva': (item) => String(item.category || '').includes('Камер'),
-    '/arenda-audiooborudovaniya-moskva': (item) => String(item.category || '').includes('Аудио'),
-    '/arenda-kolonki-dlya-vecherinki-moskva': (item) => String(item.name || '').toLowerCase().includes('jbl') || String(item.category || '').includes('Аудио'),
-    '/arenda-karaoke-komplekta-moskva': (item) => String(item.name || '').toLowerCase().includes('jbl'),
-    '/arenda-mikrofona-dlya-intervyu-moskva': (item) => String(item.name || '').toLowerCase().includes('mic') || String(item.name || '').toLowerCase().includes('микрофон'),
-    '/arenda-tehniki-dlya-meropriyatiya-moskva': (item) => String(item.category || '').includes('Аудио') || String(item.category || '').includes('Камер'),
-  }
-
-  return productLinks(remoteData, predicates[route] || (() => true), limit)
 }
 
 function articleLinks(remoteData, limit = 8) {
@@ -1269,6 +1341,20 @@ function buildProductBody(item, remoteData) {
   return pageShell(`Аренда ${item.name} в Москве`, `Карточка оборудования: ${item.name}. ${item.description || 'Прокат техники с доставкой и самовывозом.'}`, sections)
 }
 
+// Обложка статьи в статике: тот же src/srcset/sizes, что у <img> в BlogArticlePage.tsx (ARTICLE_COVER_SIZES),
+// и размеры из API, чтобы картинка не сдвигала текст.
+function articleCoverHtml(article) {
+  if (!article.image_url) return ''
+  const src = absoluteUrl(article.image_url)
+  const variants = (article.image_variants || []).filter((variant) => variant?.url && variant?.width)
+  const srcset = [
+    ...variants.map((variant) => `${absoluteUrl(variant.url)} ${variant.width}w`),
+    ...(variants.length && article.image_width ? [`${src} ${article.image_width}w`] : []),
+  ].join(', ')
+  const size = article.image_width && article.image_height ? ` width="${article.image_width}" height="${article.image_height}"` : ''
+  return `<img src="${escapeHtml(src)}"${srcset ? ` srcset="${escapeHtml(srcset)}" sizes="(min-width: 896px) 864px, calc(100vw - 32px)"` : ''}${size} alt="${escapeHtml(article.title)}" loading="eager" decoding="async" fetchpriority="high">`
+}
+
 function buildArticleBody(article, remoteData) {
   if (!article) {
     return pageShell('Статья об аренде техники', 'Практический материал блога ВозьмиМеня о выборе и аренде оборудования.')
@@ -1279,6 +1365,7 @@ function buildArticleBody(article, remoteData) {
   // Лид (excerpt) уже выводит pageShell под H1, поэтому здесь его не повторяем.
   const sections = [
     articleByline(article),
+    articleCoverHtml(article),
     `<article data-static-article="true">${articleMarkdownToHtml(article.content)}</article>`,
     `<h2>Взять технику в аренду</h2>${linkList([
       ...(hub ? [hub] : []),
@@ -1307,7 +1394,6 @@ function buildStaticRouteBody(route, meta, remoteData) {
   const cameraProducts = productsByCategory(remoteData, (item) => String(item.category || '').includes('Камер'), 8)
   const audioProducts = productsByCategory(remoteData, (item) => String(item.category || '').includes('Аудио'), 8)
   const articles = articleLinks(remoteData, 10)
-  const routeProducts = routeProductLinks(route, remoteData, 8)
   const routeSections = {
     '/': [
       brandDefinition(remoteData),
@@ -1326,15 +1412,15 @@ function buildStaticRouteBody(route, meta, remoteData) {
       `<p>Для строительной пыли подходит WD5, для диванов и ковров — Karcher Puzzi, для плитки и кухни — пароочиститель SC4.</p>`,
     ],
     '/arenda-stroitelnogo-pylesosa-posle-remonta-moskva': [
-      routeProducts.length ? `<h2>Техника для уборки после ремонта</h2>${linkList(routeProducts)}` : '',
+      scenarioPriceBlock('/arenda-stroitelnogo-pylesosa-posle-remonta-moskva', remoteData, 'Техника для уборки после ремонта: цены'),
       `<p>Строительный пылесос нужен для сухой пыли, мусора и финишной уборки после ремонта. Перед бронью уточняем площадь, тип загрязнения и подходящий комплект.</p>`,
     ],
     '/arenda-moyushchego-pylesosa-dlya-divana-kovra-moskva': [
-      routeProducts.length ? `<h2>Моющие пылесосы для текстиля</h2>${linkList(routeProducts)}` : '',
+      scenarioPriceBlock('/arenda-moyushchego-pylesosa-dlya-divana-kovra-moskva', remoteData, 'Моющие пылесосы для текстиля: цены'),
       `<p>Karcher Puzzi помогает чистить диваны, ковры, матрасы и салон авто: подает раствор и сразу вытягивает влагу с грязью.</p>`,
     ],
     '/arenda-paroochistitelya-dlya-kuhni-plitki-vannoy-moskva': [
-      routeProducts.length ? `<h2>Пароочистители и клининг</h2>${linkList(routeProducts)}` : '',
+      scenarioPriceBlock('/arenda-paroochistitelya-dlya-kuhni-plitki-vannoy-moskva', remoteData, 'Пароочистители и клининг: цены'),
       `<p>Пароочиститель подходит для плитки, швов, кухни, ванной и финальной уборки без покупки техники ради одной задачи.</p>`,
     ],
     '/arenda-gopro-moskva': [
@@ -1346,11 +1432,12 @@ function buildStaticRouteBody(route, meta, remoteData) {
       `<p>Колонки JBL PartyBox подходят для квартиры, дачи, праздника и небольшого мероприятия. Микрофоны помогают записать речь и интервью.</p>`,
     ],
     '/arenda-kolonki-dlya-vecherinki-moskva': [
-      routeProducts.length ? `<h2>Колонки для вечеринки</h2>${linkList(routeProducts)}` : '',
+      scenarioPriceBlock('/arenda-kolonki-dlya-vecherinki-moskva', remoteData, 'Колонки для вечеринки: цены'),
       `<p>Для вечеринки важны мощность, автономность, бас и удобное подключение телефона. Менеджер поможет выбрать колонку под помещение и количество гостей.</p>`,
     ],
     '/arenda-karaoke-komplekta-moskva': [
-      routeProducts.length ? `<h2>Колонки и микрофоны для караоке</h2>${linkList(routeProducts)}` : '',
+      scenarioPriceBlock('/arenda-karaoke-komplekta-moskva', remoteData, 'Колонки и микрофоны для караоке: цены'),
+      karaokeKitPrices(remoteData),
       `<p>Караоке-комплект состоит из JBL PartyBox 320 или 710 и двух беспроводных микрофонов JBL. Обе позиции можно добавить в одну заявку, выбрать общие даты, самовывоз или доставку.</p>`,
       `<p>${linkList([
         { href: '/booking?equipment=jbl-partybox-320,jbl-partybox-wireless-microphones', label: 'Забронировать комплект с JBL PartyBox 320' },
@@ -1359,12 +1446,24 @@ function buildStaticRouteBody(route, meta, remoteData) {
       ])}</p>`,
     ],
     '/arenda-mikrofona-dlya-intervyu-moskva': [
-      routeProducts.length ? `<h2>Микрофоны для интервью и съемки</h2>${linkList(routeProducts)}` : '',
+      scenarioPriceBlock('/arenda-mikrofona-dlya-intervyu-moskva', remoteData, 'Микрофоны для интервью и съемки: цены'),
       `<p>Беспроводной микрофон помогает записать чистую речь для интервью, подкаста, Reels, YouTube и мероприятий с ведущим.</p>`,
     ],
     '/arenda-tehniki-dlya-meropriyatiya-moskva': [
-      routeProducts.length ? `<h2>Техника для мероприятия</h2>${linkList(routeProducts)}` : '',
+      scenarioPriceBlock('/arenda-tehniki-dlya-meropriyatiya-moskva', remoteData, 'Техника для мероприятия: цены'),
       `<p>Для мероприятий чаще всего нужны колонки, микрофоны и камеры. Поможем собрать комплект под помещение, гостей и сценарий.</p>`,
+    ],
+    '/delivery': [
+      `<p data-static-definition="true">Технику ВозьмиМеня можно получить двумя способами: доставкой курьером Яндекс Go по Москве — круглосуточно, обычно за 2–4 часа после подтверждения брони, — или бесплатно через постамат 24/7 у ${escapeHtml(business.offices.map((office) => `м. ${office.metro}`).join(' и '))}.</p>`,
+      `<h2>Доставка курьером по Москве</h2><ul><li>Срок: обычно 2–4 часа после подтверждения брони, доставка работает 24/7.</li><li>Стоимость: по тарифу Яндекс Go, зависит от расстояния и времени суток; менеджер называет её при подтверждении брони.</li><li>Как заказать: укажите адрес и удобное время при оформлении <a href="/booking">брони онлайн</a> или в Telegram <a href="https://t.me/VozmiMenyaRent">@VozmiMenyaRent</a>.</li><li>При получении проверьте комплектность и работоспособность в присутствии курьера.</li><li>Возврат: можно так же оформить Яндекс Go, стоимость рассчитывается приложением в момент заказа.</li></ul>`,
+      `<h2>Бесплатный самовывоз через постамат 24/7</h2><ul>${business.offices.map((office) => `<li><a href="${escapeHtml(office.slug)}">м. ${escapeHtml(office.metro)}</a> — Москва, ${escapeHtml(office.streetAddress)} (район ${escapeHtml(office.district)})</li>`).join('')}</ul><p>После подтверждения брони мы кладём технику в ячейку и отправляем код. Забрать и вернуть её можно в любое время суток, без звонков и ожидания. <a href="/samovyvoz-24-7-postamat">Как работает постамат</a>.</p>`,
+      `<h2>Документы, залог и продление</h2><ul><li>Документы: фото первой страницы паспорта и страницы с пропиской.</li><li>Залог: не нужен при постоянной регистрации в Москве или Московской области; в остальных случаях — 50% стоимости оборудования, возвращается сразу при возврате техники в исправном и чистом состоянии.</li><li>Продление: напишите до окончания аренды — менеджер проверит следующие даты и пересчитает стоимость.</li></ul><p>Полные условия — в <a href="/faq">ответах на вопросы</a> и <a href="/offer">оферте</a>.</p>`,
+    ],
+    '/samovyvoz-24-7-postamat': [
+      `<p data-static-definition="true">Постамат ВозьмиМеня — бесплатный самовывоз арендованной техники 24/7 у ${escapeHtml(business.offices.map((office) => `м. ${office.metro} (${office.streetAddress})`).join(' и '))}. После подтверждения брони мы кладём оборудование в ячейку и отправляем код: забрать и вернуть технику можно в любое время суток, без звонков и ожидания.</p>`,
+      `<h2>Как забрать технику через постамат</h2><ol><li>Оформите <a href="/booking">бронь онлайн</a> или напишите в Telegram <a href="https://t.me/VozmiMenyaRent">@VozmiMenyaRent</a>: модель, даты и удобную точку.</li><li>Менеджер подтвердит бронь, комплект и документы, затем положит технику в ячейку.</li><li>Вы получите код и откроете ячейку в любое время, 24/7.</li><li>Проверьте комплект на месте: аккумуляторы, кабели, насадки, крепления.</li></ol>`,
+      `<h2>Как вернуть</h2><p>Верните технику в ячейку в любое время суток по коду. Перед возвратом проверьте комплект. Если нужно продлить аренду, напишите менеджеру до окончания срока.</p>`,
+      `<h2>Адреса постаматов</h2><ul>${business.offices.map((office) => `<li><a href="${escapeHtml(office.slug)}">м. ${escapeHtml(office.metro)}</a> — Москва, ${escapeHtml(office.streetAddress)}; рядом: ${escapeHtml(office.nearby.join(', '))}</li>`).join('')}</ul><p>Не хотите ехать к метро — <a href="/delivery">доставка курьером</a> по Москве за 2–4 часа, круглосуточно.</p>`,
     ],
     '/blog': [
       articles.length ? `<h2>Статьи</h2>${linkList(articles)}` : '',
@@ -1376,7 +1475,7 @@ function buildStaticRouteBody(route, meta, remoteData) {
     ...Object.fromEntries(business.offices.map((office) => [office.slug, [
       `<p>Офис и постамат: Москва, ${escapeHtml(office.streetAddress)}, рядом с м. ${escapeHtml(office.metro)} (район ${escapeHtml(office.district)}). Технику можно забрать и вернуть 24/7 по коду после подтверждения брони. Районы рядом: ${escapeHtml(office.nearby.join(', '))}.</p>`,
       office.yandexMaps?.ratingValue ? `<p>Рейтинг на Яндекс Картах: ${escapeHtml(String(office.yandexMaps.ratingValue).replace('.', ','))} из 5, ${escapeHtml(office.yandexMaps.reviewCount)} отзывов — <a href="${escapeHtml(office.yandexMaps.url)}">смотреть на Яндекс Картах</a>.</p>` : '',
-      `<h2>Техника в аренду у м. ${escapeHtml(office.metro)}</h2>${linkList(allProducts)}`,
+      priceOverviewTable(remoteData, `Техника в аренду у м. ${office.metro}: цены`),
       `<p>Наличие конкретной модели в этой точке на ваши даты подтверждает менеджер. Второй постамат: ${linkList(business.offices.filter((other) => other.id !== office.id).map((other) => ({ href: other.slug, label: `м. ${other.metro}, ${other.streetAddress}` })))}</p>`,
     ]])),
     '/about': [

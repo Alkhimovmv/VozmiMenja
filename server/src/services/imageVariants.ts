@@ -74,3 +74,30 @@ export function getImageVariants(imagePath: string, dir = uploadsDir, now = Date
   cache.set(cacheKey, { variants, expiresAt: now + CACHE_TTL_MS })
   return variants
 }
+
+export interface ImageDimensions {
+  width: number
+  height: number
+}
+
+// Размеры оригинала загруженного фото: фронт ставит width/height, чтобы картинка не сдвигала текст (CLS).
+// Файл с тем же именем не меняется, поэтому кешируем без срока; отсутствующий файл — undefined.
+const dimensionsCache = new Map<string, ImageDimensions | null>()
+
+export async function getImageDimensions(imagePath: string, dir = uploadsDir): Promise<ImageDimensions | undefined> {
+  const match = /\/uploads\/([^/?#]+)$/.exec(imagePath || '')
+  if (!match) return undefined
+  const filePath = path.join(dir, path.basename(decodeURIComponent(match[1])))
+
+  if (!dimensionsCache.has(filePath)) {
+    try {
+      const { width, height, orientation } = await sharp(filePath).metadata()
+      // EXIF-поворот на 90°/270° меняет стороны местами в отображении.
+      const rotated = orientation !== undefined && orientation >= 5
+      dimensionsCache.set(filePath, width && height ? { width: rotated ? height : width, height: rotated ? width : height } : null)
+    } catch {
+      dimensionsCache.set(filePath, null)
+    }
+  }
+  return dimensionsCache.get(filePath) ?? undefined
+}
