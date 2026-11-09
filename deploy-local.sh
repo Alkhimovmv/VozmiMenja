@@ -350,10 +350,14 @@ build_projects() {
         # Копирование собранного frontend в директорию nginx
         if [ -d "client/dist" ]; then
             echo "Копирование Frontend в /var/www/html/vozmimenya.ru..."
-            mkdir -p /var/www/html/vozmimenya.ru
-            rm -rf /var/www/html/vozmimenya.ru/*
-            cp -r client/dist/* /var/www/html/vozmimenya.ru/
-            chown -R www-data:www-data /var/www/html/vozmimenya.ru
+            # Новую сборку готовим рядом и подменяем каталог целиком: сайт не отдаёт 404 во время копирования.
+            rm -rf /var/www/html/vozmimenya.ru.new /var/www/html/vozmimenya.ru.old
+            mkdir -p /var/www/html/vozmimenya.ru.new
+            cp -r client/dist/. /var/www/html/vozmimenya.ru.new/
+            chown -R www-data:www-data /var/www/html/vozmimenya.ru.new
+            [ -d /var/www/html/vozmimenya.ru ] && mv /var/www/html/vozmimenya.ru /var/www/html/vozmimenya.ru.old
+            mv /var/www/html/vozmimenya.ru.new /var/www/html/vozmimenya.ru
+            rm -rf /var/www/html/vozmimenya.ru.old
             print_success "Frontend развернут в /var/www/html/vozmimenya.ru"
         fi
     fi
