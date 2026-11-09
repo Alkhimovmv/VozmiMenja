@@ -867,7 +867,8 @@ export default function EquipmentDetailsPage() {
           {/* ── Right: Details ── */}
           <div>
             {/* Title */}
-            <h1 className="text-3xl md:text-4xl font-bold text-ink mb-2">{equipment.name}</h1>
+            {/* Тот же H1 отдаёт пререндер (generate-static-route-entrypoints.js, buildProductBody). */}
+            <h1 className="text-3xl md:text-4xl font-bold text-ink mb-2">{equipment.name} в аренду</h1>
 
             {/* Status badge */}
             <div className="mb-6 text-sm text-muted">

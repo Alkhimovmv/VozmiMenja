@@ -11,6 +11,7 @@ import { fetchPriorityAttr, getImageSrcSet, getImageUrl } from '../lib/utils'
 import { CONTACT_PHONE, CONTACT_PHONE_LABEL, getTelegramUrl } from '../lib/contactLinks'
 import { extractArticleBookingLinks } from '../lib/blogBookingCta'
 import { getStaticArticle } from '../lib/staticData'
+import { pickRelatedArticles } from '../lib/relatedArticles'
 
 const rentalCtas = {
   cleaning: {
@@ -139,11 +140,10 @@ export default function BlogArticlePage() {
         if (!isMounted) return
 
         setArticle(data)
-        if (data.category) {
-          const related = await articlesApi.getByCategory(data.category)
-          if (isMounted) {
-            setRelatedArticles(related.filter((a) => a.id !== data.id).slice(0, 3))
-          }
+        // Тот же подбор, что в пререндере (lib/relatedArticles.js): тема, общие теги, свежесть.
+        const allArticles = await articlesApi.getRecent(100)
+        if (isMounted) {
+          setRelatedArticles(pickRelatedArticles(data, allArticles))
         }
       } catch (error) {
         console.error('Error loading article:', error)

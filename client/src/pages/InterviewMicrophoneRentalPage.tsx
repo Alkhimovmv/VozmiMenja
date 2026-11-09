@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import { Helmet } from 'react-helmet-async'
+import seoMeta from '../content/seoMeta.json'
 import { ArrowRight, BatteryCharging, CheckCircle2, ClipboardList, MessageCircle, Mic2, Phone, RadioTower, Smartphone, Video } from 'lucide-react'
 import { trackEvent } from '../lib/analytics'
 import { CONTACT_PHONE, CONTACT_PHONE_LABEL, getTelegramUrl } from '../lib/contactLinks'
@@ -86,8 +87,8 @@ function handleTelegramClick(source: string) {
 }
 
 export default function InterviewMicrophoneRentalPage() {
-  const pageTitle = 'Аренда микрофона для интервью в Москве | ВозьмиМеня'
-  const pageDescription = 'Возьмите DJI Mic 2 для интервью, Reels, Shorts, блога или съемки на телефон в Москве. Поможем подобрать микрофон и комплект под задачу.'
+  const pageTitle = seoMeta['/arenda-mikrofona-dlya-intervyu-moskva'].title
+  const pageDescription = seoMeta['/arenda-mikrofona-dlya-intervyu-moskva'].description
 
   return (
     <div className="min-h-screen bg-[#F5F1E8] text-slate-900">

@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import { Helmet } from 'react-helmet-async'
+import seoMeta from '../content/seoMeta.json'
 import { ArrowRight, Bath, CheckCircle2, CookingPot, Droplets, MessageCircle, Sparkles, SprayCan, Timer, WandSparkles } from 'lucide-react'
 import { trackEvent } from '../lib/analytics'
 import { getTelegramUrl } from '../lib/contactLinks'
@@ -107,8 +108,8 @@ function handleTelegramClick(source: string) {
 }
 
 export default function SteamCleanerKitchenBathroomPage() {
-  const pageTitle = 'Аренда пароочистителя для кухни и плитки в Москве | ВозьмиМеня'
-  const pageDescription = 'Возьмите Karcher SC4 для кухни, плитки, ванной, швов и сантехники в Москве. Поможем понять, нужен пароочиститель, Puzzi или пылесос.'
+  const pageTitle = seoMeta['/arenda-paroochistitelya-dlya-kuhni-plitki-vannoy-moskva'].title
+  const pageDescription = seoMeta['/arenda-paroochistitelya-dlya-kuhni-plitki-vannoy-moskva'].description
 
   return (
     <div className="min-h-screen bg-[#EEF4EF] text-slate-900">

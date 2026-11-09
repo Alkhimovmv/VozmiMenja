@@ -3,6 +3,7 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
+import { articleCategoryHubs, pickRelatedArticles, RELATED_ARTICLES_LIMIT } from '../src/lib/relatedArticles.js'
 import { micromark } from 'micromark'
 import { gfm, gfmHtml } from 'micromark-extension-gfm'
 
@@ -190,10 +191,11 @@ const faqContent = JSON.parse(await fs.readFile(path.join(clientDir, 'src/conten
 const legal = JSON.parse(await fs.readFile(path.join(clientDir, 'src/content/legal.json'), 'utf8'))
 // Бренды техники для Product.brand; тот же список читает EquipmentDetailsPage.tsx.
 const equipmentBrands = JSON.parse(await fs.readFile(path.join(clientDir, 'src/content/equipmentBrands.json'), 'utf8'))
-// Общие title/description со страницами React (src/content/seoMeta.json), чтобы сниппеты не расходились.
 // Постоянные редиректы (старый путь -> новый). GitHub Pages не умеет серверный 301,
 // поэтому для старых путей пишем страницу с мгновенным meta refresh и canonical на новый адрес.
 const redirects = JSON.parse(await fs.readFile(path.join(clientDir, 'src/content/redirects.json'), 'utf8'))
+// Единый источник title/description/h1 статических маршрутов (src/content/seoMeta.json): его же читает
+// src/components/SEO.tsx, а h1 совпадает с заголовком страницы React, чтобы пререндер и рендер не расходились.
 const seoMeta = JSON.parse(await fs.readFile(path.join(clientDir, 'src/content/seoMeta.json'), 'utf8'))
 for (const [route, meta] of Object.entries(seoMeta)) {
   staticSeo[route] = { ...staticSeo[route], ...meta }
@@ -941,7 +943,8 @@ function buildArticleSeo(route, article) {
 
   // Как SEO.tsx в BlogArticlePage: заголовок статьи + бренд, если помещается (fitSiteTitle в buildSeoTags).
   const title = article.title
-  const description = truncate(article.excerpt || article.content || title, 165)
+  // Как BlogArticlePage (SEO description={article.excerpt}): лид целиком, обрезаем только текст статьи без лида.
+  const description = article.excerpt || truncate(article.content || title, 165)
   const image = article.image_url ? absoluteUrl(article.image_url) : undefined
 
   return {
@@ -1277,30 +1280,10 @@ function topicLinkSections(route, remoteData) {
   ].filter(Boolean)
 }
 
-const articleCategoryHubs = [
-  { match: /пылесос|клининг|уборк/i, href: '/arenda-pylesosov-moskva', label: 'Пылесосы, Puzzi и пароочистители в аренду' },
-  { match: /камер/i, href: '/arenda-gopro-moskva', label: 'GoPro, Insta360 и DJI в аренду' },
-  { match: /аудио/i, href: '/arenda-audiooborudovaniya-moskva', label: 'Колонки JBL и микрофоны в аренду' },
-]
-
-function articleTags(article) {
-  return new Set(String(article?.tags || '').toLowerCase().split(',').map((tag) => tag.trim()).filter(Boolean))
-}
-
-// Похожие статьи: сначала та же категория-хаб, затем пересечение тегов, затем свежесть.
-function relatedArticleLinks(article, remoteData, limit = 5) {
-  const hub = articleCategoryHubs.find((item) => item.match.test(article.category || ''))
-  const tags = articleTags(article)
-  return [...remoteData.articleBySlug.values()]
-    .filter((other) => other?.slug && other.slug !== article.slug)
-    .map((other, index) => {
-      const sameHub = hub && hub.match.test(other.category || '') ? 10 : 0
-      const sharedTags = [...articleTags(other)].filter((tag) => tags.has(tag)).length
-      return { other, score: sameHub + sharedTags, index }
-    })
-    .sort((a, b) => b.score - a.score || a.index - b.index)
-    .slice(0, limit)
-    .map(({ other }) => ({ href: `/blog/${other.slug}`, label: other.title }))
+// Похожие статьи — общий модуль с BlogArticlePage.tsx, чтобы блок совпадал в пререндере и после JS.
+function relatedArticleLinks(article, remoteData, limit = RELATED_ARTICLES_LIMIT) {
+  return pickRelatedArticles(article, [...remoteData.articleBySlug.values()], limit)
+    .map((other) => ({ href: `/blog/${other.slug}`, label: other.title }))
 }
 
 // Главное фото карточки в статике: LCP-элемент появляется без JS и API.
@@ -1338,7 +1321,8 @@ function buildProductBody(item, remoteData) {
     `<h2>Как арендовать</h2><p>Выберите даты, оставьте заявку или напишите менеджеру. Мы подтвердим наличие, офис получения, доставку и комплект перед выдачей.</p>`,
   ].filter(Boolean)
 
-  return pageShell(`Аренда ${item.name} в Москве`, `Карточка оборудования: ${item.name}. ${item.description || 'Прокат техники с доставкой и самовывозом.'}`, sections)
+  // H1 тот же, что в EquipmentDetailsPage.tsx: «<модель> в аренду».
+  return pageShell(`${item.name} в аренду`, `Карточка оборудования: ${item.name}. ${item.description || 'Прокат техники с доставкой и самовывозом.'}`, sections)
 }
 
 // Обложка статьи в статике: тот же src/srcset/sizes, что у <img> в BlogArticlePage.tsx (ARTICLE_COVER_SIZES),
@@ -1361,7 +1345,7 @@ function buildArticleBody(article, remoteData) {
   }
 
   const hub = articleCategoryHubs.find((item) => item.match.test(article.category || ''))
-  const related = relatedArticleLinks(article, remoteData, 5)
+  const related = relatedArticleLinks(article, remoteData)
   // Лид (excerpt) уже выводит pageShell под H1, поэтому здесь его не повторяем.
   const sections = [
     articleByline(article),
@@ -1372,7 +1356,7 @@ function buildArticleBody(article, remoteData) {
       ...articleCategoryHubs.filter((item) => item !== hub),
       { href: '/booking', label: 'Оформить бронь онлайн' },
     ])}`,
-    related.length ? `<h2>Другие статьи по теме</h2>${linkList(related)}` : '',
+    related.length ? `<h2>Похожие статьи</h2>${linkList(related)}` : '',
   ].filter(Boolean)
 
   return pageShell(article.title, article.excerpt || 'Статья блога ВозьмиМеня.', sections)
@@ -1498,7 +1482,7 @@ function buildStaticRouteBody(route, meta, remoteData) {
     ],
   }
 
-  return pageShell(routeH1[route] || meta.title, meta.description, [
+  return pageShell(meta.h1 || meta.title, meta.description, [
     ...(routeSections[route] || []),
     ...topicLinkSections(route, remoteData),
     faqSection(faqContent[route]),
@@ -1506,13 +1490,6 @@ function buildStaticRouteBody(route, meta, remoteData) {
 }
 
 // H1 статической версии совпадает с H1 React-страницы, чтобы боты без JS и с JS видели один заголовок.
-const routeH1 = {
-  '/': 'Техника напрокат в Москве — на день, а не на годы',
-  '/about': 'О компании ВозьмиМеня',
-  '/requisites': 'Реквизиты',
-  '/offer': 'Договор публичной оферты',
-}
-
 function minOneDayPrice(remoteData) {
   const prices = [...remoteData.equipmentBySlug.values()].map(getOneDayPrice).filter((price) => price > 0)
   return prices.length ? Math.min(...prices) : null

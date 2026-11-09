@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import { Helmet } from 'react-helmet-async'
+import seoMeta from '../content/seoMeta.json'
 import { ArrowRight, CheckCircle2, Clock, Home, MapPinned, MessageCircle, Music, Speaker, Truck, Users, Volume2 } from 'lucide-react'
 import { trackEvent } from '../lib/analytics'
 import { getTelegramUrl } from '../lib/contactLinks'
@@ -106,8 +107,8 @@ function handleTelegramClick(source: string) {
 }
 
 export default function PartySpeakerRentalPage() {
-  const pageTitle = 'Аренда колонки для вечеринки в Москве | ВозьмиМеня'
-  const pageDescription = 'Возьмите JBL PartyBox 320 или 710 для вечеринки, дня рождения, дачи или зала в Москве. Поможем подобрать колонку по гостям и площадке.'
+  const pageTitle = seoMeta['/arenda-kolonki-dlya-vecherinki-moskva'].title
+  const pageDescription = seoMeta['/arenda-kolonki-dlya-vecherinki-moskva'].description
 
   return (
     <div className="min-h-screen bg-[#F6F7F4] text-slate-950">

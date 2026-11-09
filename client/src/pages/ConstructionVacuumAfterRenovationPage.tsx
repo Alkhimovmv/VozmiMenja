@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import { Helmet } from 'react-helmet-async'
+import seoMeta from '../content/seoMeta.json'
 import { ArrowRight, CheckCircle2, ClipboardList, MessageCircle, Sparkles, SprayCan, Timer, Truck, Wind } from 'lucide-react'
 import { trackEvent } from '../lib/analytics'
 import { getTelegramUrl } from '../lib/contactLinks'
@@ -102,8 +103,8 @@ function handleTelegramClick(source: string) {
 }
 
 export default function ConstructionVacuumAfterRenovationPage() {
-  const pageTitle = 'Аренда строительного пылесоса после ремонта в Москве | ВозьмиМеня'
-  const pageDescription = 'Возьмите строительный пылесос для уборки после ремонта в Москве. Поможем подобрать модель под пыль, мусор, площадь и срок аренды.'
+  const pageTitle = seoMeta['/arenda-stroitelnogo-pylesosa-posle-remonta-moskva'].title
+  const pageDescription = seoMeta['/arenda-stroitelnogo-pylesosa-posle-remonta-moskva'].description
 
   return (
     <div className="min-h-screen bg-[#F6F7F4] text-slate-900">

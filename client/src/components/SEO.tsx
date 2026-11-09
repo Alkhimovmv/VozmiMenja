@@ -1,5 +1,11 @@
 import { Helmet } from 'react-helmet-async'
+import { useLocation } from 'react-router-dom'
 import business from '../content/business.json'
+import seoMeta from '../content/seoMeta.json'
+
+// Единый источник title/description/h1 для статических маршрутов: его же читает генератор статики,
+// поэтому сниппет в пререндере и после загрузки JS совпадает.
+const sharedSeo: Record<string, { title: string; description: string; h1?: string }> = seoMeta
 
 const [primaryOffice] = business.offices
 
@@ -34,6 +40,12 @@ export default function SEO({
   noIndex = false,
   structuredData
 }: SEOProps) {
+  const { pathname } = useLocation()
+  const shared = sharedSeo[pathname.replace(/\/+$/, '') || '/']
+  if (shared) {
+    title = shared.title
+    description = shared.description
+  }
   const siteTitle = fitSiteTitle(title)
 
   return (

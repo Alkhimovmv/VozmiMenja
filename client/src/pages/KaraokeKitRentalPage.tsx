@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import { Helmet } from 'react-helmet-async'
+import seoMeta from '../content/seoMeta.json'
 import { ArrowRight, CheckCircle2, Clock3, MapPin, Mic2, Music2, ShieldCheck, Speaker } from 'lucide-react'
 import { trackEvent } from '../lib/analytics'
 import { buildAttributedBookingLinks, getLeadContext } from '../lib/leadAttribution'
@@ -67,8 +68,8 @@ const kits = [
 ]
 
 export default function KaraokeKitRentalPage() {
-  const title = 'Аренда караоке-комплекта в Москве — JBL и 2 микрофона'
-  const description = 'Аренда караоке-комплекта в Москве: JBL PartyBox 320 или 710 и два беспроводных микрофона. Выберите комплект и оформите одной заявкой.'
+  const title = seoMeta['/arenda-karaoke-komplekta-moskva'].title
+  const description = seoMeta['/arenda-karaoke-komplekta-moskva'].description
   const attributedKits = buildAttributedBookingLinks(kits, 'karaoke-kit', getLeadContext())
   const primaryBookingHref = attributedKits[0].href
 

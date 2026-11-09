@@ -1,5 +1,6 @@
 import { Camera, SprayCan, Mic2 } from 'lucide-react'
 import SEO from '../components/SEO'
+import ServiceFacts from '../components/ServiceFacts'
 import { Link } from 'react-router-dom'
 
 export default function AboutPage() {
@@ -111,6 +112,8 @@ export default function AboutPage() {
           </div>
         </div>
       </section>
+
+      <ServiceFacts showLegal />
     </div>
   )
 }
