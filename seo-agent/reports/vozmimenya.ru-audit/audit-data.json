@@ -1,0 +1,296 @@
+{
+  "summary": {
+    "health_score": 68,
+    "business_type": "Local service (hybrid): 2 pickup lockers 24/7 + courier delivery, Moscow; rental catalog + blog",
+    "top_findings": [
+      "createRoot discards prerender: articles show 'Загрузка статьи...' until API responds; CLS 0.10-0.61",
+      "Static article HTML truncated to 6 paragraphs, links/H2/tables stripped (markdownToPlainSections)",
+      "Homepage rendered H1 has no keywords and differs from static H1",
+      "Auto-scroll on 3 category pages pushes H1 off-screen; CLS 0.49-0.61",
+      "AggregateRating in global graph on all pages; fabricated 4.9/412 rating hardcoded in prerender.ts"
+    ],
+    "quick_wins": [
+      "Delete hardcoded aggregateRating from server/src/routes/prerender.ts",
+      "Remove auto-scroll on category pages",
+      "Put 'Техника напрокат в Москве' into homepage H1",
+      "Add labels/aria-label to /booking equipment, date and time fields",
+      "Compact mobile cookie banner (169px -> <80px)"
+    ]
+  },
+  "categories": [
+    {
+      "name": "Technical SEO",
+      "score": 82,
+      "what_works": [
+        "All 64 sitemap URLs 200, canonical=loc",
+        "Single 301 for http/www",
+        "Real 404",
+        "Valid robots.txt and sitemap"
+      ],
+      "findings": [
+        {
+          "title": "/equipment duplicates homepage",
+          "severity": "Medium",
+          "description": "200 with canonical to / instead of 301",
+          "recommendation": "301 to / or a real catalog page"
+        },
+        {
+          "title": "No security headers",
+          "severity": "Medium",
+          "description": "GitHub Pages: no HSTS/CSP/XCTO/Referrer-Policy",
+          "recommendation": "CDN/proxy in front of Pages"
+        },
+        {
+          "title": "Short cache on hashed assets",
+          "severity": "Medium",
+          "description": "max-age=600",
+          "recommendation": "1 year + immutable via CDN"
+        },
+        {
+          "title": "No <img> in prerendered HTML",
+          "severity": "Medium",
+          "description": "Images only after JS",
+          "recommendation": "Render LCP image in static HTML"
+        },
+        {
+          "title": "sitemap lastmod = build date for 31 static pages",
+          "severity": "Medium",
+          "description": "generate-sitemap.ts today()",
+          "recommendation": "Single source of truth for lastmod"
+        }
+      ]
+    },
+    {
+      "name": "Content Quality",
+      "score": 60,
+      "what_works": [
+        "Useful scenario landing pages",
+        "FAQ with concrete answers"
+      ],
+      "findings": [
+        {
+          "title": "Cannibalization",
+          "severity": "High",
+          "description": "GoPro vs vlog landing; 3 'after renovation' articles; DJI Mic 2",
+          "recommendation": "Split intents or 301 (owner approval)"
+        },
+        {
+          "title": "Template FAQ in product cards",
+          "severity": "High",
+          "description": "Generic answers",
+          "recommendation": "Write model-specific answers"
+        },
+        {
+          "title": "Thin service and metro pages",
+          "severity": "Medium",
+          "description": "about/delivery/contact ~100 words; metro pages 81% shingle overlap",
+          "recommendation": "Add routes, photos, reviews"
+        },
+        {
+          "title": "Contradicting facts",
+          "severity": "High",
+          "description": "24/7 wording, deposit, 'от 980 ₽', '8 лет'",
+          "recommendation": "Owner confirms one version"
+        }
+      ]
+    },
+    {
+      "name": "On-Page SEO",
+      "score": 65,
+      "what_works": [
+        "Unique titles and descriptions"
+      ],
+      "findings": [
+        {
+          "title": "Homepage H1 without keywords after render",
+          "severity": "High",
+          "description": "HomePage.tsx:273",
+          "recommendation": "Keyword H1, slogan as subtitle"
+        },
+        {
+          "title": "Weak internal linking in static HTML",
+          "severity": "High",
+          "description": "Hubs don't link to landings; 'other articles' not topical",
+          "recommendation": "Cluster-based link matrix"
+        },
+        {
+          "title": "No price/booking CTA above fold on landings",
+          "severity": "Medium",
+          "description": "Only Telegram + catalog",
+          "recommendation": "Add price and Book button"
+        }
+      ]
+    },
+    {
+      "name": "Schema / Structured Data",
+      "score": 68,
+      "what_works": [
+        "Valid JSON-LD served statically",
+        "Breadcrumbs on articles and landings"
+      ],
+      "findings": [
+        {
+          "title": "Global AggregateRating",
+          "severity": "High",
+          "description": "Rating on all 64 pages, visible on one",
+          "recommendation": "Keep only on office page"
+        },
+        {
+          "title": "Fabricated rating in prerender.ts",
+          "severity": "High",
+          "description": "4.9/412 hardcoded",
+          "recommendation": "Delete"
+        },
+        {
+          "title": "BlogPosting dates not ISO, no image",
+          "severity": "Medium",
+          "description": "'2026-09-05 23:41:32'",
+          "recommendation": "ISO 8601 + image"
+        },
+        {
+          "title": "Product without brand/sku; mixed offers",
+          "severity": "Medium",
+          "description": "",
+          "recommendation": "Add brand/sku; separate offers"
+        }
+      ]
+    },
+    {
+      "name": "Performance (CWV)",
+      "score": 66,
+      "what_works": [
+        "CLS 0 on home and product",
+        "Fonts woff2 + swap",
+        "Metrika after consent"
+      ],
+      "findings": [
+        {
+          "title": "High CLS on category pages",
+          "severity": "High",
+          "description": "0.61 mobile / 0.49 desktop",
+          "recommendation": "Remove auto-scroll; stop re-render"
+        },
+        {
+          "title": "LCP image only after JS+API",
+          "severity": "High",
+          "description": "Desktop LCP 2.2s",
+          "recommendation": "Static <img> with fetchpriority=high"
+        },
+        {
+          "title": "Oversized product photo",
+          "severity": "Medium",
+          "description": "JPEG 1600px 131KB in 378px slot",
+          "recommendation": "Use -w800.webp (34KB)"
+        }
+      ]
+    },
+    {
+      "name": "AI Search Readiness",
+      "score": 64,
+      "what_works": [
+        "All AI crawlers allowed",
+        "llms.txt present",
+        "Static HTML not empty"
+      ],
+      "findings": [
+        {
+          "title": "Truncated static articles",
+          "severity": "High",
+          "description": "G-01",
+          "recommendation": "Full markdown render"
+        },
+        {
+          "title": "Booking form fields unnamed for agents",
+          "severity": "Medium",
+          "description": "Agentic audit",
+          "recommendation": "label/aria-label"
+        },
+        {
+          "title": "Weak brand entity",
+          "severity": "Medium",
+          "description": "Few sameAs, no legalName",
+          "recommendation": "Extend Organization"
+        }
+      ]
+    },
+    {
+      "name": "Images",
+      "score": 74,
+      "what_works": [
+        "Meaningful alt on products",
+        "webp -w400/-w800 variants"
+      ],
+      "findings": [
+        {
+          "title": "Originals instead of webp",
+          "severity": "Medium",
+          "description": "Product main photo, article hero",
+          "recommendation": "Serve webp variants"
+        },
+        {
+          "title": "No width/height",
+          "severity": "Low",
+          "description": "Content images",
+          "recommendation": "Set dimensions"
+        }
+      ]
+    }
+  ],
+  "action_plan": {
+    "phases": [
+      {
+        "name": "Phase 1: Quick Fixes",
+        "timeframe": "Week 1",
+        "items": [
+          "Delete fake rating",
+          "Move AggregateRating to office page",
+          "Keyword H1 on homepage",
+          "Remove auto-scroll",
+          "Booking a11y",
+          "Compact cookie banner",
+          "Schema/meta cleanup"
+        ]
+      },
+      {
+        "name": "Phase 2: High-Impact Improvements",
+        "timeframe": "Weeks 2-3",
+        "items": [
+          "Full static article HTML",
+          "Embed initial data / SSG to remove loading state",
+          "Topical internal links",
+          "Static LCP <img>",
+          "Resolve cannibalization (owner)",
+          "Unify facts (owner)"
+        ]
+      },
+      {
+        "name": "Phase 3: Content & Authority",
+        "timeframe": "Month 2",
+        "items": [
+          "Yandex Business card for Dinamo",
+          "Unique metro pages",
+          "Expand service pages",
+          "Brand entity + author",
+          "New topics from cluster plan",
+          "Mobile above-fold CTA",
+          "CDN for headers/cache"
+        ]
+      },
+      {
+        "name": "Phase 4: Monitoring & Iteration",
+        "timeframe": "Ongoing",
+        "items": [
+          "Google API keys for CrUX/GSC",
+          "Backlink exports",
+          "Drift baseline after phase 1",
+          "Moscow SERP re-check for SXO/clusters",
+          "IndexNow on deploy"
+        ]
+      }
+    ]
+  },
+  "artifacts": {
+    "findings_dir": "findings/",
+    "screenshots_dir": "screenshots/"
+  }
+}
