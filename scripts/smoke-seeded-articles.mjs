@@ -1,7 +1,11 @@
+import fs from 'node:fs/promises'
+import path from 'node:path'
 import {
   getPublishedArticles,
   getSeededArticleSlugs,
   missingSeededArticleSlugs,
+  repositoryRoot,
+  resolveRedirectPath,
   sleep,
 } from './seeded-article-contract.mjs'
 
@@ -21,7 +25,7 @@ function canonicalHref(html) {
   return tag.match(/\bhref=["']([^"']+)["']/i)?.[1] || ''
 }
 
-async function responseText(url) {
+async function responseResource(url) {
   const response = await fetch(url, { headers: { accept: 'text/html,application/xml' } })
   const body = await response.text()
 
@@ -29,11 +33,15 @@ async function responseText(url) {
     throw new Error(`${url} returned ${response.status}`)
   }
 
-  return body
+  return { body, finalUrl: response.url }
 }
 
 async function checkRelease() {
   const expectedSlugs = await getSeededArticleSlugs()
+  const redirects = JSON.parse(await fs.readFile(
+    path.join(repositoryRoot, 'client/src/content/redirects.json'),
+    'utf8',
+  ))
   const articles = await getPublishedArticles(apiOrigin)
   const missingFromApi = missingSeededArticleSlugs(expectedSlugs, articles)
 
@@ -41,15 +49,27 @@ async function checkRelease() {
     throw new Error(`Public API is missing seeded articles: ${missingFromApi.join(', ')}`)
   }
 
-  const sitemap = await responseText(`${siteOrigin}/sitemap.xml`)
+  const { body: sitemap } = await responseResource(`${siteOrigin}/sitemap.xml`)
   const failures = []
 
   for (const slug of expectedSlugs) {
-    const url = `${siteOrigin}/blog/${slug}`
+    const publicPath = resolveRedirectPath(`/blog/${slug}`, redirects)
+    const sourceUrl = `${siteOrigin}/blog/${slug}`
+    const expectedCanonical = `${siteOrigin}${publicPath}`
 
     try {
-      const html = await responseText(url)
-      const expectedCanonical = url
+      const sourcePage = await responseResource(sourceUrl)
+      let html = sourcePage.body
+
+      if (sourceUrl !== expectedCanonical) {
+        if (canonicalHref(sourcePage.body) !== expectedCanonical) {
+          failures.push(`${slug}: redirect canonical is ${canonicalHref(sourcePage.body) || 'missing'}`)
+        }
+        const targetPage = await responseResource(expectedCanonical)
+        html = targetPage.body
+      } else if (sourcePage.finalUrl !== expectedCanonical) {
+        failures.push(`${slug}: final URL is ${sourcePage.finalUrl}`)
+      }
 
       if (canonicalHref(html) !== expectedCanonical) {
         failures.push(`${slug}: canonical is ${canonicalHref(html) || 'missing'}`)

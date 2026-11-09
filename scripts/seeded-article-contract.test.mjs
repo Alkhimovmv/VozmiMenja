@@ -4,6 +4,7 @@ import {
   articleItemsFromPayload,
   extractSeededArticleSlugs,
   missingSeededArticleSlugs,
+  resolveRedirectPath,
 } from './seeded-article-contract.mjs'
 
 test('extracts literal article slugs without interface declarations or duplicates', () => {
@@ -34,6 +35,14 @@ test('normalizes API envelopes and reports missing published slugs', () => {
   assert.deepEqual(
     missingSeededArticleSlugs(['published', 'draft', 'missing'], articles),
     ['draft', 'missing'],
+  )
+})
+
+test('resolves declared redirect chains and rejects loops', () => {
+  assert.equal(resolveRedirectPath('/old', { '/old': '/new', '/new': '/final' }), '/final')
+  assert.throws(
+    () => resolveRedirectPath('/a', { '/a': '/b', '/b': '/a' }),
+    /Redirect loop detected/,
   )
 })
 

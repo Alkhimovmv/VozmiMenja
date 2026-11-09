@@ -66,6 +66,21 @@ export function missingSeededArticleSlugs(expectedSlugs, articles) {
   return expectedSlugs.filter((slug) => !publishedSlugs.has(slug))
 }
 
+export function resolveRedirectPath(initialPath, redirects) {
+  let currentPath = initialPath
+  const visited = new Set()
+
+  while (redirects[currentPath]) {
+    if (visited.has(currentPath)) {
+      throw new Error(`Redirect loop detected for ${initialPath}`)
+    }
+    visited.add(currentPath)
+    currentPath = redirects[currentPath]
+  }
+
+  return currentPath
+}
+
 export function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms))
 }
