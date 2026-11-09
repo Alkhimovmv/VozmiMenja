@@ -194,7 +194,9 @@ export default function BlogArticlePage() {
     image: article.image_url || 'https://vozmimenya.ru/og-image.jpg',
     datePublished: toIsoDateTime(article.created_at),
     dateModified: toIsoDateTime(article.updated_at || article.created_at),
-    author: { '@type': 'Organization', name: article.author },
+    author: article.author && article.author !== 'ВозьмиМеня'
+      ? { '@type': 'Person', name: article.author, worksFor: { '@type': 'Organization', name: 'ВозьмиМеня', url: 'https://vozmimenya.ru' }, url: 'https://vozmimenya.ru/about' }
+      : { '@type': 'Organization', name: 'ВозьмиМеня' },
     publisher: { '@type': 'Organization', name: 'ВозьмиМеня', logo: { '@type': 'ImageObject', url: 'https://vozmimenya.ru/logo.png' } },
     mainEntityOfPage: { '@type': 'WebPage', '@id': `https://vozmimenya.ru/blog/${article.slug}` },
   }

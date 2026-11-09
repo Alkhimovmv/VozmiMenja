@@ -936,7 +936,10 @@ function buildArticleSeo(route, article) {
       headline: article.title,
       description,
       image: image || business.image,
-      author: { '@type': 'Organization', name: article.author || 'ВозьмиМеня' },
+      // Человек-автор — Person с привязкой к компании; старое значение «ВозьмиМеня» — сама организация.
+      author: article.author && article.author !== business.name
+        ? { '@type': 'Person', name: article.author, worksFor: { '@id': ORGANIZATION_ID }, url: `${SITE_ORIGIN}/about` }
+        : { '@id': ORGANIZATION_ID },
       publisher: { '@id': ORGANIZATION_ID },
       mainEntityOfPage: `${SITE_ORIGIN}${route}`,
       datePublished: toIsoDateTime(article.created_at),
@@ -1380,6 +1383,7 @@ function buildStaticRouteBody(route, meta, remoteData) {
       brandDefinition(remoteData),
       brandFactsSection(remoteData),
       `<h2>Категории оборудования</h2><ul><li><a href="/arenda-gopro-moskva">Камеры</a>: экшн-камеры GoPro 13, Insta360 X5 и DJI Osmo Pocket 3 для поездок, спорта и влогов</li><li><a href="/arenda-pylesosov-moskva">Клининговое оборудование</a>: Karcher WD5 после ремонта, Puzzi для диванов и ковров, пароочиститель SC4 для кухни и плитки</li><li><a href="/arenda-audiooborudovaniya-moskva">Аудиооборудование</a>: колонки JBL PartyBox 320 и 710, беспроводные микрофоны DJI Mic 2</li></ul>`,
+      `<p>Статьи и гайды в <a href="/blog">блоге</a> готовит Максим Алхимов из команды ВозьмиМеня.</p>`,
       `<h2>Юридическая информация</h2><p>Сервис работает как ${escapeHtml(legal.legalName)}, ИНН ${escapeHtml(legal.inn)}, ОГРНИП ${escapeHtml(legal.ogrnip)}. Аренда оформляется по <a href="/offer">публичной оферте</a> и <a href="/rental-agreement">договору аренды</a>; полные <a href="/requisites">реквизиты</a>.</p>`,
     ],
     '/requisites': [
