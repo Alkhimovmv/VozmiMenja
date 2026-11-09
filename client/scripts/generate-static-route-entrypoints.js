@@ -3,9 +3,12 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
+import { micromark } from 'micromark'
+import { gfm, gfmHtml } from 'micromark-extension-gfm'
 
 const SITE_ORIGIN = 'https://vozmimenya.ru'
 const API_ORIGIN = (process.env.STATIC_SEO_API_URL || process.env.VITE_API_URL || 'https://api.vozmimenya.ru/api').replace(/\/$/, '')
+const UPLOADS_ORIGIN = API_ORIGIN.replace(/\/api$/, '')
 const execFileAsync = promisify(execFile)
 const LEGACY_EQUIPMENT_SLUGS = new Map([
   ['nabor-besprovodnyh-mikrofonov-jbl-partybox', 'jbl-partybox-wireless-microphones'],
@@ -21,7 +24,6 @@ const staticRoutes = [
   '/arenda-kolonki-dlya-vecherinki-moskva',
   '/arenda-karaoke-komplekta-moskva',
   '/arenda-paroochistitelya-dlya-kuhni-plitki-vannoy-moskva',
-  '/arenda-kamery-dlya-puteshestviya-vloga-moskva',
   '/arenda-gopro-moskva',
   '/arenda-audiooborudovaniya-moskva',
   '/blog',
@@ -85,10 +87,6 @@ const staticSeo = {
   '/arenda-paroochistitelya-dlya-kuhni-plitki-vannoy-moskva': {
     title: 'Аренда пароочистителя для кухни, плитки и ванной',
     description: 'Пароочиститель Karcher напрокат для кухни, плитки, швов, ванной и финальной уборки без покупки техники.',
-  },
-  '/arenda-kamery-dlya-puteshestviya-vloga-moskva': {
-    title: 'Аренда камеры для путешествия и влога в Москве',
-    description: 'Камеры GoPro, Insta360 и DJI Osmo Pocket напрокат для поездки, блога, спорта и мероприятия. Подберём комплект.',
   },
   '/arenda-gopro-moskva': {
     title: 'Аренда экшн-камер GoPro, Insta360 и DJI в Москве | ВозьмиМеня',
@@ -188,7 +186,12 @@ const distIndexPath = path.join(distDir, 'index.html')
 const distSitemapPath = path.join(distDir, 'sitemap.xml')
 const business = JSON.parse(await fs.readFile(path.join(clientDir, 'src/content/business.json'), 'utf8'))
 const faqContent = JSON.parse(await fs.readFile(path.join(clientDir, 'src/content/faq.json'), 'utf8'))
+// Реквизиты и текст оферты — общий источник с RequisitesPage.tsx и OfferPage.tsx.
+const legal = JSON.parse(await fs.readFile(path.join(clientDir, 'src/content/legal.json'), 'utf8'))
 // Общие title/description со страницами React (src/content/seoMeta.json), чтобы сниппеты не расходились.
+// Постоянные редиректы (старый путь -> новый). GitHub Pages не умеет серверный 301,
+// поэтому для старых путей пишем страницу с мгновенным meta refresh и canonical на новый адрес.
+const redirects = JSON.parse(await fs.readFile(path.join(clientDir, 'src/content/redirects.json'), 'utf8'))
 const seoMeta = JSON.parse(await fs.readFile(path.join(clientDir, 'src/content/seoMeta.json'), 'utf8'))
 for (const [route, meta] of Object.entries(seoMeta)) {
   staticSeo[route] = { ...staticSeo[route], ...meta }
@@ -308,6 +311,7 @@ async function getRoutesFromSitemap(remoteData) {
     })
 
     return [...new Set([...staticRoutes, ...stableSitemapRoutes, ...getRemoteRoutes(remoteData)])]
+      .filter((route) => !redirects[route])
   } catch (error) {
     if (error.code !== 'ENOENT') {
       throw error
@@ -340,6 +344,8 @@ function absoluteUrl(raw) {
   const value = String(raw)
   const withoutLocalhost = value.replace(/^https?:\/\/localhost:\d+/i, '')
   if (/^https?:\/\//i.test(withoutLocalhost)) return withoutLocalhost
+  // Загрузки отдаёт API-сервер, а не GitHub Pages (как getImageUrl в src/lib/utils.ts).
+  if (withoutLocalhost.startsWith('/uploads/')) return `${UPLOADS_ORIGIN}${withoutLocalhost}`
   return `${SITE_ORIGIN}${withoutLocalhost.startsWith('/') ? '' : '/'}${withoutLocalhost}`
 }
 
@@ -398,7 +404,7 @@ async function loadRemoteSeoData() {
       articleItems = await fetchJson(`${API_ORIGIN}/articles`)
     }
     for (const article of articleItems || []) {
-      if (article?.slug) articleBySlug.set(String(article.slug), article)
+      if (article?.slug && !redirects[`/blog/${article.slug}`]) articleBySlug.set(String(article.slug), article)
     }
   } catch (error) {
     console.warn(`Static SEO: articles API unavailable, using fallbacks (${error.message})`)
@@ -591,7 +597,8 @@ function officeRatingJsonLd(office) {
   }
 }
 
-function officeJsonLd(office) {
+// Рейтинг выводим только на странице самой точки: там он виден пользователю.
+function officeJsonLd(office, route) {
   return {
     '@type': 'LocalBusiness',
     '@id': `${SITE_ORIGIN}/#${office.id}`,
@@ -618,7 +625,7 @@ function officeJsonLd(office) {
     },
     hasMap: office.yandexMaps?.url || `https://yandex.ru/maps/?pt=${office.longitude},${office.latitude}&z=17&l=map`,
     sameAs: office.yandexMaps?.url ? [office.yandexMaps.url] : undefined,
-    aggregateRating: officeRatingJsonLd(office),
+    aggregateRating: route === office.slug ? officeRatingJsonLd(office) : undefined,
     openingHoursSpecification: {
       '@type': 'OpeningHoursSpecification',
       dayOfWeek: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],
@@ -628,7 +635,7 @@ function officeJsonLd(office) {
   }
 }
 
-function buildBusinessJsonLd() {
+function buildBusinessJsonLd(route) {
   return {
     '@context': 'https://schema.org',
     '@graph': [
@@ -636,7 +643,11 @@ function buildBusinessJsonLd() {
         '@type': 'Organization',
         '@id': ORGANIZATION_ID,
         name: business.name,
-        alternateName: business.alternateName,
+        // Варианты написания, под которыми бренд ищут и упоминают (домен, Telegram, Яндекс Карты).
+        alternateName: [...new Set([business.alternateName, 'Возьми меня', 'VozmiMenya', 'vozmimenya.ru'].flat().filter(Boolean))],
+        legalName: legal.legalName,
+        taxID: legal.inn,
+        identifier: { '@type': 'PropertyValue', propertyID: 'ОГРНИП', value: legal.ogrnip },
         url: SITE_ORIGIN,
         logo: business.logo,
         image: business.image,
@@ -654,7 +665,7 @@ function buildBusinessJsonLd() {
         },
         department: business.offices.map((office) => ({ '@id': `${SITE_ORIGIN}/#${office.id}` })),
       },
-      ...business.offices.map(officeJsonLd),
+      ...business.offices.map((office) => officeJsonLd(office, route)),
       {
         '@type': 'WebSite',
         '@id': WEBSITE_ID,
@@ -734,7 +745,7 @@ function enrichSeoMeta(route, meta, remoteData) {
     ...normalizeJsonLd(meta.jsonLd),
     buildWebPageJsonLd(route, meta),
     buildBreadcrumbJsonLd(route, meta),
-    buildBusinessJsonLd(),
+    buildBusinessJsonLd(route),
     buildItemListJsonLd(route, remoteData),
   ].filter(Boolean)
 
@@ -924,14 +935,22 @@ function buildArticleSeo(route, article) {
       '@type': 'BlogPosting',
       headline: article.title,
       description,
-      image,
+      image: image || business.image,
       author: { '@type': 'Organization', name: article.author || 'ВозьмиМеня' },
       publisher: { '@id': ORGANIZATION_ID },
       mainEntityOfPage: `${SITE_ORIGIN}${route}`,
-      datePublished: article.created_at,
-      dateModified: article.updated_at,
+      datePublished: toIsoDateTime(article.created_at),
+      dateModified: toIsoDateTime(article.updated_at || article.created_at),
     },
   }
+}
+
+// SQLite CURRENT_TIMESTAMP хранит UTC без зоны: '2026-09-05 23:41:32' -> '2026-09-05T23:41:32Z'.
+function toIsoDateTime(value) {
+  if (!value) return undefined
+  const text = String(value).trim()
+  if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}(:\d{2})?$/.test(text)) return `${text.replace(' ', 'T')}Z`
+  return text
 }
 
 function fallbackSeo(route) {
@@ -1088,7 +1107,6 @@ function routeProductLinks(route, remoteData, limit = 8) {
     '/arenda-moyushchego-pylesosa-dlya-divana-kovra-moskva': (item) => String(item.name || '').toLowerCase().includes('puzzi'),
     '/arenda-paroochistitelya-dlya-kuhni-plitki-vannoy-moskva': (item) => String(item.name || '').toLowerCase().includes('sc4') || String(item.name || '').toLowerCase().includes('пар'),
     '/arenda-gopro-moskva': (item) => String(item.category || '').includes('Камер'),
-    '/arenda-kamery-dlya-puteshestviya-vloga-moskva': (item) => String(item.category || '').includes('Камер'),
     '/arenda-audiooborudovaniya-moskva': (item) => String(item.category || '').includes('Аудио'),
     '/arenda-kolonki-dlya-vecherinki-moskva': (item) => String(item.name || '').toLowerCase().includes('jbl') || String(item.category || '').includes('Аудио'),
     '/arenda-karaoke-komplekta-moskva': (item) => String(item.name || '').toLowerCase().includes('jbl'),
@@ -1106,28 +1124,118 @@ function articleLinks(remoteData, limit = 8) {
     .map((article) => ({ href: `/blog/${article.slug}`, label: article.title }))
 }
 
-function markdownToPlainSections(content) {
-  const clean = stripHtml(content || '')
-    .replace(/!\[[^\]]*\]\([^)]+\)/g, ' ')
-    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
-    .replace(/```[\s\S]*?```/g, ' ')
-    .replace(/[#*_`>|-]+/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim()
+// Полный текст статьи для ботов без JS: тот же GFM, что у ReactMarkdown + remark-gfm в BlogArticlePage.
+// Сырой HTML внутри markdown micromark экранирует (allowDangerousHtml выключен).
+function articleMarkdownToHtml(content) {
+  if (!content) return ''
+  return micromark(String(content), { extensions: [gfm()], htmlExtensions: [gfmHtml()] })
+    .replace(/<img src="([^"]*)"/g, (_, src) => `<img src="${escapeHtml(absoluteUrl(src.replace(/&amp;/g, '&')))}" loading="lazy" decoding="async"`)
+    .replace(/<h1>/g, '<h2>')
+    .replace(/<\/h1>/g, '</h2>')
+}
 
-  if (!clean) return []
+function formatRuDate(isoValue) {
+  const date = new Date(isoValue)
+  if (Number.isNaN(date.getTime())) return ''
+  return date.toLocaleDateString('ru-RU', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'Europe/Moscow' })
+}
 
-  const paragraphs = clean
-    .split(/(?<=\.)\s+/)
-    .reduce((acc, sentence) => {
-      const current = acc[acc.length - 1] || ''
-      if (!current || current.length > 420) acc.push(sentence)
-      else acc[acc.length - 1] = `${current} ${sentence}`
-      return acc
-    }, [])
-    .slice(0, 6)
+function articleByline(article) {
+  const published = toIsoDateTime(article.created_at)
+  const modified = toIsoDateTime(article.updated_at || article.created_at)
+  const parts = [`Автор: ${escapeHtml(article.author || business.name)}`]
+  if (published && formatRuDate(published)) parts.push(`Опубликовано: <time datetime="${escapeHtml(published)}">${escapeHtml(formatRuDate(published))}</time>`)
+  if (modified && modified !== published && formatRuDate(modified)) parts.push(`Обновлено: <time datetime="${escapeHtml(modified)}">${escapeHtml(formatRuDate(modified))}</time>`)
+  return `<p data-static-byline="true">${parts.join(' · ')}</p>`
+}
 
-  return paragraphs.map((paragraph) => `<p>${escapeHtml(paragraph)}</p>`)
+// Хабы категорий и их сценарные посадочные: хаб ссылается на посадочные и гайды своей темы,
+// посадочная — обратно на хаб и на гайды. Так связка хаб → посадочная → статья видна и без JS.
+const topicHubs = [
+  {
+    hub: { href: '/arenda-pylesosov-moskva', label: 'Все пылесосы и клининговая техника' },
+    articleMatch: /пылесос|клининг|уборк/i,
+    spokes: [
+      { href: '/arenda-stroitelnogo-pylesosa-posle-remonta-moskva', label: 'Строительный пылесос для уборки после ремонта' },
+      { href: '/arenda-moyushchego-pylesosa-dlya-divana-kovra-moskva', label: 'Моющий пылесос для дивана и ковра' },
+      { href: '/arenda-paroochistitelya-dlya-kuhni-plitki-vannoy-moskva', label: 'Пароочиститель для кухни, плитки и ванной' },
+    ],
+  },
+  {
+    hub: { href: '/arenda-gopro-moskva', label: 'Все экшн-камеры: GoPro, Insta360, DJI' },
+    articleMatch: /камер/i,
+    spokes: [],
+  },
+  {
+    hub: { href: '/arenda-audiooborudovaniya-moskva', label: 'Все колонки и микрофоны' },
+    articleMatch: /аудио/i,
+    spokes: [
+      { href: '/arenda-kolonki-dlya-vecherinki-moskva', label: 'Колонка для вечеринки' },
+      { href: '/arenda-karaoke-komplekta-moskva', label: 'Караоке-комплект: колонка и микрофоны' },
+      { href: '/arenda-mikrofona-dlya-intervyu-moskva', label: 'Микрофон для интервью и съёмки' },
+      { href: '/arenda-tehniki-dlya-meropriyatiya-moskva', label: 'Техника для мероприятия' },
+    ],
+  },
+]
+
+// Сценарная посадочная для карточки товара (по slug); тот же файл читает EquipmentDetailsPage.tsx.
+const productScenarioLinks = JSON.parse(await fs.readFile(path.join(clientDir, 'src/content/productScenarios.json'), 'utf8'))
+
+function topicArticleLinks(remoteData, articleMatch, limit) {
+  return [...remoteData.articleBySlug.values()]
+    .filter((article) => article?.slug && articleMatch.test(article.category || ''))
+    .slice(0, limit)
+    .map((article) => ({ href: `/blog/${article.slug}`, label: article.title }))
+}
+
+function topicLinkSections(route, remoteData) {
+  const topic = topicHubs.find((item) => item.hub.href === route || item.spokes.some((spoke) => spoke.href === route))
+  if (!topic) return []
+  const isHub = topic.hub.href === route
+  const guides = topicArticleLinks(remoteData, topic.articleMatch, isHub ? 6 : 3)
+  const pages = isHub
+    ? topic.spokes
+    : [topic.hub, ...topic.spokes.filter((spoke) => spoke.href !== route)]
+  return [
+    pages.length ? `<h2>${isHub ? 'Под задачу' : 'Смотрите также'}</h2>${linkList(pages)}` : '',
+    guides.length ? `<h2>Гайды по теме</h2>${linkList(guides)}` : '',
+  ].filter(Boolean)
+}
+
+const articleCategoryHubs = [
+  { match: /пылесос|клининг|уборк/i, href: '/arenda-pylesosov-moskva', label: 'Пылесосы, Puzzi и пароочистители в аренду' },
+  { match: /камер/i, href: '/arenda-gopro-moskva', label: 'GoPro, Insta360 и DJI в аренду' },
+  { match: /аудио/i, href: '/arenda-audiooborudovaniya-moskva', label: 'Колонки JBL и микрофоны в аренду' },
+]
+
+function articleTags(article) {
+  return new Set(String(article?.tags || '').toLowerCase().split(',').map((tag) => tag.trim()).filter(Boolean))
+}
+
+// Похожие статьи: сначала та же категория-хаб, затем пересечение тегов, затем свежесть.
+function relatedArticleLinks(article, remoteData, limit = 5) {
+  const hub = articleCategoryHubs.find((item) => item.match.test(article.category || ''))
+  const tags = articleTags(article)
+  return [...remoteData.articleBySlug.values()]
+    .filter((other) => other?.slug && other.slug !== article.slug)
+    .map((other, index) => {
+      const sameHub = hub && hub.match.test(other.category || '') ? 10 : 0
+      const sharedTags = [...articleTags(other)].filter((tag) => tags.has(tag)).length
+      return { other, score: sameHub + sharedTags, index }
+    })
+    .sort((a, b) => b.score - a.score || a.index - b.index)
+    .slice(0, limit)
+    .map(({ other }) => ({ href: `/blog/${other.slug}`, label: other.title }))
+}
+
+// Главное фото карточки в статике: LCP-элемент появляется без JS и API.
+// srcset/sizes совпадают с <img> в EquipmentDetailsPage.tsx (PRODUCT_MAIN_IMAGE_SIZES).
+function productMainImageHtml(item) {
+  const original = Array.isArray(item.images) ? item.images[0] : null
+  if (!original) return ''
+  const variants = (item.imageVariants?.[original] || []).filter((variant) => variant?.url && variant?.width)
+  const srcset = variants.map((variant) => `${absoluteUrl(variant.url)} ${variant.width}w`).join(', ')
+  return `<img src="${escapeHtml(absoluteUrl(original))}"${srcset ? ` srcset="${escapeHtml(srcset)}" sizes="(min-width: 768px) 420px, 100vw"` : ''} alt="${escapeHtml(item.name)}" loading="eager" decoding="async" fetchpriority="high">`
 }
 
 function buildProductBody(item, remoteData) {
@@ -1144,12 +1252,14 @@ function buildProductBody(item, remoteData) {
   const related = productLinks(remoteData, (other) => other.id !== item.id && other.category === item.category, 6)
   const faq = productFaq(item)
   const sections = [
+    productMainImageHtml(item),
     `<p>${escapeHtml(item.description || 'Проверенное оборудование для аренды в Москве.')}</p>`,
     price > 0 ? `<p>Цена аренды: ${escapeHtml(formatPrice(price))} ₽ за сутки${longTerm ? `, при аренде от ${longTerm.days} суток — от ${escapeHtml(formatPrice(longTerm.dailyPrice))} ₽ за сутки (<a href="/arenda-tehniki-na-mesyac-moskva">тарифы на месяц</a>)` : ''}. Доступны доставка, самовывоз и онлайн-бронь.</p>` : '',
     rows.length ? `<h2>Тарифы аренды</h2><ul>${rows.map((row) => `<li>${escapeHtml(row.label)} — ${escapeHtml(formatPrice(row.value))} ₽${escapeHtml(row.suffix)}</li>`).join('')}</ul>` : '',
     specs.length ? `<h2>Характеристики</h2><dl>${specs.map(([key, value]) => `<dt>${escapeHtml(key)}</dt><dd>${escapeHtml(value)}</dd>`).join('')}</dl>` : '',
     faqSection(faq),
     related.length ? `<h2>Похожие позиции</h2>${linkList(related)}` : '',
+    productScenarioLinks[item.slug] ? `<h2>Под задачу</h2>${linkList(productScenarioLinks[item.slug])}` : '',
     `<h2>Как арендовать</h2><p>Выберите даты, оставьте заявку или напишите менеджеру. Мы подтвердим наличие, офис получения, доставку и комплект перед выдачей.</p>`,
   ].filter(Boolean)
 
@@ -1161,16 +1271,18 @@ function buildArticleBody(article, remoteData) {
     return pageShell('Статья об аренде техники', 'Практический материал блога ВозьмиМеня о выборе и аренде оборудования.')
   }
 
+  const hub = articleCategoryHubs.find((item) => item.match.test(article.category || ''))
+  const related = relatedArticleLinks(article, remoteData, 5)
+  // Лид (excerpt) уже выводит pageShell под H1, поэтому здесь его не повторяем.
   const sections = [
-    `<p>${escapeHtml(article.excerpt || '')}</p>`,
-    ...markdownToPlainSections(article.content),
-    `<h2>Полезные ссылки</h2>${linkList([
-      { href: '/arenda-pylesosov-moskva', label: 'Пылесосы и клининг в аренду' },
-      { href: '/arenda-gopro-moskva', label: 'Камеры и GoPro в аренду' },
-      { href: '/arenda-audiooborudovaniya-moskva', label: 'Колонки и аудиооборудование' },
-      { href: '/booking', label: 'Оформить бронь' },
+    articleByline(article),
+    `<article data-static-article="true">${articleMarkdownToHtml(article.content)}</article>`,
+    `<h2>Взять технику в аренду</h2>${linkList([
+      ...(hub ? [hub] : []),
+      ...articleCategoryHubs.filter((item) => item !== hub),
+      { href: '/booking', label: 'Оформить бронь онлайн' },
     ])}`,
-    articleLinks(remoteData, 5).length ? `<h2>Другие статьи</h2>${linkList(articleLinks(remoteData, 5).filter((link) => link.href !== `/blog/${article.slug}`))}` : '',
+    related.length ? `<h2>Другие статьи по теме</h2>${linkList(related)}` : '',
   ].filter(Boolean)
 
   return pageShell(article.title, article.excerpt || 'Статья блога ВозьмиМеня.', sections)
@@ -1195,6 +1307,9 @@ function buildStaticRouteBody(route, meta, remoteData) {
   const routeProducts = routeProductLinks(route, remoteData, 8)
   const routeSections = {
     '/': [
+      brandDefinition(remoteData),
+      brandFactsSection(remoteData),
+      priceOverviewTable(remoteData),
       `<h2>Популярное оборудование</h2>${linkList(allProducts)}`,
       `<h2>Категории</h2>${linkList([
         { href: '/arenda-pylesosov-moskva', label: 'Пылесосы, Puzzi, WD5 и пароочистители' },
@@ -1222,10 +1337,6 @@ function buildStaticRouteBody(route, meta, remoteData) {
     '/arenda-gopro-moskva': [
       staticProductCatalog(cameraProducts, 'Экшн-камеры в аренду'),
       `<p>GoPro удобна для спорта и воды, Insta360 — для 360-ракурсов, DJI Osmo Pocket — для влогов и плавной съемки с рук.</p>`,
-    ],
-    '/arenda-kamery-dlya-puteshestviya-vloga-moskva': [
-      routeProducts.length ? `<h2>Камеры для поездки и влога</h2>${linkList(routeProducts)}` : '',
-      `<p>Для путешествия важны компактность, стабилизация, автономность и быстрый старт съемки. Подберем камеру и аксессуары под маршрут и формат контента.</p>`,
     ],
     '/arenda-audiooborudovaniya-moskva': [
       staticProductCatalog(audioProducts, 'Колонки и микрофоны в аренду'),
@@ -1265,6 +1376,17 @@ function buildStaticRouteBody(route, meta, remoteData) {
       `<h2>Техника в аренду у м. ${escapeHtml(office.metro)}</h2>${linkList(allProducts)}`,
       `<p>Наличие конкретной модели в этой точке на ваши даты подтверждает менеджер. Второй постамат: ${linkList(business.offices.filter((other) => other.id !== office.id).map((other) => ({ href: other.slug, label: `м. ${other.metro}, ${other.streetAddress}` })))}</p>`,
     ]])),
+    '/about': [
+      brandDefinition(remoteData),
+      brandFactsSection(remoteData),
+      `<h2>Категории оборудования</h2><ul><li><a href="/arenda-gopro-moskva">Камеры</a>: экшн-камеры GoPro 13, Insta360 X5 и DJI Osmo Pocket 3 для поездок, спорта и влогов</li><li><a href="/arenda-pylesosov-moskva">Клининговое оборудование</a>: Karcher WD5 после ремонта, Puzzi для диванов и ковров, пароочиститель SC4 для кухни и плитки</li><li><a href="/arenda-audiooborudovaniya-moskva">Аудиооборудование</a>: колонки JBL PartyBox 320 и 710, беспроводные микрофоны DJI Mic 2</li></ul>`,
+      `<h2>Юридическая информация</h2><p>Сервис работает как ${escapeHtml(legal.legalName)}, ИНН ${escapeHtml(legal.inn)}, ОГРНИП ${escapeHtml(legal.ogrnip)}. Аренда оформляется по <a href="/offer">публичной оферте</a> и <a href="/rental-agreement">договору аренды</a>; полные <a href="/requisites">реквизиты</a>.</p>`,
+    ],
+    '/requisites': [
+      `<h2>Реквизиты ${escapeHtml(legal.shortName)}</h2>${legalDetailsList()}`,
+      `<p>Документы: <a href="/offer">публичная оферта</a>, <a href="/rental-agreement">договор аренды</a>, <a href="/return-policy">возврат и отказ от услуги</a>.</p>`,
+    ],
+    '/offer': offerSections(),
     '/sitemap': [
       `<h2>Разделы сайта</h2>${linkList([
         ...allProducts,
@@ -1273,10 +1395,101 @@ function buildStaticRouteBody(route, meta, remoteData) {
     ],
   }
 
-  return pageShell(meta.title, meta.description, [
+  return pageShell(routeH1[route] || meta.title, meta.description, [
     ...(routeSections[route] || []),
+    ...topicLinkSections(route, remoteData),
     faqSection(faqContent[route]),
   ])
+}
+
+// H1 статической версии совпадает с H1 React-страницы, чтобы боты без JS и с JS видели один заголовок.
+const routeH1 = {
+  '/': 'Техника напрокат в Москве — на день, а не на годы',
+  '/about': 'О компании ВозьмиМеня',
+  '/requisites': 'Реквизиты',
+  '/offer': 'Договор публичной оферты',
+}
+
+function minOneDayPrice(remoteData) {
+  const prices = [...remoteData.equipmentBySlug.values()].map(getOneDayPrice).filter((price) => price > 0)
+  return prices.length ? Math.min(...prices) : null
+}
+
+// Короткое определение сервиса: самодостаточный абзац, который удобно цитировать ответам AI-поиска.
+function brandDefinition(remoteData) {
+  const minPrice = minOneDayPrice(remoteData)
+  const priceText = minPrice ? `от ${formatPrice(minPrice)} ₽ в сутки` : business.priceRange
+  const metros = business.offices.map((office) => `м. ${office.metro}`).join(' и ')
+  return `<p data-static-definition="true">${escapeHtml(`${business.name} — сервис краткосрочной аренды техники в Москве: колонки JBL PartyBox, экшн-камеры GoPro, Insta360 и DJI, моющие и строительные пылесосы Karcher, пароочистители и микрофоны. Аренда ${priceText}, выдача и возврат через постамат 24/7 у ${metros} или доставка курьером по Москве за 2–4 часа, круглосуточно.`)}</p>`
+}
+
+function brandFactsSection(remoteData) {
+  const minPrice = minOneDayPrice(remoteData)
+  const ratings = business.offices
+    .filter((office) => office.yandexMaps?.ratingValue && office.yandexMaps?.reviewCount)
+    .map((office) => `<li>Рейтинг на Яндекс Картах (м. ${escapeHtml(office.metro)}): ${escapeHtml(String(office.yandexMaps.ratingValue).replace('.', ','))} из 5, ${escapeHtml(office.yandexMaps.reviewCount)} отзывов — <a href="${escapeHtml(office.yandexMaps.url)}">отзывы на Яндекс Картах</a></li>`)
+  const facts = [
+    minPrice ? `<li>Цены: от ${escapeHtml(formatPrice(minPrice))} ₽ в сутки, при аренде от 30 суток цена за сутки ниже — <a href="/arenda-tehniki-na-mesyac-moskva">тарифы на месяц</a></li>` : '',
+    `<li>Более 8 лет на рынке и более 5000 клиентов</li>`,
+    `<li>Самовывоз: ${business.offices.length} постамата 24/7 — ${business.offices.map((office) => `<a href="${escapeHtml(office.slug)}">м. ${escapeHtml(office.metro)}, ${escapeHtml(office.streetAddress)}</a>`).join('; ')}</li>`,
+    `<li>Доставка по Москве курьером за 2–4 часа, круглосуточно — <a href="/delivery">условия доставки</a></li>`,
+    `<li>Залог не нужен при постоянной регистрации в Москве или Московской области — <a href="/faq">условия аренды</a></li>`,
+    `<li>Поддержка 24/7: <a href="tel:${escapeHtml(business.telephone)}">${escapeHtml(business.telephoneLabel)}</a>, Telegram <a href="https://t.me/VozmiMenyaRent">@VozmiMenyaRent</a></li>`,
+    ...ratings,
+  ].filter(Boolean)
+  return `<section aria-label="Коротко о сервисе"><h2>Коротко о сервисе</h2><ul>${facts.join('')}</ul></section>`
+}
+
+// Сводная таблица цен по всему каталогу: модель, 1 сутки, долгая аренда.
+function priceOverviewTable(remoteData, heading = 'Цены на аренду техники') {
+  const rows = [...remoteData.equipmentBySlug.values()]
+    .map((item) => ({ item, oneDay: getOneDayPrice(item), longTerm: getLongTermDailyPrice(item) }))
+    .filter((row) => row.oneDay > 0)
+    .sort((a, b) => String(a.item.category || '').localeCompare(String(b.item.category || ''), 'ru') || a.oneDay - b.oneDay)
+  if (!rows.length) return ''
+  const body = rows.map(({ item, oneDay, longTerm }) => (
+    `<tr><td><a href="${escapeHtml(equipmentRoute(item))}">${escapeHtml(item.name)}</a></td><td>${escapeHtml(item.category || '')}</td><td>${escapeHtml(formatPrice(oneDay))} ₽</td><td>${longTerm ? `от ${escapeHtml(formatPrice(longTerm.dailyPrice))} ₽ (от ${longTerm.days} суток)` : '—'}</td></tr>`
+  )).join('')
+  return `<h2>${escapeHtml(heading)}</h2><table><thead><tr><th>Модель</th><th>Категория</th><th>1 сутки</th><th>Долгая аренда, за сутки</th></tr></thead><tbody>${body}</tbody></table>`
+}
+
+function legalInlineHtml(text) {
+  const match = String(text).match(/^\*\*(.+?)\*\*\s*(.*)$/)
+  return match ? `<strong>${escapeHtml(match[1])}</strong> ${escapeHtml(match[2])}` : escapeHtml(text)
+}
+
+function legalDetailsList() {
+  return `<dl>${legal.requisites.map((row) => `<dt>${escapeHtml(row.label)}</dt><dd>${escapeHtml(row.value)}</dd>`).join('')}</dl>`
+}
+
+function offerSections() {
+  return [
+    `<p>${escapeHtml(legal.offer.intro)}</p>`,
+    ...legal.offer.sections.map((section) => [
+      `<h2>${escapeHtml(section.title)}</h2>`,
+      ...(section.paragraphs || []).map((paragraph) => `<p>${legalInlineHtml(paragraph)}</p>`),
+      section.items?.length ? `<ul>${section.items.map((item) => `<li>${escapeHtml(item)}</li>`).join('')}</ul>` : '',
+    ].join('')),
+    `<h2>10. Возврат и отказ от услуги</h2><p>Порядок отказа от бронирования, возврата оборудования и возврата товара при дистанционной покупке опубликован на странице <a href="/return-policy">«Возврат и отказ от услуги»</a>.</p>`,
+    `<h2>11. Реквизиты и контакты</h2>${legalDetailsList()}`,
+    `<p>${escapeHtml(legal.offer.edition)}</p>`,
+  ]
+}
+
+// Данные статьи или товара, уже полученные при сборке: React берёт их как стартовые
+// (client/src/lib/staticData.ts) и не показывает спиннер до ответа API.
+function buildStaticDataScript(route, remoteData) {
+  let payload = null
+  if (route.startsWith('/blog/')) {
+    const article = remoteData.articleBySlug.get(route.split('/').filter(Boolean)[1])
+    if (article?.content) payload = { route, article }
+  } else if (route.startsWith('/equipment/')) {
+    const equipment = findEquipmentByIdentifier(remoteData, route.split('/').filter(Boolean)[1])
+    if (equipment) payload = { route, equipment }
+  }
+  if (!payload) return ''
+  const json = JSON.stringify(payload).replace(/</g, '\\u003c')
+  return `<script type="application/json" id="__STATIC_DATA__">${json}</script>`
 }
 
 function renderRouteHtml(indexHtml, route, remoteData) {
@@ -1284,7 +1497,8 @@ function renderRouteHtml(indexHtml, route, remoteData) {
   const cleaned = cleanManagedSeoTags(indexHtml)
   const tags = buildSeoTags(route, meta)
   const staticBody = buildStaticRouteBody(route, meta, remoteData)
-  const withStaticRoot = cleaned.replace(/<div id="root"><\/div>/i, `<div id="root">\n${staticBody}\n    </div>`)
+  const staticData = buildStaticDataScript(route, remoteData)
+  const withStaticRoot = cleaned.replace(/<div id="root"><\/div>/i, `<div id="root">\n${staticBody}\n    </div>${staticData ? `\n    ${staticData}` : ''}`)
 
   return withStaticRoot.replace(/\s*<\/head>/i, `\n${tags}\n  </head>`)
 }
@@ -1483,6 +1697,36 @@ async function writeAiPriceFiles(remoteData) {
   return priceList.length
 }
 
+function renderRedirectHtml(target) {
+  const url = `${SITE_ORIGIN}${target}`
+  return `<!DOCTYPE html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8">
+    <title>Страница переехала — ВозьмиМеня</title>
+    <link rel="canonical" href="${escapeHtml(url)}">
+    <meta http-equiv="refresh" content="0; url=${escapeHtml(url)}">
+    <script>location.replace(${JSON.stringify(target)} + location.search + location.hash)</script>
+  </head>
+  <body>
+    <p>Страница переехала: <a href="${escapeHtml(url)}">${escapeHtml(url)}</a></p>
+  </body>
+</html>
+`
+}
+
+async function writeRedirectPages() {
+  const entries = Object.entries(redirects)
+  await Promise.all(entries.map(async ([from, to]) => {
+    const html = renderRedirectHtml(to)
+    for (const outputPath of [routeIndexOutputPath(from), routeHtmlOutputPath(from)]) {
+      await fs.mkdir(path.dirname(outputPath), { recursive: true })
+      await fs.writeFile(outputPath, html, 'utf8')
+    }
+  }))
+  return entries.length
+}
+
 async function main() {
   const indexHtml = await fs.readFile(distIndexPath, 'utf8')
   const remoteData = await loadRemoteSeoData()
@@ -1520,9 +1764,11 @@ async function main() {
   await fs.writeFile(distIndexPath, renderRouteHtml(indexHtml, '/', remoteData), 'utf8')
   await writeDistSitemap(routes, remoteData)
   const pricedItems = await writeAiPriceFiles(remoteData)
+  const redirectCount = await writeRedirectPages()
 
   console.log(`AI price list generated: ${pricedItems} items`)
   console.log(`Static route entrypoints generated: ${routes.length} routes, ${routes.length * 2 - 1} files`)
+  console.log(`Redirect pages generated: ${redirectCount}`)
   console.log(`Legacy equipment aliases generated: ${getLegacyEquipmentRoutes(remoteData).length} routes`)
   console.log(`Static SEO sitemap generated: ${routes.filter((route) => {
     if (route === '/equipment') return false

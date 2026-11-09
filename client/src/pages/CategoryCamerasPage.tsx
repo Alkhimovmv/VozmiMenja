@@ -14,7 +14,9 @@ export default function CategoryCamerasPage() {
 
   const { data, isLoading, error } = useEquipment({ page, limit: 12, category })
 
+  // Прокручиваем к каталогу только по явной ссылке на #catalog: при обычном входе H1 и вводный текст остаются на экране.
   useEffect(() => {
+    if (window.location.hash !== '#catalog') return
     const timer = setTimeout(() => {
       document.getElementById('catalog')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
     }, 300)
@@ -74,7 +76,7 @@ export default function CategoryCamerasPage() {
       description: 'Для прогулок, разговорных видео и Reels удобно взять компактную камеру со стабилизацией.',
       equipmentHref: '/equipment/dji-osmo-pocket-3-creator-combo',
       equipmentLabel: 'DJI Osmo Pocket 3',
-      guideHref: '/arenda-kamery-dlya-puteshestviya-vloga-moskva',
+      guideHref: '/blog/kakuyu-kameru-vzyat-v-puteshestvie-gopro-dji-insta360',
       guideLabel: 'Камера для поездки',
     },
     {

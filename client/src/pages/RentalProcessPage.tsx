@@ -54,7 +54,7 @@ const rentInsteadBuy = [
 
 const categoryLinks = [
   { href: '/arenda-kolonki-dlya-vecherinki-moskva', title: 'Колонка для вечеринки', text: 'PartyBox 320/710, микрофон, доставка к празднику.' },
-  { href: '/arenda-kamery-dlya-puteshestviya-vloga-moskva', title: 'Камера для поездки и влога', text: 'GoPro, Osmo Pocket, Insta360, крепления и звук.' },
+  { href: '/arenda-gopro-moskva', title: 'Камера для поездки и влога', text: 'GoPro, Osmo Pocket, Insta360, крепления и звук.' },
   { href: '/arenda-stroitelnogo-pylesosa-posle-remonta-moskva', title: 'Пылесос после ремонта', text: 'WD5 для сухой строительной пыли и мусора.' },
   { href: '/arenda-moyushchego-pylesosa-dlya-divana-kovra-moskva', title: 'Puzzi для дивана и ковра', text: 'Моющий пылесос, насадки и подсказка по химии.' },
   { href: '/arenda-paroochistitelya-dlya-kuhni-plitki-vannoy-moskva', title: 'Пароочиститель для кухни', text: 'SC4 для плитки, швов, санузла и твердых поверхностей.' },

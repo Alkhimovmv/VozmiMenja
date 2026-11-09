@@ -1,6 +1,7 @@
 import sqlite3 from 'sqlite3'
 import path from 'path'
 import { applyArticleRefresh } from '../domain/articleRefresh'
+import { DEFAULT_ARTICLE_AUTHOR, LEGACY_ARTICLE_AUTHOR } from '../domain/articleAuthor'
 import { novemberArticles } from './blog-articles-2026-11'
 
 const dbPath = process.env.DATABASE_PATH ? path.resolve(process.env.DATABASE_PATH) : path.join(__dirname, '../../database.sqlite')
@@ -978,7 +979,7 @@ async function seedBlogGrowthArticles() {
       await run(`
         INSERT INTO articles (
           title, slug, excerpt, content, image_url, category, tags, author, published
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, 'ВозьмиМеня', 1)
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1)
         ON CONFLICT(slug) DO UPDATE SET
           title = excluded.title,
           excerpt = excluded.excerpt,
@@ -995,7 +996,6 @@ async function seedBlogGrowthArticles() {
           OR articles.image_url IS NOT excluded.image_url
           OR articles.category IS NOT excluded.category
           OR articles.tags IS NOT excluded.tags
-          OR articles.author IS NOT excluded.author
           OR articles.published IS NOT excluded.published
       `, [
         article.title,
@@ -1005,8 +1005,12 @@ async function seedBlogGrowthArticles() {
         article.imageUrl,
         article.category,
         article.tags,
+        DEFAULT_ARTICLE_AUTHOR,
       ])
     }
+
+    // Смена автора — не правка текста, поэтому updated_at (и «Обновлено» в статье) не трогаем.
+    await run('UPDATE articles SET author = ? WHERE author = ?', [DEFAULT_ARTICLE_AUTHOR, LEGACY_ARTICLE_AUTHOR])
 
     console.log(`✅ Готово: обработано статей ${articles.length + novemberArticles.length}`)
 

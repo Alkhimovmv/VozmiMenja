@@ -382,8 +382,9 @@ export default function SelfServiceBookingPage() {
             </div>
 
             <div className="block">
-              <span className="text-sm font-bold text-slate-700">Оборудование *</span>
+              <label htmlFor="booking-equipment" className="text-sm font-bold text-slate-700">Оборудование *</label>
               <select
+                id="booking-equipment"
                 name="nextEquipmentId"
                 value={formData.nextEquipmentId}
                 onChange={handleAddEquipment}
@@ -443,6 +444,7 @@ export default function SelfServiceBookingPage() {
                 <input
                   type="date"
                   name="startDate"
+                  aria-label="Дата начала"
                   value={formData.startDate}
                   min={today}
                   onChange={handleChange}
@@ -455,6 +457,7 @@ export default function SelfServiceBookingPage() {
                 <input
                   type="date"
                   name="endDate"
+                  aria-label="Дата возврата"
                   value={formData.endDate}
                   min={formData.startDate || today}
                   onChange={handleChange}
@@ -495,6 +498,7 @@ export default function SelfServiceBookingPage() {
                 <input
                   type="time"
                   name="startTime"
+                  aria-label="Время получения"
                   value={formData.startTime}
                   onChange={handleChange}
                   className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
@@ -505,6 +509,7 @@ export default function SelfServiceBookingPage() {
                 <input
                   type="time"
                   name="endTime"
+                  aria-label="Время возврата"
                   value={formData.endTime}
                   onChange={handleChange}
                   className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100"

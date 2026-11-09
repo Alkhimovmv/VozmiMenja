@@ -93,8 +93,8 @@
       },
       "geo": {
         "@type": "GeoCoordinates",
-        "latitude": 55.693848,
-        "longitude": 37.759571
+        "latitude": 55.694078,
+        "longitude": 37.759231
       },
       "url": "https://vozmimenya.ru/arenda-tehniki-u-metro-volzhskaya-kuzminki",
       "aggregateRating": {
@@ -119,10 +119,18 @@
       },
       "geo": {
         "@type": "GeoCoordinates",
-        "latitude": 55.786143,
-        "longitude": 37.57
+        "latitude": 55.786181,
+        "longitude": 37.570051
       },
-      "url": "https://vozmimenya.ru/arenda-tehniki-u-metro-dinamo"
+      "url": "https://vozmimenya.ru/arenda-tehniki-u-metro-dinamo",
+      "aggregateRating": {
+        "@type": "AggregateRating",
+        "ratingValue": 4.3,
+        "reviewCount": 6,
+        "ratingCount": 7,
+        "source": "https://yandex.ru/maps/org/vozmi_menya/95879395485/",
+        "checkedAt": "2026-11-09"
+      }
     }
   ],
   "rentalTerms": {
@@ -136,6 +144,7 @@
   },
   "serviceFacts": {
     "customers": "5000+ довольных клиентов",
+    "experience": "Более 8 лет на рынке",
     "delivery": "Доставка по Москве 24/7 курьером Яндекс Go, обычно за 2–4 часа; стоимость по тарифу Яндекс Go",
     "support": "Поддержка 24/7 по телефону и в Telegram",
     "pickup": "Самовывоз и возврат через постамат 24/7 у м. Волжская и м. Динамо",

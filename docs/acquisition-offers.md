@@ -71,9 +71,9 @@
 
 **Ссылки:**
 
-- Яндекс Услуги: `https://vozmimenya.ru/arenda-kamery-dlya-puteshestviya-vloga-moskva?utm_source=yandex_services&utm_medium=listing&utm_campaign=travel-camera`
-- Авито: `https://vozmimenya.ru/arenda-kamery-dlya-puteshestviya-vloga-moskva?utm_source=avito&utm_medium=listing&utm_campaign=travel-camera`
-- Яндекс Карты: `https://vozmimenya.ru/arenda-kamery-dlya-puteshestviya-vloga-moskva?utm_source=yandex_maps&utm_medium=showcase&utm_campaign=travel-camera`
+- Яндекс Услуги: `https://vozmimenya.ru/arenda-gopro-moskva?utm_source=yandex_services&utm_medium=listing&utm_campaign=travel-camera`
+- Авито: `https://vozmimenya.ru/arenda-gopro-moskva?utm_source=avito&utm_medium=listing&utm_campaign=travel-camera`
+- Яндекс Карты: `https://vozmimenya.ru/arenda-gopro-moskva?utm_source=yandex_maps&utm_medium=showcase&utm_campaign=travel-camera`
 
 **Фотографии:** каждая камера отдельно, полный комплект, аккумуляторы и карта памяти, крепления, техника в защитном кейсе.
 

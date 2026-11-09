@@ -14,7 +14,6 @@ const requiredPaths = [
   '/arenda-kolonki-dlya-vecherinki-moskva',
   '/arenda-karaoke-komplekta-moskva',
   '/arenda-paroochistitelya-dlya-kuhni-plitki-vannoy-moskva',
-  '/arenda-kamery-dlya-puteshestviya-vloga-moskva',
   '/arenda-gopro-moskva',
   '/arenda-audiooborudovaniya-moskva',
   '/blog',

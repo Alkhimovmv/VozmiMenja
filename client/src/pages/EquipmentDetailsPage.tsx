@@ -8,6 +8,7 @@ import EquipmentTrustStrip from '../components/equipment/EquipmentTrustStrip'
 import SEO from '../components/SEO'
 import { ArrowLeft, Check, ChevronRight, Clock } from 'lucide-react'
 import { fetchPriorityAttr, getImageSrcSet, getImageUrl } from '../lib/utils'
+import productScenarios from '../content/productScenarios.json'
 import { trackBookingFunnelStage, trackEvent } from '../lib/analytics'
 import { getLongTermDailyPrice, getOneDayPrice, getPricingRows } from '../utils/pricing'
 import { CONTACT_PHONE, CONTACT_PHONE_LABEL, getTelegramUrl, getWhatsAppUrl } from '../lib/contactLinks'
@@ -656,6 +657,12 @@ function getEquipmentProcessFaq(name: string) {
   ]
 }
 
+const scenarioLinksBySlug: Record<string, Array<{ href: string; label: string }>> = productScenarios
+
+// Должно совпадать с sizes статического <img> в client/scripts/generate-static-route-entrypoints.js,
+// чтобы браузер переиспользовал уже загруженное фото из пререндера.
+const PRODUCT_MAIN_IMAGE_SIZES = '(min-width: 768px) 420px, 100vw'
+
 export default function EquipmentDetailsPage() {
   const { id } = useParams<{ id: string }>()
   const { data, isLoading, error } = useEquipmentById(id!)
@@ -663,6 +670,7 @@ export default function EquipmentDetailsPage() {
   const [showBookingForm, setShowBookingForm] = useState(false)
 
   const equipment = data?.data
+  const scenarioLinks = (equipment?.slug && scenarioLinksBySlug[equipment.slug]) || []
   useEffect(() => {
     if (!equipment) return
     trackBookingFunnelStage('equipment_view', { equipmentId: equipment.id })
@@ -818,6 +826,8 @@ export default function EquipmentDetailsPage() {
             <div className="bg-white rounded-2xl border border-line overflow-hidden mb-3 aspect-[4/3]">
               <img
                 src={getImageUrl(equipment.images[selectedImage])}
+                srcSet={getImageSrcSet(equipment.imageVariants?.[equipment.images[selectedImage]])}
+                sizes={PRODUCT_MAIN_IMAGE_SIZES}
                 alt={equipment.name}
                 className="w-full h-full object-contain bg-white"
                 loading="eager"
@@ -979,6 +989,15 @@ export default function EquipmentDetailsPage() {
                 </div>
               ))}
             </div>
+            {scenarioLinks.length > 0 && (
+              <div className="mt-4 flex flex-wrap gap-x-4 gap-y-2 border-t border-line pt-4">
+                {scenarioLinks.map((link) => (
+                  <Link key={link.href} to={link.href} className="text-sm font-semibold text-primary hover:underline">
+                    {link.label} →
+                  </Link>
+                ))}
+              </div>
+            )}
           </div>
 
           <div className="bg-white rounded-2xl border border-line p-6">

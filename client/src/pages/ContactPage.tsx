@@ -312,7 +312,7 @@ export default function ContactPage() {
             <div className="rounded-2xl overflow-hidden shadow-sm border border-gray-100 h-[400px]">
               {showMap ? (
                 <iframe
-                  src="https://yandex.ru/map-widget/v1/?ll=37.664186%2C55.739894&z=11&l=map&pt=37.759233%2C55.694097%2Cpm2rdm%7E%D0%92%D0%BE%D0%BB%D0%B6%D1%81%D0%BA%D0%B0%D1%8F~37.569138%2C55.785691%2Cpm2rdm%7E%D0%94%D0%B8%D0%BD%D0%B0%D0%BC%D0%BE"
+                  src="https://yandex.ru/map-widget/v1/?ll=37.664186%2C55.739894&z=11&l=map&pt=37.759231%2C55.694078%2Cpm2rdm%7E%D0%92%D0%BE%D0%BB%D0%B6%D1%81%D0%BA%D0%B0%D1%8F~37.570051%2C55.786181%2Cpm2rdm%7E%D0%94%D0%B8%D0%BD%D0%B0%D0%BC%D0%BE"
                   width="100%" height="100%"
                   style={{ border: 0 }}
                   allowFullScreen loading="lazy"

@@ -5,6 +5,7 @@ import Layout from './components/layout/Layout'
 import FloatingActions from './components/FloatingActions'
 import CookieBanner from './components/CookieBanner'
 import HomePage from './pages/HomePage'
+import redirects from './content/redirects.json'
 
 
 // Lazy loading для неосновных страниц
@@ -49,7 +50,6 @@ const InterviewMicrophoneRentalPage = lazy(() => import('./pages/InterviewMicrop
 const PartySpeakerRentalPage = lazy(() => import('./pages/PartySpeakerRentalPage'))
 const KaraokeKitRentalPage = lazy(() => import('./pages/KaraokeKitRentalPage'))
 const SteamCleanerKitchenBathroomPage = lazy(() => import('./pages/SteamCleanerKitchenBathroomPage'))
-const TravelVlogCameraRentalPage = lazy(() => import('./pages/TravelVlogCameraRentalPage'))
 
 // Блог
 const BlogPage = lazy(() => import('./pages/BlogPage'))
@@ -73,6 +73,12 @@ const PageLoader = () => (
     <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
   </div>
 )
+
+// Старые адреса из content/redirects.json: сохраняем query (UTM) и hash при переходе на новый путь.
+function PermanentRedirect({ to }: { to: string }) {
+  const location = useLocation()
+  return <Navigate to={`${to}${location.search}${location.hash}`} replace />
+}
 
 function ScrollToTop() {
   const { pathname } = useLocation()
@@ -160,7 +166,9 @@ function App() {
                 <Route path="/arenda-kolonki-dlya-vecherinki-moskva" element={<PartySpeakerRentalPage />} />
                 <Route path="/arenda-karaoke-komplekta-moskva" element={<KaraokeKitRentalPage />} />
                 <Route path="/arenda-paroochistitelya-dlya-kuhni-plitki-vannoy-moskva" element={<SteamCleanerKitchenBathroomPage />} />
-                <Route path="/arenda-kamery-dlya-puteshestviya-vloga-moskva" element={<TravelVlogCameraRentalPage />} />
+                {Object.entries(redirects).map(([from, to]) => (
+                  <Route key={from} path={from} element={<PermanentRedirect to={to} />} />
+                ))}
 
                 {/* Блог */}
                 <Route path="/blog" element={<BlogPage />} />

@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { apiClient } from '../lib/api'
+import { getStaticEquipment } from '../lib/staticData'
 import type { BookingRequest } from '../types'
 
 export const useEquipment = (params?: {
@@ -19,6 +20,12 @@ export const useEquipmentById = (id: string) => {
     queryKey: ['equipment', id],
     queryFn: () => apiClient.getEquipmentById(id),
     enabled: !!id,
+    // Данные из пререндера показываем сразу, а свежие подтягиваем в фоне (initialDataUpdatedAt: 0 = устарели).
+    initialData: () => {
+      const equipment = getStaticEquipment(window.location.pathname)
+      return equipment ? { success: true, data: equipment } : undefined
+    },
+    initialDataUpdatedAt: 0,
   })
 }
 

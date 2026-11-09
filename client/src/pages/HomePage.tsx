@@ -66,7 +66,7 @@ const QUICK_SCENARIOS = [
     eyebrow: 'Съемка',
     title: 'Снять поездку или влог',
     text: 'GoPro, DJI Osmo Pocket и Insta360 под формат видео.',
-    href: '/arenda-kamery-dlya-puteshestviya-vloga-moskva',
+    href: '/arenda-gopro-moskva',
     accent: 'from-rose-100 via-pink-100 to-sky-100',
   },
   {
@@ -271,13 +271,13 @@ export default function HomePage() {
                   </span>
                 </div>
                 <h1 className="text-4xl md:text-5xl font-extrabold text-gray-900 leading-tight mb-4">
-                  Возьмите<br />
-                  <span className="text-[#2563EB]">технику на день</span><br />
+                  Техника <span className="text-[#2563EB]">напрокат</span>{' '}<br />
+                  в Москве — на день,{' '}<br />
                   а не на годы
                 </h1>
                 <p className="text-gray-500 text-base mb-8 max-w-md">
                   Камеры, моющие пылесосы, аудио и инструмент в аренду по Москве.
-                  Привезём за 2–4 часа. Без залога для постоянных клиентов.
+                  Привезём за 2–4 часа. Без залога при прописке в Москве и МО.
                 </p>
                 <div className="flex flex-col sm:flex-row gap-3">
                   <Link
@@ -367,7 +367,7 @@ export default function HomePage() {
                 { icon: Shield, label: 'Гарантия качества', sub: 'Дезинфекция перед каждой выдачей' },
                 { icon: Truck, label: 'Доставка 2–4 часа', sub: 'Курьер привозит и забирает' },
                 { icon: Clock, label: 'Без скрытых наценок', sub: 'Прозрачное ценообразование' },
-                { icon: Sparkles, label: 'Без залога', sub: 'Постоянным клиентам' },
+                { icon: Sparkles, label: 'Без залога', sub: 'При прописке в Москве и МО' },
               ].map(({ icon: Icon, label, sub }) => (
                 <div key={label} className="flex items-center gap-3">
                   <div className="w-9 h-9 rounded-xl bg-[#2563EB]/20 flex items-center justify-center flex-shrink-0">

@@ -10,6 +10,7 @@ import { trackEvent } from '../lib/analytics'
 import { getImageUrl } from '../lib/utils'
 import { CONTACT_PHONE, CONTACT_PHONE_LABEL, getTelegramUrl } from '../lib/contactLinks'
 import { extractArticleBookingLinks } from '../lib/blogBookingCta'
+import { getStaticArticle } from '../lib/staticData'
 
 const rentalCtas = {
   cleaning: {
@@ -111,16 +112,17 @@ const markdownComponents: Components = {
 export default function BlogArticlePage() {
   const { slug } = useParams<{ slug: string }>()
   const navigate = useNavigate()
-  const [article, setArticle] = useState<Article | null>(null)
+  // Статья из пререндера (если открыта прямой ссылкой): показываем сразу, без спиннера, и обновляем из API в фоне.
+  const [article, setArticle] = useState<Article | null>(() => getStaticArticle(window.location.pathname) ?? null)
   const [relatedArticles, setRelatedArticles] = useState<Article[]>([])
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(() => !getStaticArticle(window.location.pathname))
 
   useEffect(() => {
     let isMounted = true
 
     const loadArticle = async () => {
       try {
-        setLoading(true)
+        if (!getStaticArticle(window.location.pathname)) setLoading(true)
         if (!slug) return
         const data = await articlesApi.getBySlug(slug)
         if (!isMounted) return
@@ -134,7 +136,8 @@ export default function BlogArticlePage() {
         }
       } catch (error) {
         console.error('Error loading article:', error)
-        if (isMounted) {
+        // Если статья уже есть из пререндера, оставляем её на экране, а не уводим на /blog.
+        if (isMounted && !getStaticArticle(window.location.pathname)) {
           navigate('/blog')
         }
       } finally {
@@ -150,6 +153,10 @@ export default function BlogArticlePage() {
       isMounted = false
     }
   }, [slug, navigate])
+
+  // SQLite CURRENT_TIMESTAMP хранит UTC без зоны: '2026-09-05 23:41:32' -> '2026-09-05T23:41:32Z'.
+  const toIsoDateTime = (value: string) =>
+    /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}(:\d{2})?$/.test(value) ? `${value.replace(' ', 'T')}Z` : value
 
   const formatDate = (dateString: string) =>
     new Date(dateString).toLocaleDateString('ru-RU', { year: 'numeric', month: 'long', day: 'numeric' })
@@ -185,8 +192,8 @@ export default function BlogArticlePage() {
     headline: article.title,
     description: article.excerpt,
     image: article.image_url || 'https://vozmimenya.ru/og-image.jpg',
-    datePublished: article.created_at,
-    dateModified: article.updated_at,
+    datePublished: toIsoDateTime(article.created_at),
+    dateModified: toIsoDateTime(article.updated_at || article.created_at),
     author: { '@type': 'Organization', name: article.author },
     publisher: { '@type': 'Organization', name: 'ВозьмиМеня', logo: { '@type': 'ImageObject', url: 'https://vozmimenya.ru/logo.png' } },
     mainEntityOfPage: { '@type': 'WebPage', '@id': `https://vozmimenya.ru/blog/${article.slug}` },

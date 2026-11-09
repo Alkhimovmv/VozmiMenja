@@ -14,7 +14,9 @@ export default function CategoryAudioPage() {
 
   const { data, isLoading, error } = useEquipment({ page, limit: 12, category })
 
+  // Прокручиваем к каталогу только по явной ссылке на #catalog: при обычном входе H1 и вводный текст остаются на экране.
   useEffect(() => {
+    if (window.location.hash !== '#catalog') return
     const timer = setTimeout(() => {
       document.getElementById('catalog')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
     }, 300)

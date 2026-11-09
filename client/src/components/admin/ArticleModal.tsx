@@ -20,7 +20,7 @@ export default function ArticleModal({ article, onClose }: ArticleModalProps) {
     image_url: '',
     category: 'Общее',
     tags: '',
-    author: 'ВозьмиМеня',
+    author: 'Максим Алхимов',
     published: false
   })
 

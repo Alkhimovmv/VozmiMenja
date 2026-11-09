@@ -15,7 +15,6 @@ const staticPages = [
   { href: '/arenda-kolonki-dlya-vecherinki-moskva', label: 'Аренда колонки для вечеринки' },
   { href: '/arenda-karaoke-komplekta-moskva', label: 'Аренда караоке-комплекта' },
   { href: '/arenda-paroochistitelya-dlya-kuhni-plitki-vannoy-moskva', label: 'Аренда пароочистителя для кухни и плитки' },
-  { href: '/arenda-kamery-dlya-puteshestviya-vloga-moskva', label: 'Аренда камеры для путешествия и влога' },
   { href: '/arenda-gopro-moskva', label: 'Аренда GoPro и камер в Москве' },
   { href: '/arenda-audiooborudovaniya-moskva', label: 'Аренда аудиооборудования в Москве' },
   { href: '/blog', label: 'Блог' },

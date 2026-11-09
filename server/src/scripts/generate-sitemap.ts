@@ -6,6 +6,7 @@ import { promisify } from 'util'
 const SITE_URL = 'https://vozmimenya.ru'
 const dbPath = path.resolve(__dirname, '../../database.sqlite')
 const sitemapPath = path.resolve(__dirname, '../../../client/public/sitemap.xml')
+const redirectsPath = path.resolve(__dirname, '../../../client/src/content/redirects.json')
 
 interface SitemapUrl {
   loc: string
@@ -36,7 +37,6 @@ const staticUrls: SitemapUrl[] = [
   { loc: '/arenda-kolonki-dlya-vecherinki-moskva', lastmod: today(), changefreq: 'weekly', priority: '0.8' },
   { loc: '/arenda-karaoke-komplekta-moskva', lastmod: today(), changefreq: 'weekly', priority: '0.8' },
   { loc: '/arenda-paroochistitelya-dlya-kuhni-plitki-vannoy-moskva', lastmod: today(), changefreq: 'weekly', priority: '0.8' },
-  { loc: '/arenda-kamery-dlya-puteshestviya-vloga-moskva', lastmod: today(), changefreq: 'weekly', priority: '0.8' },
   { loc: '/arenda-gopro-moskva', lastmod: today(), changefreq: 'weekly', priority: '0.9' },
   { loc: '/arenda-audiooborudovaniya-moskva', lastmod: today(), changefreq: 'weekly', priority: '0.9' },
   { loc: '/blog', lastmod: today(), changefreq: 'weekly', priority: '0.8' },
@@ -128,6 +128,8 @@ async function generateSitemap() {
       ORDER BY updated_at DESC, created_at DESC
     `) as EquipmentRow[]
 
+    // Старые адреса с редиректом (client/src/content/redirects.json) в sitemap не попадают.
+    const redirectedPaths = new Set(Object.keys(JSON.parse(await fs.readFile(redirectsPath, 'utf8'))))
     const articleRows = await all(`
       SELECT slug, updated_at, created_at
       FROM articles
@@ -142,7 +144,7 @@ async function generateSitemap() {
         changefreq: 'weekly' as const,
         priority: '0.8',
       })),
-      ...articleRows.map((article) => ({
+      ...articleRows.filter((article) => !redirectedPaths.has(`/blog/${article.slug}`)).map((article) => ({
         loc: `/blog/${article.slug}`,
         lastmod: toDateOnly(article.updated_at || article.created_at),
         changefreq: 'monthly' as const,

@@ -22,7 +22,7 @@ const eventScenarios = [
     icon: Camera,
     title: 'Съемка мероприятия',
     text: 'GoPro, Insta360 или Osmo Pocket для видео, бэкстейджа, поездки или контента в соцсети.',
-    href: '/arenda-kamery-dlya-puteshestviya-vloga-moskva',
+    href: '/arenda-gopro-moskva',
   },
   {
     icon: WashingMachine,

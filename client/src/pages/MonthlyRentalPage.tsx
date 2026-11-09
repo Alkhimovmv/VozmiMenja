@@ -16,7 +16,7 @@ const faq = faqContent[route]
 
 const scenarios = [
   { icon: Hammer, title: 'Ремонт квартиры', text: 'Строительный пылесос WD5 на весь срок работ: убирать пыль после каждого этапа, а не только в конце.', href: '/arenda-stroitelnogo-pylesosa-posle-remonta-moskva' },
-  { icon: Camera, title: 'Поездка или съёмочный проект', text: 'GoPro, Insta360 или Osmo Pocket на отпуск, сезон блога или серию съёмок.', href: '/arenda-kamery-dlya-puteshestviya-vloga-moskva' },
+  { icon: Camera, title: 'Поездка или съёмочный проект', text: 'GoPro, Insta360 или Osmo Pocket на отпуск, сезон блога или серию съёмок.', href: '/arenda-gopro-moskva' },
   { icon: Sparkles, title: 'Регулярная уборка и клининг', text: 'Puzzi и пароочиститель для посуточной квартиры, офиса или серии химчисток.', href: '/arenda-pylesosov-moskva' },
   { icon: Music, title: 'Сезон мероприятий', text: 'JBL PartyBox и микрофоны на месяц праздников, выступлений или выездных событий.', href: '/arenda-audiooborudovaniya-moskva' },
 ]

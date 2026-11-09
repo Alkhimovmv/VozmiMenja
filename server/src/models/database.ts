@@ -287,7 +287,7 @@ class Database {
         image_url TEXT,
         category TEXT NOT NULL,
         tags TEXT,
-        author TEXT NOT NULL DEFAULT 'ВозьмиМеня',
+        author TEXT NOT NULL DEFAULT 'Максим Алхимов',
         published INTEGER NOT NULL DEFAULT 0,
         views INTEGER NOT NULL DEFAULT 0,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,

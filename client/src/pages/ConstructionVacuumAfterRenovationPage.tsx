@@ -272,8 +272,8 @@ export default function ConstructionVacuumAfterRenovationPage() {
               <p className="mb-5 text-slate-600">
                 Если задача смешанная, обычно начинают с сухой пыли, а потом добавляют чистку ткани или твердых поверхностей.
               </p>
-              <Link to="/blog/kak-vybrat-pylesos-dlya-uborki-posle-remonta" className="inline-flex items-center gap-2 font-bold text-[#1D4ED8] hover:underline">
-                Как выбрать пылесос для уборки после ремонта
+              <Link to="/blog/kak-ubrat-stroitelnuyu-pyl-posle-remonta" className="inline-flex items-center gap-2 font-bold text-[#1D4ED8] hover:underline">
+                Пошагово: уборка строительной пыли после ремонта
                 <ArrowRight className="h-4 w-4" />
               </Link>
             </div>

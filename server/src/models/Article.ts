@@ -1,4 +1,5 @@
 import { run, get, all } from './database'
+import { DEFAULT_ARTICLE_AUTHOR } from '../domain/articleAuthor'
 
 export interface Article {
   id: number
@@ -113,7 +114,7 @@ class ArticleModel {
       data.imageUrl || null,
       data.category,
       data.tags || null,
-      data.author || 'ВозьмиМеня',
+      data.author || DEFAULT_ARTICLE_AUTHOR,
       data.published ? 1 : 0
     ])
 

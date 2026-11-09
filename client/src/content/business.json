@@ -13,7 +13,9 @@
   "sameAs": [
     "https://t.me/VozmiMenyaRent",
     "https://wa.me/79933636464",
-    "https://www.avito.ru/brands/bec2558749c417a5576049cbce277ace/all"
+    "https://www.avito.ru/brands/bec2558749c417a5576049cbce277ace/all",
+    "https://yandex.ru/maps/org/vozmi_menya/206350428739/",
+    "https://yandex.ru/maps/org/vozmi_menya/95879395485/"
   ],
   "offices": [
     {
@@ -23,8 +25,8 @@
       "district": "Кузьминки",
       "streetAddress": "Волжский бульвар, 51с15",
       "postalCode": "109462",
-      "latitude": 55.693848,
-      "longitude": 37.759571,
+      "latitude": 55.694078,
+      "longitude": 37.759231,
       "yandexMaps": {
         "orgId": "206350428739",
         "url": "https://yandex.ru/maps/org/vozmi_menya/206350428739/",
@@ -48,8 +50,16 @@
       "district": "Беговой",
       "streetAddress": "ул. Расковой, 1",
       "postalCode": "125040",
-      "latitude": 55.786143,
-      "longitude": 37.57,
+      "latitude": 55.786181,
+      "longitude": 37.570051,
+      "yandexMaps": {
+        "orgId": "95879395485",
+        "url": "https://yandex.ru/maps/org/vozmi_menya/95879395485/",
+        "ratingValue": 4.3,
+        "reviewCount": 6,
+        "ratingCount": 7,
+        "checkedAt": "2026-11-09"
+      },
       "slug": "/arenda-tehniki-u-metro-dinamo",
       "nearby": [
         "Беговой",

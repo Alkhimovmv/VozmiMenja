@@ -96,7 +96,7 @@ export default function Footer() {
                 { to: '/arenda-karaoke-komplekta-moskva', label: 'Караоке-комплект' },
                 { to: '/arenda-tehniki-dlya-meropriyatiya-moskva', label: 'Техника для мероприятия' },
                 { to: '/arenda-tehniki-na-mesyac-moskva', label: 'Аренда на месяц' },
-                { to: '/arenda-kamery-dlya-puteshestviya-vloga-moskva', label: 'Камера для поездки и влога' },
+                { to: '/arenda-gopro-moskva', label: 'Камера для поездки и влога' },
                 { to: '/arenda-moyushchego-pylesosa-dlya-divana-kovra-moskva', label: 'Моющий пылесос для дивана' },
                 { to: '/arenda-paroochistitelya-dlya-kuhni-plitki-vannoy-moskva', label: 'Пароочиститель для кухни' },
               ].map((link) => (

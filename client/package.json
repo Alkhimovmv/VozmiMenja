@@ -44,6 +44,8 @@
     "eslint-plugin-react-hooks": "^5.1.0-rc.0",
     "eslint-plugin-react-refresh": "^0.4.9",
     "globals": "^15.9.0",
+    "micromark": "^4.0.3",
+    "micromark-extension-gfm": "^3.0.0",
     "postcss": "^8.4.41",
     "sharp": "^0.35.4",
     "tailwindcss": "^4.3.3",

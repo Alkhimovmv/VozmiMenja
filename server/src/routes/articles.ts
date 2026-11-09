@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express'
 import { articleModel, CreateArticleData } from '../models/Article'
 import { authMiddleware } from '../middleware/auth'
+import { DEFAULT_ARTICLE_AUTHOR } from '../domain/articleAuthor'
 
 const router = Router()
 
@@ -129,7 +130,7 @@ router.post('/admin', authMiddleware, async (req: Request, res: Response) => {
       imageUrl: req.body.image_url || req.body.imageUrl,
       category: req.body.category,
       tags: req.body.tags,
-      author: req.body.author || 'ВозьмиМеня',
+      author: req.body.author || DEFAULT_ARTICLE_AUTHOR,
       published: req.body.published !== undefined ? req.body.published : false
     }
 
