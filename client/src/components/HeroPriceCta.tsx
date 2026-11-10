@@ -35,11 +35,14 @@ export default function HeroPriceCta({ slugs, addonSlugs = [], bookingHref, sour
 
   return (
     <div className="mb-6 flex flex-wrap items-center gap-3">
-      {price !== null && (
-        <span className="rounded-xl bg-white/10 px-4 py-3 text-base font-bold text-white ring-1 ring-white/20">
-          от {formatPrice(price)} ₽/сутки
-        </span>
-      )}
+      {/* Место под цену резервируем сразу (фиксированная ширина): цена приходит из API позже
+          и иначе сдвигала кнопки и блок ниже (CLS). Без данных остаётся пустая плашка той же ширины. */}
+      <span
+        className="inline-flex min-h-11 w-[10.5rem] items-center justify-center rounded-xl bg-white/10 px-3 py-3 text-base font-bold text-white ring-1 ring-white/20"
+        aria-hidden={price === null}
+      >
+        {price !== null ? `от ${formatPrice(price)} ₽/сутки` : '\u00a0'}
+      </span>
       <Link
         to={bookingHref}
         onClick={() => trackEvent('booking_click', { source })}
