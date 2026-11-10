@@ -420,10 +420,7 @@ function getCompanionOffers(category: string, name: string) {
   ]
 }
 
-function getRentalConditions(category: string, name: string) {
-  const normalizedName = name.toLowerCase()
-  const isPremium = normalizedName.includes('partybox 710') || normalizedName.includes('insta360') || normalizedName.includes('osmo')
-
+function getRentalConditions(category: string) {
   return [
     {
       title: 'Документы',
@@ -431,9 +428,7 @@ function getRentalConditions(category: string, name: string) {
     },
     {
       title: 'Залог',
-      text: isPremium
-        ? 'По дорогим моделям условия залога менеджер подтвердит после заявки: зависит от срока, доставки и истории клиента.'
-        : 'Для клиентов с постоянной регистрацией в Москве или МО залог обычно не требуется; в остальных случаях условия подтвердим до выдачи.',
+      text: 'Без залога при постоянной регистрации в Москве или МО; в остальных случаях залог — 50% стоимости оборудования, он возвращается при возврате исправной и чистой техники.',
     },
     {
       title: 'Доставка и возврат',
@@ -758,7 +753,7 @@ export default function EquipmentDetailsPage() {
 
   const guidance = getEquipmentGuidance(equipment.category, equipment.name)
   const companionOffers = getCompanionOffers(equipment.category, equipment.name)
-  const rentalConditions = getRentalConditions(equipment.category, equipment.name)
+  const rentalConditions = getRentalConditions(equipment.category)
   const readyKits = getReadyKits(equipment.category, equipment.name)
   const choiceWarnings = getChoiceWarnings(equipment.category, equipment.name)
   const equipmentFaqItems = [...guidance.faq, ...getEquipmentProcessFaq(equipment.name)]
