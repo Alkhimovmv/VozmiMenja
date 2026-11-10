@@ -3,6 +3,7 @@ import path from 'path'
 import { applyArticleRefresh } from '../domain/articleRefresh'
 import { DEFAULT_ARTICLE_AUTHOR, LEGACY_ARTICLE_AUTHOR } from '../domain/articleAuthor'
 import { novemberArticles } from './blog-articles-2026-11'
+import { articleFactRefreshes, BlogArticleFactRefresh } from './blog-article-fact-refresh-2026-11'
 
 const dbPath = process.env.DATABASE_PATH ? path.resolve(process.env.DATABASE_PATH) : path.join(__dirname, '../../database.sqlite')
 
@@ -105,7 +106,7 @@ const articles: BlogArticleSeed[] = [
 Посмотрите все варианты в разделе [аренда пылесосов в Москве](/arenda-pylesosov-moskva) или напишите нам: подскажем, какой аппарат подойдет под вашу ткань и объем работы.`
   },
   {
-    title: 'Puzzi 8/1 или Puzzi 10/1: какой моющий пылесос взять для химчистки дивана',
+    title: 'Puzzi 8/1 или 10/1: какой моющий пылесос взять для химчистки дивана',
     slug: 'puzzi-8-1-ili-puzzi-10-1-kakoj-moyushchij-pylesos-vzyat',
     excerpt: 'Сравниваем Karcher Puzzi 8/1 и Puzzi 10/1 для дивана, ковров, салона автомобиля и клининга. Помогаем выбрать модель под объем уборки и срок аренды.',
     imageUrl: null,
@@ -550,7 +551,7 @@ DJI Mic 2 стоит рассматривать, если нужно запис�
 Откройте [DJI Mic 2](/equipment/dji-mic-2) или раздел [аренда микрофонов и аудиооборудования в Москве](/arenda-audiooborudovaniya-moskva). В заявке напишите, где будет интервью, сколько человек говорит и на что снимаете - подскажем, нужен ли только микрофон или лучше добавить камеру.`
   },
   {
-    title: 'Как убрать строительную пыль после ремонта и не испортить бытовой пылесос',
+    title: 'Строительная пыль после ремонта: как убрать и не испортить пылесос',
     slug: 'kak-ubrat-stroitelnuyu-pyl-posle-remonta',
     excerpt: 'Практичный порядок уборки после ремонта: почему бытовой пылесос может сломаться от цементной пыли, когда нужен строительный пылесос и как подготовить квартиру к финальной чистке.',
     imageUrl: null,
@@ -1018,18 +1019,20 @@ async function seedBlogGrowthArticles() {
     // Правила применяются идемпотентно (см. domain/articleRefresh): дата обновления меняется,
     // только если текст реально изменился, а накопленные ранее повторы абзацев схлопываются.
     let refreshedArticles = 0
-    for (const refresh of [...articleRefreshes, ...articlePriceRefreshes]) {
-      const row = await get<{ content: string; excerpt: string }>('SELECT content, excerpt FROM articles WHERE slug = ?', [refresh.slug])
+    const allRefreshes: BlogArticleFactRefresh[] = [...articleRefreshes, ...articlePriceRefreshes, ...articleFactRefreshes]
+    for (const refresh of allRefreshes) {
+      const row = await get<{ title: string; content: string; excerpt: string }>('SELECT title, content, excerpt FROM articles WHERE slug = ?', [refresh.slug])
       if (!row) continue
+      const nextTitle = refresh.title && row.title === refresh.title.from ? refresh.title.to : row.title
       const nextContent = applyArticleRefresh(row.content, refresh.replacements)
       const nextExcerpt = applyArticleRefresh(row.excerpt, refresh.excerptReplacements || [])
-      if (nextContent === row.content && nextExcerpt === row.excerpt) continue
-      await run('UPDATE articles SET content = ?, excerpt = ?, updated_at = CURRENT_TIMESTAMP WHERE slug = ?', [nextContent, nextExcerpt, refresh.slug])
+      if (nextTitle === row.title && nextContent === row.content && nextExcerpt === row.excerpt) continue
+      await run('UPDATE articles SET title = ?, content = ?, excerpt = ?, updated_at = CURRENT_TIMESTAMP WHERE slug = ?', [nextTitle, nextContent, nextExcerpt, refresh.slug])
       refreshedArticles++
       console.log(`   обновлена статья ${refresh.slug}: ${row.content.length} → ${nextContent.length} символов`)
     }
     console.log(`✅ Обновлено статей: ${refreshedArticles}`)
-    console.log(`✅ Готово: проверено refresh-правил ${articleRefreshes.length + articlePriceRefreshes.length}`)
+    console.log(`✅ Готово: проверено refresh-правил ${allRefreshes.length}`)
   } finally {
     await new Promise<void>((resolve, reject) => {
       db.close((error) => {
