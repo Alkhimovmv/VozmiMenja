@@ -3,6 +3,7 @@ import path from 'path'
 import { applyArticleRefresh } from '../domain/articleRefresh'
 import { DEFAULT_ARTICLE_AUTHOR, LEGACY_ARTICLE_AUTHOR } from '../domain/articleAuthor'
 import { novemberArticles } from './blog-articles-2026-11'
+import { novemberArticlesB } from './blog-articles-2026-11-b'
 import { articleFactRefreshes, BlogArticleFactRefresh } from './blog-article-fact-refresh-2026-11'
 
 const dbPath = process.env.DATABASE_PATH ? path.resolve(process.env.DATABASE_PATH) : path.join(__dirname, '../../database.sqlite')
@@ -240,6 +241,8 @@ Puzzi 10/1 стоит брать, если задач больше: нескол
 ## Что еще взять с камерой
 
 Для поездки полезны запасные аккумуляторы, карта памяти, крепление, мини-штатив и чехол. Если снимаете речь, добавьте [DJI Mic 2](/equipment/dji-mic-2), потому что звук часто важнее картинки.
+
+Если выбор уже сузился до двух экшн-камер, подробное сравнение — в статье [GoPro или Insta360](/blog/gopro-ili-insta360-chto-vzyat-dlya-poezdki-sporta-i-bloga).
 
 ## Частые вопросы
 
@@ -611,7 +614,7 @@ DJI Mic 2 стоит рассматривать, если нужно запис�
 
 Для одной квартиры после ремонта покупка строительного пылесоса часто не окупается: техника нужна на день-два, а потом занимает место. Аренда помогает взять аппарат под конкретную задачу и вернуть его после уборки.
 
-Если сомневаетесь по модели, откройте раздел [аренда пылесосов в Москве](/arenda-pylesosov-moskva). В заявке укажите площадь, тип ремонта и что именно нужно убрать - так проще подобрать технику без переплаты.
+Если сомневаетесь по модели, откройте раздел [аренда пылесосов в Москве](/arenda-pylesosov-moskva). В заявке укажите площадь, тип ремонта и что именно нужно убрать - так проще подобрать технику без переплаты. Как выбрать сам пылесос под объём ремонта — в статье [как выбрать пылесос для уборки после ремонта](/blog/kak-vybrat-pylesos-dlya-uborki-posle-remonta).
 
 ## Частые вопросы
 
@@ -700,6 +703,8 @@ Puzzi нужен для текстиля: диванов, кресел, ковр
 - желаемые даты аренды;
 - нужен ли один аппарат или комплект из двух.
 
+Если убираете после ремонта, порядок работ разобран отдельно: [как убрать строительную пыль](/blog/kak-ubrat-stroitelnuyu-pyl-posle-remonta).
+
 ## Частые вопросы
 
 ### Можно ли взять один аппарат на все?
@@ -784,6 +789,8 @@ Puzzi нужен не для строительной пыли, а для тек
 **Не уточнить тип пыли.** Для гипса, цемента и мелкой пыли важны фильтр, мешок и режим работы.
 
 **Взять срок без запаса.** После ремонта часто всплывают углы, плинтусы, подоконники и повторный проход.
+
+Порядок уборки по шагам разобран в статье [строительная пыль после ремонта](/blog/kak-ubrat-stroitelnuyu-pyl-posle-remonta). Если не уверены, что нужно — сухой пылесос, Puzzi или пароочиститель, сравните их в материале [что взять для уборки](/blog/stroitelnij-pylesos-puzzi-ili-paroochistitel-chto-vzyat).
 
 ## Частые вопросы
 
@@ -976,7 +983,7 @@ async function seedBlogGrowthArticles() {
   try {
     console.log('🔄 Добавление SEO-статей для роста блога...')
 
-    for (const article of [...articles, ...novemberArticles]) {
+    for (const article of [...articles, ...novemberArticles, ...novemberArticlesB]) {
       await run(`
         INSERT INTO articles (
           title, slug, excerpt, content, image_url, category, tags, author, published
@@ -1013,7 +1020,7 @@ async function seedBlogGrowthArticles() {
     // Смена автора — не правка текста, поэтому updated_at (и «Обновлено» в статье) не трогаем.
     await run('UPDATE articles SET author = ? WHERE author = ?', [DEFAULT_ARTICLE_AUTHOR, LEGACY_ARTICLE_AUTHOR])
 
-    console.log(`✅ Готово: обработано статей ${articles.length + novemberArticles.length}`)
+    console.log(`✅ Готово: обработано статей ${articles.length + novemberArticles.length + novemberArticlesB.length}`)
 
     console.log('🔄 Обновление внутренней перелинковки старых статей...')
     // Правила применяются идемпотентно (см. domain/articleRefresh): дата обновления меняется,
