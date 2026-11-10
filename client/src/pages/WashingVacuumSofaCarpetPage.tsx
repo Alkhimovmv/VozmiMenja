@@ -7,6 +7,7 @@ import { buildAttributedBookingLinks, getLeadContext } from '../lib/leadAttribut
 import ScenarioRentalInfo from '../components/ui/ScenarioRentalInfo'
 import faqContent from '../content/faq.json'
 import seoMeta from '../content/seoMeta.json'
+import HeroPriceCta from '../components/HeroPriceCta'
 
 const pageUrl = 'https://vozmimenya.ru/arenda-moyushchego-pylesosa-dlya-divana-kovra-moskva'
 const puzzi8Href = '/equipment/karcher-puzzi-8-1'
@@ -168,6 +169,7 @@ export default function WashingVacuumSofaCarpetPage() {
               <p className="mb-8 max-w-2xl text-lg leading-8 text-emerald-50/85">
                 Если диван, ковер или матрас нужно освежить один раз, аренда Puzzi обычно практичнее покупки. Напишите, что чистите и на какие даты — поможем выбрать модель без лишнего запаса.
               </p>
+              <HeroPriceCta slugs={['karcher-puzzi-8-1', 'karcher-puzzi-10-1']} bookingHref="/booking?equipment=karcher-puzzi-8-1" source="landing_washing_vacuum_hero" />
               <div className="flex flex-col gap-3 sm:flex-row">
                 <Link
                   to={getPuzziBookingHref('karcher-puzzi-8-1')}

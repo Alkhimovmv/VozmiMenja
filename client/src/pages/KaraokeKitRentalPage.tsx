@@ -4,6 +4,7 @@ import seoMeta from '../content/seoMeta.json'
 import { ArrowRight, CheckCircle2, Clock3, MapPin, Mic2, Music2, ShieldCheck, Speaker } from 'lucide-react'
 import { trackEvent } from '../lib/analytics'
 import { buildAttributedBookingLinks, getLeadContext } from '../lib/leadAttribution'
+import HeroPriceCta from '../components/HeroPriceCta'
 
 const pagePath = '/arenda-karaoke-komplekta-moskva'
 const pageUrl = `https://vozmimenya.ru${pagePath}`
@@ -110,6 +111,7 @@ export default function KaraokeKitRentalPage() {
               <p className="mt-5 max-w-2xl text-lg leading-8 text-slate-200">
                 Выберите JBL PartyBox 320 или 710, добавьте два беспроводных микрофона и отправьте одну заявку на весь комплект.
               </p>
+              <HeroPriceCta slugs={['jbl-partybox-320', 'jbl-partybox-710']} addonSlugs={['mikrofony-jbl']} bookingHref="/booking?equipment=jbl-partybox-320,jbl-partybox-wireless-microphones" source="landing_karaoke_hero" />
               <div className="mt-8 flex flex-col gap-3 sm:flex-row">
                 <Link
                   to={primaryBookingHref}

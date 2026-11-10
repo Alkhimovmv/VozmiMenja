@@ -6,6 +6,7 @@ import { trackEvent } from '../lib/analytics'
 import { getTelegramUrl } from '../lib/contactLinks'
 import ScenarioRentalInfo from '../components/ui/ScenarioRentalInfo'
 import faqContent from '../content/faq.json'
+import HeroPriceCta from '../components/HeroPriceCta'
 
 const pageUrl = 'https://vozmimenya.ru/arenda-kolonki-dlya-vecherinki-moskva'
 const partyBox320Href = '/equipment/jbl-partybox-320'
@@ -159,6 +160,7 @@ export default function PartySpeakerRentalPage() {
               <p className="mb-8 max-w-2xl text-lg leading-8 text-slate-200">
                 Возьмите JBL PartyBox под день рождения, дачу или зал. Поможем понять, хватит ли PartyBox 320 или нужен запас PartyBox 710, и сразу уточним подключение, срок и доставку.
               </p>
+              <HeroPriceCta slugs={['jbl-partybox-320', 'jbl-partybox-710']} bookingHref="/booking?equipment=jbl-partybox-320" source="landing_party_speaker_hero" />
               <div className="flex flex-col gap-3 sm:flex-row">
                 <a
                   href={getTelegramUrl()}

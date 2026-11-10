@@ -7,6 +7,7 @@ import { Check, Clock, Camera, Video, Zap } from 'lucide-react'
 import { trackEvent } from '../lib/analytics'
 import { CONTACT_PHONE, CONTACT_PHONE_LABEL, getTelegramUrl } from '../lib/contactLinks'
 import faqContent from '../content/faq.json'
+import HeroPriceCta from '../components/HeroPriceCta'
 
 export default function CategoryCamerasPage() {
   const [page] = useState(1)
@@ -121,6 +122,7 @@ export default function CategoryCamerasPage() {
             GoPro 13 для активной съёмки, Insta360 X5 для 360°-видео и DJI Osmo Pocket 3
             для влога. Самовывоз через постамат 24/7 или доставка по Москве.
           </p>
+          <HeroPriceCta slugs={['gopro-13', 'insta360-x5', 'dji-osmo-pocket-3-creator-combo']} bookingHref="/booking" source="category_cameras_hero" />
           <div className="flex flex-col sm:flex-row gap-3">
             <a href={getTelegramUrl()} target="_blank" rel="noopener noreferrer" onClick={() => trackEvent('telegram_click', { source: 'category_cameras_hero' })} className="btn bg-white text-primary hover:bg-blue-50 shadow-sm">
               Написать в Telegram

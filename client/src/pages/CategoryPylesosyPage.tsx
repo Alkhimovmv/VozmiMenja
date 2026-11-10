@@ -9,6 +9,7 @@ import { trackEvent } from '../lib/analytics'
 import { CONTACT_PHONE, CONTACT_PHONE_LABEL, getTelegramUrl } from '../lib/contactLinks'
 import faqContent from '../content/faq.json'
 import seoMeta from '../content/seoMeta.json'
+import HeroPriceCta from '../components/HeroPriceCta'
 
 export default function CategoryPylesosyPage() {
   const [page] = useState(1)
@@ -136,6 +137,7 @@ export default function CategoryPylesosyPage() {
             Karcher Puzzi для мебели и ковров, WD5 для уборки после ремонта и SC4 для кухни и плитки.
             Самовывоз и возврат через постамат 24/7 или доставка по Москве.
           </p>
+          <HeroPriceCta slugs={['karcher-puzzi-8-1', 'karcher-puzzi-10-1', 'karcher-wd5', 'karcher-sc4']} bookingHref="/booking" source="category_cleaning_hero" />
           <div className="flex flex-col sm:flex-row gap-3 mb-10">
             <a href={getTelegramUrl()} target="_blank" rel="noopener noreferrer" onClick={() => trackEvent('telegram_click', { source: 'category_pylesosy_hero' })} className="btn bg-white text-primary hover:bg-blue-50">
               Написать в Telegram

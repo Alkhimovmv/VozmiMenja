@@ -4,6 +4,7 @@ import SEO from '../components/SEO'
 import { trackEvent } from '../lib/analytics'
 import { getTelegramUrl } from '../lib/contactLinks'
 import faqContent from '../content/faq.json'
+import HeroPriceCta from '../components/HeroPriceCta'
 
 const eventScenarios = [
   {
@@ -72,6 +73,7 @@ export default function EventEquipmentRentalPage() {
             <p className="mb-8 max-w-2xl text-lg text-blue-100">
               Подберите технику под событие: колонку и микрофон для звука, камеру для съемки, а после — пылесос, Puzzi или пароочиститель для уборки. Не нужно покупать оборудование ради одного дня.
             </p>
+            <HeroPriceCta slugs={['jbl-partybox-320', 'jbl-partybox-710', 'dji-mic-2', 'gopro-13', 'insta360-x5', 'dji-osmo-pocket-3-creator-combo']} bookingHref="/booking" source="landing_event_hero" />
             <div className="flex flex-col gap-3 sm:flex-row">
               <a
                 href={getTelegramUrl()}

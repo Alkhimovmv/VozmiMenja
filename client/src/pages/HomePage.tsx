@@ -236,7 +236,7 @@ export default function HomePage() {
                 onClick={() => trackEvent('booking_click', { source: 'home_mobile_urgent' })}
                 className="inline-flex items-center gap-2 rounded-xl bg-[#2563EB] px-5 py-2.5 text-sm font-bold text-white"
               >
-                Нужно сегодня <ChevronRight className="w-4 h-4" />
+                Забронировать на сегодня <ChevronRight className="w-4 h-4" />
               </Link>
               <button
                 onClick={() => document.getElementById('catalog')?.scrollIntoView({ behavior: 'smooth' })}
@@ -286,7 +286,7 @@ export default function HomePage() {
                     onClick={() => trackEvent('booking_click', { source: 'home_desktop_urgent' })}
                     className="btn-pill-primary shadow-lg hover:shadow-blue-200 hover:scale-[1.02] bg-[#2563EB]"
                   >
-                    Нужно сегодня
+                    Забронировать на сегодня
                     <span className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center text-sm">›</span>
                   </Link>
                   <a href="#catalog"

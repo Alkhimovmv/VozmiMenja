@@ -169,8 +169,9 @@ export default function BlogArticlePage() {
   const toIsoDateTime = (value: string) =>
     /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}(:\d{2})?$/.test(value) ? `${value.replace(' ', 'T')}Z` : value
 
+  // Даты в базе — UTC без зоны; показываем по Москве, как пререндер (formatRuDate), чтобы день не расходился.
   const formatDate = (dateString: string) =>
-    new Date(dateString).toLocaleDateString('ru-RU', { year: 'numeric', month: 'long', day: 'numeric' })
+    new Date(toIsoDateTime(dateString)).toLocaleDateString('ru-RU', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'Europe/Moscow' })
 
   const getTags = (tagsString: string | null) =>
     tagsString ? tagsString.split(',').map((t) => t.trim()) : []

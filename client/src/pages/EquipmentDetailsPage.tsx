@@ -823,11 +823,12 @@ export default function EquipmentDetailsPage() {
       </div>
 
       <div className="container mx-auto px-4 py-8 pb-32 md:pb-8">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-10">
 
           {/* ── Left: Images ── */}
+          {/* На мобильном фото ниже (max-h-56), чтобы H1 и цена попали на первый экран. */}
           <div>
-            <div className="bg-white rounded-2xl border border-line overflow-hidden mb-3 aspect-[4/3]">
+            <div className="bg-white rounded-2xl border border-line overflow-hidden mb-3 aspect-[4/3] max-h-56 sm:max-h-none mx-auto w-full">
               <img
                 src={getImageUrl(equipment.images[selectedImage])}
                 srcSet={getImageSrcSet(equipment.imageVariants?.[equipment.images[selectedImage]])}
@@ -845,7 +846,7 @@ export default function EquipmentDetailsPage() {
                   <button
                     key={index}
                     onClick={() => setSelectedImage(index)}
-                    className={`flex-shrink-0 w-20 h-20 rounded-xl overflow-hidden border-2 bg-white transition-colors ${
+                    className={`flex-shrink-0 w-14 h-14 sm:w-20 sm:h-20 rounded-xl overflow-hidden border-2 bg-white transition-colors ${
                       selectedImage === index ? 'border-primary' : 'border-line hover:border-muted'
                     }`}
                   >
@@ -871,7 +872,7 @@ export default function EquipmentDetailsPage() {
             <h1 className="text-3xl md:text-4xl font-bold text-ink mb-2">{equipment.name} в аренду</h1>
 
             {/* Status badge */}
-            <div className="mb-6 text-sm text-muted">
+            <div className="mb-3 sm:mb-6 text-sm text-muted">
               Доступность подтвердим после выбора дат
             </div>
 

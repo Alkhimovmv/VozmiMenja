@@ -67,12 +67,13 @@ export default function EquipmentCard({ equipment, priority = false }: Equipment
         </div>
       </article>
 
+      {/* sizes без 100vw: на мобильном скрытая копия выбирает тот же файл, что и мобильная карточка, и не грузится второй раз. */}
       <article className="group hidden overflow-hidden rounded-xl border border-gray-200 bg-white transition-shadow hover:shadow-md md:block">
         <Link to={detailsHref} className="block aspect-[4/3] overflow-hidden border-b border-gray-100 bg-white">
           <img
             src={getImageUrl(equipment.images[0])}
             srcSet={getImageSrcSet(equipment.imageVariants?.[equipment.images[0]])}
-            sizes="(min-width: 1280px) 300px, (min-width: 768px) 33vw, 100vw"
+            sizes="(min-width: 1280px) 300px, 33vw"
             alt={`Аренда ${equipment.name}`}
             className="h-full w-full object-contain p-2"
             loading={priority ? 'eager' : 'lazy'}

@@ -5,6 +5,7 @@ import { ArrowRight, BatteryCharging, CheckCircle2, ClipboardList, MessageCircle
 import { trackEvent } from '../lib/analytics'
 import { CONTACT_PHONE, CONTACT_PHONE_LABEL, getTelegramUrl } from '../lib/contactLinks'
 import faqContent from '../content/faq.json'
+import HeroPriceCta from '../components/HeroPriceCta'
 
 const pageUrl = 'https://vozmimenya.ru/arenda-mikrofona-dlya-intervyu-moskva'
 const djiMicHref = '/equipment/dji-mic-2'
@@ -138,6 +139,7 @@ export default function InterviewMicrophoneRentalPage() {
               <p className="mb-8 max-w-2xl text-lg leading-8 text-slate-200">
                 Для интервью, Reels, Shorts и блога звук решает половину результата. Возьмите DJI Mic 2 на нужные даты и запишите речь чище, чем на встроенный микрофон камеры или телефона.
               </p>
+              <HeroPriceCta slugs={['dji-mic-2']} bookingHref="/booking?equipment=dji-mic-2" source="landing_interview_mic_hero" />
               <div className="flex flex-col gap-3 sm:flex-row">
                 <a
                   href={getTelegramUrl()}

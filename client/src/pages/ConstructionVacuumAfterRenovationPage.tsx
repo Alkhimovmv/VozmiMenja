@@ -6,6 +6,7 @@ import { trackEvent } from '../lib/analytics'
 import { getTelegramUrl } from '../lib/contactLinks'
 import ScenarioRentalInfo from '../components/ui/ScenarioRentalInfo'
 import faqContent from '../content/faq.json'
+import HeroPriceCta from '../components/HeroPriceCta'
 
 const pageUrl = 'https://vozmimenya.ru/arenda-stroitelnogo-pylesosa-posle-remonta-moskva'
 const wd5Href = '/equipment/karcher-wd5'
@@ -154,6 +155,7 @@ export default function ConstructionVacuumAfterRenovationPage() {
               <p className="mb-8 max-w-2xl text-lg leading-8 text-slate-200">
                 После ремонта обычный пылесос быстро забивается цементной и гипсовой пылью. Для сухой строительной пыли лучше взять строительный пылесос, а для финальной чистки мебели и ковров - моющий Puzzi.
               </p>
+              <HeroPriceCta slugs={['karcher-wd5']} bookingHref="/booking?equipment=karcher-wd5" source="landing_construction_vacuum_hero" />
               <div className="flex flex-col gap-3 sm:flex-row">
                 <a
                   href={getTelegramUrl()}

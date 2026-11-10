@@ -7,7 +7,6 @@ import seoMeta from './seoMeta.json'
 const generator = fs.readFileSync(new URL('../../scripts/generate-static-route-entrypoints.js', import.meta.url), 'utf8')
 const staticRoutesBlock = generator.split('const staticRoutes = [')[1].split(']')[0]
 const staticRoutes = [...staticRoutesBlock.matchAll(/'([^']+)'/g)].map((match) => match[1])
-  .filter((route) => route !== '/equipment') // клиентский редирект на главную
 
 const meta: Record<string, { title?: string; description?: string; h1?: string }> = seoMeta
 

@@ -7,6 +7,7 @@ import { Check, Mic, Music, Radio } from 'lucide-react'
 import { trackEvent } from '../lib/analytics'
 import { CONTACT_PHONE, CONTACT_PHONE_LABEL, getTelegramUrl } from '../lib/contactLinks'
 import faqContent from '../content/faq.json'
+import HeroPriceCta from '../components/HeroPriceCta'
 
 export default function CategoryAudioPage() {
   const [page] = useState(1)
@@ -121,6 +122,7 @@ export default function CategoryAudioPage() {
             JBL PartyBox 320 и 710 для вечеринок, залов и дачи. Микрофоны для караоке,
             поздравлений и съёмки можно добавить в ту же заявку.
           </p>
+          <HeroPriceCta slugs={['jbl-partybox-320', 'jbl-partybox-710', 'dji-mic-2', 'mikrofony-jbl']} bookingHref="/booking" source="category_audio_hero" />
           <div className="flex flex-col sm:flex-row gap-3">
             <a href={getTelegramUrl()} target="_blank" rel="noopener noreferrer" onClick={() => trackEvent('telegram_click', { source: 'category_audio_hero' })} className="btn bg-white text-primary hover:bg-blue-50 shadow-sm">
               Написать в Telegram

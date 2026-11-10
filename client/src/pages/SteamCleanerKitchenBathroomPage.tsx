@@ -6,6 +6,7 @@ import { trackEvent } from '../lib/analytics'
 import { getTelegramUrl } from '../lib/contactLinks'
 import ScenarioRentalInfo from '../components/ui/ScenarioRentalInfo'
 import faqContent from '../content/faq.json'
+import HeroPriceCta from '../components/HeroPriceCta'
 
 const pageUrl = 'https://vozmimenya.ru/arenda-paroochistitelya-dlya-kuhni-plitki-vannoy-moskva'
 const sc4Href = '/equipment/karcher-sc4'
@@ -159,6 +160,7 @@ export default function SteamCleanerKitchenBathroomPage() {
               <p className="mb-8 max-w-2xl text-lg leading-8 text-emerald-50/85">
                 Пароочиститель нужен не вместо моющего пылесоса, а для другой задачи: пройти плитку, швы, кухню, сантехнику и твердые поверхности. Если задача смешанная — поможем выбрать SC4, Puzzi или WD5.
               </p>
+              <HeroPriceCta slugs={['karcher-sc4']} bookingHref="/booking?equipment=karcher-sc4" source="landing_steam_cleaner_hero" />
               <div className="flex flex-col gap-3 sm:flex-row">
                 <a
                   href={getTelegramUrl()}
