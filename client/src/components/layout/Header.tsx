@@ -1,13 +1,11 @@
 import { useEffect, useState } from 'react'
-import { Link, useNavigate, useLocation } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import { Phone } from 'lucide-react'
 import logoHeader from '../../assets/logo-header.png'
 import { CONTACT_PHONE, CONTACT_PHONE_LABEL } from '../../lib/contactLinks'
 
 export default function Header() {
   const [isScrolled, setIsScrolled] = useState(false)
-  const navigate = useNavigate()
-  const location = useLocation()
 
   useEffect(() => {
     const handleScroll = () => setIsScrolled(window.scrollY > 20)
@@ -15,25 +13,15 @@ export default function Header() {
     return () => window.removeEventListener('scroll', handleScroll)
   }, [])
 
-  const handleCatalogClick = (e: React.MouseEvent, closeMenu?: () => void) => {
-    e.preventDefault()
-    closeMenu?.()
-    if (location.pathname === '/') {
-      document.getElementById('catalog')?.scrollIntoView({ behavior: 'smooth' })
-    } else {
-      navigate('/')
-      setTimeout(() => {
-        document.getElementById('catalog')?.scrollIntoView({ behavior: 'smooth' })
-      }, 300)
-    }
-  }
-
+  // Ядро бизнеса — три категории — в один клик с любой страницы; «О нас», «Контакты», FAQ — в подвале.
   const navLinks = [
-    { to: '/booking', label: 'Оформить бронь' },
-    { to: '/about', label: 'О нас' },
-    { to: '/delivery', label: 'Условия доставки' },
-    { to: '/contact', label: 'Контакты' },
-    { to: '/faq', label: 'FAQ' },
+    { to: '/arenda-audiooborudovaniya-moskva', label: 'Колонки' },
+    { to: '/arenda-gopro-moskva', label: 'Камеры' },
+    { to: '/arenda-pylesosov-moskva', label: 'Пылесосы' },
+    // На планшетах (md) места мало: второстепенные пункты остаются в подвале.
+    { to: '/kak-prohodit-arenda-tehniki', label: 'Как арендовать', wideOnly: true },
+    { to: '/delivery', label: 'Доставка', wideOnly: true },
+    { to: '/blog', label: 'Блог' },
   ]
 
   return (
@@ -50,18 +38,11 @@ export default function Header() {
 
           {/* Desktop Nav */}
           <nav className="hidden md:flex items-center gap-1">
-            <a
-              href="/#catalog"
-              onClick={(e) => handleCatalogClick(e)}
-              className="px-3 py-2 text-sm text-gray-600 hover:text-gray-900 font-medium transition-colors rounded-lg hover:bg-gray-50 cursor-pointer"
-            >
-              Каталог
-            </a>
             {navLinks.map((link) => (
               <Link
                 key={link.label}
                 to={link.to}
-                className="px-3 py-2 text-sm text-gray-600 hover:text-gray-900 font-medium transition-colors rounded-lg hover:bg-gray-50"
+                className={`${link.wideOnly ? 'hidden lg:block' : ''} whitespace-nowrap px-3 py-2 text-sm text-gray-600 hover:text-gray-900 font-medium transition-colors rounded-lg hover:bg-gray-50`}
               >
                 {link.label}
               </Link>
@@ -70,9 +51,15 @@ export default function Header() {
 
           {/* Desktop right */}
           <div className="hidden md:flex items-center gap-3">
+            <Link
+              to="/booking"
+              className="whitespace-nowrap rounded-xl border border-primary px-4 py-2 text-sm font-semibold text-primary transition hover:bg-primary hover:text-white"
+            >
+              Забронировать
+            </Link>
             <a
               href={`tel:${CONTACT_PHONE}`}
-              className="btn-primary"
+              className="btn-primary hidden xl:inline-flex"
               style={{ padding: '8px 18px', fontSize: '14px', borderRadius: '12px' }}
             >
               <Phone className="w-4 h-4" />

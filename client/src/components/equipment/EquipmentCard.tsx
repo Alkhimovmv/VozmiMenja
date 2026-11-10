@@ -14,6 +14,10 @@ interface EquipmentCardProps {
 export default function EquipmentCard({ equipment, priority = false }: EquipmentCardProps) {
   const [showBookingForm, setShowBookingForm] = useState(false)
   const dayPrice = equipment.pricing?.day1 || equipment.pricePerDay
+  // Тариф пт–вс дороже обычных суток: показываем его сразу, чтобы сумма в брони на выходные не была сюрпризом.
+  const weekendPrice = equipment.pricing?.weekendDay && equipment.pricing.weekendDay > dayPrice
+    ? equipment.pricing.weekendDay
+    : undefined
   const detailsHref = equipmentPath(equipment)
 
   const formatPrice = (price: number) =>
@@ -46,6 +50,7 @@ export default function EquipmentCard({ equipment, priority = false }: Equipment
             </Link>
             <div className="mt-2 text-xs text-gray-500">
               <strong className="text-sm text-gray-950">{formatPrice(dayPrice)}</strong> / сутки
+              {weekendPrice && <span className="block text-[11px]">в пт–вс — {formatPrice(weekendPrice)}</span>}
             </div>
             <div className="mt-2 flex flex-wrap gap-1.5">
               <span className="rounded-full bg-emerald-50 px-2 py-1 text-[10px] font-semibold text-emerald-700">Проверено</span>
@@ -92,6 +97,8 @@ export default function EquipmentCard({ equipment, priority = false }: Equipment
           <dl className="mt-4 border-y border-gray-100 py-3">
             <dt className="text-[11px] text-gray-500">за сутки</dt>
             <dd className="mt-0.5 text-base font-semibold text-gray-950">{formatPrice(dayPrice)}</dd>
+            {/* Место под строку держим всегда, чтобы карточки в сетке не прыгали по высоте. */}
+            <dd className="min-h-4 text-[11px] leading-4 text-gray-500">{weekendPrice ? `в пт–вс — ${formatPrice(weekendPrice)}` : ''}</dd>
           </dl>
 
           <div className="mt-3 flex flex-wrap gap-2">

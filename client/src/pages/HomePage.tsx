@@ -277,8 +277,8 @@ export default function HomePage() {
                   а не на годы
                 </h1>
                 <p className="text-gray-500 text-base mb-8 max-w-md">
-                  Камеры, моющие пылесосы, аудио и инструмент в аренду по Москве.
-                  Привезём за 2–4 часа. Без залога при прописке в Москве и МО.
+                  Колонки JBL, экшн-камеры и пылесосы Karcher в аренду по Москве.
+                  Привезём за 2–4 часа или заберите из постамата 24/7. Без залога при прописке в Москве и МО.
                 </p>
                 <div className="flex flex-col sm:flex-row gap-3">
                   <Link
@@ -365,7 +365,7 @@ export default function HomePage() {
           <div className="rounded-2xl bg-slate-900 px-6 py-5">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {[
-                { icon: Shield, label: 'Гарантия качества', sub: 'Дезинфекция перед каждой выдачей' },
+                { icon: Shield, label: 'Заменим неисправную', sub: 'Проверка и дезинфекция перед выдачей' },
                 { icon: Truck, label: 'Доставка 2–4 часа', sub: 'Курьер привозит и забирает' },
                 { icon: Clock, label: 'Без скрытых наценок', sub: 'Прозрачное ценообразование' },
                 { icon: Sparkles, label: 'Без залога', sub: 'При прописке в Москве и МО' },

@@ -10,7 +10,7 @@ import { ArrowLeft, Check, ChevronRight, Clock } from 'lucide-react'
 import { fetchPriorityAttr, getImageSrcSet, getImageUrl } from '../lib/utils'
 import productScenarios from '../content/productScenarios.json'
 import { trackBookingFunnelStage, trackEvent } from '../lib/analytics'
-import { getLongTermDailyPrice, getOneDayPrice, getPricingRows } from '../utils/pricing'
+import { getLongTermDailyPrice, getOneDayPrice, getPricingRows, getPeriodPrice } from '../utils/pricing'
 import { CONTACT_PHONE, CONTACT_PHONE_LABEL, getTelegramUrl, getWhatsAppUrl } from '../lib/contactLinks'
 import { equipmentPath } from '../lib/equipmentUrls'
 import equipmentBrands from '../content/equipmentBrands.json'
@@ -704,6 +704,9 @@ export default function EquipmentDetailsPage() {
   // Основная цена — за 1 сутки; сниженный тариф длинной аренды показываем отдельно с его сроком.
   const oneDayPrice = getOneDayPrice(equipment.pricing, equipment.pricePerDay)
   const longTermPrice = getLongTermDailyPrice(equipment.pricing, equipment.pricePerDay)
+  // Выгода недели: та же функция, что считает сумму брони, против 7 × цена первых суток.
+  const weekTotal = getPeriodPrice(equipment.pricing, 7, equipment.pricePerDay)
+  const weekSaving = oneDayPrice * 7 - weekTotal
   const canonicalPath = equipmentPath(equipment)
   const canonicalUrl = `https://vozmimenya.ru${canonicalPath}`
 
@@ -907,6 +910,11 @@ export default function EquipmentDetailsPage() {
                       </div>
                     ))}
                   </div>
+                  {weekSaving > 0 && (
+                    <p className="mt-3 rounded-xl bg-emerald-50 px-3 py-2 text-xs text-emerald-900">
+                      7 суток — <strong>{formatPrice(weekTotal)}</strong> вместо {formatPrice(oneDayPrice * 7)}, выгода {formatPrice(weekSaving)}
+                    </p>
+                  )}
                 </>
               )}
 

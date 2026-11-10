@@ -66,6 +66,7 @@ const buildComment = (data: {
   deliveryAddress: string
   preferredContact: string
   comment: string
+  referredBy: string
   officeName: string
   selectedEquipmentList: string
 }) => [
@@ -76,6 +77,7 @@ const buildComment = (data: {
   data.officeName ? `Офис: ${data.officeName}` : '',
   data.deliveryMethod === 'delivery' && data.deliveryAddress.trim() ? `Адрес доставки: ${data.deliveryAddress.trim()}` : '',
   data.preferredContact ? `Предпочтительный канал связи: ${data.preferredContact}` : '',
+  data.referredBy.trim() ? `Приведи друга (10%): посоветовал ${data.referredBy.trim()}` : '',
   data.comment.trim() ? `Комментарий клиента: ${data.comment.trim()}` : '',
 ].filter(Boolean).join('\n')
 
@@ -108,6 +110,7 @@ export default function SelfServiceBookingPage() {
     deliveryMethod: 'pickup' as 'pickup' | 'delivery',
     deliveryAddress: '',
     comment: '',
+    referredBy: '',
     offerAccepted: false,
     agreementAccepted: false,
     privacyAccepted: false,
@@ -344,6 +347,7 @@ export default function SelfServiceBookingPage() {
         officeId: '',
         deliveryAddress: '',
         comment: '',
+        referredBy: '',
         offerAccepted: false,
         agreementAccepted: false,
         privacyAccepted: false,
@@ -606,6 +610,18 @@ export default function SelfServiceBookingPage() {
             </div>
 
             <label className="block">
+              <span className="text-sm font-bold text-slate-700">Кто посоветовал</span>
+              <input
+                name="referredBy"
+                value={formData.referredBy}
+                onChange={handleChange}
+                autoComplete="off"
+                placeholder="Телефон друга — скидка 10% вам и ему"
+                className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+              />
+            </label>
+
+            <label className="block">
               <span className="text-sm font-bold text-slate-700">Комментарий</span>
               <textarea
                 name="comment"
@@ -678,7 +694,7 @@ export default function SelfServiceBookingPage() {
               <div className="border-t border-slate-100 pt-3">
                 <span className="block text-slate-500">Расчёт аренды</span>
                 <strong className="mt-1 block text-3xl font-black text-slate-950">{totalPrice > 0 ? formatPrice(totalPrice) : '—'}</strong>
-                <p className="mt-2 text-xs text-slate-500">Доставка, залог и финальная комплектация подтверждаются менеджером.</p>
+                <p className="mt-2 text-xs text-slate-500">Менеджер свяжется в течение 2 часов и подтвердит доставку, залог и комплект. Если техника окажется неисправной — заменим.</p>
               </div>
             </div>
 

@@ -8,7 +8,10 @@ declare global {
   }
 }
 
-const YM_COUNTER_ID = Number(import.meta.env.VITE_YANDEX_METRIKA_ID || 0)
+// Счётчик тот же, что в index.html. Без запасного значения сборка вырезала все reachGoal:
+// VITE_YANDEX_METRIKA_ID не задан ни в GitHub Pages, ни в deploy-local.sh.
+const DEFAULT_YM_COUNTER_ID = 105133379
+const YM_COUNTER_ID = Number(import.meta.env.VITE_YANDEX_METRIKA_ID || DEFAULT_YM_COUNTER_ID)
 const API_BASE_URL = import.meta.env.VITE_API_URL
   || (import.meta.env.MODE === 'production' ? '/api' : 'http://localhost:3002/api')
 
