@@ -6,7 +6,7 @@
 
 ## Что уже готово в репозитории
 
-- `nginx/vozmimenya-site.conf` — сайт: HTTP→HTTPS и www→без www одним 301; отдача как на Pages (`/route` → `route.html` или `route/index.html`, неизвестный путь → `404.html` со статусом 404 и SPA-редиректом); `/index.html` и хвостовой слэш → 301 на канонический адрес; gzip.
+- `nginx/vozmimenya-site.conf` — сайт: HTTP→HTTPS и www→без www одним 301; отдача как на Pages (`/route` → `route.html` или `route/index.html`, неизвестный путь → `404.html` со статусом 404 и SPA-редиректом); `/index.html`, хвостовой слэш и все legacy URL из `client/src/content/redirects.json` → настоящие 301 с сохранением query string; gzip.
 - `nginx/snippets/vozmimenya-security-headers.conf` — HSTS (1 год, без includeSubDomains и preload), nosniff, Referrer-Policy, X-Frame-Options, Permissions-Policy, CSP в режиме **Report-Only**.
 - Кеш: `/assets/` и `/fonts/` — `max-age=31536000, immutable`; картинки — 30 дней; robots/sitemap/llms/ai-summary — 1 час; HTML — `no-cache` (перепроверка при каждом заходе).
 - `deploy-local.sh update` уже собирает фронтенд вместе со статическим SEO-генератором и теперь атомарно подменяет `/var/www/html/vozmimenya.ru`.
@@ -24,7 +24,7 @@
    ```bash
    sudo certbot certonly --manual --preferred-challenges dns -d vozmimenya.ru -d www.vozmimenya.ru
    ```
-   certbot попросит добавить TXT-запись `_acme-challenge.vozmimenya.ru` у регистратора. После переключения DNS продление можно перевести на webroot (`/var/www/certbot`, location уже есть в конфиге).
+   certbot попросит добавить TXT-запись `_acme-challenge.vozmimenya.ru` у регистратора. Сертификат с `--manual` сам не продлевается без hooks, поэтому это только временный сертификат для безопасного pre-DNS gate.
 3. Установить конфиг и проверить:
    ```bash
    sudo cp nginx/snippets/vozmimenya-security-headers.conf /etc/nginx/snippets/
@@ -39,7 +39,22 @@
    curl -sk --resolve vozmimenya.ru:443:127.0.0.1 -o /dev/null -w '%{http_code}\n' https://vozmimenya.ru/arenda-gopro-moskva
    ```
 5. Заранее (за сутки) снизить TTL A-записей до 300 с. Затем заменить A-записи `vozmimenya.ru` (сейчас 185.199.108–111.153, GitHub Pages) на `87.242.103.146`, `www` — CNAME на `vozmimenya.ru` или A на тот же IP.
-6. После переключения: в настройках репозитория GitHub → Pages убрать custom domain, чтобы Pages не перехватывал домен. Workflow `deploy.yml` можно оставить как резервную копию сайта на `*.github.io` или отключить.
+6. После переключения DNS перевести тот же cert name на автоматическое webroot-продление и проверить renewal:
+   ```bash
+   sudo install -d -m 0755 /etc/letsencrypt/renewal-hooks/deploy
+   sudo tee /etc/letsencrypt/renewal-hooks/deploy/reload-nginx.sh >/dev/null <<'EOF'
+   #!/bin/sh
+   systemctl reload nginx
+   EOF
+   sudo chmod 0755 /etc/letsencrypt/renewal-hooks/deploy/reload-nginx.sh
+
+   sudo certbot certonly --webroot -w /var/www/certbot \
+     --cert-name vozmimenya.ru --force-renewal \
+     -d vozmimenya.ru -d www.vozmimenya.ru
+   sudo certbot renew --cert-name vozmimenya.ru --dry-run --run-deploy-hooks
+   sudo nginx -t
+   ```
+7. Не удалять custom domain в GitHub Pages минимум 24 часа: пока он настроен, аварийный возврат выполняется только DNS-записями. После суток стабильной работы и повторного smoke удалить custom domain только с отдельного подтверждения владельца. Workflow `deploy.yml` можно сохранить как артефакт публикации, но обычный URL `/VozmiMenja/` не является проверенным резервом при текущем Vite `base: '/'`.
 
 ## Проверка после переключения
 
@@ -48,13 +63,15 @@
 - securityheaders.com — проверить, что все заголовки распознаны.
 - Яндекс.Вебмастер и Google Search Console: «Проверка URL» на главной, карточке и статье; ошибок сканирования нет.
 - Uptime-монитор (`.github/workflows/uptime.yml`) остаётся зелёным.
+- `sudo certbot renew --cert-name vozmimenya.ru --dry-run --run-deploy-hooks` проходит, Nginx после hook остаётся активным.
 
 ## Через 1–2 недели
 
 - Открыть сайт с консолью браузера, пройти главную, карточку, бронь, контакты (карта), отзывы (виджет Яндекс Карт), PDF договора, проверить, что Метрика и Вебвизор пишут визиты. Если в консоли нет сообщений `Content-Security-Policy-Report-Only`, переименовать заголовок в `Content-Security-Policy`.
 - Когда HTTPS стабилен на всех поддоменах (`api`, `schedule-admin`), можно добавить к HSTS `includeSubDomains`.
-- Редиректы из `client/src/content/redirects.json` сейчас работают как страницы с meta refresh (200). На Nginx их можно сделать настоящими 301 через `location = /старый-путь { return 301 /новый-путь; }`.
 
 ## Откат
 
-Вернуть A-записи на 185.199.108.153, 185.199.109.153, 185.199.110.153, 185.199.111.153 и custom domain в настройках Pages. Сборка на Pages продолжает публиковаться workflow `deploy.yml`, пока его не отключили.
+В первые 24 часа custom domain Pages остаётся настроенным: вернуть A-записи на 185.199.108.153, 185.199.109.153, 185.199.110.153, 185.199.111.153 и `www` CNAME на `alkhimovmv.github.io`, дождаться TTL и повторить smoke.
+
+После удаления custom domain DNS-only rollback больше недоступен. Сначала повторно добавить `vozmimenya.ru` в GitHub Pages и дождаться готовности HTTPS, затем возвращать DNS. Workflow `deploy.yml` продолжает публиковать сборку, пока его не отключили, но `alkhimovmv.github.io/VozmiMenja/` нельзя считать готовым резервом без отдельной сборки с корректным `base` и проверки.

@@ -2,7 +2,7 @@
 
 ## Цель
 
-Переключить `vozmimenya.ru` и `www.vozmimenya.ru` с GitHub Pages на Nginx виртуальной машины Cloud.ru `87.242.103.146` без планового простоя, сохранив GitHub Pages как быстрый путь отката до окончания проверки.
+Переключить `vozmimenya.ru` и `www.vozmimenya.ru` с GitHub Pages на Nginx виртуальной машины Cloud.ru `87.242.103.146` без планового простоя, сохранив GitHub Pages с действующим custom domain как быстрый путь отката минимум на 24 часа после переключения.
 
 ## Проверенное исходное состояние
 
@@ -24,7 +24,8 @@
 4. До изменения DNS проверить Cloud.ru по IP с SNI `vozmimenya.ru`: HTTPS, основные страницы, настоящие 301, 404, кеш ассетов и заголовки безопасности.
 5. В REG.RU заменить четыре корневые A-записи одной A-записью `87.242.103.146`; заменить `www` CNAME на `vozmimenya.ru`.
 6. Проверять авторитетные DNS и публичные резолверы до появления нового IP, затем выполнить внешний smoke.
-7. После стабильной внешней проверки убрать custom domain в GitHub Pages. Workflow Pages временно сохранить как резервную публикацию на `alkhimovmv.github.io`.
+7. После переключения перевыпустить lineage сертификата через HTTP-01 webroot, установить deploy hook перезагрузки Nginx и пройти `certbot renew --dry-run`.
+8. Оставить custom domain в GitHub Pages минимум на 24 часа; убрать его только после повторного smoke и отдельного подтверждения владельца. Workflow Pages можно сохранить как артефакт сборки, но не считать готовым резервом на `/VozmiMenja/`, пока Vite собирается с `base: '/'`.
 
 Переключение DNS до сертификата отклонено, потому что оно вызовет ошибку HTTPS. Cloudflare перед Pages не используется из-за дополнительной зависимости и риска ухудшения доступности для российской аудитории.
 
@@ -33,7 +34,8 @@
 - `deploy-local.sh update` собирает frontend и атомарно заменяет `/var/www/html/vozmimenya.ru`.
 - `nginx/vozmimenya-site.conf` обслуживает HTTP→HTTPS, `www`→без `www`, статические HTML-маршруты и корректный 404.
 - `nginx/snippets/vozmimenya-security-headers.conf` добавляет HSTS, nosniff, Referrer-Policy, X-Frame-Options, Permissions-Policy и CSP Report-Only.
-- Certbot выпускает сертификат для `vozmimenya.ru` и `www.vozmimenya.ru` через TXT `_acme-challenge.vozmimenya.ru`.
+- Certbot сначала выпускает сертификат для `vozmimenya.ru` и `www.vozmimenya.ru` через TXT `_acme-challenge.vozmimenya.ru`; этот ручной lineage временный и сам не продлевается.
+- После DNS cutover тот же cert name перевыпускается через webroot `/var/www/certbot`, устанавливается deploy hook перезагрузки Nginx и обязательно проходит `certbot renew --dry-run`.
 
 ## Настоящие 301 для старых URL
 
@@ -74,12 +76,14 @@ Query string сохраняется. Автоматический тест чи�
 
 ## Откат
 
-До удаления custom domain GitHub Pages остаётся резервом. При критической ошибке:
+В первые 24 часа custom domain GitHub Pages остаётся настроенным, поэтому откат выполняется только DNS-записями. При критической ошибке:
 
 1. вернуть четыре A-записи GitHub Pages;
 2. вернуть `www` CNAME на `alkhimovmv.github.io`;
 3. дождаться TTL и проверить восстановление;
 4. не удалять Cloud.ru-конфигурацию до разбора причины.
+
+После снятия custom domain быстрый DNS-only rollback больше не считается доступным: сначала нужно повторно настроить и проверить custom domain/HTTPS в GitHub Pages, и только затем возвращать DNS. Обычный project URL `/VozmiMenja/` не является проверенным резервом, потому что текущая сборка использует `base: '/'`.
 
 ## Известные ограничения
 

@@ -4,9 +4,9 @@
 
 **Goal:** Перенести `vozmimenya.ru` и `www.vozmimenya.ru` с GitHub Pages на Nginx VM Cloud.ru `87.242.103.146` без планового простоя, с настоящими 301, заголовками безопасности, корректным кешем и проверенным откатом.
 
-**Architecture:** Сначала репозиторий получает проверяемые Nginx-редиректы, затем сервер полностью готовится и тестируется через `curl --resolve`, пока DNS продолжает вести на GitHub Pages. DNS меняется только после валидного сертификата и pre-cutover gate; GitHub Pages остаётся резервом до завершения внешнего smoke.
+**Architecture:** Сначала репозиторий получает проверяемые Nginx-редиректы, затем сервер полностью готовится и тестируется через `curl --resolve`, пока DNS продолжает вести на GitHub Pages. DNS меняется только после валидного сертификата и pre-cutover gate; GitHub Pages с действующим custom domain остаётся DNS-only резервом минимум 24 часа. После cutover сертификат переводится с временного manual DNS-01 на автоматическое webroot-продление.
 
-**Tech Stack:** Nginx 1.18+, Let's Encrypt/Certbot DNS-01, REG.RU DNS, Cloud.ru Evolution VM, Vite static build, Node.js test runner, GitHub Actions.
+**Tech Stack:** Nginx 1.18+, Let's Encrypt/Certbot (первичный DNS-01, затем HTTP-01 webroot renewal), REG.RU DNS, Cloud.ru Evolution VM, Vite static build, Node.js test runner, GitHub Actions.
 
 ---
 
@@ -275,7 +275,7 @@ test -s /var/www/html/vozmimenya.ru/index.html
 
 Expected: deploy завершён; PM2 и Nginx активны; index.html существует.
 
-### Task 6: Выпустить сертификат через DNS-01
+### Task 6: Выпустить временный первичный сертификат через DNS-01
 
 **External systems:**
 - Cloud.ru VM console
@@ -312,6 +312,8 @@ sudo openssl x509 -in /etc/letsencrypt/live/vozmimenya.ru/fullchain.pem \
 ```
 
 Expected: SAN содержит `vozmimenya.ru` и `www.vozmimenya.ru`.
+
+Важно: сертификат, выпущенный с `--manual`, сам не продлевается без authentication hooks. Он используется только для безопасного pre-DNS gate; после cutover Task 9 обязательно переводит lineage на webroot и проверяет renewal.
 
 ### Task 7: Установить Nginx-конфиг и пройти pre-cutover gate
 
@@ -445,11 +447,33 @@ Expected: redirects and 404 correct; public/API/SEO smoke exit 0.
 
 Проверить главную, карточку товара, Волжскую, Динамо, блог, форму бронирования, карту, отзывы, PDF договора и отсутствие CSP Report-Only ошибок, блокирующих запросы. Создать тестовую заявку только после отдельного подтверждения владельца, потому что она меняет production-данные.
 
-- [ ] **Step 4: Убрать custom domain GitHub Pages**
+- [ ] **Step 4: Перевести сертификат на автоматическое webroot-продление**
 
-После 30–60 минут стабильной работы и повторного smoke открыть GitHub → Settings → Pages и удалить custom domain `vozmimenya.ru`. Перед финальным сохранением получить подтверждение владельца. Workflow Pages оставить включённым как резервную публикацию на `alkhimovmv.github.io`.
+После того как authoritative и публичный DNS ведут на Cloud.ru, заменить manual renewal-параметры того же cert name на HTTP-01 webroot и установить deploy hook:
 
-- [ ] **Step 5: Запустить/проверить uptime workflow**
+```bash
+sudo install -d -m 0755 /etc/letsencrypt/renewal-hooks/deploy
+sudo tee /etc/letsencrypt/renewal-hooks/deploy/reload-nginx.sh >/dev/null <<'EOF'
+#!/bin/sh
+systemctl reload nginx
+EOF
+sudo chmod 0755 /etc/letsencrypt/renewal-hooks/deploy/reload-nginx.sh
+
+sudo certbot certonly --webroot -w /var/www/certbot \
+  --cert-name vozmimenya.ru --force-renewal \
+  -d vozmimenya.ru -d www.vozmimenya.ru
+sudo certbot renew --cert-name vozmimenya.ru --dry-run --run-deploy-hooks
+sudo nginx -t
+sudo systemctl is-active nginx
+```
+
+Expected: HTTP-01 проходит для обоих имён, dry-run renewal успешен, deploy hook перечитывает Nginx, сервис остаётся `active`.
+
+- [ ] **Step 5: Сохранить GitHub Pages custom domain на окно отката**
+
+Не удалять custom domain `vozmimenya.ru` в GitHub Pages минимум 24 часа после DNS cutover. Пока DNS ведёт на Cloud.ru, настройка Pages не перехватывает трафик, но позволяет быстро вернуть четыре A-записи и `www` CNAME без дополнительного восстановления Pages. Обычный URL `alkhimovmv.github.io/VozmiMenja/` не считать проверенным резервом: текущая Vite-сборка использует `base: '/'`.
+
+- [ ] **Step 6: Запустить/проверить uptime workflow**
 
 Запустить `.github/workflows/uptime.yml` вручную или дождаться ближайшего запуска; все проверки должны быть зелёными.
 
@@ -479,8 +503,9 @@ git switch -c ops/frontend-cloudru-cutover-record origin/main
 - Сертификат: фактический `notAfter` из `openssl x509` и SAN `vozmimenya.ru`, `www.vozmimenya.ru`.
 - Pre-DNS smoke: HTTP/HTTPS, 301, 404, security headers и immutable cache — пройдено.
 - Production smoke: public, SEO и API — пройдено.
-- GitHub Pages custom domain: удалён после стабильной проверки; workflow сохранён.
-- Rollback DNS: четыре A GitHub Pages и `www` CNAME `alkhimovmv.github.io`.
+- Сертификат: lineage переведён на webroot, `certbot renew --dry-run` пройден, deploy hook Nginx установлен.
+- GitHub Pages custom domain: сохранён не менее 24 часов, затем удалён только после повторного smoke и подтверждения владельца.
+- Rollback в первые 24 часа: четыре A GitHub Pages и `www` CNAME `alkhimovmv.github.io`; после удаления custom domain требуется сначала восстановить и проверить Pages custom domain/HTTPS.
 ```
 
 В `docs/changelog.md` добавить запись с теми же проверенными итогами без предположений.
@@ -504,6 +529,12 @@ git push -u origin ops/frontend-cloudru-cutover-record
 
 Создать отдельный documentation PR в `main`; не писать напрямую в защищённую ветку.
 
-- [ ] **Step 4: Оставить rollback доступным минимум сутки**
+- [ ] **Step 4: Оставить DNS-only rollback доступным минимум сутки**
 
-Не удалять старую Pages-публикацию и серверный Nginx backup минимум 24 часа. При критической ошибке вернуть четыре A GitHub Pages и `www` CNAME `alkhimovmv.github.io`, затем дождаться TTL и повторить smoke.
+Не удалять старую Pages-публикацию, её custom domain и серверный Nginx backup минимум 24 часа. При критической ошибке вернуть четыре A GitHub Pages и `www` CNAME `alkhimovmv.github.io`, затем дождаться TTL и повторить smoke.
+
+- [ ] **Step 5: Завершить Pages cutover после окна отката**
+
+Не ранее чем через 24 часа стабильной работы повторить production smoke. Затем открыть GitHub → Settings → Pages и подготовить удаление custom domain `vozmimenya.ru`; непосредственно перед финальным сохранением получить отдельное подтверждение владельца. Workflow Pages можно оставить для хранения публикации, но не описывать `alkhimovmv.github.io/VozmiMenja/` как готовый резерв без отдельной сборки с корректным `base` и smoke.
+
+После удаления custom domain экстренный возврат на Pages требует сначала повторно добавить `vozmimenya.ru` в GitHub Pages и дождаться готовности HTTPS, а уже потом менять DNS. Этот более медленный путь должен быть записан в итоговой документации.

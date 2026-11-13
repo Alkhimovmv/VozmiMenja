@@ -16,9 +16,14 @@ test('every frontend redirect is a permanent Nginx redirect that preserves query
   const redirects = JSON.parse(redirectsText)
 
   for (const [source, target] of Object.entries(redirects)) {
-    const location = new RegExp(
-      `location\\s*=\\s*${escapeRegExp(source)}\\s*\\{[\\s\\S]*?return\\s+301\\s+${escapeRegExp(target)}\\$is_args\\$args;[\\s\\S]*?\\}`,
+    const location = config.match(
+      new RegExp(`location\\s*=\\s*${escapeRegExp(source)}\\s*\\{([^}]*)\\}`),
     )
-    assert.match(config, location, `${source} must redirect permanently to ${target}`)
+    assert.ok(location, `${source} must have an exact Nginx location`)
+    assert.match(
+      location[1],
+      new RegExp(`return\\s+301\\s+${escapeRegExp(target)}\\$is_args\\$args;`),
+      `${source} must redirect permanently to ${target}`,
+    )
   }
 })
