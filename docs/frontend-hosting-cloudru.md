@@ -24,9 +24,10 @@
    ```bash
    sudo certbot certonly --manual --preferred-challenges dns -d vozmimenya.ru -d www.vozmimenya.ru
    ```
-   certbot попросит добавить TXT-запись `_acme-challenge.vozmimenya.ru` у регистратора. Сертификат с `--manual` сам не продлевается без hooks, поэтому это только временный сертификат для безопасного pre-DNS gate.
+   certbot последовательно попросит точные TXT для двух разных имён: `_acme-challenge.vozmimenya.ru` и `_acme-challenge.www.vozmimenya.ru`. В REG.RU это host `_acme-challenge` и `_acme-challenge.www`; каждый challenge продолжать только после проверки обоих авторитетных NS. Сертификат с `--manual` сам не продлевается без hooks, поэтому это только временный сертификат для безопасного pre-DNS gate.
 3. Установить конфиг и проверить:
    ```bash
+   sudo install -d -m 0755 /var/www/certbot
    sudo cp nginx/snippets/vozmimenya-security-headers.conf /etc/nginx/snippets/
    sudo cp nginx/vozmimenya-site.conf /etc/nginx/sites-available/vozmimenya-site.conf
    sudo ln -s /etc/nginx/sites-available/vozmimenya-site.conf /etc/nginx/sites-enabled/
@@ -41,6 +42,7 @@
 5. Заранее (за сутки) снизить TTL A-записей до 300 с. Затем заменить A-записи `vozmimenya.ru` (сейчас 185.199.108–111.153, GitHub Pages) на `87.242.103.146`, `www` — CNAME на `vozmimenya.ru` или A на тот же IP.
 6. После переключения DNS перевести тот же cert name на автоматическое webroot-продление и проверить renewal:
    ```bash
+   sudo install -d -m 0755 /var/www/certbot
    sudo install -d -m 0755 /etc/letsencrypt/renewal-hooks/deploy
    sudo tee /etc/letsencrypt/renewal-hooks/deploy/reload-nginx.sh >/dev/null <<'EOF'
    #!/bin/sh

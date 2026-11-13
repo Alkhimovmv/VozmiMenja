@@ -41,10 +41,15 @@ test('every frontend redirect is a permanent Nginx redirect that preserves query
   const redirects = JSON.parse(redirectsText)
 
   for (const [source, target] of Object.entries(redirects)) {
-    const location = new RegExp(
-      `location\\s*=\\s*${escapeRegExp(source)}\\s*\\{[\\s\\S]*?return\\s+301\\s+${escapeRegExp(target)}\\$is_args\\$args;[\\s\\S]*?\\}`,
+    const location = config.match(
+      new RegExp(`location\\s*=\\s*${escapeRegExp(source)}\\s*\\{([^}]*)\\}`),
     )
-    assert.match(config, location, `${source} must redirect permanently to ${target}`)
+    assert.ok(location, `${source} must have an exact Nginx location`)
+    assert.match(
+      location[1],
+      new RegExp(`return\\s+301\\s+${escapeRegExp(target)}\\$is_args\\$args;`),
+      `${source} must redirect permanently to ${target}`,
+    )
   }
 })
 ```
@@ -288,20 +293,22 @@ sudo certbot certonly --manual --preferred-challenges dns \
   -d vozmimenya.ru -d www.vozmimenya.ru
 ```
 
-Certbot выведет одно или несколько точных TXT-значений для `_acme-challenge.vozmimenya.ru`. Не нажимать Enter до подтверждения authoritative DNS.
+Certbot выведет точное имя и значение TXT для каждого SAN. Для этой команды ожидаются два разных имени: `_acme-challenge.vozmimenya.ru` и `_acme-challenge.www.vozmimenya.ru`. Не нажимать Enter для соответствующего challenge до подтверждения его authoritative DNS.
 
 - [ ] **Step 2: Добавить TXT в REG.RU**
 
-Перед сохранением DNS получить подтверждение владельца на передачу challenge и изменение записи. Создать TXT с именем `_acme-challenge`; если certbot выдал два значения одновременно, сохранить обе TXT-записи.
+Перед каждым сохранением DNS получить подтверждение владельца на передачу challenge и изменение записи. Создавать TXT строго по имени из текущего prompt Certbot: в зоне REG.RU это host `_acme-challenge` для apex и host `_acme-challenge.www` для `www`. Не заменять одно имя другим и не удалять первый challenge, пока Certbot не подтвердил его.
 
 - [ ] **Step 3: Проверить TXT на авторитетных NS**
 
 ```bash
 dig +short TXT _acme-challenge.vozmimenya.ru @ns1.hosting.reg.ru
 dig +short TXT _acme-challenge.vozmimenya.ru @ns2.hosting.reg.ru
+dig +short TXT _acme-challenge.www.vozmimenya.ru @ns1.hosting.reg.ru
+dig +short TXT _acme-challenge.www.vozmimenya.ru @ns2.hosting.reg.ru
 ```
 
-Expected: оба NS возвращают точные значения certbot. После этого продолжить certbot.
+Expected: для каждого запрошенного имени оба NS возвращают точное значение из соответствующего prompt Certbot. После этого продолжить текущий challenge.
 
 - [ ] **Step 4: Проверить выпущенный сертификат**
 
@@ -329,6 +336,7 @@ set -eu
 cd /home/maxim/VozmiMenja
 cutover_stamp=$(date +%Y%m%d-%H%M%S)
 sudo mkdir -p "/etc/nginx/cutover-backup-$cutover_stamp" /etc/nginx/snippets /etc/nginx/sites-disabled
+sudo install -d -m 0755 /var/www/certbot
 sudo cp -a /etc/nginx/sites-enabled "/etc/nginx/cutover-backup-$cutover_stamp/"
 sudo install -m 0644 nginx/snippets/vozmimenya-security-headers.conf /etc/nginx/snippets/vozmimenya-security-headers.conf
 sudo install -m 0644 nginx/vozmimenya-site.conf /etc/nginx/sites-available/vozmimenya-site.conf
@@ -452,6 +460,7 @@ Expected: redirects and 404 correct; public/API/SEO smoke exit 0.
 После того как authoritative и публичный DNS ведут на Cloud.ru, заменить manual renewal-параметры того же cert name на HTTP-01 webroot и установить deploy hook:
 
 ```bash
+sudo install -d -m 0755 /var/www/certbot
 sudo install -d -m 0755 /etc/letsencrypt/renewal-hooks/deploy
 sudo tee /etc/letsencrypt/renewal-hooks/deploy/reload-nginx.sh >/dev/null <<'EOF'
 #!/bin/sh

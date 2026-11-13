@@ -34,8 +34,8 @@
 - `deploy-local.sh update` собирает frontend и атомарно заменяет `/var/www/html/vozmimenya.ru`.
 - `nginx/vozmimenya-site.conf` обслуживает HTTP→HTTPS, `www`→без `www`, статические HTML-маршруты и корректный 404.
 - `nginx/snippets/vozmimenya-security-headers.conf` добавляет HSTS, nosniff, Referrer-Policy, X-Frame-Options, Permissions-Policy и CSP Report-Only.
-- Certbot сначала выпускает сертификат для `vozmimenya.ru` и `www.vozmimenya.ru` через TXT `_acme-challenge.vozmimenya.ru`; этот ручной lineage временный и сам не продлевается.
-- После DNS cutover тот же cert name перевыпускается через webroot `/var/www/certbot`, устанавливается deploy hook перезагрузки Nginx и обязательно проходит `certbot renew --dry-run`.
+- Certbot сначала выпускает сертификат для `vozmimenya.ru` и `www.vozmimenya.ru` по точным DNS-01 prompt: TXT `_acme-challenge.vozmimenya.ru` для apex и `_acme-challenge.www.vozmimenya.ru` для `www`; этот ручной lineage временный и сам не продлевается.
+- Перед установкой Nginx создаётся webroot `/var/www/certbot`. После DNS cutover тот же cert name перевыпускается через него, устанавливается deploy hook перезагрузки Nginx и обязательно проходит `certbot renew --dry-run --run-deploy-hooks`.
 
 ## Настоящие 301 для старых URL
 
