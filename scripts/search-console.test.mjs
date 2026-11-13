@@ -1,5 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
+import * as searchConsole from './search-console.mjs'
 import {
   chooseGoogleProperty,
   chooseYandexHost,
@@ -8,6 +9,25 @@ import {
   parseSitemapUrls,
   toCsv,
 } from './search-console.mjs'
+
+test('Yandex sitemap recrawl gateway timeouts do not abort URL queueing', () => {
+  assert.equal(typeof searchConsole.normalizeSitemapRecrawlError, 'function')
+  const error = Object.assign(new Error('gateway timeout'), { status: 504, body: null })
+  assert.deepEqual(searchConsole.normalizeSitemapRecrawlError(error), {
+    gatewayTimeout: true,
+    httpStatus: 504,
+  })
+})
+
+test('Yandex URL recrawl gateway timeouts are reported per URL', () => {
+  assert.equal(typeof searchConsole.normalizeRecrawlQueueError, 'function')
+  const error = Object.assign(new Error('gateway timeout'), { status: 504, body: null })
+  assert.deepEqual(searchConsole.normalizeRecrawlQueueError(error, 'https://vozmimenya.ru/'), {
+    url: 'https://vozmimenya.ru/',
+    status: 'gateway-timeout',
+    httpStatus: 504,
+  })
+})
 
 test('parseEnv reads quoted values and ignores comments', () => {
   assert.deepEqual(parseEnv('# comment\nA=one\nB="two words"\n'), { A: 'one', B: 'two words' })
