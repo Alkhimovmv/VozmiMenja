@@ -35,6 +35,16 @@
 - `nginx/snippets/vozmimenya-security-headers.conf` добавляет HSTS, nosniff, Referrer-Policy, X-Frame-Options, Permissions-Policy и CSP Report-Only.
 - Certbot выпускает сертификат для `vozmimenya.ru` и `www.vozmimenya.ru` через TXT `_acme-challenge.vozmimenya.ru`.
 
+## Настоящие 301 для старых URL
+
+Перед cutover Nginx-конфиг получает точные `location =` для всех записей из `client/src/content/redirects.json`:
+
+- `/arenda-kamery-dlya-puteshestviya-vloga-moskva` → `/arenda-gopro-moskva`;
+- `/blog/kak-vybrat-pylesos-dlya-uborki-posle-remonta` → `/blog/kak-ubrat-stroitelnuyu-pyl-posle-remonta`;
+- `/equipment` → `/`.
+
+Query string сохраняется. Автоматический тест читает `redirects.json` и требует соответствующую директиву Nginx для каждой записи, чтобы frontend meta-refresh и серверные 301 не расходились при следующих изменениях.
+
 ## Проверка до DNS
 
 Обязательный pre-cutover gate:
