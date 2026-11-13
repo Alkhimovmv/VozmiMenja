@@ -14,6 +14,7 @@ import { subDays, startOfDay, endOfDay, isWithinInterval, startOfMonth, endOfMon
 import toast from 'react-hot-toast';
 import { useOffice } from '../../hooks/useOffice';
 import { getApiErrorMessage } from '../../lib/apiError';
+import { buildReferralMessage, buildReviewRequestMessage } from '../../lib/afterRentalMessages';
 
 const Spinner = () => (
   <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
@@ -376,6 +377,16 @@ const RentalsPage: React.FC = () => {
     setDeleteConfirm({ isOpen: false, rentalId: null });
   };
 
+  const copyAfterRentalMessage = async (text: string, successMessage: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      toast.success(successMessage);
+    } catch {
+      // Без доступа к буферу (старый браузер, http) показываем текст, чтобы его можно было скопировать вручную.
+      window.prompt('Скопируйте текст', text);
+    }
+  };
+
   const handleEditRental = (rental: Rental) => {
     setEditingRental(rental);
     setIsModalOpen(true);
@@ -632,6 +643,29 @@ const RentalsPage: React.FC = () => {
                       >
                         {updateMutation.isPending ? <Spinner /> : null}
                         Завершить
+                      </button>
+                    </>
+                  )}
+                  {rental.status === 'completed' && (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => copyAfterRentalMessage(buildReviewRequestMessage({
+                          equipmentNames: formatRentalEquipmentNames(rental, equipment),
+                          officeName: offices.find((office) => office.id === rental.office_id)?.name,
+                        }), 'Просьба об отзыве скопирована')}
+                        title="Текст с просьбой оставить отзыв на Яндекс Картах — отправить клиенту после возврата"
+                        className="w-full sm:w-auto border border-gray-300 bg-white hover:bg-gray-50 text-gray-800 px-4 py-3 rounded text-sm font-medium min-h-[44px] touch-manipulation"
+                      >
+                        Текст: отзыв
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => copyAfterRentalMessage(buildReferralMessage(), 'Текст «приведи друга» скопирован')}
+                        title="Отдельное сообщение про «приведи друга» 10% — не в одном сообщении с просьбой об отзыве"
+                        className="w-full sm:w-auto border border-gray-300 bg-white hover:bg-gray-50 text-gray-800 px-4 py-3 rounded text-sm font-medium min-h-[44px] touch-manipulation"
+                      >
+                        Текст: друг 10%
                       </button>
                     </>
                   )}
