@@ -66,7 +66,6 @@ const buildComment = (data: {
   deliveryAddress: string
   preferredContact: string
   comment: string
-  referredBy: string
   officeName: string
   selectedEquipmentList: string
 }) => [
@@ -77,7 +76,6 @@ const buildComment = (data: {
   data.officeName ? `Офис: ${data.officeName}` : '',
   data.deliveryMethod === 'delivery' && data.deliveryAddress.trim() ? `Адрес доставки: ${data.deliveryAddress.trim()}` : '',
   data.preferredContact ? `Предпочтительный канал связи: ${data.preferredContact}` : '',
-  data.referredBy.trim() ? `Приведи друга (10%): посоветовал ${data.referredBy.trim()}` : '',
   data.comment.trim() ? `Комментарий клиента: ${data.comment.trim()}` : '',
 ].filter(Boolean).join('\n')
 
@@ -110,7 +108,6 @@ export default function SelfServiceBookingPage() {
     deliveryMethod: 'pickup' as 'pickup' | 'delivery',
     deliveryAddress: '',
     comment: '',
-    referredBy: '',
     offerAccepted: false,
     agreementAccepted: false,
     privacyAccepted: false,
@@ -347,7 +344,6 @@ export default function SelfServiceBookingPage() {
         officeId: '',
         deliveryAddress: '',
         comment: '',
-        referredBy: '',
         offerAccepted: false,
         agreementAccepted: false,
         privacyAccepted: false,
@@ -608,18 +604,6 @@ export default function SelfServiceBookingPage() {
                 />
               )}
             </div>
-
-            <label className="block">
-              <span className="text-sm font-bold text-slate-700">Кто посоветовал</span>
-              <input
-                name="referredBy"
-                value={formData.referredBy}
-                onChange={handleChange}
-                autoComplete="off"
-                placeholder="Телефон друга — скидка 10% вам и ему"
-                className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
-              />
-            </label>
 
             <label className="block">
               <span className="text-sm font-bold text-slate-700">Комментарий</span>

@@ -176,12 +176,6 @@ export default function BookingSuccessPage() {
             </div>
           </div>
 
-          <div className="rounded-3xl border border-emerald-200 bg-emerald-50 p-5 sm:p-6">
-            <h2 className="text-lg font-black text-emerald-950">Приведите друга — 10% вам обоим</h2>
-            <p className="mt-2 text-sm leading-6 text-emerald-900">
-              Пусть друг при брони укажет ваш телефон в поле «Кто посоветовал». Другу — скидка 10% на аренду, вам — 10% на следующую.
-            </p>
-          </div>
           </aside>
         </div>
       </section>

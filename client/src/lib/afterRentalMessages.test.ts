@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import { buildReferralMessage, buildReviewRequestMessage, findOfficeReviewUrl } from './afterRentalMessages'
+import { buildReviewRequestMessage, findOfficeReviewUrl } from './afterRentalMessages'
 
 // Название офиса в админке («Волжский») отличается от станции на сайте («Волжская»).
 assert.equal(findOfficeReviewUrl('Волжский'), 'https://yandex.ru/maps/org/vozmi_menya/206350428739/reviews/')
@@ -14,10 +14,5 @@ assert.match(review, /95879395485\/reviews\//)
 // Просьба об отзыве не должна содержать бонусов: правила Яндекс Карт запрещают поощрять отзывы.
 assert.doesNotMatch(review, /скидк|%|бонус/i)
 assert.match(buildReviewRequestMessage({}), /взяли технику в ВозьмиМеня/)
-
-const referral = buildReferralMessage()
-assert.match(referral, /Кто посоветовал/)
-assert.match(referral, /10%/)
-assert.doesNotMatch(referral, /отзыв/i)
 
 console.log('after rental messages tests passed')
