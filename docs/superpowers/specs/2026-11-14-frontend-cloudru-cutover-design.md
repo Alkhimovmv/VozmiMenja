@@ -1,0 +1,93 @@
+# Перенос фронтенда на Nginx в Cloud.ru — дизайн переключения
+
+## Цель
+
+Переключить `vozmimenya.ru` и `www.vozmimenya.ru` с GitHub Pages на Nginx виртуальной машины Cloud.ru `87.242.103.146` без планового простоя, сохранив GitHub Pages с действующим custom domain как быстрый путь отката минимум на 24 часа после переключения.
+
+## Проверенное исходное состояние
+
+- Корневой домен использует четыре A-записи GitHub Pages: `185.199.108.153`–`185.199.111.153`.
+- `www.vozmimenya.ru` — CNAME на `alkhimovmv.github.io`.
+- Авторитетные DNS-серверы находятся в REG.RU; TTL записей около 600 секунд.
+- Cloud.ru VM `vm-1484f9c3f` запущена и имеет публичный IP `87.242.103.146`.
+- Cloud.ru уже отдаёт актуальную frontend-сборку по IP, но использует старую Nginx-конфигурацию: неизвестные URL и `/index.html` возвращают `200`, HSTS отсутствует.
+- На IP установлен сертификат только для `schedule-admin.vozmimenya.ru`; переключать DNS до выпуска сертификата основного домена нельзя.
+- В Cloud.ru отображается баланс `−45,76 ₽` и предупреждение о пороге `−100 ₽`; владелец должен обеспечить успешное автосписание.
+
+## Выбранный подход
+
+Используется поэтапное переключение с предварительной проверкой через `curl --resolve`:
+
+1. Обновить код на VM и выполнить штатный `deploy-local.sh update`, чтобы сборка оказалась в `/var/www/html/vozmimenya.ru`.
+2. Выпустить сертификат Let's Encrypt для обоих имён через DNS-01, пока публичный DNS ещё ведёт на GitHub Pages.
+3. Установить `nginx/vozmimenya-site.conf` и security snippet, отключить конфликтующий старый `server_name`, проверить `nginx -t` и перечитать конфигурацию.
+4. До изменения DNS проверить Cloud.ru по IP с SNI `vozmimenya.ru`: HTTPS, основные страницы, настоящие 301, 404, кеш ассетов и заголовки безопасности.
+5. В REG.RU заменить четыре корневые A-записи одной A-записью `87.242.103.146`; заменить `www` CNAME на `vozmimenya.ru`.
+6. Проверять авторитетные DNS и публичные резолверы до появления нового IP, затем выполнить внешний smoke.
+7. После переключения перевыпустить lineage сертификата через HTTP-01 webroot, установить deploy hook перезагрузки Nginx и пройти `certbot renew --dry-run`.
+8. Оставить custom domain в GitHub Pages минимум на 24 часа; убрать его только после повторного smoke и отдельного подтверждения владельца. Workflow Pages можно сохранить как артефакт сборки, но не считать готовым резервом на `/VozmiMenja/`, пока Vite собирается с `base: '/'`.
+
+Переключение DNS до сертификата отклонено, потому что оно вызовет ошибку HTTPS. Cloudflare перед Pages не используется из-за дополнительной зависимости и риска ухудшения доступности для российской аудитории.
+
+## Серверные компоненты
+
+- `deploy-local.sh update` собирает frontend и атомарно заменяет `/var/www/html/vozmimenya.ru`.
+- `nginx/vozmimenya-site.conf` обслуживает HTTP→HTTPS, `www`→без `www`, статические HTML-маршруты и корректный 404.
+- `nginx/snippets/vozmimenya-security-headers.conf` добавляет HSTS, nosniff, Referrer-Policy, X-Frame-Options, Permissions-Policy и CSP Report-Only.
+- Certbot сначала выпускает сертификат для `vozmimenya.ru` и `www.vozmimenya.ru` по точным DNS-01 prompt: TXT `_acme-challenge.vozmimenya.ru` для apex и `_acme-challenge.www.vozmimenya.ru` для `www`; этот ручной lineage временный и сам не продлевается.
+- Перед установкой Nginx создаётся webroot `/var/www/certbot`. После DNS cutover тот же cert name перевыпускается через него, устанавливается deploy hook перезагрузки Nginx и обязательно проходит `certbot renew --dry-run --run-deploy-hooks`.
+
+## Настоящие 301 для старых URL
+
+Перед cutover Nginx-конфиг получает точные `location =` для всех записей из `client/src/content/redirects.json`:
+
+- `/arenda-kamery-dlya-puteshestviya-vloga-moskva` → `/arenda-gopro-moskva`;
+- `/blog/kak-vybrat-pylesos-dlya-uborki-posle-remonta` → `/blog/kak-ubrat-stroitelnuyu-pyl-posle-remonta`;
+- `/equipment` → `/`.
+
+Query string сохраняется. Автоматический тест читает `redirects.json` и требует соответствующую директиву Nginx для каждой записи, чтобы frontend meta-refresh и серверные 301 не расходились при следующих изменениях.
+
+## Проверка до DNS
+
+Обязательный pre-cutover gate:
+
+- сертификат содержит оба SAN и действителен;
+- `nginx -t` завершён успешно;
+- `/` возвращает `200`, `/index.html` — `301`, неизвестный URL — `404`;
+- `www` перенаправляется на основной домен одним `301`;
+- HTML имеет `Cache-Control: no-cache`;
+- хешированный JS/CSS имеет `public, max-age=31536000, immutable`;
+- присутствуют HSTS, nosniff и Referrer-Policy;
+- доступны обе локальные посадочные, каталог, бронь, sitemap и API.
+
+Если хотя бы одна проверка не проходит, DNS не изменяется.
+
+## Проверка после DNS
+
+После появления `87.242.103.146` у публичных резолверов проверяются:
+
+- главная, Волжская, Динамо, карточка товара, статья и форма бронирования;
+- `robots.txt`, `sitemap.xml`, `llms.txt` и ключ IndexNow;
+- API и отсутствие mixed content;
+- сертификат и цепочка доверия без `-k`;
+- заголовки и кеширование;
+- логи Nginx и PM2;
+- uptime workflow после следующего запуска или ручного запуска.
+
+## Откат
+
+В первые 24 часа custom domain GitHub Pages остаётся настроенным, поэтому откат выполняется только DNS-записями. При критической ошибке:
+
+1. вернуть четыре A-записи GitHub Pages;
+2. вернуть `www` CNAME на `alkhimovmv.github.io`;
+3. дождаться TTL и проверить восстановление;
+4. не удалять Cloud.ru-конфигурацию до разбора причины.
+
+После снятия custom domain быстрый DNS-only rollback больше не считается доступным: сначала нужно повторно настроить и проверить custom domain/HTTPS в GitHub Pages, и только затем возвращать DNS. Обычный project URL `/VozmiMenja/` не является проверенным резервом, потому что текущая сборка использует `base: '/'`.
+
+## Известные ограничения
+
+- Базовый `npm test` на исходном `main` имеет один нестабильный race-тест: удаление contact lead иногда получает `404` вместо ожидаемого `204`; 141 из 142 серверных тестов проходят. Это не блокирует Nginx cutover, но фиксируется отдельно.
+- CSP остаётся в режиме Report-Only минимум 1–2 недели.
+- HSTS запускается без `includeSubDomains` и `preload`.
+- Production-команды и изменения DNS выполняются только после отдельного подтверждения владельца непосредственно перед соответствующим действием.
