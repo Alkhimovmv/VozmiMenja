@@ -507,4 +507,3 @@ git push -u origin ops/frontend-cloudru-cutover-record
 - [ ] **Step 4: Оставить rollback доступным минимум сутки**
 
 Не удалять старую Pages-публикацию и серверный Nginx backup минимум 24 часа. При критической ошибке вернуть четыре A GitHub Pages и `www` CNAME `alkhimovmv.github.io`, затем дождаться TTL и повторить smoke.
-
