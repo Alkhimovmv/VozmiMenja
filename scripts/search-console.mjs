@@ -63,6 +63,17 @@ export function chooseYandexHost(hosts, siteUrl) {
     }))
 }
 
+export function normalizeSitemapRecrawlError(error) {
+  if (error.status !== 504) throw error
+  return { gatewayTimeout: true, httpStatus: 504 }
+}
+
+export function normalizeRecrawlQueueError(error, url) {
+  if (error.status === 409) return { url, status: 'already-added' }
+  if (error.status === 504) return { url, status: 'gateway-timeout', httpStatus: 504 }
+  throw error
+}
+
 function base64url(value) {
   return Buffer.from(value).toString('base64url')
 }
@@ -210,8 +221,8 @@ async function submitYandex(config) {
         method: 'POST', headers: context.headers,
       }) || { accepted: true }
     } catch (error) {
-      if (error.status !== 409) throw error
-      sitemapRecrawl = { alreadyInProgress: true, detail: error.body }
+      if (error.status === 409) sitemapRecrawl = { alreadyInProgress: true, detail: error.body }
+      else sitemapRecrawl = normalizeSitemapRecrawlError(error)
     }
   }
   const quota = await apiRequest(`${base}/recrawl/quota`, { headers: context.headers })
@@ -227,9 +238,8 @@ async function submitYandex(config) {
       })
       submitted.push({ url, status: 'accepted', taskId: result?.task_id })
     } catch (error) {
-      if (error.status === 409) submitted.push({ url, status: 'already-added' })
-      else if (error.status === 429) break
-      else throw error
+      if (error.status === 429) break
+      submitted.push(normalizeRecrawlQueueError(error, url))
     }
   }
   return { host: context.host.host_id, sitemapFound: Boolean(sitemap), sitemapRecrawl, quotaBefore: quota, submitted }
