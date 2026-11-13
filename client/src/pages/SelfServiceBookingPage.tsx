@@ -238,12 +238,6 @@ export default function SelfServiceBookingPage() {
     }))
   }
 
-  const handleUrgentDates = (start: 'today' | 'tomorrow') => {
-    const dates = buildUrgentBookingDates(start)
-    setFormData((prev) => ({ ...prev, ...dates }))
-    trackEvent('booking_urgent_dates_select', { start })
-  }
-
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault()
 
@@ -465,31 +459,6 @@ export default function SelfServiceBookingPage() {
                   className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
                 />
               </label>
-            </div>
-
-            <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                  <p className="text-sm font-black text-amber-950">Техника нужна срочно?</p>
-                  <p className="mt-1 text-xs leading-relaxed text-amber-800">Выберите быстрый срок. Заявку можно отправить на любую позицию — менеджер уточнит комплект и удобный офис.</p>
-                </div>
-                <div className="grid shrink-0 grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => handleUrgentDates('today')}
-                    className={`rounded-xl px-4 py-2.5 text-sm font-black transition ${formData.startDate === todayDates.startDate ? 'bg-amber-900 text-white' : 'bg-white text-amber-900 ring-1 ring-amber-200'}`}
-                  >
-                    Сегодня
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleUrgentDates('tomorrow')}
-                    className={`rounded-xl px-4 py-2.5 text-sm font-black transition ${formData.startDate === tomorrowDates.startDate ? 'bg-amber-900 text-white' : 'bg-white text-amber-900 ring-1 ring-amber-200'}`}
-                  >
-                    Завтра
-                  </button>
-                </div>
-              </div>
             </div>
 
             <div className="grid gap-4 sm:grid-cols-2">
