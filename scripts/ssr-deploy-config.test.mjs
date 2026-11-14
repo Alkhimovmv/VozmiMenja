@@ -49,3 +49,12 @@ test('deployment validates SSR artifacts and health before reloading Nginx', asy
   assert.match(deploy, /reload_nginx_after_health/)
   assert.match(deploy, /pm2\s+stop\s+vozmimenya-api\s+vozmimenya-ssr/)
 })
+
+test('deployment creates the SSR cache directory before validating Nginx', async () => {
+  const deploy = await readFile(new URL('deploy-local.sh', ROOT), 'utf8')
+  const reloadFunction = deploy.match(/reload_nginx_after_health\(\) \{([\s\S]*?)\n\}/)?.[1]
+
+  assert.ok(reloadFunction, 'reload_nginx_after_health must exist')
+  assert.match(deploy, /install -d -o www-data -g www-data \/var\/cache\/nginx\/vozmimenya-ssr/)
+  assert.match(reloadFunction, /prepare_nginx_cache[\s\S]*nginx -t/)
+})

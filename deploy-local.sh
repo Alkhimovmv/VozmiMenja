@@ -423,10 +423,15 @@ wait_for_health() {
     return 1
 }
 
+prepare_nginx_cache() {
+    install -d -o www-data -g www-data /var/cache/nginx/vozmimenya-ssr
+}
+
 reload_nginx_after_health() {
     wait_for_health "http://127.0.0.1:3003/health" "VozmiMenja API"
     wait_for_health "http://127.0.0.1:3004/health" "VozmiMenja SSR"
 
+    prepare_nginx_cache
     nginx -t
     systemctl reload nginx
     print_success "Nginx перечитал конфигурацию после успешных health-check"
