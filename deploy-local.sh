@@ -383,6 +383,56 @@ setup_nginx() {
 }
 
 # ================================================================================
+# Проверка SSR-артефактов и готовности локальных сервисов
+# ================================================================================
+validate_runtime_artifacts() {
+    local missing=0
+
+    if [ ! -f "$PROJECT_DIR/client/dist-ssr/entry-server.js" ]; then
+        print_error "Не найден SSR bundle: client/dist-ssr/entry-server.js"
+        missing=1
+    fi
+    if [ ! -f "$PROJECT_DIR/client/dist-ssr/template.html" ]; then
+        print_error "Не найден SSR template: client/dist-ssr/template.html"
+        missing=1
+    fi
+    if [ ! -f "$PROJECT_DIR/client/ssr-server.mjs" ]; then
+        print_error "Не найден SSR runtime: client/ssr-server.mjs"
+        missing=1
+    fi
+
+    [ "$missing" -eq 0 ]
+}
+
+wait_for_health() {
+    local url="$1"
+    local service_name="$2"
+    local max_attempts="${3:-30}"
+    local attempt=1
+
+    while [ "$attempt" -le "$max_attempts" ]; do
+        if curl --fail --silent --show-error --max-time 2 "$url" >/dev/null 2>&1; then
+            print_success "$service_name отвечает: $url"
+            return 0
+        fi
+        sleep 1
+        attempt=$((attempt + 1))
+    done
+
+    print_error "$service_name не прошёл health-check: $url"
+    return 1
+}
+
+reload_nginx_after_health() {
+    wait_for_health "http://127.0.0.1:3003/health" "VozmiMenja API"
+    wait_for_health "http://127.0.0.1:3004/health" "VozmiMenja SSR"
+
+    nginx -t
+    systemctl reload nginx
+    print_success "Nginx перечитал конфигурацию после успешных health-check"
+}
+
+# ================================================================================
 # Запуск PM2 приложений
 # ================================================================================
 start_pm2() {
@@ -395,11 +445,12 @@ start_pm2() {
         print_error "VozmiMenja Server не собран! Запустите сначала: sudo $0 deploy"
         return 1
     fi
+    validate_runtime_artifacts
 
     # Запуск/перезапуск PM2 приложений от имени пользователя
     if sudo -u $SUDO_USER pm2 list | grep -q "vozmimenya-api"; then
         echo "Перезапуск существующих приложений..."
-        sudo -u $SUDO_USER pm2 restart ecosystem.config.js
+        sudo -u $SUDO_USER pm2 startOrRestart ecosystem.config.js
     else
         echo "Запуск новых приложений..."
         sudo -u $SUDO_USER pm2 start ecosystem.config.js
@@ -424,9 +475,9 @@ stop_pm2() {
     cd $PROJECT_DIR
 
     if [ -n "$SUDO_USER" ]; then
-        if sudo -u $SUDO_USER pm2 list | grep -q "vozmimenya-api"; then
+        if sudo -u $SUDO_USER pm2 list | grep -Eq "vozmimenya-(api|ssr)"; then
             echo "Остановка PM2 приложений..."
-            sudo -u $SUDO_USER pm2 stop ecosystem.config.js
+            sudo -u $SUDO_USER pm2 stop vozmimenya-api vozmimenya-ssr
             sudo -u $SUDO_USER pm2 save
             print_success "PM2 приложения остановлены"
         else
@@ -441,19 +492,18 @@ stop_pm2() {
 restart_services() {
     print_step "Перезапуск сервисов"
 
-    # Перезапуск Nginx
-    echo "Перезапуск Nginx..."
-    systemctl restart nginx
-    print_success "Nginx перезапущен"
+    validate_runtime_artifacts
 
-    # Перезапуск PM2
+    # Сначала перезапускаем приложения; Nginx продолжает отдавать старый frontend до health-check.
     echo "Перезапуск PM2..."
     cd $PROJECT_DIR
     if [ -n "$SUDO_USER" ]; then
-        sudo -u $SUDO_USER pm2 restart ecosystem.config.js
+        sudo -u $SUDO_USER pm2 startOrRestart ecosystem.config.js
         echo ""
         sudo -u $SUDO_USER pm2 status
     fi
+
+    reload_nginx_after_health
 
     print_success "Сервисы перезапущены"
 }
@@ -530,7 +580,7 @@ deploy() {
     build_projects
     setup_nginx
     start_pm2
-    systemctl restart nginx
+    reload_nginx_after_health
 
     print_success "🎉 РАЗВЕРТЫВАНИЕ ЗАВЕРШЕНО"
     show_status
