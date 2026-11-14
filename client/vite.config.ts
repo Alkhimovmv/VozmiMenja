@@ -4,13 +4,17 @@ import tailwindcss from '@tailwindcss/vite'
 import { fileURLToPath, URL } from 'node:url'
 
 // https://vite.dev/config/
-export default defineConfig({
+export default defineConfig(({ isSsrBuild }) => ({
   plugins: [tailwindcss(), react()],
   base: '/', // Для кастомного домена vozmimenya.ru
   resolve: {
     alias: {
       'base64-js': fileURLToPath(new URL('./src/shims/base64-js.ts', import.meta.url)),
     },
+  },
+  ssr: {
+    // CommonJS package: bundling it avoids invalid named ESM imports in Node.
+    noExternal: ['react-helmet-async'],
   },
   server: {
     host: '0.0.0.0',
@@ -21,6 +25,7 @@ export default defineConfig({
     },
   },
   build: {
+    copyPublicDir: !isSsrBuild,
     // Оптимизация сборки для производства
     minify: 'terser',
     terserOptions: {
@@ -50,7 +55,7 @@ export default defineConfig({
           ],
         },
         // Оптимизация имен файлов для кэширования
-        entryFileNames: 'assets/[name].[hash].js',
+        entryFileNames: isSsrBuild ? '[name].js' : 'assets/[name].[hash].js',
         chunkFileNames: 'assets/[name].[hash].js',
         assetFileNames: 'assets/[name].[hash].[ext]',
       },
@@ -69,4 +74,4 @@ export default defineConfig({
     include: ['react', 'react-dom', 'react-router-dom', 'lucide-react'],
     exclude: [],
   },
-})
+}))
