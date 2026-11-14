@@ -77,6 +77,7 @@ sudo ./deploy-local.sh update
 Если SSR-конфиг Nginx ещё не установлен:
 
 ```bash
+sudo install -d -o www-data -g www-data /var/cache/nginx/vozmimenya-ssr
 sudo cp nginx/vozmimenya-site.conf /etc/nginx/sites-available/vozmimenya-site.conf
 sudo nginx -t
 sudo systemctl reload nginx
