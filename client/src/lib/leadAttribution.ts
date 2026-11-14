@@ -79,7 +79,11 @@ const readFirstTouchAttribution = (storage: Storage): FirstTouchAttribution | un
   }
 }
 
-export function getLeadContext(): LeadAttribution {
+export function getLeadContext(fallbackHref = 'https://vozmimenya.ru/'): LeadAttribution {
+  if (typeof window === 'undefined' || typeof document === 'undefined') {
+    return parseLeadAttribution(fallbackHref)
+  }
+
   const current = parseLeadAttribution(window.location.href, document.referrer)
 
   try {

@@ -195,7 +195,15 @@ async function main() {
   const origin = await listen(gateway)
 
   try {
-    const canaryRoutes = ['/', '/arenda-pylesosov-moskva', '/equipment/karcher-puzzi-8-1', '/blog/test-article']
+    const canaryRoutes = [
+      '/',
+      '/arenda-pylesosov-moskva',
+      '/arenda-karaoke-komplekta-moskva',
+      '/arenda-moyushchego-pylesosa-dlya-divana-kovra-moskva',
+      '/equipment/karcher-puzzi-8-1',
+      '/blog/test-article',
+      '/rental-agreement',
+    ]
     const timings = []
     for (const route of canaryRoutes) {
       const startedAt = performance.now()
@@ -225,6 +233,17 @@ async function main() {
     assert.equal(attribute(booking, 'data-hydration-errors'), '[]')
     assert.equal(attribute(booking, 'data-hydration-ready'), 'true')
     assert.equal(attribute(booking, 'data-booking-form'), 'true')
+
+    for (const route of [
+      '/arenda-karaoke-komplekta-moskva',
+      '/arenda-moyushchego-pylesosa-dlya-divana-kovra-moskva',
+      '/rental-agreement',
+    ]) {
+      const page = await dumpDom(`${origin}${route}`)
+      assert.equal(attribute(page, 'data-hydration-errors'), '[]', route)
+      assert.equal(attribute(page, 'data-hydration-ready'), 'true', route)
+    }
+
     const rssMb = process.memoryUsage().rss / 1024 / 1024
     assert.ok(rssMb < 256, `SSR smoke process exceeded 256MB RSS (${rssMb.toFixed(1)}MB)`)
     process.stdout.write(`SSR browser hydration smoke passed; max local TTFB ${Math.max(...timings).toFixed(1)}ms; RSS ${rssMb.toFixed(1)}MB\n`)

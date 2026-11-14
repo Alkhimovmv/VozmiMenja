@@ -116,7 +116,7 @@ function handleTelegramClick(source: string) {
 export default function WashingVacuumSofaCarpetPage() {
   const pageTitle = seoMeta['/arenda-moyushchego-pylesosa-dlya-divana-kovra-moskva'].title
   const pageDescription = seoMeta['/arenda-moyushchego-pylesosa-dlya-divana-kovra-moskva'].description
-  const puzziBookingLinks = buildAttributedBookingLinks(puzziBookingItems, 'puzzi-cleaning', getLeadContext())
+  const puzziBookingLinks = buildAttributedBookingLinks(puzziBookingItems, 'puzzi-cleaning', getLeadContext(pageUrl))
   const getPuzziBookingHref = (equipment: PuzziBookingEquipment) => (
     puzziBookingLinks.find((item) => item.equipment === equipment)?.href || '/booking'
   )
