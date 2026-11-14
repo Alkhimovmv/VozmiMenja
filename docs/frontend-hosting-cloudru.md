@@ -4,6 +4,20 @@
 
 Почему не Cloudflare перед Pages: российские провайдеры с 2025 года замедляют сайты за Cloudflare. Для московской аудитории и Яндекса это хуже, чем свой сервер в РФ.
 
+## Фактический статус переключения
+
+Переключение выполнено 14 ноября 2026 года:
+
+- production checkout обновлён до merge-коммита `d192ed874e3e478e0d7eb6888fdb7a4567f829ba`;
+- фронтенд собран и развёрнут в `/var/www/html/vozmimenya.ru`, API `vozmimenya-api` остался `online` в PM2;
+- `vozmimenya.ru` указывает на Cloud.ru `87.242.103.146`, `www.vozmimenya.ru` — CNAME на `vozmimenya.ru`; текущий TTL обеих записей — 3600 секунд, записи `api` и `schedule-admin` не менялись;
+- сертификат Let's Encrypt для `vozmimenya.ru` и `www.vozmimenya.ru` переведён с временного manual DNS-01 на автоматическое webroot-продление, текущий срок — до 12 февраля 2027 года;
+- `certbot renew --cert-name vozmimenya.ru --dry-run` прошёл, deploy hook перезагрузки Nginx проверен отдельно, `nginx -t` успешен и сервис активен;
+- внешняя проверка без `--resolve`: главная, Волжская и Динамо — `200`, неизвестный URL — `404`, `www` — `301` с сохранением пути и query, ассеты — годовой immutable-кеш;
+- резервные копии перед переключением: `backups/vozmimenya-db-20261114-011722.sqlite` и `/var/backups/nginx-sites-enabled-20261114-0207.tgz`.
+
+Оставшиеся действия владельца: не удалять custom domain в GitHub Pages ранее 15 ноября 2026 года, 17:00 МСК, и удалять его только после отдельного подтверждения. Временные TXT-записи `_acme-challenge` больше не участвуют в продлении; их можно удалить отдельным согласованным изменением после окна наблюдения.
+
 ## Что уже готово в репозитории
 
 - `nginx/vozmimenya-site.conf` — сайт: HTTP→HTTPS и www→без www одним 301; отдача как на Pages (`/route` → `route.html` или `route/index.html`, неизвестный путь → `404.html` со статусом 404 и SPA-редиректом); `/index.html`, хвостовой слэш и все legacy URL из `client/src/content/redirects.json` → настоящие 301 с сохранением query string; gzip.
@@ -39,7 +53,7 @@
    curl -sk --resolve vozmimenya.ru:443:127.0.0.1 -D - -o /dev/null https://vozmimenya.ru/ | grep -iE 'strict|cache-control|nosniff'
    curl -sk --resolve vozmimenya.ru:443:127.0.0.1 -o /dev/null -w '%{http_code}\n' https://vozmimenya.ru/arenda-gopro-moskva
    ```
-5. Заранее (за сутки) снизить TTL A-записей до 300 с. Затем заменить A-записи `vozmimenya.ru` (сейчас 185.199.108–111.153, GitHub Pages) на `87.242.103.146`, `www` — CNAME на `vozmimenya.ru` или A на тот же IP.
+5. Заранее (за сутки) снизить TTL A-записей до 300 с. Затем удалить A-записи GitHub Pages `185.199.108–111.153`, добавить для `vozmimenya.ru` A-запись `87.242.103.146`, а `www` направить CNAME на `vozmimenya.ru` или A на тот же IP.
 6. После переключения DNS перевести тот же cert name на автоматическое webroot-продление и проверить renewal:
    ```bash
    sudo install -d -m 0755 /var/www/certbot
@@ -53,9 +67,12 @@
    sudo certbot certonly --webroot -w /var/www/certbot \
      --cert-name vozmimenya.ru --force-renewal \
      -d vozmimenya.ru -d www.vozmimenya.ru
-   sudo certbot renew --cert-name vozmimenya.ru --dry-run --run-deploy-hooks
+   sudo certbot renew --cert-name vozmimenya.ru --dry-run
+   sudo /etc/letsencrypt/renewal-hooks/deploy/reload-nginx.sh
    sudo nginx -t
+   systemctl is-active nginx
    ```
+   На сервере установлен Certbot 1.21, который не поддерживает `--run-deploy-hooks`. Обычное реальное продление запускает deploy hook автоматически; при dry-run сам renewal проверяется первой командой, а hook — отдельным безопасным вызовом.
 7. Не удалять custom domain в GitHub Pages минимум 24 часа: пока он настроен, аварийный возврат выполняется только DNS-записями. После суток стабильной работы и повторного smoke удалить custom domain только с отдельного подтверждения владельца. Workflow `deploy.yml` можно сохранить как артефакт публикации, но обычный URL `/VozmiMenja/` не является проверенным резервом при текущем Vite `base: '/'`.
 
 ## Проверка после переключения
@@ -65,7 +82,7 @@
 - securityheaders.com — проверить, что все заголовки распознаны.
 - Яндекс.Вебмастер и Google Search Console: «Проверка URL» на главной, карточке и статье; ошибок сканирования нет.
 - Uptime-монитор (`.github/workflows/uptime.yml`) остаётся зелёным.
-- `sudo certbot renew --cert-name vozmimenya.ru --dry-run --run-deploy-hooks` проходит, Nginx после hook остаётся активным.
+- `sudo certbot renew --cert-name vozmimenya.ru --dry-run` проходит; отдельный запуск `/etc/letsencrypt/renewal-hooks/deploy/reload-nginx.sh` оставляет Nginx активным.
 
 ## Через 1–2 недели
 
