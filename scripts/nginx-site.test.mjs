@@ -60,7 +60,7 @@ test('admin and assets stay static while fallback preserves real 404 responses',
   assert.match(fallback[1], /try_files\s+\$uri\s+\$uri\.html\s+\$uri\/index\.html\s+=404;/)
   assert.match(fallback[1], /X-SSR-Fallback\s+"?static"?\s+always;/)
 
-  const assets = config.match(/location\s+\/assets\/\s*\{([\s\S]*?)\n\s*\}/)
+  const assets = config.match(/location\s+\^~\s+\/assets\/\s*\{([\s\S]*?)\n\s*\}/)
   assert.ok(assets, 'static asset location must exist')
   assert.match(assets[1], /try_files\s+\$uri\s+=404;/)
   assert.match(assets[1], /max-age=31536000, immutable/)
