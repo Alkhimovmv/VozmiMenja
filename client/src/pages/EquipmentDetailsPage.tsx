@@ -15,6 +15,7 @@ import { CONTACT_PHONE, CONTACT_PHONE_LABEL, getTelegramUrl, getWhatsAppUrl } fr
 import { equipmentPath } from '../lib/equipmentUrls'
 import equipmentBrands from '../content/equipmentBrands.json'
 import NotFoundPage from './NotFoundPage'
+import { useRenderEnvironment } from '../ssr/renderContext'
 
 function getEquipmentModelFaq(name: string) {
   const normalizedName = name.toLowerCase()
@@ -661,6 +662,7 @@ const scenarioLinksBySlug: Record<string, Array<{ href: string; label: string }>
 const PRODUCT_MAIN_IMAGE_SIZES = '(min-width: 768px) 420px, 100vw'
 
 export default function EquipmentDetailsPage() {
+  const { nowIso } = useRenderEnvironment()
   const { id } = useParams<{ id: string }>()
   const { data, isLoading, error } = useEquipmentById(id!)
   const [selectedImage, setSelectedImage] = useState(0)
@@ -732,7 +734,7 @@ export default function EquipmentDetailsPage() {
       url: canonicalUrl,
       priceCurrency: 'RUB',
       price: oneDayPrice,
-      priceValidUntil: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      priceValidUntil: new Date(new Date(nowIso).getTime() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
       availability: equipment.availableQuantity > 0
         ? 'https://schema.org/InStock'
         : 'https://schema.org/LimitedAvailability',

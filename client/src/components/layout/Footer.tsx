@@ -4,8 +4,10 @@ import logoFooter from '../../assets/logo-footer.png'
 import maxIcon from '../../assets/max.png'
 import avitoIcon from '../../assets/avito.png'
 import { AVITO_PROFILE_URL, CONTACT_PHONE, CONTACT_PHONE_LABEL, getTelegramUrl, getWhatsAppUrl, MAX_URL } from '../../lib/contactLinks'
+import { useRenderEnvironment } from '../../ssr/renderContext'
 
 export default function Footer() {
+  const { nowIso } = useRenderEnvironment()
   return (
     <footer className="bg-gray-900 text-white">
       <div className="container mx-auto px-4 py-8">
@@ -121,7 +123,7 @@ export default function Footer() {
         </div>
 
         <div className="border-t border-gray-800 mt-6 pt-5 flex flex-col sm:flex-row justify-between items-center gap-3 pb-20 md:pb-0">
-          <p className="text-gray-400 text-xs">© {new Date().getFullYear()} ИП Алхимова С.В. Все права защищены.</p>
+          <p className="text-gray-400 text-xs">© {new Date(nowIso).getUTCFullYear()} ИП Алхимова С.В. Все права защищены.</p>
           <div className="flex flex-wrap gap-4 justify-center">
             <Link to="/offer" className="text-gray-400 hover:text-gray-200 text-xs transition-colors">Договор оферты</Link>
             <Link to="/rental-agreement" className="text-gray-400 hover:text-gray-200 text-xs transition-colors">Договор аренды</Link>
