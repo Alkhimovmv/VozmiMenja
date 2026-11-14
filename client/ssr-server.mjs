@@ -111,7 +111,10 @@ async function start() {
   process.once('SIGINT', shutdown)
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+const isRuntimeEntrypoint = [process.argv[1], process.env.pm_exec_path]
+  .some((entrypoint) => entrypoint && import.meta.url === pathToFileURL(entrypoint).href)
+
+if (isRuntimeEntrypoint) {
   start().catch((error) => {
     process.stderr.write(`${error instanceof Error ? error.stack : String(error)}\n`)
     process.exit(1)
