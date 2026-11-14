@@ -1,10 +1,68 @@
 import assert from 'node:assert/strict'
+import { spawn } from 'node:child_process'
 import test from 'node:test'
 import { readFile } from 'node:fs/promises'
 import { createServer } from 'node:http'
 import { once } from 'node:events'
+import { setTimeout as delay } from 'node:timers/promises'
+import { fileURLToPath } from 'node:url'
 
 const ROOT = new URL('../', import.meta.url)
+
+test('runtime starts when PM2 loads it through a process container', async (t) => {
+  const portProbe = createServer()
+  portProbe.listen(0, '127.0.0.1')
+  await once(portProbe, 'listening')
+  const address = portProbe.address()
+  assert.ok(address && typeof address === 'object')
+  const port = address.port
+  portProbe.close()
+  await once(portProbe, 'close')
+
+  const runtimeUrl = new URL('client/ssr-server.mjs', ROOT)
+  const runtimePath = fileURLToPath(runtimeUrl)
+  const child = spawn(
+    process.execPath,
+    ['--input-type=module', '--eval', `import(${JSON.stringify(runtimeUrl.href)})`],
+    {
+      cwd: fileURLToPath(new URL('client/', ROOT)),
+      env: {
+        ...process.env,
+        PM2_HOME: '/tmp/vozmimenya-pm2-test',
+        pm_id: '1',
+        pm_exec_path: runtimePath,
+        SSR_HOST: '127.0.0.1',
+        SSR_PORT: String(port),
+      },
+      stdio: ['ignore', 'pipe', 'pipe'],
+    },
+  )
+  t.after(() => {
+    if (child.exitCode === null) child.kill('SIGTERM')
+  })
+
+  let stdout = ''
+  let stderr = ''
+  child.stdout.on('data', (chunk) => { stdout += chunk })
+  child.stderr.on('data', (chunk) => { stderr += chunk })
+
+  let health
+  for (let attempt = 0; attempt < 30; attempt += 1) {
+    if (child.exitCode !== null) break
+    try {
+      health = await fetch(`http://127.0.0.1:${port}/health`)
+      if (health.ok) break
+    } catch {
+      await delay(100)
+    }
+  }
+
+  assert.equal(
+    health?.status,
+    200,
+    `PM2-style import did not start SSR (exit=${child.exitCode}, stdout=${stdout}, stderr=${stderr})`,
+  )
+})
 
 test('SSR build and runtime are wired for loopback production use', async () => {
   const [clientPackageText, rootPackageText, runtime] = await Promise.all([
