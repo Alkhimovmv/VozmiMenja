@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
+import { useQuery } from '@tanstack/react-query'
 import { useEquipment, useEquipmentStats, useCategoryCounts } from '../hooks/useEquipment'
-import { articlesApi } from '../api/articles'
-import type { Article } from '../types'
+import { articleQueries } from '../query/articleQueries'
 import EquipmentGrid from '../components/equipment/EquipmentGrid'
 import HowItWorks from '../components/HowItWorks'
 import Testimonials from '../components/Testimonials'
@@ -129,7 +129,7 @@ export default function HomePage() {
   const [page, setPage] = useState(1)
   const [category, setCategory] = useState('')
   const [search, setSearch] = useState('')
-  const [recentArticles, setRecentArticles] = useState<Article[]>([])
+  const { data: recentArticles = [] } = useQuery(articleQueries.recent(3))
 
   useEffect(() => {
     setSearch(searchParams.get('search') || '')
@@ -141,12 +141,6 @@ export default function HomePage() {
       }, 100)
     }
   }, [searchParams])
-
-  useEffect(() => {
-    articlesApi.getRecent(3)
-      .then(setRecentArticles)
-      .catch((error) => console.error('Error loading recent articles:', error))
-  }, [])
 
   const { data, isLoading, error } = useEquipment({
     page, limit: 12,

@@ -14,6 +14,7 @@ import { getLongTermDailyPrice, getOneDayPrice, getPricingRows, getPeriodPrice }
 import { CONTACT_PHONE, CONTACT_PHONE_LABEL, getTelegramUrl, getWhatsAppUrl } from '../lib/contactLinks'
 import { equipmentPath } from '../lib/equipmentUrls'
 import equipmentBrands from '../content/equipmentBrands.json'
+import NotFoundPage from './NotFoundPage'
 
 function getEquipmentModelFaq(name: string) {
   const normalizedName = name.toLowerCase()
@@ -682,6 +683,10 @@ export default function EquipmentDetailsPage() {
         <LoadingSpinner size="lg" />
       </div>
     )
+  }
+
+  if (data === null) {
+    return <NotFoundPage />
   }
 
   if (error || !data?.success || !equipment) {

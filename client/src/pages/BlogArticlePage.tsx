@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react'
-import { useParams, Link, useNavigate } from 'react-router-dom'
+import { useParams, Link } from 'react-router-dom'
+import { useQuery } from '@tanstack/react-query'
 import { Article } from '../types'
-import { articlesApi } from '../api/articles'
+import { articleQueries } from '../query/articleQueries'
 import SEO from '../components/SEO'
 import { Calendar, Eye, User, ArrowLeft, Tag } from 'lucide-react'
 import ReactMarkdown, { type Components } from 'react-markdown'
@@ -10,8 +10,8 @@ import { trackEvent } from '../lib/analytics'
 import { fetchPriorityAttr, getImageSrcSet, getImageUrl } from '../lib/utils'
 import { CONTACT_PHONE, CONTACT_PHONE_LABEL, getTelegramUrl } from '../lib/contactLinks'
 import { extractArticleBookingLinks } from '../lib/blogBookingCta'
-import { getStaticArticle } from '../lib/staticData'
 import { pickRelatedArticles } from '../lib/relatedArticles'
+import NotFoundPage from './NotFoundPage'
 
 const rentalCtas = {
   cleaning: {
@@ -123,47 +123,9 @@ const getArticleCoverSrcSet = (article: Article) => {
 
 export default function BlogArticlePage() {
   const { slug } = useParams<{ slug: string }>()
-  const navigate = useNavigate()
-  // Статья из пререндера (если открыта прямой ссылкой): показываем сразу, без спиннера, и обновляем из API в фоне.
-  const [article, setArticle] = useState<Article | null>(() => getStaticArticle(window.location.pathname) ?? null)
-  const [relatedArticles, setRelatedArticles] = useState<Article[]>([])
-  const [loading, setLoading] = useState(() => !getStaticArticle(window.location.pathname))
-
-  useEffect(() => {
-    let isMounted = true
-
-    const loadArticle = async () => {
-      try {
-        if (!getStaticArticle(window.location.pathname)) setLoading(true)
-        if (!slug) return
-        const data = await articlesApi.getBySlug(slug)
-        if (!isMounted) return
-
-        setArticle(data)
-        // Тот же подбор, что в пререндере (lib/relatedArticles.js): тема, общие теги, свежесть.
-        const allArticles = await articlesApi.getRecent(100)
-        if (isMounted) {
-          setRelatedArticles(pickRelatedArticles(data, allArticles))
-        }
-      } catch (error) {
-        console.error('Error loading article:', error)
-        // Если статья уже есть из пререндера, оставляем её на экране, а не уводим на /blog.
-        if (isMounted && !getStaticArticle(window.location.pathname)) {
-          navigate('/blog')
-        }
-      } finally {
-        if (isMounted) {
-          setLoading(false)
-        }
-      }
-    }
-
-    loadArticle()
-
-    return () => {
-      isMounted = false
-    }
-  }, [slug, navigate])
+  const { data: article, isLoading: loading } = useQuery(articleQueries.detail(slug || ''))
+  const { data: allArticles = [] } = useQuery(articleQueries.recent(100))
+  const relatedArticles = article ? pickRelatedArticles(article, allArticles) : []
 
   // SQLite CURRENT_TIMESTAMP хранит UTC без зоны: '2026-09-05 23:41:32' -> '2026-09-05T23:41:32Z'.
   const toIsoDateTime = (value: string) =>
@@ -188,14 +150,7 @@ export default function BlogArticlePage() {
   }
 
   if (!article) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900 mb-4">Статья не найдена</h1>
-          <Link to="/blog" className="text-[#2563EB] hover:underline font-semibold">Вернуться к блогу</Link>
-        </div>
-      </div>
-    )
+    return <NotFoundPage />
   }
 
   const structuredData = {

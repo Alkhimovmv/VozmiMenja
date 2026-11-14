@@ -1,66 +1,16 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Article } from '../types'
-import { articlesApi } from '../api/articles'
+import { useQuery } from '@tanstack/react-query'
+import { articleQueries } from '../query/articleQueries'
 import SEO from '../components/SEO'
 import { Calendar, Eye, User, ChevronRight } from 'lucide-react'
 import { trackEvent } from '../lib/analytics'
 import { getTelegramUrl } from '../lib/contactLinks'
 
 export default function BlogPage() {
-  const [articles, setArticles] = useState<Article[]>([])
-  const [popularArticles, setPopularArticles] = useState<Article[]>([])
-  const [loading, setLoading] = useState(true)
   const [selectedCategory, setSelectedCategory] = useState<string>('all')
-
-  useEffect(() => {
-    let isMounted = true
-
-    const loadArticles = async () => {
-      try {
-        setLoading(true)
-        const data = selectedCategory === 'all'
-          ? await articlesApi.getAll()
-          : await articlesApi.getByCategory(selectedCategory)
-        if (isMounted) {
-          setArticles(data)
-        }
-      } catch (error) {
-        console.error('Error loading articles:', error)
-      } finally {
-        if (isMounted) {
-          setLoading(false)
-        }
-      }
-    }
-
-    loadArticles()
-
-    return () => {
-      isMounted = false
-    }
-  }, [selectedCategory])
-
-  useEffect(() => {
-    let isMounted = true
-
-    const loadPopularArticles = async () => {
-      try {
-        const data = await articlesApi.getPopular(5)
-        if (isMounted) {
-          setPopularArticles(data)
-        }
-      } catch (error) {
-        console.error('Error loading popular articles:', error)
-      }
-    }
-
-    loadPopularArticles()
-
-    return () => {
-      isMounted = false
-    }
-  }, [])
+  const { data: articles = [], isLoading: loading } = useQuery(articleQueries.list(selectedCategory))
+  const { data: popularArticles = [] } = useQuery(articleQueries.popular(5))
 
   const formatDate = (dateString: string) =>
     new Date(dateString).toLocaleDateString('ru-RU', { year: 'numeric', month: 'long', day: 'numeric' })
