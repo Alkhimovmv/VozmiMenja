@@ -806,7 +806,7 @@ export default function EquipmentDetailsPage() {
         title={seoTitle}
         description={seoDescription}
         keywords={seoKeywords}
-        image={equipment.images[0] ? `https://vozmimenya.ru${getImageUrl(equipment.images[0])}` : undefined}
+        image={equipment.images[0] ? new URL(getImageUrl(equipment.images[0]), 'https://vozmimenya.ru').toString() : undefined}
         url={canonicalUrl}
         type="product"
         structuredData={[productStructuredData, faqStructuredData]}

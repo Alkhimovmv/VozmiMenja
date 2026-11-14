@@ -17,6 +17,7 @@
     "smoke:public:prod": "npm run smoke:public:prod --workspace=server",
     "smoke:seo": "npm run smoke:seo --workspace=server",
     "smoke:seo:prod": "npm run smoke:seo:prod --workspace=server",
+    "smoke:ssr-hydration": "VITE_API_URL=/api npm run build:browser --workspace=client && npm run build:ssr --workspace=client && node scripts/ssr-browser-smoke.mjs",
     "wait:articles:prod": "node scripts/wait-for-seeded-articles.mjs --timeout-ms 900000 --interval-ms 15000",
     "smoke:articles:prod": "node scripts/smoke-seeded-articles.mjs --attempts 12 --interval-ms 10000",
     "test": "npm run test --workspace=client && npm run test:ssr --workspace=client && npm run test --workspace=server && npm run test:deploy && npm run test:search-console && npm run test:ssr-runtime && npm run test:nginx-site && npm run test:ssr-deploy",

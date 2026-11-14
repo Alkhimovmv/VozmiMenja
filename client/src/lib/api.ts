@@ -15,9 +15,11 @@ export const getPublicApiBaseUrl = () => import.meta.env?.SSR
 const API_BASE_URL = getPublicApiBaseUrl()
 
 // Извлекаем URL сервера, убирая /api с конца
-export const API_SERVER_URL = API_BASE_URL.endsWith('/api')
-  ? API_BASE_URL.slice(0, -4)  // Убираем последние 4 символа '/api'
-  : API_BASE_URL
+export const API_SERVER_URL = import.meta.env?.SSR
+  ? ''
+  : API_BASE_URL.endsWith('/api')
+    ? API_BASE_URL.slice(0, -4)  // Убираем последние 4 символа '/api'
+    : API_BASE_URL
 
 class ApiClient {
   private async request<T>(
