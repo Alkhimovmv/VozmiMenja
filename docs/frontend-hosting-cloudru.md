@@ -1,5 +1,7 @@
 # Перенос фронтенда vozmimenya.ru с GitHub Pages на Nginx в Cloud.ru
 
+> Этот документ описывает исходный статический этап переноса. Для текущей SSR-архитектуры, canary и отката используйте [`frontend-ssr-cloudru.md`](frontend-ssr-cloudru.md).
+
 Зачем: GitHub Pages не даёт настроить заголовки и кеш. Сейчас там нет HSTS, nosniff, Referrer-Policy и CSP, а у ассетов с хешем в имени `Cache-Control: max-age=600` вместо года. Nginx на Cloud.ru (тот же сервер, что и `api.vozmimenya.ru`) отдаёт ту же сборку `client/dist` с нужными заголовками.
 
 Почему не Cloudflare перед Pages: российские провайдеры с 2025 года замедляют сайты за Cloudflare. Для московской аудитории и Яндекса это хуже, чем свой сервер в РФ.

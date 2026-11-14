@@ -195,6 +195,25 @@ async function main() {
   const origin = await listen(gateway)
 
   try {
+    const canaryRoutes = ['/', '/arenda-pylesosov-moskva', '/equipment/karcher-puzzi-8-1', '/blog/test-article']
+    const timings = []
+    for (const route of canaryRoutes) {
+      const startedAt = performance.now()
+      const response = await fetch(`${origin}${route}`)
+      await response.arrayBuffer()
+      const elapsedMs = performance.now() - startedAt
+      assert.equal(response.status, 200, route)
+      assert.ok(elapsedMs < 500, `${route} exceeded 500ms (${elapsedMs.toFixed(1)}ms)`)
+      timings.push(elapsedMs)
+    }
+    for (let iteration = 0; iteration < 5; iteration += 1) {
+      await Promise.all(canaryRoutes.map(async (route) => {
+        const response = await fetch(`${origin}${route}`)
+        await response.arrayBuffer()
+        assert.equal(response.status, 200, route)
+      }))
+    }
+
     const home = await dumpDom(`${origin}/`)
     assert.equal(attribute(home, 'data-hydration-errors'), '[]')
     assert.equal(attribute(home, 'data-hydration-ready'), 'true')
@@ -206,7 +225,9 @@ async function main() {
     assert.equal(attribute(booking, 'data-hydration-errors'), '[]')
     assert.equal(attribute(booking, 'data-hydration-ready'), 'true')
     assert.equal(attribute(booking, 'data-booking-form'), 'true')
-    process.stdout.write('SSR browser hydration smoke passed\n')
+    const rssMb = process.memoryUsage().rss / 1024 / 1024
+    assert.ok(rssMb < 256, `SSR smoke process exceeded 256MB RSS (${rssMb.toFixed(1)}MB)`)
+    process.stdout.write(`SSR browser hydration smoke passed; max local TTFB ${Math.max(...timings).toFixed(1)}ms; RSS ${rssMb.toFixed(1)}MB\n`)
   } finally {
     await Promise.all([close(gateway), close(ssr), close(api)])
     delete process.env.SSR_API_URL
