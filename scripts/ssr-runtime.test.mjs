@@ -156,4 +156,6 @@ test('built runtime returns SEO-complete HTML, safe state and failure status', a
   await once(api, 'close')
   const unavailable = await fetch(`${origin}/equipment/karcher-puzzi-8-1`)
   assert.equal(unavailable.status, 503)
+  const unavailableHome = await fetch(`${origin}/`)
+  assert.equal(unavailableHome.status, 503)
 })
