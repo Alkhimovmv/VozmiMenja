@@ -52,8 +52,13 @@ test('admin and assets stay static while fallback preserves real 404 responses',
 
   const adminLocation = config.match(/location\s+\^~\s+\/admin\s*\{([\s\S]*?)\n\s*\}/)
   assert.ok(adminLocation, 'admin SPA location must exist')
-  assert.match(adminLocation[1], /try_files[^;]*\/index\.html;/)
+  assert.match(adminLocation[1], /try_files\s+\$uri\s+\$uri\.html\s+\$uri\/index\.html\s+@admin_spa;/)
   assert.doesNotMatch(adminLocation[1], /proxy_pass/)
+
+  const adminFallback = config.match(/location\s+@admin_spa\s*\{([\s\S]*?)\n\s*\}/)
+  assert.ok(adminFallback, 'admin SPA must use a named fallback')
+  assert.match(adminFallback[1], /rewrite\s+\^\s+\/index\.html\s+break;/)
+  assert.doesNotMatch(adminFallback[1], /return\s+301/)
 
   const fallback = config.match(/location\s+@static_fallback\s*\{([\s\S]*?)\n\s*\}/)
   assert.ok(fallback, 'named static fallback must exist')
