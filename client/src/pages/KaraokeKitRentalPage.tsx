@@ -71,7 +71,7 @@ const kits = [
 export default function KaraokeKitRentalPage() {
   const title = seoMeta['/arenda-karaoke-komplekta-moskva'].title
   const description = seoMeta['/arenda-karaoke-komplekta-moskva'].description
-  const attributedKits = buildAttributedBookingLinks(kits, 'karaoke-kit', getLeadContext())
+  const attributedKits = buildAttributedBookingLinks(kits, 'karaoke-kit', getLeadContext(pageUrl))
   const primaryBookingHref = attributedKits[0].href
 
   return (

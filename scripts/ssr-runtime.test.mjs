@@ -170,11 +170,14 @@ test('built runtime returns SEO-complete HTML, safe state and failure status', a
   const indexableRoutes = [
     '/',
     '/arenda-pylesosov-moskva',
+    '/arenda-karaoke-komplekta-moskva',
+    '/arenda-moyushchego-pylesosa-dlya-divana-kovra-moskva',
     '/equipment/karcher-puzzi-8-1',
     '/blog',
     '/blog/test-article',
     '/arenda-tehniki-u-metro-volzhskaya-kuzminki',
     '/booking',
+    '/rental-agreement',
   ]
 
   for (const route of indexableRoutes) {
