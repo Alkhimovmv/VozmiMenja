@@ -19,6 +19,7 @@ import {
   getSelectedEquipment,
   resolveEquipmentSelection,
 } from '../lib/selfServiceBooking'
+import { useRenderEnvironment } from '../ssr/renderContext'
 
 const LEGAL_TERMS_VERSION = 'offer-2026-05-09_agreement-2026-05-09_privacy-current'
 
@@ -80,11 +81,13 @@ const buildComment = (data: {
 ].filter(Boolean).join('\n')
 
 export default function SelfServiceBookingPage() {
+  const { nowIso } = useRenderEnvironment()
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const initialSelectionApplied = useRef(false)
-  const todayDates = buildUrgentBookingDates('today')
-  const tomorrowDates = buildUrgentBookingDates('tomorrow')
+  const renderNow = useMemo(() => new Date(nowIso), [nowIso])
+  const todayDates = buildUrgentBookingDates('today', renderNow)
+  const tomorrowDates = buildUrgentBookingDates('tomorrow', renderNow)
   const today = todayDates.startDate
   const initialDates = searchParams.get('when') === 'tomorrow' ? tomorrowDates : todayDates
   const { data: equipmentResponse, isLoading } = useEquipment({ limit: 100 })

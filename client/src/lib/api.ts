@@ -1,12 +1,25 @@
 import type { Equipment, Booking, BookingRequest, ApiResponse, PaginatedResponse, PublicOffice, ContactLead, LeadScenario } from '../types'
 
-const API_BASE_URL = import.meta.env.VITE_API_URL
-  || (import.meta.env.MODE === 'production' ? '/api' : 'http://localhost:3002/api')
+export class ApiRequestError extends Error {
+  constructor(message: string, readonly status: number) {
+    super(message)
+    this.name = 'ApiRequestError'
+  }
+}
+
+export const getPublicApiBaseUrl = () => import.meta.env?.SSR
+  ? process.env.SSR_API_URL || 'http://127.0.0.1:3003/api'
+  : import.meta.env?.VITE_API_URL
+    || (import.meta.env?.MODE === 'production' ? '/api' : 'http://localhost:3002/api')
+
+const API_BASE_URL = getPublicApiBaseUrl()
 
 // Извлекаем URL сервера, убирая /api с конца
-export const API_SERVER_URL = API_BASE_URL.endsWith('/api')
-  ? API_BASE_URL.slice(0, -4)  // Убираем последние 4 символа '/api'
-  : API_BASE_URL
+export const API_SERVER_URL = import.meta.env?.SSR
+  ? ''
+  : API_BASE_URL.endsWith('/api')
+    ? API_BASE_URL.slice(0, -4)  // Убираем последние 4 символа '/api'
+    : API_BASE_URL
 
 class ApiClient {
   private async request<T>(
@@ -37,7 +50,7 @@ class ApiClient {
         message = firstValidationError || errorData?.message || errorData?.error || message
       }
 
-      throw new Error(message)
+      throw new ApiRequestError(message, response.status)
     }
 
     if (response.status === 204) {

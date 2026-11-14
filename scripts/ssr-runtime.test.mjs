@@ -1,0 +1,161 @@
+import assert from 'node:assert/strict'
+import test from 'node:test'
+import { readFile } from 'node:fs/promises'
+import { createServer } from 'node:http'
+import { once } from 'node:events'
+
+const ROOT = new URL('../', import.meta.url)
+
+test('SSR build and runtime are wired for loopback production use', async () => {
+  const [clientPackageText, rootPackageText, runtime] = await Promise.all([
+    readFile(new URL('client/package.json', ROOT), 'utf8'),
+    readFile(new URL('package.json', ROOT), 'utf8'),
+    readFile(new URL('client/ssr-server.mjs', ROOT), 'utf8'),
+  ])
+  const clientPackage = JSON.parse(clientPackageText)
+  const rootPackage = JSON.parse(rootPackageText)
+
+  assert.match(clientPackage.scripts['build:ssr'], /entry-server\.tsx/)
+  assert.match(clientPackage.scripts['build:ssr'], /prepare-ssr-template\.mjs/)
+  assert.match(clientPackage.scripts.build, /generate-static-route-entrypoints\.js/)
+  assert.match(rootPackage.scripts['test:ssr-runtime'], /build:ssr/)
+  assert.match(runtime, /SSR_HOST\s*\|\|\s*'127\.0\.0\.1'/)
+  assert.match(runtime, /SSR_PORT\s*\|\|\s*'3004'/)
+  assert.match(runtime, /\/health/)
+  assert.match(runtime, /X-VozmiMenja-Render/)
+})
+
+test('built runtime returns SEO-complete HTML, safe state and failure status', async (t) => {
+  const equipment = {
+    id: 'karcher-puzzi-8-1',
+    slug: 'karcher-puzzi-8-1',
+    name: 'Karcher Puzzi 8/1',
+    category: 'Пылесосы, уборка и клининг',
+    pricePerDay: 1800,
+    pricing: {
+      day1_10to20: 1500,
+      day1: 1800,
+      days2: 3000,
+      days3: 4200,
+      days4: 1300,
+      days7: 8000,
+      days14: 14000,
+      days30: 24000,
+    },
+    quantity: 2,
+    availableQuantity: 2,
+    images: ['/logo.png'],
+    description: 'Моющий пылесос для мебели, ковров и салона автомобиля.',
+    specifications: { Мощность: '1200 Вт', Бак: '8 л' },
+    createdAt: '2026-01-01T00:00:00.000Z',
+    updatedAt: '2026-11-01T00:00:00.000Z',
+  }
+  const article = {
+    id: 1,
+    title: 'Как выбрать технику в аренду',
+    slug: 'test-article',
+    excerpt: 'Практический гид по выбору оборудования для уборки и мероприятий.',
+    content: '## Выбор техники\n\nСначала определите задачу и срок аренды.',
+    image_url: null,
+    category: 'Общее',
+    tags: 'аренда,техника',
+    author: 'ВозьмиМеня',
+    published: true,
+    views: 10,
+    created_at: '2026-11-01T00:00:00.000Z',
+    updated_at: '2026-11-01T00:00:00.000Z',
+  }
+  const api = createServer((request, response) => {
+    const url = new URL(request.url || '/', 'http://127.0.0.1')
+    const json = (payload, status = 200) => {
+      response.writeHead(status, { 'Content-Type': 'application/json' })
+      response.end(JSON.stringify(payload))
+    }
+
+    if (url.pathname === '/api/equipment/stats') return json({ success: true, data: { totalEquipment: 1, totalCategories: 1 } })
+    if (url.pathname === '/api/equipment/categories/counts') return json({ success: true, data: { [equipment.category]: 1 } })
+    if (url.pathname === `/api/equipment/${equipment.id}`) return json({ success: true, data: equipment })
+    if (url.pathname === '/api/equipment') return json({ data: [equipment], total: 1, page: 1, limit: Number(url.searchParams.get('limit') || 12), totalPages: 1 })
+    if (url.pathname === '/api/offices') return json({ success: true, data: [
+      { id: 1, name: 'Волжская', address: 'Москва, Волжский бульвар, 51с15' },
+      { id: 2, name: 'Динамо', address: 'Москва, улица Расковой, 1' },
+    ] })
+    if (url.pathname === `/api/articles/slug/${article.slug}`) return json(article)
+    if (url.pathname === '/api/articles' || url.pathname.startsWith('/api/articles/popular') || url.pathname.startsWith('/api/articles/recent')) return json([article])
+
+    response.writeHead(404, { 'Content-Type': 'application/json' })
+    response.end(JSON.stringify({ message: 'not found' }))
+  })
+  api.listen(0, '127.0.0.1')
+  await once(api, 'listening')
+  t.after(() => {
+    if (api.listening) api.close()
+  })
+  const apiAddress = api.address()
+  assert.ok(apiAddress && typeof apiAddress === 'object')
+  process.env.SSR_API_URL = `http://127.0.0.1:${apiAddress.port}/api`
+  t.after(() => delete process.env.SSR_API_URL)
+
+  const { createSsrServer } = await import(new URL('../client/ssr-server.mjs', import.meta.url))
+  const ssr = await createSsrServer()
+  ssr.listen(0, '127.0.0.1')
+  await once(ssr, 'listening')
+  t.after(() => ssr.close())
+  const ssrAddress = ssr.address()
+  assert.ok(ssrAddress && typeof ssrAddress === 'object')
+  const origin = `http://127.0.0.1:${ssrAddress.port}`
+
+  const health = await fetch(`${origin}/health`)
+  assert.equal(health.status, 200)
+  assert.deepEqual(await health.json(), { status: 'ok', renderer: 'ready' })
+
+  const indexableRoutes = [
+    '/',
+    '/arenda-pylesosov-moskva',
+    '/equipment/karcher-puzzi-8-1',
+    '/blog',
+    '/blog/test-article',
+    '/arenda-tehniki-u-metro-volzhskaya-kuzminki',
+    '/booking',
+  ]
+
+  for (const route of indexableRoutes) {
+    const page = await fetch(`${origin}${route}`)
+    const html = await page.text()
+    assert.equal(page.status, 200, route)
+    assert.equal(page.headers.get('x-vozmimenja-render'), 'ssr', route)
+    assert.equal((html.match(/<h1(?:\s|>)/g) || []).length, 1, `${route} must contain one h1`)
+    assert.match(html, /<meta[^>]*name="description"[^>]*content="[^"]+"[^>]*>/, route)
+    assert.match(html, /<meta[^>]*name="robots"[^>]*content="index, follow"[^>]*>/, route)
+    assert.match(html, /<link[^>]*rel="canonical"[^>]*href="https:\/\/vozmimenya\.ru\/[^"]*"[^>]*>/, route)
+    assert.match(html, /<script>window\.__VOZMIMENYA_SSR__=/, route)
+
+    const stateMatch = html.match(/<script>window\.__VOZMIMENYA_SSR__=([\s\S]*?)<\/script>/)
+    assert.ok(stateMatch, `${route} must include dehydrated state`)
+    const state = JSON.parse(stateMatch[1])
+    const serializedState = JSON.stringify(state).toLowerCase()
+    for (const secretMarker of ['authorization', 'cookie', 'bearer ', 'ssr_api_url', '127.0.0.1']) {
+      assert.doesNotMatch(serializedState, new RegExp(secretMarker.replaceAll('.', '\\.')), `${route} leaked ${secretMarker}`)
+    }
+  }
+
+  for (const route of ['/booking/success', '/missing-page']) {
+    const page = await fetch(`${origin}${route}`)
+    const html = await page.text()
+    assert.equal(page.status, route === '/missing-page' ? 404 : 200, route)
+    assert.match(html, /<meta[^>]*name="robots"[^>]*content="noindex, nofollow"[^>]*>/, route)
+    assert.equal((html.match(/<h1(?:\s|>)/g) || []).length, 1, route)
+  }
+
+  const productPage = await fetch(`${origin}/equipment/karcher-puzzi-8-1`)
+  const productHtml = await productPage.text()
+  assert.match(productHtml, /<script[^>]*type="application\/ld\+json"[^>]*>/)
+  assert.doesNotMatch(productHtml, /127\.0\.0\.1/, 'public HTML must not expose the loopback API origin')
+
+  api.close()
+  await once(api, 'close')
+  const unavailable = await fetch(`${origin}/equipment/karcher-puzzi-8-1`)
+  assert.equal(unavailable.status, 503)
+  const unavailableHome = await fetch(`${origin}/`)
+  assert.equal(unavailableHome.status, 503)
+})

@@ -89,7 +89,7 @@ export default function SEO({
       {/* Structured Data */}
       {structuredData && (
         <script type="application/ld+json">
-          {JSON.stringify(structuredData)}
+          {JSON.stringify(structuredData).replace(/</g, '\\u003c')}
         </script>
       )}
     </Helmet>
