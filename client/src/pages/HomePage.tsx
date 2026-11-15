@@ -7,7 +7,6 @@ import EquipmentGrid from '../components/equipment/EquipmentGrid'
 import HowItWorks from '../components/HowItWorks'
 import Testimonials from '../components/Testimonials'
 import SEO from '../components/SEO'
-import ServiceFacts from '../components/ServiceFacts'
 import { ChevronLeft, ChevronRight, Phone, Shield, Truck, Clock, Sparkles, Search, X, MapPin, Mail, SprayCan } from 'lucide-react'
 import { trackEvent } from '../lib/analytics'
 import { CONTACT_PHONE, CONTACT_PHONE_LABEL, getTelegramUrl } from '../lib/contactLinks'
@@ -681,8 +680,6 @@ export default function HomePage() {
           </div>
         </section>
       )}
-
-      <ServiceFacts showPrices />
 
       {/* ── CTA Banner ── */}
       <section className="py-8">

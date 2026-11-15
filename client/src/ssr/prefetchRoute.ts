@@ -34,7 +34,6 @@ export async function prefetchPublicRoute(
   if (route.path === '/') {
     await Promise.all([
       queryClient.fetchQuery(equipmentQueries.list({ page: 1, limit: 12 })),
-      queryClient.fetchQuery(equipmentQueries.list({ limit: 200 })),
       queryClient.fetchQuery(equipmentQueries.stats()),
       queryClient.fetchQuery(equipmentQueries.categoryCounts()),
       queryClient.fetchQuery(articleQueries.recent(3)),

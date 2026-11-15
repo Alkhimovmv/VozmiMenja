@@ -1438,9 +1438,6 @@ function buildStaticRouteBody(route, meta, remoteData) {
   const articles = articleLinks(remoteData, 1000)
   const routeSections = {
     '/': [
-      brandDefinition(remoteData),
-      brandFactsSection(remoteData),
-      priceOverviewTable(remoteData),
       `<h2>Популярное оборудование</h2>${linkList(allProducts)}`,
       `<h2>Категории</h2>${linkList([
         { href: '/arenda-pylesosov-moskva', label: 'Пылесосы, Puzzi, WD5 и пароочистители' },

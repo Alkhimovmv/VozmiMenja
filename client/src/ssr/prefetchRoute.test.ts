@@ -40,7 +40,7 @@ test('prefetches the home page queries consumed by React', async () => {
     const result = await prefetchPublicRoute(queryClient, resolvePublicRoute('/'))
     assert.deepEqual(result, { status: 200 })
     assert.ok(queryClient.getQueryData(['equipment', { page: 1, limit: 12 }]))
-    assert.ok(queryClient.getQueryData(['equipment', { limit: 200 }]))
+    assert.equal(queryClient.getQueryData(['equipment', { limit: 200 }]), undefined)
     assert.ok(queryClient.getQueryData(['equipment-stats']))
     assert.ok(queryClient.getQueryData(['category-counts']))
     assert.deepEqual(queryClient.getQueryData(['articles', 'recent', 3]), [])

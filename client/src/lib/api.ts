@@ -14,12 +14,16 @@ export const getPublicApiBaseUrl = () => import.meta.env?.SSR
 
 const API_BASE_URL = getPublicApiBaseUrl()
 
-// Извлекаем URL сервера, убирая /api с конца
-export const API_SERVER_URL = import.meta.env?.SSR
-  ? ''
-  : API_BASE_URL.endsWith('/api')
-    ? API_BASE_URL.slice(0, -4)  // Убираем последние 4 символа '/api'
-    : API_BASE_URL
+// SSR получает JSON через loopback, но публичные URL изображений должны совпадать
+// с браузерными. Иначе гидрация сохраняет server-side src="/uploads/..." и
+// браузер запрашивает несуществующий файл с vozmimenya.ru вместо API-домена.
+const PUBLIC_API_BASE_URL = import.meta.env?.VITE_API_URL
+  || (import.meta.env?.MODE === 'production' ? 'https://api.vozmimenya.ru/api' : 'http://localhost:3002/api')
+
+// Извлекаем публичный URL сервера, убирая /api с конца.
+export const API_SERVER_URL = PUBLIC_API_BASE_URL.endsWith('/api')
+  ? PUBLIC_API_BASE_URL.slice(0, -4)
+  : PUBLIC_API_BASE_URL
 
 class ApiClient {
   private async request<T>(

@@ -102,7 +102,7 @@ test('built runtime returns SEO-complete HTML, safe state and failure status', a
     },
     quantity: 2,
     availableQuantity: 2,
-    images: ['/logo.png'],
+    images: ['/uploads/test-equipment.webp'],
     description: 'Моющий пылесос для мебели, ковров и салона автомобиля.',
     specifications: { Мощность: '1200 Вт', Бак: '8 л' },
     createdAt: '2026-01-01T00:00:00.000Z',
@@ -212,6 +212,16 @@ test('built runtime returns SEO-complete HTML, safe state and failure status', a
   const productHtml = await productPage.text()
   assert.match(productHtml, /<script[^>]*type="application\/ld\+json"[^>]*>/)
   assert.doesNotMatch(productHtml, /127\.0\.0\.1/, 'public HTML must not expose the loopback API origin')
+  assert.match(productHtml, /https:\/\/api\.vozmimenya\.ru\/uploads\/test-equipment\.webp/)
+  assert.doesNotMatch(productHtml, /(?:src|srcset)="\/uploads\//)
+  assert.doesNotMatch(productHtml, /vozmimenya\.ruhttps:/)
+
+  const homePage = await fetch(`${origin}/`)
+  const homeHtml = await homePage.text()
+  assert.match(homeHtml, /https:\/\/api\.vozmimenya\.ru\/uploads\/test-equipment\.webp/)
+  assert.doesNotMatch(homeHtml, /(?:src|srcset)="\/uploads\//)
+  assert.doesNotMatch(homeHtml, /Коротко о сервисе/)
+  assert.doesNotMatch(homeHtml, /Цены на аренду техники/)
 
   api.close()
   await once(api, 'close')
