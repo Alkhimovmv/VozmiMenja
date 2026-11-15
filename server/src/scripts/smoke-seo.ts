@@ -4,6 +4,7 @@ import { tmpdir } from 'os'
 import path from 'path'
 import { existsSync } from 'fs'
 import { pagesToCheck, requiredCanonicalPaths } from './smoke-seo-config'
+import { validateRawCatalogHtml } from './smoke-seo-catalog'
 
 const defaultBaseUrl = process.env.NODE_ENV === 'production'
   ? 'https://vozmimenya.ru'
@@ -160,25 +161,8 @@ async function checkStaticCatalog(page: { path: string; minProducts: number }) {
   }
 
   const html = await response.text()
-  const productCount = (html.match(/data-static-product="true"/g) || []).length
-
-  if (!html.includes('data-static-product-catalog="true"')) {
-    throw new Error(`${url}: static product catalog is missing from raw HTML`)
-  }
-
-  if (productCount < page.minProducts) {
-    throw new Error(`${url}: expected at least ${page.minProducts} static products, got ${productCount}`)
-  }
-
-  if (!html.includes('href="/equipment/') || !html.includes('href="/booking?equipment=')) {
-    throw new Error(`${url}: static product or booking links are missing`)
-  }
-
-  if (!html.includes('1 сутки —') || !html.includes('"@type":"Product"')) {
-    throw new Error(`${url}: one-day price or Product structured data is missing`)
-  }
-
-  console.log(`✅ Static catalog ${page.path}: ${productCount} products`)
+  const result = validateRawCatalogHtml(html, url, page)
+  console.log(`✅ ${result.mode === 'ssr' ? 'SSR' : 'Static'} catalog ${page.path}: ${result.productCount} products`)
 }
 
 async function checkPage(page: { path: string; canonicalPath: string }, userDataDir: string) {
