@@ -10,6 +10,7 @@ import { CONTACT_PHONE, CONTACT_PHONE_LABEL, getTelegramUrl } from '../lib/conta
 import faqContent from '../content/faq.json'
 import seoMeta from '../content/seoMeta.json'
 import HeroPriceCta from '../components/HeroPriceCta'
+import { buildCategoryItemList } from '../lib/categoryStructuredData'
 
 export default function CategoryPylesosyPage() {
   const [page] = useState(1)
@@ -32,19 +33,7 @@ export default function CategoryPylesosyPage() {
     name: 'Аренда моющих и строительных пылесосов Karcher в Москве',
     description: 'Karcher Puzzi для мебели и ковров, WD5 для уборки после ремонта и SC4 для кухни и плитки. Постамат 24/7 и доставка по Москве.',
     url: 'https://vozmimenya.ru/arenda-pylesosov-moskva',
-    mainEntity: {
-      '@type': 'ItemList',
-      itemListElement: data?.data?.map((item, index) => ({
-        '@type': 'ListItem',
-        position: index + 1,
-        item: {
-          '@type': 'Product',
-          name: item.name,
-          image: `https://vozmimenya.ru${item.images[0]}`,
-          offers: { '@type': 'Offer', price: item.pricePerDay, priceCurrency: 'RUB' },
-        },
-      })) || [],
-    },
+    mainEntity: buildCategoryItemList(data?.data),
   }
 
   const faqStructuredData = {

@@ -8,6 +8,7 @@ import { trackEvent } from '../lib/analytics'
 import { CONTACT_PHONE, CONTACT_PHONE_LABEL, getTelegramUrl } from '../lib/contactLinks'
 import faqContent from '../content/faq.json'
 import HeroPriceCta from '../components/HeroPriceCta'
+import { buildCategoryItemList } from '../lib/categoryStructuredData'
 
 export default function CategoryAudioPage() {
   const [page] = useState(1)
@@ -48,6 +49,7 @@ export default function CategoryAudioPage() {
     name: 'Аренда колонок JBL и аудиооборудования в Москве',
     description: 'JBL PartyBox 320 и 710, микрофоны JBL и DJI Mic 2 в аренду. Самовывоз и возврат через постамат 24/7, доставка по Москве.',
     url: 'https://vozmimenya.ru/arenda-audiooborudovaniya-moskva',
+    mainEntity: buildCategoryItemList(data?.data),
   }
 
   const faqStructuredData = {

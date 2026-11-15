@@ -200,6 +200,20 @@ test('built runtime returns SEO-complete HTML, safe state and failure status', a
     }
   }
 
+  for (const route of [
+    '/arenda-pylesosov-moskva',
+    '/arenda-gopro-moskva',
+    '/arenda-audiooborudovaniya-moskva',
+  ]) {
+    const page = await fetch(`${origin}${route}`)
+    const html = await page.text()
+    assert.match(html, /"@type":"ItemList"/, `${route} must include an ItemList`)
+    assert.match(html, /"@type":"Product"/, `${route} must include Product items`)
+    assert.match(html, /https:\/\/api\.vozmimenya\.ru\/uploads\/test-equipment\.webp/, `${route} must use the public product image URL`)
+    assert.doesNotMatch(html, /vozmimenya\.ruhttps?:\/\//, `${route} must not concatenate URL origins`)
+    assert.doesNotMatch(html, /"image":"https?:\/\/(?:localhost|127\.0\.0\.1)/, `${route} must not expose loopback images in schema`)
+  }
+
   for (const route of ['/booking/success', '/missing-page']) {
     const page = await fetch(`${origin}${route}`)
     const html = await page.text()

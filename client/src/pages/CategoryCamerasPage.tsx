@@ -8,6 +8,7 @@ import { trackEvent } from '../lib/analytics'
 import { CONTACT_PHONE, CONTACT_PHONE_LABEL, getTelegramUrl } from '../lib/contactLinks'
 import faqContent from '../content/faq.json'
 import HeroPriceCta from '../components/HeroPriceCta'
+import { buildCategoryItemList } from '../lib/categoryStructuredData'
 
 export default function CategoryCamerasPage() {
   const [page] = useState(1)
@@ -30,6 +31,7 @@ export default function CategoryCamerasPage() {
     name: 'Аренда экшн-камер GoPro, Insta360 и DJI в Москве',
     description: 'GoPro 13, Insta360 X5 и DJI Osmo Pocket 3 в аренду для спорта, путешествий и влога. Постамат 24/7 и доставка по Москве.',
     url: 'https://vozmimenya.ru/arenda-gopro-moskva',
+    mainEntity: buildCategoryItemList(data?.data),
   }
 
   const faqStructuredData = {
