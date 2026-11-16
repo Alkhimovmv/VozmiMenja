@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import axios from 'axios';
 import React from 'react';
+import { readFile } from 'node:fs/promises';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { renderToStaticMarkup } from 'react-dom/server';
 
@@ -72,6 +73,7 @@ const reportHtml = renderReport({
   }],
 });
 assert.match(reportHtml, /Отчёт по каналам и предложениям/);
+assert.match(reportHtml, /Скачать CSV/);
 assert.match(reportHtml, /<table/);
 assert.match(reportHtml, /yandex/);
 assert.match(reportHtml, /winter/);
@@ -120,5 +122,12 @@ const failedHtml = renderToStaticMarkup(
   </QueryClientProvider>,
 );
 assert.match(failedHtml, /Отчёт по кампаниям временно недоступен/);
+
+const bookingsPageSource = await readFile(
+  new URL('../../pages/admin/SiteBookingsPage.tsx', import.meta.url),
+  'utf8',
+);
+assert.match(bookingsPageSource, /import LeadCampaignReport from ['"]\.\.\/\.\.\/components\/admin\/LeadCampaignReport['"]/);
+assert.match(bookingsPageSource, /<LeadCampaignReport\s*\/>/);
 
 console.log('lead campaign report component tests passed');

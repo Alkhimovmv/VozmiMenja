@@ -1,7 +1,9 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { Download } from 'lucide-react';
 import { bookingsApi, type LeadReportRow } from '../../api/admin/bookings';
 import { ADMIN_LEAD_REPORT_QUERY_KEY } from '../../lib/adminLeadReport';
+import { downloadLeadReportCsv } from '../../lib/leadReportCsv';
 
 const rubFormatter = new Intl.NumberFormat('ru-RU', {
   style: 'currency',
@@ -55,12 +57,24 @@ export default function LeadCampaignReport() {
 
   return (
     <section aria-labelledby="lead-campaign-report-title" className="overflow-hidden rounded-2xl border border-slate-200 bg-slate-50/80">
-      <div className="flex flex-col gap-1 border-b border-slate-200 bg-slate-900 px-4 py-4 text-white sm:flex-row sm:items-end sm:justify-between sm:px-5">
+      <div className="flex flex-col gap-3 border-b border-slate-200 bg-slate-900 px-4 py-4 text-white sm:flex-row sm:items-end sm:justify-between sm:px-5">
         <div>
           <p className="text-xs font-bold uppercase tracking-[0.18em] text-amber-300">Последние 14 дней</p>
           <h2 id="lead-campaign-report-title" className="mt-1 text-lg font-bold">Отчёт по каналам и предложениям</h2>
         </div>
-        <p className="text-xs text-slate-300">Текущие 14 дней рядом с предыдущими</p>
+        <div className="flex flex-col items-start gap-2 sm:items-end">
+          <p className="text-xs text-slate-300">Текущие 14 дней рядом с предыдущими</p>
+          {data && data.rows.length > 0 && (
+            <button
+              type="button"
+              onClick={() => downloadLeadReportCsv(data)}
+              className="inline-flex min-h-10 items-center gap-2 rounded-lg bg-white px-3 py-2 text-sm font-bold text-slate-900 transition-colors hover:bg-amber-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900"
+            >
+              <Download aria-hidden="true" className="h-4 w-4" />
+              Скачать CSV
+            </button>
+          )}
+        </div>
       </div>
 
       {isLoading && (

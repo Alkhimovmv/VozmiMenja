@@ -6,6 +6,7 @@ import { contactLeadsApi } from '../../api/admin/contactLeads';
 import { equipmentApi } from '../../api/admin/equipment';
 import { officesApi } from '../../api/admin/offices';
 import { rentalsApi } from '../../api/admin/rentals';
+import LeadCampaignReport from '../../components/admin/LeadCampaignReport';
 import RentalModal from '../../components/admin/RentalModal';
 import { useAuthenticatedQuery } from '../../hooks/useAuthenticatedQuery';
 import { useOffice } from '../../hooks/useOffice';
@@ -322,6 +323,8 @@ export default function SiteBookingsPage() {
           </div>
         </div>
       </div>
+
+      <LeadCampaignReport />
 
       <section className="rounded-2xl border border-amber-100 bg-amber-50/70 p-4 sm:p-5">
         {(isBookingsError || isContactLeadsError) && (
