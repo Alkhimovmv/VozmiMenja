@@ -19,8 +19,8 @@
   ],
   "sushilka-vacmaster": [
     {
-      "href": "/arenda-stroitelnogo-pylesosa-posle-remonta-moskva",
-      "label": "Уборка после ремонта строительным пылесосом"
+      "href": "/arenda-moyushchego-pylesosa-dlya-divana-kovra-moskva",
+      "label": "Сушка после химчистки дивана и ковра"
     }
   ],
   "karcher-sc4": [
@@ -59,6 +59,30 @@
     {
       "href": "/arenda-mikrofona-dlya-intervyu-moskva",
       "label": "Микрофон для интервью и съёмки"
+    }
+  ],
+  "okami-q75": [
+    {
+      "href": "/arenda-pylesosov-moskva",
+      "label": "Техника для уборки дома"
+    }
+  ],
+  "gopro-13": [
+    {
+      "href": "/arenda-gopro-moskva",
+      "label": "Экшн-камера для спорта и путешествий"
+    }
+  ],
+  "insta360-x5": [
+    {
+      "href": "/arenda-gopro-moskva",
+      "label": "360-камера для поездки и необычных ракурсов"
+    }
+  ],
+  "dji-osmo-pocket-3-creator-combo": [
+    {
+      "href": "/arenda-gopro-moskva",
+      "label": "Камера для влога и путешествия"
     }
   ]
 }

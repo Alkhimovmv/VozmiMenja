@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
+import productScenarios from './productScenarios.json'
 import { equipmentSeoProfiles, getEquipmentSeoProfile } from './equipmentSeoProfiles'
 
 const expectedSlugs = [
@@ -38,5 +39,21 @@ test('covers every production equipment slug with unique useful copy', () => {
 test('returns undefined for an unknown or missing slug', () => {
   assert.equal(getEquipmentSeoProfile(undefined), undefined)
   assert.equal(getEquipmentSeoProfile('unknown-model'), undefined)
+})
+
+test('links every production model to an existing canonical landing intent', () => {
+  const linksBySlug = productScenarios as Record<string, Array<{ href: string; label: string }>>
+  for (const slug of expectedSlugs) {
+    const links = linksBySlug[slug]
+    assert.ok(links?.length, `${slug} must have at least one scenario link`)
+    for (const link of links) {
+      assert.match(link.href, /^\/[^?#]+$/)
+      assert.ok(link.label.length >= 12)
+    }
+  }
+  assert.equal(
+    linksBySlug['sushilka-vacmaster'][0].href,
+    '/arenda-moyushchego-pylesosa-dlya-divana-kovra-moskva',
+  )
 })
 

@@ -14,6 +14,7 @@ import { getLongTermDailyPrice, getOneDayPrice, getPricingRows, getPeriodPrice }
 import { CONTACT_PHONE, CONTACT_PHONE_LABEL, getTelegramUrl, getWhatsAppUrl } from '../lib/contactLinks'
 import { equipmentPath } from '../lib/equipmentUrls'
 import equipmentBrands from '../content/equipmentBrands.json'
+import { getEquipmentSeoProfile } from '../content/equipmentSeoProfiles'
 import NotFoundPage from './NotFoundPage'
 import { useRenderEnvironment } from '../ssr/renderContext'
 
@@ -762,11 +763,16 @@ export default function EquipmentDetailsPage() {
   }
 
   const guidance = getEquipmentGuidance(equipment.category, equipment.name)
+  const seoProfile = getEquipmentSeoProfile(equipment.slug)
+  const displayedScenarios = seoProfile?.scenarios || guidance.scenarios
   const companionOffers = getCompanionOffers(equipment.category, equipment.name)
   const rentalConditions = getRentalConditions(equipment.category)
   const readyKits = getReadyKits(equipment.category, equipment.name)
   const choiceWarnings = getChoiceWarnings(equipment.category, equipment.name)
-  const equipmentFaqItems = [...guidance.faq, ...getEquipmentProcessFaq(equipment.name)]
+  const equipmentFaqItems = [
+    ...(seoProfile?.faq || guidance.faq),
+    ...getEquipmentProcessFaq(equipment.name),
+  ]
   const categoryLandingHref = getCategoryLandingHref(equipment.category)
   const categoryGuideHref = getCategoryGuideHref(equipment.category, equipment.name)
   const quickMessage = [
@@ -798,7 +804,13 @@ export default function EquipmentDetailsPage() {
     ? `, от ${formatPrice(longTermPrice.dailyPrice)}/сутки при аренде от ${longTermPrice.days} суток`
     : ''
   const seoDescription = `${equipment.name} в аренду в Москве: ${formatPrice(oneDayPrice)} за сутки${longTermText}. Самовывоз у м. Волжская и м. Динамо, доставка по Москве, бронь онлайн.`
-  const seoKeywords = `аренда ${equipment.name}, прокат ${equipment.name}, ${equipment.name} аренда Москва, взять в аренду ${equipment.name}, ${equipment.category} аренда Москва, прокат ${equipment.category}`
+  const seoKeywords = [
+    seoProfile?.primaryQuery,
+    ...(seoProfile?.aliases || []),
+    `аренда ${equipment.name}`,
+    `прокат ${equipment.name}`,
+    `${equipment.category} аренда Москва`,
+  ].filter(Boolean).join(', ')
 
   return (
     <div className="min-h-screen bg-[#F8FAFC]">
@@ -875,6 +887,11 @@ export default function EquipmentDetailsPage() {
             {/* Title */}
             {/* Тот же H1 отдаёт пререндер (generate-static-route-entrypoints.js, buildProductBody). */}
             <h1 className="text-3xl md:text-4xl font-bold text-ink mb-2">{equipment.name} в аренду</h1>
+            {seoProfile && (
+              <p className="mb-3 max-w-2xl text-sm leading-relaxed text-muted">
+                {seoProfile.intro}
+              </p>
+            )}
 
             {/* Status badge */}
             <div className="mb-3 sm:mb-6 text-sm text-muted">
@@ -998,7 +1015,7 @@ export default function EquipmentDetailsPage() {
           <div className="bg-white rounded-2xl border border-line p-6">
             <h2 className="text-xl font-bold text-ink mb-4">Для каких задач подходит</h2>
             <div className="space-y-3">
-              {guidance.scenarios.map((scenario) => (
+              {displayedScenarios.map((scenario) => (
                 <div key={scenario} className="flex items-center gap-2 text-sm text-muted">
                   <Check className="w-4 h-4 text-emerald-500 flex-shrink-0" />
                   {scenario}
@@ -1050,6 +1067,28 @@ export default function EquipmentDetailsPage() {
                 </div>
               ))}
             </div>
+          </div>
+        </div>
+
+        <div className="mt-6 rounded-2xl border border-blue-100 bg-blue-50 p-6">
+          <p className="mb-2 text-xs font-bold uppercase tracking-widest text-[#2563EB]">Где получить</p>
+          <h2 className="text-xl font-bold text-ink">Две точки самовывоза в Москве</h2>
+          <p className="mt-2 max-w-3xl text-sm leading-relaxed text-muted">
+            Выберите удобную точку. Наличие этой модели на ваши даты и адрес выдачи подтвердим после заявки.
+          </p>
+          <div className="mt-4 flex flex-wrap gap-3">
+            <Link
+              to="/arenda-tehniki-u-metro-volzhskaya-kuzminki"
+              className="rounded-xl bg-white px-4 py-2 text-sm font-semibold text-[#2563EB] ring-1 ring-blue-100 hover:ring-blue-300"
+            >
+              Самовывоз у м. Волжская
+            </Link>
+            <Link
+              to="/arenda-tehniki-u-metro-dinamo"
+              className="rounded-xl bg-white px-4 py-2 text-sm font-semibold text-[#2563EB] ring-1 ring-blue-100 hover:ring-blue-300"
+            >
+              Самовывоз у м. Динамо
+            </Link>
           </div>
         </div>
 
