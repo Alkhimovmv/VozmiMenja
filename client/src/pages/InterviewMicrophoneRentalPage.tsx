@@ -1,9 +1,11 @@
 import { Link } from 'react-router-dom'
 import { Helmet } from 'react-helmet-async'
+import seoMeta from '../content/seoMeta.json'
 import { ArrowRight, BatteryCharging, CheckCircle2, ClipboardList, MessageCircle, Mic2, Phone, RadioTower, Smartphone, Video } from 'lucide-react'
 import { trackEvent } from '../lib/analytics'
 import { CONTACT_PHONE, CONTACT_PHONE_LABEL, getTelegramUrl } from '../lib/contactLinks'
 import faqContent from '../content/faq.json'
+import HeroPriceCta from '../components/HeroPriceCta'
 
 const pageUrl = 'https://vozmimenya.ru/arenda-mikrofona-dlya-intervyu-moskva'
 const djiMicHref = '/equipment/dji-mic-2'
@@ -86,8 +88,8 @@ function handleTelegramClick(source: string) {
 }
 
 export default function InterviewMicrophoneRentalPage() {
-  const pageTitle = 'Аренда микрофона для интервью в Москве | ВозьмиМеня'
-  const pageDescription = 'Возьмите DJI Mic 2 для интервью, Reels, Shorts, блога или съемки на телефон в Москве. Поможем подобрать микрофон и комплект под задачу.'
+  const pageTitle = seoMeta['/arenda-mikrofona-dlya-intervyu-moskva'].title
+  const pageDescription = seoMeta['/arenda-mikrofona-dlya-intervyu-moskva'].description
 
   return (
     <div className="min-h-screen bg-[#F5F1E8] text-slate-900">
@@ -137,6 +139,7 @@ export default function InterviewMicrophoneRentalPage() {
               <p className="mb-8 max-w-2xl text-lg leading-8 text-slate-200">
                 Для интервью, Reels, Shorts и блога звук решает половину результата. Возьмите DJI Mic 2 на нужные даты и запишите речь чище, чем на встроенный микрофон камеры или телефона.
               </p>
+              <HeroPriceCta slugs={['dji-mic-2']} bookingHref="/booking?equipment=dji-mic-2" source="landing_interview_mic_hero" />
               <div className="flex flex-col gap-3 sm:flex-row">
                 <a
                   href={getTelegramUrl()}

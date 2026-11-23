@@ -1,5 +1,6 @@
 import { Bot } from 'node-telegram-bot-api'
 import dotenv from 'dotenv'
+import type { LeadScenario } from '../domain/leadAttribution'
 
 // Загружаем переменные окружения
 dotenv.config()
@@ -42,6 +43,8 @@ class TelegramService {
     utmSource?: string
     utmMedium?: string
     utmCampaign?: string
+    utmContent?: string
+    scenario?: LeadScenario
   }) {
     if (!this.bot || !this.chatId) {
       console.log('Telegram бот не настроен, уведомление не отправлено')
@@ -73,9 +76,11 @@ class TelegramService {
         message += `\n\n💬 <b>Комментарий:</b>\n${this.escapeHtml(data.comment)}`
       }
 
-      if (source || data.sourcePage || data.referrer) {
+      if (source || data.utmContent || data.scenario || data.sourcePage || data.referrer) {
         message += `\n\n📈 <b>Источник:</b>`
         if (source) message += `\n• UTM: ${this.escapeHtml(source)}`
+        if (data.utmContent) message += `\n• UTM content: ${this.escapeHtml(data.utmContent)}`
+        if (data.scenario) message += `\n• Сценарий: ${this.escapeHtml(data.scenario)}`
         if (data.sourcePage) message += `\n• Страница: ${this.escapeHtml(data.sourcePage)}`
         if (data.referrer) message += `\n• Referrer: ${this.escapeHtml(data.referrer)}`
       }
@@ -101,6 +106,18 @@ class TelegramService {
     email?: string
     subject: string
     message: string
+    sourcePage?: string
+    referrer?: string
+    utmSource?: string
+    utmMedium?: string
+    utmCampaign?: string
+    utmContent?: string
+    scenario?: LeadScenario
+    officeId?: number
+    officeName?: string
+    deliveryMethod?: 'pickup' | 'delivery'
+    preferredContact?: 'phone' | 'telegram' | 'whatsapp'
+    equipmentIds?: string[]
   }) {
     if (!this.bot || !this.chatId) {
       console.log('Telegram бот не настроен, сообщение не отправлено')
@@ -115,19 +132,37 @@ class TelegramService {
         other: 'Другое'
       }
 
-      const message = `
+      const subject = subjectLabels[data.subject] || data.subject
+      let message = `
 📨 <b>Новое сообщение с формы обратной связи</b>
 
-📋 <b>Тема:</b> ${subjectLabels[data.subject] || data.subject}
+📋 <b>Тема:</b> ${this.escapeHtml(subject)}
 
 👤 <b>Контакт:</b>
-• Имя: ${data.name}
-• Телефон: ${data.phone}
-• Email: ${data.email || 'не указан'}
+• Имя: ${this.escapeHtml(data.name)}
+• Телефон: ${this.escapeHtml(data.phone)}
+• Email: ${data.email ? this.escapeHtml(data.email) : 'не указан'}
 
 💬 <b>Сообщение:</b>
-${data.message}
-      `.trim()
+${this.escapeHtml(data.message)}`.trim()
+
+      if (data.officeName) message += `\n\n🏢 <b>Офис:</b> ${this.escapeHtml(data.officeName)}`
+      if (data.officeId) message += `\n• ID офиса: ${data.officeId}`
+      if (data.deliveryMethod) message += `\n• Получение: ${this.escapeHtml(data.deliveryMethod)}`
+      if (data.preferredContact) message += `\n• Связь: ${this.escapeHtml(data.preferredContact)}`
+      if (data.equipmentIds?.length) {
+        message += `\n• Оборудование: ${this.escapeHtml(data.equipmentIds.join(', '))}`
+      }
+
+      const source = [data.utmSource, data.utmMedium, data.utmCampaign].filter(Boolean).join(' / ')
+      if (source || data.utmContent || data.scenario || data.sourcePage || data.referrer) {
+        message += `\n\n📈 <b>Источник:</b>`
+        if (source) message += `\n• UTM: ${this.escapeHtml(source)}`
+        if (data.utmContent) message += `\n• UTM content: ${this.escapeHtml(data.utmContent)}`
+        if (data.scenario) message += `\n• Сценарий: ${this.escapeHtml(data.scenario)}`
+        if (data.sourcePage) message += `\n• Страница: ${this.escapeHtml(data.sourcePage)}`
+        if (data.referrer) message += `\n• Referrer: ${this.escapeHtml(data.referrer)}`
+      }
 
       await this.bot.api.sendMessage({
         chat_id: this.chatId,

@@ -1,5 +1,11 @@
 import { Helmet } from 'react-helmet-async'
+import { useLocation } from 'react-router-dom'
 import business from '../content/business.json'
+import seoMeta from '../content/seoMeta.json'
+
+// Единый источник title/description/h1 для статических маршрутов: его же читает генератор статики,
+// поэтому сниппет в пререндере и после загрузки JS совпадает.
+const sharedSeo: Record<string, { title: string; description: string; h1?: string }> = seoMeta
 
 const [primaryOffice] = business.offices
 
@@ -14,6 +20,16 @@ interface SEOProps {
   structuredData?: Record<string, unknown> | Record<string, unknown>[]
 }
 
+const TITLE_MAX_LENGTH = 70
+const BRAND_SUFFIX = ' | ВозьмиМеня'
+
+// Бренд в конце title добавляем, только если он помещается в сниппет; то же правило в generate-static-route-entrypoints.js.
+function fitSiteTitle(title: string) {
+  const withBrand = title.includes('ВозьмиМеня') ? title : `${title}${BRAND_SUFFIX}`
+  if (withBrand.length <= TITLE_MAX_LENGTH) return withBrand
+  return withBrand.endsWith(BRAND_SUFFIX) ? withBrand.slice(0, -BRAND_SUFFIX.length) : withBrand
+}
+
 export default function SEO({
   title = 'ВозьмиМеня - Аренда профессионального оборудования в Москве',
   description = 'Аренда техники в Москве: колонки JBL, экшн-камеры, моющие и строительные пылесосы, пароочистители. Постамат 24/7 у м. Волжская и м. Динамо, доставка по Москве.',
@@ -24,7 +40,13 @@ export default function SEO({
   noIndex = false,
   structuredData
 }: SEOProps) {
-  const siteTitle = title.includes('ВозьмиМеня') ? title : `${title} | ВозьмиМеня`
+  const { pathname } = useLocation()
+  const shared = sharedSeo[pathname.replace(/\/+$/, '') || '/']
+  if (shared) {
+    title = shared.title
+    description = shared.description
+  }
+  const siteTitle = fitSiteTitle(title)
 
   return (
     <Helmet>
@@ -67,7 +89,7 @@ export default function SEO({
       {/* Structured Data */}
       {structuredData && (
         <script type="application/ld+json">
-          {JSON.stringify(structuredData)}
+          {JSON.stringify(structuredData).replace(/</g, '\\u003c')}
         </script>
       )}
     </Helmet>

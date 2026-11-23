@@ -1,5 +1,7 @@
 import { Camera, SprayCan, Mic2 } from 'lucide-react'
 import SEO from '../components/SEO'
+import ServiceFacts from '../components/ServiceFacts'
+import { Link } from 'react-router-dom'
 
 export default function AboutPage() {
   return (
@@ -37,6 +39,7 @@ export default function AboutPage() {
                 <p>Мы верим, что каждый должен иметь доступ к качественному оборудованию для воплощения своих идей в жизнь.</p>
                 <p>Будь то креативный проект, бизнес-мероприятие или домашние задачи — у нас есть всё необходимое в отличном состоянии.</p>
                 <p>Наша цель — предоставить качественные решения по доступным ценам, помогая клиентам реализовывать проекты без необходимости покупки дорогостоящей техники.</p>
+                <p>Статьи и гайды в <Link to="/blog" className="text-[#2563EB] font-semibold hover:underline">блоге</Link> готовит Максим Алхимов из команды ВозьмиМеня.</p>
               </div>
             </div>
 
@@ -109,6 +112,8 @@ export default function AboutPage() {
           </div>
         </div>
       </section>
+
+      <ServiceFacts showLegal />
     </div>
   )
 }

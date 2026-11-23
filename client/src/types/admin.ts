@@ -37,6 +37,7 @@ export interface RentalEquipment {
   quantity: number;
   description?: string;
   base_price: number | null;
+  catalog_equipment_id?: string | null;
   office_id?: number;
   instances?: RentalEquipmentInstance[];
   created_at: string;
@@ -49,8 +50,15 @@ export interface CreateRentalEquipmentDto {
   quantity: number;
   description?: string;
   base_price: number | null;
+  catalog_equipment_id?: string | null;
   office_id?: number;
   instances?: RentalEquipmentInstance[];
+}
+
+export interface CatalogEquipmentOption {
+  id: string;
+  name: string;
+  category: string;
 }
 
 export type RentalSource = 'авито' | 'сайт' | 'рекомендация' | 'карты';
@@ -142,6 +150,21 @@ export interface RentalAvailabilityResult {
   conflicting_rentals: Rental[];
 }
 
+export interface RentalPriceQuote {
+  complete: boolean;
+  rental_days?: number;
+  total?: number;
+  items?: Array<{
+    rental_equipment_id: number;
+    rental_equipment_name: string;
+    catalog_equipment_id: string;
+    catalog_equipment_name: string;
+    total: number;
+  }>;
+  unresolved_equipment_ids: number[];
+  message?: string;
+}
+
 export interface CustomerNote {
   customer_phone: string;
   tag: CustomerTag;
@@ -175,6 +198,8 @@ export interface EquipmentUtilization {
   office_id: number | null;
   total_rentals: number;
   rented_days: number;
+  idle_days: number;
+  observation_days: number;
   total_revenue: number;
   average_revenue: number;
   utilization_percent: number;

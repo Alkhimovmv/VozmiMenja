@@ -6,12 +6,33 @@ import { contactLeadsApi } from '../../api/admin/contactLeads';
 import { equipmentApi } from '../../api/admin/equipment';
 import { officesApi } from '../../api/admin/offices';
 import { rentalsApi } from '../../api/admin/rentals';
+import LeadCampaignReport from '../../components/admin/LeadCampaignReport';
 import RentalModal from '../../components/admin/RentalModal';
 import { useAuthenticatedQuery } from '../../hooks/useAuthenticatedQuery';
 import { useOffice } from '../../hooks/useOffice';
-import type { Booking, ContactLead, CreateRentalDto, Equipment } from '../../types';
+import type { Booking, ContactLead, CreateRentalDto } from '../../types';
+import type { RentalEquipment } from '../../types/admin';
 import { getApiErrorMessage } from '../../lib/apiError';
-import { buildRentalFromBooking, formatLeadSource, formatSourcePage, getBookingEquipmentNames } from '../../lib/adminLeadConversion';
+import {
+  buildRentalFromBooking,
+  extractBookingRentalTimes,
+  formatBookingDateTime,
+  getBookingEquipmentNames,
+  resolveBookingEquipmentMappings,
+} from '../../lib/adminLeadConversion';
+import { invalidateAdminLeadReport } from '../../lib/adminLeadReport';
+import {
+  getBookingUrgency,
+  sortBookingsByOperationalPriority,
+  type BookingUrgency,
+} from '../../lib/adminBookingPriorities';
+
+const URGENCY_BADGES: Record<BookingUrgency, { label: string; className: string }> = {
+  past: { label: 'Дата прошла', className: 'bg-red-100 text-red-800 ring-red-200' },
+  today: { label: 'Сегодня', className: 'bg-orange-100 text-orange-800 ring-orange-200' },
+  tomorrow: { label: 'Завтра', className: 'bg-yellow-100 text-yellow-800 ring-yellow-200' },
+  later: { label: 'Позже', className: 'bg-slate-100 text-slate-700 ring-slate-200' },
+};
 
 const formatContactSubject = (subject: string) => {
   const labels: Record<string, string> = {
@@ -22,21 +43,15 @@ const formatContactSubject = (subject: string) => {
   return labels[subject] || subject;
 };
 
-const extractBookingContext = (comment?: string) => {
-  if (!comment) {
-    return { scenario: null as string | null, managerHint: null as string | null, customerNote: null as string | null };
-  }
+const extractCustomerNote = (comment?: string) => {
+  if (!comment) return null;
 
   const lines = comment.split('\n').map((line) => line.trim()).filter(Boolean);
-  const scenarioLine = lines.find((line) => line.toLowerCase().startsWith('сценарий:'));
-  const managerLine = lines.find((line) => line.toLowerCase().startsWith('подсказка менеджеру:'));
-  const rest = lines.filter((line) => line !== scenarioLine && line !== managerLine).join('\n');
-
-  return {
-    scenario: scenarioLine ? scenarioLine.replace(/^сценарий:\s*/i, '') : null,
-    managerHint: managerLine ? managerLine.replace(/^подсказка менеджеру:\s*/i, '') : null,
-    customerNote: rest || (scenarioLine || managerLine ? null : comment),
-  };
+  const customerLines = lines.filter((line) => (
+    !line.toLowerCase().startsWith('сценарий:')
+    && !line.toLowerCase().startsWith('подсказка менеджеру:')
+  ));
+  return customerLines.join('\n') || null;
 };
 
 const formatBookingAge = (createdAt: string) => {
@@ -70,23 +85,6 @@ const formatBookingPeriod = (booking: Booking) => {
   return `${start} — ${end}`;
 };
 
-const copyTextToClipboard = async (text: string) => {
-  if (navigator.clipboard?.writeText) {
-    await navigator.clipboard.writeText(text);
-    return;
-  }
-
-  const textarea = document.createElement('textarea');
-  textarea.value = text;
-  textarea.setAttribute('readonly', '');
-  textarea.style.position = 'fixed';
-  textarea.style.top = '-9999px';
-  document.body.appendChild(textarea);
-  textarea.select();
-  document.execCommand('copy');
-  document.body.removeChild(textarea);
-};
-
 const getErrorMessage = (error: unknown) =>
   error instanceof Error ? error.message : 'Не удалось загрузить данные';
 
@@ -118,17 +116,12 @@ export default function SiteBookingsPage() {
     queryFn: contactLeadsApi.getAll,
     retry: false,
   });
-  const { data: equipment = [] } = useAuthenticatedQuery<Equipment[]>(['equipment-rental', currentOfficeId], () => equipmentApi.getForRental(currentOfficeId));
+  const { data: equipment = [] } = useAuthenticatedQuery<RentalEquipment[]>(['equipment-rental', currentOfficeId], () => equipmentApi.getForRental(currentOfficeId));
   const { data: offices = [] } = useAuthenticatedQuery(['offices'], officesApi.getAll);
-
   const openBookings = useMemo(
-    () => bookings
-      .filter((booking) => booking.status === 'pending' || booking.status === 'confirmed')
-      .sort((a, b) => {
-        if (a.status === 'pending' && b.status !== 'pending') return -1;
-        if (a.status !== 'pending' && b.status === 'pending') return 1;
-        return getBookingSortTime(b.createdAt) - getBookingSortTime(a.createdAt);
-      }),
+    () => sortBookingsByOperationalPriority(
+      bookings.filter((booking) => booking.status === 'pending' || booking.status === 'confirmed'),
+    ),
     [bookings]
   );
   const archivedBookings = useMemo(
@@ -191,8 +184,11 @@ export default function SiteBookingsPage() {
 
   const deleteBookingMutation = useMutation({
     mutationFn: bookingsApi.delete,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin-bookings'] });
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['admin-bookings'] }),
+        invalidateAdminLeadReport(queryClient),
+      ]);
       toast.success('Заявка удалена');
     },
     onError: (error: unknown) => {
@@ -202,8 +198,11 @@ export default function SiteBookingsPage() {
 
   const deleteContactLeadMutation = useMutation({
     mutationFn: contactLeadsApi.delete,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin-contact-leads'] });
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['admin-contact-leads'] }),
+        invalidateAdminLeadReport(queryClient),
+      ]);
       toast.success('Обращение удалено');
     },
     onError: (error: unknown) => {
@@ -218,21 +217,69 @@ export default function SiteBookingsPage() {
       const officeEquipment = targetOfficeId === currentOfficeId
         ? equipment
         : await equipmentApi.getForRental(targetOfficeId);
-      setInitialRentalData(buildRentalFromBooking(booking, officeEquipment as Equipment[], targetOfficeId, window.location.origin));
+      const mappings = resolveBookingEquipmentMappings(booking, officeEquipment);
+      const mappedEquipment = mappings.flatMap((mapping) => mapping.adminEquipment ? [mapping.adminEquipment] : []);
+      const rentalTimes = extractBookingRentalTimes(booking);
+      const startDateTime = formatBookingDateTime(booking.startDate, rentalTimes.startTime);
+      const endDateTime = formatBookingDateTime(booking.endDate, rentalTimes.endTime);
+      const availabilityResults = await Promise.allSettled(
+        mappedEquipment.map((item) => rentalsApi.checkAvailability(
+          item.id,
+          startDateTime,
+          endDateTime,
+          targetOfficeId,
+        ))
+      );
+      const availableInstancesByEquipmentId: Record<number, number[]> = {};
+      const availabilityCheckFailedEquipmentIds: number[] = [];
+
+      availabilityResults.forEach((result, index) => {
+        const equipmentId = mappedEquipment[index].id;
+        if (result.status === 'fulfilled') {
+          availableInstancesByEquipmentId[equipmentId] = result.value.available_instances;
+        } else {
+          availableInstancesByEquipmentId[equipmentId] = [];
+          availabilityCheckFailedEquipmentIds.push(equipmentId);
+        }
+      });
+
+      const missingNames = mappings
+        .filter((mapping) => !mapping.adminEquipment)
+        .map((mapping) => mapping.bookingEquipment.name);
+      const occupiedNames = mappings
+        .filter((mapping) => (
+          mapping.adminEquipment
+          && !availabilityCheckFailedEquipmentIds.includes(mapping.adminEquipment.id)
+          && (availableInstancesByEquipmentId[mapping.adminEquipment.id]?.length || 0) === 0
+        ))
+        .map((mapping) => mapping.bookingEquipment.name);
+      const failedNames = mappings
+        .filter((mapping) => (
+          mapping.adminEquipment
+          && availabilityCheckFailedEquipmentIds.includes(mapping.adminEquipment.id)
+        ))
+        .map((mapping) => mapping.bookingEquipment.name);
+
+      setInitialRentalData(buildRentalFromBooking(
+        booking,
+        officeEquipment,
+        targetOfficeId,
+        window.location.origin,
+        { availableInstancesByEquipmentId, availabilityCheckFailedEquipmentIds },
+      ));
       setIsRentalModalOpen(true);
+      const warnings = [
+        missingNames.length ? `нет связи с офисом: ${missingNames.join(', ')}` : '',
+        occupiedNames.length ? `все экземпляры заняты: ${occupiedNames.join(', ')}` : '',
+        failedNames.length ? `не удалось проверить занятость: ${failedNames.join(', ')}` : '',
+      ].filter(Boolean);
+      if (warnings.length > 0) {
+        toast.error(`Заявка сохранена, нужен ручной выбор — ${warnings.join('; ')}`, { duration: 7000 });
+      }
     } catch {
       setInitialRentalData(buildRentalFromBooking(booking, [], targetOfficeId, window.location.origin));
       setIsRentalModalOpen(true);
       toast.error('Не удалось загрузить оборудование офиса заявки — открыл без автоподбора');
-    }
-  };
-
-  const handleCopyReply = async (text: string) => {
-    try {
-      await copyTextToClipboard(text);
-      toast.success('Номер скопирован');
-    } catch {
-      toast.error('Не удалось скопировать номер');
     }
   };
 
@@ -277,6 +324,8 @@ export default function SiteBookingsPage() {
         </div>
       </div>
 
+      <LeadCampaignReport />
+
       <section className="rounded-2xl border border-amber-100 bg-amber-50/70 p-4 sm:p-5">
         {(isBookingsError || isContactLeadsError) && (
           <div className="mb-4 rounded-2xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-800">
@@ -286,8 +335,7 @@ export default function SiteBookingsPage() {
         )}
         <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <p className="text-xs font-bold uppercase tracking-widest text-amber-700">Inbox</p>
-            <h2 className="mt-1 text-lg font-bold text-gray-900">Новые лиды, которые ждут обработки</h2>
+            <h2 className="text-lg font-bold text-gray-900">Новые лиды, которые ждут обработки</h2>
           </div>
           <div className="text-sm font-semibold text-amber-800">
             {activeCount} активных из {totalCount}{isContactLeadsLoading ? ' · обращения загружаются' : ''}
@@ -325,8 +373,9 @@ export default function SiteBookingsPage() {
           {visibleBookings.map((booking) => (
             <div key={booking.id} className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-amber-100">
               {(() => {
-                const bookingContext = extractBookingContext(booking.comment);
+                const customerNote = extractCustomerNote(booking.comment);
                 const equipmentNames = getBookingEquipmentNames(booking);
+                const urgency = URGENCY_BADGES[getBookingUrgency(booking.startDate)];
                 return (
               <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                 <div className="min-w-0">
@@ -346,6 +395,11 @@ export default function SiteBookingsPage() {
                           ? 'Обработана'
                           : 'Отменена'}
 	                    </span>
+                    {viewMode === 'active' && (
+                      <span className={`rounded-full px-2.5 py-1 text-xs font-bold ring-1 ${urgency.className}`}>
+                        {urgency.label}
+                      </span>
+                    )}
                     <span className="rounded-full bg-amber-50 px-2.5 py-1 text-xs font-bold text-amber-700">
                       {formatBookingAge(booking.createdAt)}
                     </span>
@@ -358,76 +412,19 @@ export default function SiteBookingsPage() {
                     <a href={`tel:${booking.customerPhone}`} className="font-semibold text-indigo-600 hover:underline">{booking.customerPhone}</a>
                     <span>{formatBookingPeriod(booking)}</span>
                     <span className="font-semibold text-gray-900">{booking.totalPrice}₽</span>
-                  </div>
-                  <div className="mt-2 flex flex-wrap gap-2 text-xs">
-                    <span className="rounded-full bg-gray-100 px-2.5 py-1 font-semibold text-gray-700">
-                      Источник: {formatLeadSource(booking)}
-                    </span>
-                    <span className="rounded-full bg-gray-100 px-2.5 py-1 font-semibold text-gray-700">
-                      Страница: {formatSourcePage(booking.sourcePage)}
-                    </span>
-                    {booking.preferredContact && (
-                      <span className="rounded-full bg-blue-50 px-2.5 py-1 font-semibold text-blue-700">
-                        Связь: {booking.preferredContact}
-                      </span>
-                    )}
-                    {booking.deliveryMethod && (
-                      <span className="rounded-full bg-violet-50 px-2.5 py-1 font-semibold text-violet-700">
-                        {booking.deliveryMethod === 'delivery' ? 'Доставка' : 'Самовывоз'}
-                      </span>
-                    )}
-                    {booking.officeName && (
-                      <span className="rounded-full bg-slate-100 px-2.5 py-1 font-semibold text-slate-700">
-                        Офис: {booking.officeName}
-                      </span>
-                    )}
+                    {booking.officeName && <span>Офис: {booking.officeName}</span>}
+                    <span>{booking.deliveryMethod === 'delivery' ? 'Доставка' : 'Самовывоз'}</span>
                   </div>
                   {booking.deliveryAddress && (
-                    <div className="mt-3 grid gap-2 md:grid-cols-2">
-                      {booking.deliveryAddress && (
-                        <div className="rounded-xl bg-violet-50 px-3 py-2 text-sm text-violet-900 ring-1 ring-violet-100">
-                          <span className="block text-xs font-bold uppercase tracking-wide text-violet-600">Адрес доставки</span>
-                          {booking.deliveryAddress}
-                        </div>
-                      )}
+                    <div className="mt-2 rounded-xl bg-violet-50 px-3 py-2 text-sm text-violet-900 ring-1 ring-violet-100">
+                      <span className="font-bold text-violet-700">Адрес: </span>{booking.deliveryAddress}
                     </div>
                   )}
-                  {(bookingContext.scenario || bookingContext.managerHint) && (
-                    <div className="mt-3 grid gap-2 md:grid-cols-2">
-                      {bookingContext.scenario && (
-                        <div className="rounded-xl bg-indigo-50 px-3 py-2 text-sm text-indigo-900 ring-1 ring-indigo-100">
-                          <span className="block text-xs font-bold uppercase tracking-wide text-indigo-500">Сценарий</span>
-                          {bookingContext.scenario}
-                        </div>
-                      )}
-                      {bookingContext.managerHint && (
-                        <div className="rounded-xl bg-emerald-50 px-3 py-2 text-sm text-emerald-900 ring-1 ring-emerald-100">
-                          <span className="block text-xs font-bold uppercase tracking-wide text-emerald-600">Проверить комплект</span>
-                          {bookingContext.managerHint}
-                        </div>
-                      )}
-                    </div>
-                  )}
-                  {bookingContext.customerNote && (
+                  {customerNote && (
                     <p className="mt-2 max-w-3xl whitespace-pre-wrap rounded-xl bg-amber-50 px-3 py-2 text-sm text-gray-700 ring-1 ring-amber-100">
-                      {bookingContext.customerNote}
+                      {customerNote}
                     </p>
                   )}
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    <a
-                      href={`tel:${booking.customerPhone}`}
-                      className="rounded-lg bg-gray-900 px-3 py-2 text-xs font-bold text-white hover:bg-gray-800"
-                    >
-                      Позвонить
-                    </a>
-                    <button
-                      type="button"
-                      onClick={() => handleCopyReply(booking.customerPhone)}
-                      className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-100"
-                    >
-                      Скопировать номер
-                    </button>
-                  </div>
                 </div>
 
                 <div className="flex flex-col gap-2 sm:flex-row">
@@ -486,40 +483,9 @@ export default function SiteBookingsPage() {
                     <a href={`tel:${lead.phone}`} className="font-semibold text-indigo-600 hover:underline">{lead.phone}</a>
                     {lead.email && <a href={`mailto:${lead.email}`} className="font-semibold text-indigo-600 hover:underline">{lead.email}</a>}
                   </div>
-                  <div className="mt-2 flex flex-wrap gap-2 text-xs">
-                    <span className="rounded-full bg-gray-100 px-2.5 py-1 font-semibold text-gray-700">
-                      Источник: {formatLeadSource(lead)}
-                    </span>
-                    <span className="rounded-full bg-gray-100 px-2.5 py-1 font-semibold text-gray-700">
-                      Страница: {formatSourcePage(lead.sourcePage)}
-                    </span>
-                  </div>
                   <p className="mt-2 max-w-3xl whitespace-pre-wrap rounded-xl bg-amber-50 px-3 py-2 text-sm text-gray-700 ring-1 ring-amber-100">
                     {lead.message}
                   </p>
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    <a
-                      href={`tel:${lead.phone}`}
-                      className="rounded-lg bg-gray-900 px-3 py-2 text-xs font-bold text-white hover:bg-gray-800"
-                    >
-                      Позвонить
-                    </a>
-                    <button
-                      type="button"
-                      onClick={() => handleCopyReply(lead.phone)}
-                      className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-100"
-                    >
-                      Скопировать номер
-                    </button>
-                    {lead.email && (
-                      <a
-                        href={`mailto:${lead.email}`}
-                        className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-100"
-                      >
-                        Email
-                      </a>
-                    )}
-                  </div>
                 </div>
 
                 <div className="flex flex-col gap-2 sm:flex-row">

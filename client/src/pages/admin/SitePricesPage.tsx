@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
-import { Save } from 'lucide-react'
+import { AlertTriangle, CheckCircle2, Save } from 'lucide-react'
 import { apiClient } from '../../lib/api'
+import { analyticsApi } from '../../api/admin/analytics'
 import type { Equipment, PricingTier } from '../../types'
+import { getPricingConsistencyIssues } from '../../lib/pricingConsistency'
 
 const priceFields: Array<{
   key: keyof PricingTier
@@ -50,8 +52,21 @@ export default function SitePricesPage() {
     queryKey: ['public-equipment-prices'],
     queryFn: () => apiClient.getEquipment({ limit: 200 }),
   })
+  const {
+    data: contentAudit,
+    isLoading: isContentAuditLoading,
+    isError: isContentAuditError,
+  } = useQuery({
+    queryKey: ['analytics', 'content-price-audit'],
+    queryFn: analyticsApi.getContentPriceAudit,
+  })
 
   const equipment = useMemo(() => data?.data ?? [], [data?.data])
+
+  const issueCount = useMemo(() => equipment.reduce((total, item) => {
+    const pricing = drafts[item.id] ?? buildPricing(item)
+    return total + getPricingConsistencyIssues(pricing, item.pricePerDay).length
+  }, 0), [drafts, equipment])
 
   useEffect(() => {
     if (equipment.length === 0) return
@@ -86,6 +101,7 @@ export default function SitePricesPage() {
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['public-equipment-prices'] })
       await queryClient.invalidateQueries({ queryKey: ['equipment'] })
+      await queryClient.invalidateQueries({ queryKey: ['analytics', 'content-price-audit'] })
       toast.success('Цены сохранены')
     },
     onError: (mutationError) => {
@@ -140,10 +156,68 @@ export default function SitePricesPage() {
         />
       </div>
 
+      <section className={`rounded-lg border px-4 py-3 text-sm ${
+        contentAudit?.issues.length
+          ? 'border-amber-200 bg-amber-50 text-amber-900'
+          : isContentAuditError
+          ? 'border-red-200 bg-red-50 text-red-800'
+          : 'border-emerald-200 bg-emerald-50 text-emerald-900'
+      }`}>
+        {isContentAuditLoading ? (
+          <div className="text-gray-600">Проверяем цены на страницах и в статьях…</div>
+        ) : isContentAuditError ? (
+          <div className="flex items-start gap-2">
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+            <span>Не удалось проверить цены в публичном контенте.</span>
+          </div>
+        ) : contentAudit && contentAudit.issues.length > 0 ? (
+          <details>
+            <summary className="flex cursor-pointer list-none items-center gap-2 font-semibold">
+              <AlertTriangle className="h-4 w-4 shrink-0" />
+              На страницах есть расхождения: {contentAudit.issues.length}
+              <span className="ml-auto text-xs font-normal text-amber-700">Показать</span>
+            </summary>
+            <ul className="mt-3 space-y-2 border-t border-amber-200 pt-3">
+              {contentAudit.issues.map((issue, index) => (
+                <li key={`${issue.location}-${index}`}>
+                  <span className="font-semibold">{issue.location}:</span> {issue.message}
+                </li>
+              ))}
+            </ul>
+            <p className="mt-3 text-xs text-amber-700">
+              Автоматически ничего не меняется. Эти расхождения остановят следующий deploy до исправления текста.
+            </p>
+          </details>
+        ) : (
+          <div className="flex items-start gap-2">
+            <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
+            <div>
+              <div className="font-semibold">Цены на страницах согласованы с каталогом</div>
+              <div className="mt-0.5 text-xs text-emerald-700">
+                Проверено позиций: {contentAudit?.equipmentCount || 0}, статей: {contentAudit?.articleCount || 0}.
+              </div>
+            </div>
+          </div>
+        )}
+      </section>
+
+      {issueCount > 0 && (
+        <div className="flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0" />
+          <div>
+            <div className="font-semibold">Найдено несоответствий: {issueCount}</div>
+            <div className="mt-0.5 text-xs text-amber-800">
+              Цены автоматически не меняются. Проверьте предупреждения у конкретных позиций.
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="space-y-4">
         {filteredEquipment.map((item) => {
           const pricing = drafts[item.id] ?? buildPricing(item)
           const isSaving = saveMutation.isPending && saveMutation.variables?.id === item.id
+          const pricingIssues = getPricingConsistencyIssues(pricing, item.pricePerDay)
 
           return (
             <section key={item.id} className="rounded-lg bg-white p-4 shadow sm:p-5">
@@ -180,6 +254,18 @@ export default function SitePricesPage() {
                   </label>
                 ))}
               </div>
+
+              {pricingIssues.length > 0 && (
+                <div className="mt-4 rounded-md border border-amber-200 bg-amber-50 px-3 py-2">
+                  <div className="flex items-center gap-2 text-sm font-semibold text-amber-900">
+                    <AlertTriangle className="h-4 w-4" />
+                    Проверить цены
+                  </div>
+                  <ul className="mt-1 list-disc space-y-1 pl-5 text-xs text-amber-800">
+                    {pricingIssues.map((issue) => <li key={issue.code}>{issue.message}</li>)}
+                  </ul>
+                </div>
+              )}
             </section>
           )
         })}

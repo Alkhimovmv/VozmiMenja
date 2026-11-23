@@ -1,9 +1,9 @@
-import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { articlesApi } from '../api/articles'
-import { apiClient } from '../lib/api'
+import { useQuery } from '@tanstack/react-query'
+import { articleQueries } from '../query/articleQueries'
+import { equipmentQueries } from '../query/equipmentQueries'
 import SEO from '../components/SEO'
-import type { Article, Equipment } from '../types'
+import type { Equipment } from '../types'
 import { equipmentPath } from '../lib/equipmentUrls'
 
 const staticPages = [
@@ -15,7 +15,6 @@ const staticPages = [
   { href: '/arenda-kolonki-dlya-vecherinki-moskva', label: 'Аренда колонки для вечеринки' },
   { href: '/arenda-karaoke-komplekta-moskva', label: 'Аренда караоке-комплекта' },
   { href: '/arenda-paroochistitelya-dlya-kuhni-plitki-vannoy-moskva', label: 'Аренда пароочистителя для кухни и плитки' },
-  { href: '/arenda-kamery-dlya-puteshestviya-vloga-moskva', label: 'Аренда камеры для путешествия и влога' },
   { href: '/arenda-gopro-moskva', label: 'Аренда GoPro и камер в Москве' },
   { href: '/arenda-audiooborudovaniya-moskva', label: 'Аренда аудиооборудования в Москве' },
   { href: '/blog', label: 'Блог' },
@@ -24,6 +23,7 @@ const staticPages = [
   { href: '/booking', label: 'Оформить бронь онлайн' },
   { href: '/kak-prohodit-arenda-tehniki', label: 'Как проходит аренда техники' },
   { href: '/samovyvoz-24-7-postamat', label: 'Самовывоз 24/7 и постамат' },
+  { href: '/arenda-tehniki-na-mesyac-moskva', label: 'Аренда техники на месяц' },
   { href: '/arenda-tehniki-u-metro-volzhskaya-kuzminki', label: 'Аренда техники у м. Волжская и в Кузьминках' },
   { href: '/arenda-tehniki-u-metro-dinamo', label: 'Аренда техники у м. Динамо' },
   { href: '/arenda-tehniki-dlya-meropriyatiya-moskva', label: 'Аренда техники для мероприятия' },
@@ -40,50 +40,15 @@ const staticPages = [
 ]
 
 export default function SitemapPage() {
-  const [equipment, setEquipment] = useState<Equipment[]>([])
-  const [articles, setArticles] = useState<Article[]>([])
-  const [loading, setLoading] = useState(true)
-  const [equipmentLoadError, setEquipmentLoadError] = useState(false)
-  const [articlesLoadError, setArticlesLoadError] = useState(false)
-
-  useEffect(() => {
-    let isMounted = true
-
-    setLoading(true)
-    setEquipmentLoadError(false)
-    setArticlesLoadError(false)
-
-    Promise.allSettled([
-      apiClient.getEquipment({ limit: 200 }),
-      articlesApi.getAll(),
-    ])
-      .then(([equipmentResult, articlesResult]) => {
-        if (!isMounted) return
-
-        if (equipmentResult.status === 'fulfilled') {
-          setEquipment([...equipmentResult.value.data].sort((a, b) => a.name.localeCompare(b.name, 'ru')))
-        } else {
-          console.error('Error loading sitemap equipment:', equipmentResult.reason)
-          setEquipmentLoadError(true)
-        }
-
-        if (articlesResult.status === 'fulfilled') {
-          setArticles([...articlesResult.value].sort((a, b) => a.title.localeCompare(b.title, 'ru')))
-        } else {
-          console.error('Error loading sitemap articles:', articlesResult.reason)
-          setArticlesLoadError(true)
-        }
-      })
-      .finally(() => {
-        if (isMounted) {
-          setLoading(false)
-        }
-      })
-
-    return () => {
-      isMounted = false
-    }
-  }, [])
+  const equipmentQuery = useQuery(equipmentQueries.list({ limit: 200 }))
+  const articlesQuery = useQuery(articleQueries.list('all'))
+  const equipment = [...(equipmentQuery.data?.data || [])]
+    .sort((a, b) => a.name.localeCompare(b.name, 'ru'))
+  const articles = [...(articlesQuery.data || [])]
+    .sort((a, b) => a.title.localeCompare(b.title, 'ru'))
+  const loading = equipmentQuery.isLoading || articlesQuery.isLoading
+  const equipmentLoadError = equipmentQuery.isError
+  const articlesLoadError = articlesQuery.isError
 
   const groupedEquipment = equipment.reduce<Record<string, Equipment[]>>((acc, item) => {
     acc[item.category] = [...(acc[item.category] || []), item]

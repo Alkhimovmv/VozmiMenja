@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import type { Equipment } from '../../types'
-import { getImageUrl } from '../../lib/utils'
+import { fetchPriorityAttr, getImageSrcSet, getImageUrl } from '../../lib/utils'
 import { trackEvent } from '../../lib/analytics'
 import BookingForm from './BookingForm'
 import { equipmentPath } from '../../lib/equipmentUrls'
@@ -14,6 +14,10 @@ interface EquipmentCardProps {
 export default function EquipmentCard({ equipment, priority = false }: EquipmentCardProps) {
   const [showBookingForm, setShowBookingForm] = useState(false)
   const dayPrice = equipment.pricing?.day1 || equipment.pricePerDay
+  // Тариф пт–вс дороже обычных суток: показываем его сразу, чтобы сумма в брони на выходные не была сюрпризом.
+  const weekendPrice = equipment.pricing?.weekendDay && equipment.pricing.weekendDay > dayPrice
+    ? equipment.pricing.weekendDay
+    : undefined
   const detailsHref = equipmentPath(equipment)
 
   const formatPrice = (price: number) =>
@@ -31,6 +35,8 @@ export default function EquipmentCard({ equipment, priority = false }: Equipment
           <Link to={detailsHref} className="h-24 w-24 flex-shrink-0 overflow-hidden rounded-lg bg-white">
             <img
               src={getImageUrl(equipment.images[0])}
+              srcSet={getImageSrcSet(equipment.imageVariants?.[equipment.images[0]])}
+              sizes="96px"
               alt={`Аренда ${equipment.name}`}
               className="h-full w-full object-contain"
               loading={priority ? 'eager' : 'lazy'}
@@ -44,6 +50,7 @@ export default function EquipmentCard({ equipment, priority = false }: Equipment
             </Link>
             <div className="mt-2 text-xs text-gray-500">
               <strong className="text-sm text-gray-950">{formatPrice(dayPrice)}</strong> / сутки
+              {weekendPrice && <span className="block text-[11px]">в пт–вс — {formatPrice(weekendPrice)}</span>}
             </div>
             <div className="mt-2 flex flex-wrap gap-1.5">
               <span className="rounded-full bg-emerald-50 px-2 py-1 text-[10px] font-semibold text-emerald-700">Проверено</span>
@@ -65,15 +72,18 @@ export default function EquipmentCard({ equipment, priority = false }: Equipment
         </div>
       </article>
 
+      {/* sizes без 100vw: на мобильном скрытая копия выбирает тот же файл, что и мобильная карточка, и не грузится второй раз. */}
       <article className="group hidden overflow-hidden rounded-xl border border-gray-200 bg-white transition-shadow hover:shadow-md md:block">
         <Link to={detailsHref} className="block aspect-[4/3] overflow-hidden border-b border-gray-100 bg-white">
           <img
             src={getImageUrl(equipment.images[0])}
+            srcSet={getImageSrcSet(equipment.imageVariants?.[equipment.images[0]])}
+            sizes="(min-width: 1280px) 300px, 33vw"
             alt={`Аренда ${equipment.name}`}
             className="h-full w-full object-contain p-2"
             loading={priority ? 'eager' : 'lazy'}
             decoding="async"
-            fetchPriority={priority ? 'high' : 'auto'}
+            {...fetchPriorityAttr(priority ? 'high' : 'auto')}
           />
         </Link>
         <div className="p-4">
@@ -87,6 +97,8 @@ export default function EquipmentCard({ equipment, priority = false }: Equipment
           <dl className="mt-4 border-y border-gray-100 py-3">
             <dt className="text-[11px] text-gray-500">за сутки</dt>
             <dd className="mt-0.5 text-base font-semibold text-gray-950">{formatPrice(dayPrice)}</dd>
+            {/* Место под строку держим всегда, чтобы карточки в сетке не прыгали по высоте. */}
+            <dd className="min-h-4 text-[11px] leading-4 text-gray-500">{weekendPrice ? `в пт–вс — ${formatPrice(weekendPrice)}` : ''}</dd>
           </dl>
 
           <div className="mt-3 flex flex-wrap gap-2">

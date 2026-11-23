@@ -5,6 +5,7 @@ import Layout from './components/layout/Layout'
 import FloatingActions from './components/FloatingActions'
 import CookieBanner from './components/CookieBanner'
 import HomePage from './pages/HomePage'
+import redirects from './content/redirects.json'
 
 
 // Lazy loading для неосновных страниц
@@ -23,6 +24,7 @@ const SitemapPage = lazy(() => import('./pages/SitemapPage'))
 const RentalProcessPage = lazy(() => import('./pages/RentalProcessPage'))
 const SelfPickupPostamatPage = lazy(() => import('./pages/SelfPickupPostamatPage'))
 const OfficeRentalPage = lazy(() => import('./pages/OfficeRentalPage'))
+const MonthlyRentalPage = lazy(() => import('./pages/MonthlyRentalPage'))
 const EventEquipmentRentalPage = lazy(() => import('./pages/EventEquipmentRentalPage'))
 const SelfServiceBookingPage = lazy(() => import('./pages/SelfServiceBookingPage'))
 const BookingSuccessPage = lazy(() => import('./pages/BookingSuccessPage'))
@@ -35,6 +37,7 @@ const RentAdminCustomersPage = lazy(() => import('./pages/admin/CustomersPage'))
 const RentAdminFinancesPage = lazy(() => import('./pages/admin/FinancesPage'))
 const RentAdminEquipmentPage = lazy(() => import('./pages/admin/EquipmentPage'))
 const SitePricesPage = lazy(() => import('./pages/admin/SitePricesPage'))
+const BookingFunnelPage = lazy(() => import('./pages/admin/BookingFunnelPage'))
 const AdminLayout = lazy(() => import('./components/admin/Layout'))
 
 // Посадочные страницы категорий
@@ -47,7 +50,6 @@ const InterviewMicrophoneRentalPage = lazy(() => import('./pages/InterviewMicrop
 const PartySpeakerRentalPage = lazy(() => import('./pages/PartySpeakerRentalPage'))
 const KaraokeKitRentalPage = lazy(() => import('./pages/KaraokeKitRentalPage'))
 const SteamCleanerKitchenBathroomPage = lazy(() => import('./pages/SteamCleanerKitchenBathroomPage'))
-const TravelVlogCameraRentalPage = lazy(() => import('./pages/TravelVlogCameraRentalPage'))
 
 // Блог
 const BlogPage = lazy(() => import('./pages/BlogPage'))
@@ -71,6 +73,12 @@ const PageLoader = () => (
     <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
   </div>
 )
+
+// Старые адреса из content/redirects.json: сохраняем query (UTM) и hash при переходе на новый путь.
+function PermanentRedirect({ to }: { to: string }) {
+  const location = useLocation()
+  return <Navigate to={`${to}${location.search}${location.hash}`} replace />
+}
 
 function ScrollToTop() {
   const { pathname } = useLocation()
@@ -133,6 +141,7 @@ function App() {
           <Route path="/admin/customers" element={<AdminLayout><RentAdminCustomersPage /></AdminLayout>} />
           <Route path="/admin/equipment" element={<AdminLayout><RentAdminEquipmentPage /></AdminLayout>} />
           <Route path="/admin/site-prices" element={<AdminLayout><SitePricesPage /></AdminLayout>} />
+          <Route path="/admin/booking-funnel" element={<AdminLayout><BookingFunnelPage /></AdminLayout>} />
           <Route path="/admin/finances" element={<AdminLayout><RentAdminFinancesPage /></AdminLayout>} />
           <Route path="/admin/lockers" element={<AdminLayout><LockersPage /></AdminLayout>} />
           <Route path="/admin/offices" element={<AdminLayout><OfficesPage /></AdminLayout>} />
@@ -144,7 +153,6 @@ function App() {
             <Layout>
               <Routes>
                 <Route path="/" element={<HomePage />} />
-                <Route path="/equipment" element={<Navigate to="/" replace />} />
                 <Route path="/equipment/:id" element={<EquipmentDetailsPage />} />
 
                 {/* Посадочные страницы категорий */}
@@ -157,7 +165,9 @@ function App() {
                 <Route path="/arenda-kolonki-dlya-vecherinki-moskva" element={<PartySpeakerRentalPage />} />
                 <Route path="/arenda-karaoke-komplekta-moskva" element={<KaraokeKitRentalPage />} />
                 <Route path="/arenda-paroochistitelya-dlya-kuhni-plitki-vannoy-moskva" element={<SteamCleanerKitchenBathroomPage />} />
-                <Route path="/arenda-kamery-dlya-puteshestviya-vloga-moskva" element={<TravelVlogCameraRentalPage />} />
+                {Object.entries(redirects).map(([from, to]) => (
+                  <Route key={from} path={from} element={<PermanentRedirect to={to} />} />
+                ))}
 
                 {/* Блог */}
                 <Route path="/blog" element={<BlogPage />} />
@@ -170,6 +180,7 @@ function App() {
                 <Route path="/booking/success" element={<BookingSuccessPage />} />
                 <Route path="/kak-prohodit-arenda-tehniki" element={<RentalProcessPage />} />
                 <Route path="/samovyvoz-24-7-postamat" element={<SelfPickupPostamatPage />} />
+                <Route path="/arenda-tehniki-na-mesyac-moskva" element={<MonthlyRentalPage />} />
                 <Route path="/arenda-tehniki-u-metro-volzhskaya-kuzminki" element={<OfficeRentalPage officeId="office-volzhskaya" />} />
                 <Route path="/arenda-tehniki-u-metro-dinamo" element={<OfficeRentalPage officeId="office-dinamo" />} />
                 <Route path="/arenda-tehniki-dlya-meropriyatiya-moskva" element={<EventEquipmentRentalPage />} />

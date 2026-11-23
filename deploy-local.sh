@@ -26,6 +26,8 @@ NC='\033[0m' # No Color
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 PROJECT_DIR="$SCRIPT_DIR"
 NODE_VERSION="20"
+SITEMAP_SNAPSHOT_DIR=""
+SITEMAP_HAD_SOURCE=0
 
 # ================================================================================
 # Функции вывода сообщений
@@ -48,6 +50,38 @@ print_warning() {
 
 print_error() {
     echo -e "${RED}❌ $1${NC}"
+}
+
+# ================================================================================
+# Временный снимок sitemap
+# ================================================================================
+snapshot_generated_sitemap() {
+    local sitemap_path="$PROJECT_DIR/client/public/sitemap.xml"
+
+    restore_generated_sitemap
+    SITEMAP_SNAPSHOT_DIR=$(mktemp -d "${TMPDIR:-/tmp}/vozmimenya-sitemap.XXXXXX")
+    SITEMAP_HAD_SOURCE=0
+
+    if [ -f "$sitemap_path" ]; then
+        cp -p "$sitemap_path" "$SITEMAP_SNAPSHOT_DIR/sitemap.xml"
+        SITEMAP_HAD_SOURCE=1
+    fi
+}
+
+restore_generated_sitemap() {
+    [ -n "$SITEMAP_SNAPSHOT_DIR" ] || return 0
+
+    local sitemap_path="$PROJECT_DIR/client/public/sitemap.xml"
+    if [ "$SITEMAP_HAD_SOURCE" -eq 1 ]; then
+        cp -p "$SITEMAP_SNAPSHOT_DIR/sitemap.xml" "$sitemap_path"
+    else
+        rm -f "$sitemap_path"
+    fi
+
+    rm -f "$SITEMAP_SNAPSHOT_DIR/sitemap.xml"
+    rmdir "$SITEMAP_SNAPSHOT_DIR"
+    SITEMAP_SNAPSHOT_DIR=""
+    SITEMAP_HAD_SOURCE=0
 }
 
 # ================================================================================
@@ -227,8 +261,21 @@ backup_database() {
     # Бэкап VozmiMenja database (включая данные админки)
     if [ -f "server/database.sqlite" ]; then
         echo "Бэкап VozmiMenja database.sqlite..."
-        cp server/database.sqlite backups/vozmimenya-db-${BACKUP_DATE}.sqlite
-        print_success "БД сохранена: backups/vozmimenya-db-${BACKUP_DATE}.sqlite"
+        BACKUP_FILE="backups/vozmimenya-db-${BACKUP_DATE}.sqlite"
+        # Сервер в этот момент ещё работает: обычный cp может скопировать файл посреди записи.
+        # VACUUM INTO даёт согласованный снимок; cp остаётся запасным вариантом.
+        if command -v sqlite3 >/dev/null 2>&1 && sqlite3 server/database.sqlite "VACUUM INTO '${BACKUP_FILE}'"; then
+            print_success "БД сохранена (снимок sqlite3): ${BACKUP_FILE}"
+        elif (cd server && node -e "
+            const sqlite3 = require('sqlite3')
+            const db = new sqlite3.Database('database.sqlite')
+            db.run('VACUUM INTO ?', ['../${BACKUP_FILE}'], (err) => { db.close(); process.exit(err ? 1 : 0) })
+        "); then
+            print_success "БД сохранена (снимок node): ${BACKUP_FILE}"
+        else
+            cp server/database.sqlite "${BACKUP_FILE}"
+            print_warning "Снимок не удался, БД скопирована через cp: ${BACKUP_FILE}"
+        fi
     fi
 
     # Удаление старых бэкапов (старше 7 дней)
@@ -245,6 +292,10 @@ build_projects() {
     print_step "Сборка проектов"
 
     cd $PROJECT_DIR
+    # Генератор обновляет tracked client/public/sitemap.xml перед frontend-сборкой.
+    # Возвращаем исходник после копирования dist, чтобы следующий git pull не блокировался.
+    snapshot_generated_sitemap
+    trap restore_generated_sitemap EXIT
 
     # VozmiMenja Server (включая интегрированную админку)
     if [ -d "server" ] && [ -f "server/package.json" ]; then
@@ -256,7 +307,9 @@ build_projects() {
         sudo -u $SUDO_USER npm rebuild sqlite3 --build-from-source
         sudo -u $SUDO_USER NODE_OPTIONS="--max-old-space-size=512" npm run build
         sudo -u $SUDO_USER npm run seed:catalog-additions
+        sudo -u $SUDO_USER npm run migrate:catalog-equipment-links
         sudo -u $SUDO_USER npm run seed:blog-growth
+        sudo -u $SUDO_USER npm run audit:content-prices
         sudo -u $SUDO_USER npm run sitemap
 
         # Удаление dev зависимостей после сборки
@@ -297,13 +350,20 @@ build_projects() {
         # Копирование собранного frontend в директорию nginx
         if [ -d "client/dist" ]; then
             echo "Копирование Frontend в /var/www/html/vozmimenya.ru..."
-            mkdir -p /var/www/html/vozmimenya.ru
-            rm -rf /var/www/html/vozmimenya.ru/*
-            cp -r client/dist/* /var/www/html/vozmimenya.ru/
-            chown -R www-data:www-data /var/www/html/vozmimenya.ru
+            # Новую сборку готовим рядом и подменяем каталог целиком: сайт не отдаёт 404 во время копирования.
+            rm -rf /var/www/html/vozmimenya.ru.new /var/www/html/vozmimenya.ru.old
+            mkdir -p /var/www/html/vozmimenya.ru.new
+            cp -r client/dist/. /var/www/html/vozmimenya.ru.new/
+            chown -R www-data:www-data /var/www/html/vozmimenya.ru.new
+            [ -d /var/www/html/vozmimenya.ru ] && mv /var/www/html/vozmimenya.ru /var/www/html/vozmimenya.ru.old
+            mv /var/www/html/vozmimenya.ru.new /var/www/html/vozmimenya.ru
+            rm -rf /var/www/html/vozmimenya.ru.old
             print_success "Frontend развернут в /var/www/html/vozmimenya.ru"
         fi
     fi
+
+    restore_generated_sitemap
+    trap - EXIT
 
     print_success "Все проекты собраны"
 }
@@ -323,6 +383,61 @@ setup_nginx() {
 }
 
 # ================================================================================
+# Проверка SSR-артефактов и готовности локальных сервисов
+# ================================================================================
+validate_runtime_artifacts() {
+    local missing=0
+
+    if [ ! -f "$PROJECT_DIR/client/dist-ssr/entry-server.js" ]; then
+        print_error "Не найден SSR bundle: client/dist-ssr/entry-server.js"
+        missing=1
+    fi
+    if [ ! -f "$PROJECT_DIR/client/dist-ssr/template.html" ]; then
+        print_error "Не найден SSR template: client/dist-ssr/template.html"
+        missing=1
+    fi
+    if [ ! -f "$PROJECT_DIR/client/ssr-server.mjs" ]; then
+        print_error "Не найден SSR runtime: client/ssr-server.mjs"
+        missing=1
+    fi
+
+    [ "$missing" -eq 0 ]
+}
+
+wait_for_health() {
+    local url="$1"
+    local service_name="$2"
+    local max_attempts="${3:-30}"
+    local attempt=1
+
+    while [ "$attempt" -le "$max_attempts" ]; do
+        if curl --fail --silent --show-error --max-time 2 "$url" >/dev/null 2>&1; then
+            print_success "$service_name отвечает: $url"
+            return 0
+        fi
+        sleep 1
+        attempt=$((attempt + 1))
+    done
+
+    print_error "$service_name не прошёл health-check: $url"
+    return 1
+}
+
+prepare_nginx_cache() {
+    install -d -o www-data -g www-data /var/cache/nginx/vozmimenya-ssr
+}
+
+reload_nginx_after_health() {
+    wait_for_health "http://127.0.0.1:3003/health" "VozmiMenja API"
+    wait_for_health "http://127.0.0.1:3004/health" "VozmiMenja SSR"
+
+    prepare_nginx_cache
+    nginx -t
+    systemctl reload nginx
+    print_success "Nginx перечитал конфигурацию после успешных health-check"
+}
+
+# ================================================================================
 # Запуск PM2 приложений
 # ================================================================================
 start_pm2() {
@@ -335,11 +450,12 @@ start_pm2() {
         print_error "VozmiMenja Server не собран! Запустите сначала: sudo $0 deploy"
         return 1
     fi
+    validate_runtime_artifacts
 
     # Запуск/перезапуск PM2 приложений от имени пользователя
     if sudo -u $SUDO_USER pm2 list | grep -q "vozmimenya-api"; then
         echo "Перезапуск существующих приложений..."
-        sudo -u $SUDO_USER pm2 restart ecosystem.config.js
+        sudo -u $SUDO_USER pm2 startOrRestart ecosystem.config.js
     else
         echo "Запуск новых приложений..."
         sudo -u $SUDO_USER pm2 start ecosystem.config.js
@@ -364,9 +480,9 @@ stop_pm2() {
     cd $PROJECT_DIR
 
     if [ -n "$SUDO_USER" ]; then
-        if sudo -u $SUDO_USER pm2 list | grep -q "vozmimenya-api"; then
+        if sudo -u $SUDO_USER pm2 list | grep -Eq "vozmimenya-(api|ssr)"; then
             echo "Остановка PM2 приложений..."
-            sudo -u $SUDO_USER pm2 stop ecosystem.config.js
+            sudo -u $SUDO_USER pm2 stop vozmimenya-api vozmimenya-ssr
             sudo -u $SUDO_USER pm2 save
             print_success "PM2 приложения остановлены"
         else
@@ -381,19 +497,18 @@ stop_pm2() {
 restart_services() {
     print_step "Перезапуск сервисов"
 
-    # Перезапуск Nginx
-    echo "Перезапуск Nginx..."
-    systemctl restart nginx
-    print_success "Nginx перезапущен"
+    validate_runtime_artifacts
 
-    # Перезапуск PM2
+    # Сначала перезапускаем приложения; Nginx продолжает отдавать старый frontend до health-check.
     echo "Перезапуск PM2..."
     cd $PROJECT_DIR
     if [ -n "$SUDO_USER" ]; then
-        sudo -u $SUDO_USER pm2 restart ecosystem.config.js
+        sudo -u $SUDO_USER pm2 startOrRestart ecosystem.config.js
         echo ""
         sudo -u $SUDO_USER pm2 status
     fi
+
+    reload_nginx_after_health
 
     print_success "Сервисы перезапущены"
 }
@@ -470,7 +585,7 @@ deploy() {
     build_projects
     setup_nginx
     start_pm2
-    systemctl restart nginx
+    reload_nginx_after_health
 
     print_success "🎉 РАЗВЕРТЫВАНИЕ ЗАВЕРШЕНО"
     show_status
@@ -558,5 +673,7 @@ main() {
     esac
 }
 
-# Запуск
-main "$@"
+# Запуск при прямом вызове; guard позволяет тестировать функции без запуска deploy.
+if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
+    main "$@"
+fi

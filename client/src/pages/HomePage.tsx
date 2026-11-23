@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
+import { useQuery } from '@tanstack/react-query'
 import { useEquipment, useEquipmentStats, useCategoryCounts } from '../hooks/useEquipment'
-import { articlesApi } from '../api/articles'
-import type { Article } from '../types'
+import { articleQueries } from '../query/articleQueries'
 import EquipmentGrid from '../components/equipment/EquipmentGrid'
 import HowItWorks from '../components/HowItWorks'
 import Testimonials from '../components/Testimonials'
@@ -10,6 +10,7 @@ import SEO from '../components/SEO'
 import { ChevronLeft, ChevronRight, Phone, Shield, Truck, Clock, Sparkles, Search, X, MapPin, Mail, SprayCan } from 'lucide-react'
 import { trackEvent } from '../lib/analytics'
 import { CONTACT_PHONE, CONTACT_PHONE_LABEL, getTelegramUrl } from '../lib/contactLinks'
+import seoMeta from '../content/seoMeta.json'
 
 // Конфиг стилей по ключу категории из БД (без переименований — label берём с бэка)
 const CAT_CONFIG: Record<string, { gradient: string; iconBg: string; blobColor: string }> = {
@@ -65,7 +66,7 @@ const QUICK_SCENARIOS = [
     eyebrow: 'Съемка',
     title: 'Снять поездку или влог',
     text: 'GoPro, DJI Osmo Pocket и Insta360 под формат видео.',
-    href: '/arenda-kamery-dlya-puteshestviya-vloga-moskva',
+    href: '/arenda-gopro-moskva',
     accent: 'from-rose-100 via-pink-100 to-sky-100',
   },
   {
@@ -127,7 +128,7 @@ export default function HomePage() {
   const [page, setPage] = useState(1)
   const [category, setCategory] = useState('')
   const [search, setSearch] = useState('')
-  const [recentArticles, setRecentArticles] = useState<Article[]>([])
+  const { data: recentArticles = [] } = useQuery(articleQueries.recent(3))
 
   useEffect(() => {
     setSearch(searchParams.get('search') || '')
@@ -139,12 +140,6 @@ export default function HomePage() {
       }, 100)
     }
   }, [searchParams])
-
-  useEffect(() => {
-    articlesApi.getRecent(3)
-      .then(setRecentArticles)
-      .catch((error) => console.error('Error loading recent articles:', error))
-  }, [])
 
   const { data, isLoading, error } = useEquipment({
     page, limit: 12,
@@ -193,14 +188,14 @@ export default function HomePage() {
     ? `Аренда ${category} в Москве — цены, доставка 24/7`
     : search
     ? `Аренда ${search} в Москве | ВозьмиМеня`
-    : 'Аренда оборудования в Москве — камеры, аудио, клининг | ВозьмиМеня'
+    : seoMeta['/'].title
   const seoDescription = categorySeo
     ? categorySeo.description
     : category
     ? `Прокат ${category} в Москве. Подберем модель под задачу, срок и способ получения. Бронь онлайн или через Telegram.`
     : search
     ? `Аренда ${search} в Москве. Доставка в день заказа, постамат 24/7, без залога при прописке в Москве и МО. Быстрый подбор в Telegram.`
-    : 'Аренда техники в Москве: колонки JBL, экшн-камеры, моющие и строительные пылесосы, пароочистители. Доставка, самовывоз и бронь онлайн.'
+    : seoMeta['/'].description
   const seoUrl = categorySeo?.canonicalUrl || 'https://vozmimenya.ru/'
 
   return (
@@ -227,13 +222,22 @@ export default function HomePage() {
             <p className="text-2xl font-extrabold text-white leading-snug mb-1 font-[Manrope]">
               Техника <span className="text-[#60A5FA]">напрокат</span> в Москве
             </p>
-            <p className="text-slate-400 text-xs mb-4">Пылесосы, камеры, колонки. От 400 ₽/день, постамат 24/7.</p>
-            <button
-              onClick={() => document.getElementById('catalog')?.scrollIntoView({ behavior: 'smooth' })}
-              className="inline-flex items-center gap-2 bg-[#2563EB] text-white text-sm font-bold px-5 py-2.5 rounded-xl"
-            >
-              Открыть каталог <ChevronRight className="w-4 h-4" />
-            </button>
+            <p className="text-slate-400 text-xs mb-4">Техника для уборки, камеры, колонки. От 400 ₽/день, постамат 24/7.</p>
+            <div className="flex flex-wrap gap-2">
+              <Link
+                to="/booking?when=today&utm_source=site&utm_medium=home&utm_campaign=urgent-booking"
+                onClick={() => trackEvent('booking_click', { source: 'home_mobile_urgent' })}
+                className="inline-flex items-center gap-2 rounded-xl bg-[#2563EB] px-5 py-2.5 text-sm font-bold text-white"
+              >
+                Забронировать на сегодня <ChevronRight className="w-4 h-4" />
+              </Link>
+              <button
+                onClick={() => document.getElementById('catalog')?.scrollIntoView({ behavior: 'smooth' })}
+                className="inline-flex items-center rounded-xl bg-white/10 px-4 py-2.5 text-sm font-bold text-white ring-1 ring-white/15"
+              >
+                Каталог
+              </button>
+            </div>
           </div>
         </div>
         </div>
@@ -261,20 +265,27 @@ export default function HomePage() {
                   </span>
                 </div>
                 <h1 className="text-4xl md:text-5xl font-extrabold text-gray-900 leading-tight mb-4">
-                  Возьмите<br />
-                  <span className="text-[#2563EB]">технику на день</span><br />
+                  Техника <span className="text-[#2563EB]">напрокат</span>{' '}<br />
+                  в Москве — на день,{' '}<br />
                   а не на годы
                 </h1>
                 <p className="text-gray-500 text-base mb-8 max-w-md">
-                  Камеры, моющие пылесосы, аудио и инструмент в аренду по Москве.
-                  Привезём за 2–4 часа. Без залога для постоянных клиентов.
+                  Колонки JBL, экшн-камеры и пылесосы Karcher в аренду по Москве.
+                  Привезём за 2–4 часа или заберите из постамата 24/7. Без залога при прописке в Москве и МО.
                 </p>
                 <div className="flex flex-col sm:flex-row gap-3">
+                  <Link
+                    to="/booking?when=today&utm_source=site&utm_medium=home&utm_campaign=urgent-booking"
+                    onClick={() => trackEvent('booking_click', { source: 'home_desktop_urgent' })}
+                    className="btn-pill-primary shadow-lg hover:shadow-blue-200 hover:scale-[1.02] bg-[#2563EB]"
+                  >
+                    Забронировать на сегодня
+                    <span className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center text-sm">›</span>
+                  </Link>
                   <a href="#catalog"
                     onClick={(e) => { e.preventDefault(); document.getElementById('catalog')?.scrollIntoView({ behavior: 'smooth' }) }}
-                    className="btn-pill-primary shadow-lg hover:shadow-blue-200 hover:scale-[1.02] bg-[#2563EB]">
+                    className="btn-pill btn-secondary bg-white/70 backdrop-blur-sm">
                     Открыть каталог
-                    <span className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center text-sm">›</span>
                   </a>
                   <a
                     href={getTelegramUrl()}
@@ -347,10 +358,10 @@ export default function HomePage() {
           <div className="rounded-2xl bg-slate-900 px-6 py-5">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {[
-                { icon: Shield, label: 'Гарантия качества', sub: 'Дезинфекция перед каждой выдачей' },
+                { icon: Shield, label: 'Заменим неисправную', sub: 'Проверка и дезинфекция перед выдачей' },
                 { icon: Truck, label: 'Доставка 2–4 часа', sub: 'Курьер привозит и забирает' },
                 { icon: Clock, label: 'Без скрытых наценок', sub: 'Прозрачное ценообразование' },
-                { icon: Sparkles, label: 'Без залога', sub: 'Постоянным клиентам' },
+                { icon: Sparkles, label: 'Без залога', sub: 'При прописке в Москве и МО' },
               ].map(({ icon: Icon, label, sub }) => (
                 <div key={label} className="flex items-center gap-3">
                   <div className="w-9 h-9 rounded-xl bg-[#2563EB]/20 flex items-center justify-center flex-shrink-0">
@@ -522,6 +533,8 @@ export default function HomePage() {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
               <input
                 type="text"
+                name="search"
+                aria-label="Поиск по каталогу"
                 placeholder="Поиск..."
                 value={search}
                 onChange={(e) => handleSearchChange(e.target.value)}
@@ -530,6 +543,7 @@ export default function HomePage() {
               {search && (
                 <button
                   onClick={() => handleSearchChange('')}
+                  aria-label="Очистить поиск"
                   className="absolute right-2.5 top-1/2 -translate-y-1/2 w-5 h-5 flex items-center justify-center text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100 transition-colors"
                 >
                   <X className="w-3.5 h-3.5" />
@@ -556,6 +570,8 @@ export default function HomePage() {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
               <input
                 type="text"
+                name="search"
+                aria-label="Поиск по каталогу"
                 placeholder="Поиск..."
                 value={search}
                 onChange={(e) => handleSearchChange(e.target.value)}
@@ -564,6 +580,7 @@ export default function HomePage() {
               {search && (
                 <button
                   onClick={() => handleSearchChange('')}
+                  aria-label="Очистить поиск"
                   className="absolute right-2.5 top-1/2 -translate-y-1/2 w-5 h-5 flex items-center justify-center text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100 transition-colors"
                 >
                   <X className="w-3.5 h-3.5" />

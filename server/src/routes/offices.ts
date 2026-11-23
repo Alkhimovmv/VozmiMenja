@@ -1,4 +1,6 @@
 import { Router, Request, Response } from 'express'
+import { isForeignKeyError } from '../utils/dbErrors'
+import { secretMatches } from '../utils/secrets'
 import { z } from 'zod'
 import { database } from '../models/database'
 import { authMiddleware } from '../middleware/auth'
@@ -58,8 +60,7 @@ const formatLockerCommand = (command: Awaited<ReturnType<typeof lockerCommandsSe
 router.get('/:id/lockers-codes', async (req: Request, res: Response) => {
   const secret = process.env.LOCKERS_SECRET
   if (!secret) return res.status(500).json({ error: 'LOCKERS_SECRET не настроен' })
-  const provided = req.headers['x-lockers-secret']
-  if (!provided || provided !== secret) return res.status(401).json({ error: 'Unauthorized' })
+  if (!secretMatches(req.headers['x-lockers-secret'], secret)) return res.status(401).json({ error: 'Unauthorized' })
   try {
     const { id } = req.params
     const lockers = await database.all(
@@ -97,7 +98,7 @@ router.post('/', authMiddleware, async (req: Request, res: Response) => {
   try {
     const parsed = officeSchema.safeParse(req.body)
     if (!parsed.success) {
-      return res.status(400).json({ error: parsed.error.errors.map(e => e.message).join(', ') })
+      return res.status(400).json({ error: parsed.error.issues.map(e => e.message).join(', ') })
     }
     const { name, address, locker_rows } = parsed.data
     const lockerRowsJson = JSON.stringify(locker_rows || [
@@ -124,7 +125,7 @@ router.put('/:id', authMiddleware, async (req: Request, res: Response) => {
     const { id } = req.params
     const parsed = officeSchema.partial().safeParse(req.body)
     if (!parsed.success) {
-      return res.status(400).json({ error: parsed.error.errors.map(e => e.message).join(', ') })
+      return res.status(400).json({ error: parsed.error.issues.map(e => e.message).join(', ') })
     }
     const existing = await database.get('SELECT * FROM offices WHERE id = ?', [id])
     if (!existing) return res.status(404).json({ error: 'Офис не найден' })
@@ -181,7 +182,7 @@ router.post('/:officeId/locker-commands', authMiddleware, async (req: Request, r
 
     const parsed = createLockerCommandSchema.safeParse(req.body)
     if (!parsed.success) {
-      return res.status(400).json({ error: parsed.error.errors.map((e) => e.message).join(', ') })
+      return res.status(400).json({ error: parsed.error.issues.map((e) => e.message).join(', ') })
     }
 
     const userOfficeIds = await getUserOfficeIds(req)
@@ -256,9 +257,30 @@ router.delete('/:id', authMiddleware, async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Нельзя удалить единственный офис' })
     }
 
+    // Часть старых office_id добавлялась через ALTER TABLE без REFERENCES.
+    // Явная проверка защищает историю даже там, где SQLite не может помочь FK.
+    const usage = await database.get(
+      `SELECT
+        (SELECT COUNT(*) FROM rentals WHERE office_id = ?) +
+        (SELECT COUNT(*) FROM lockers WHERE office_id = ?) +
+        (SELECT COUNT(*) FROM expenses WHERE office_id = ?) +
+        (SELECT COUNT(*) FROM rental_equipment WHERE office_id = ?) +
+        (SELECT COUNT(*) FROM bookings WHERE office_id = ?) +
+        (SELECT COUNT(*) FROM customer_notes WHERE office_id = ?) AS cnt`,
+      [id, id, id, id, id, id],
+    )
+    if (usage?.cnt > 0) {
+      return res.status(409).json({
+        error: 'С офисом связаны аренды, заявки, расходы, ячейки или оборудование — сначала перенесите данные.',
+      })
+    }
+
     await database.run('DELETE FROM offices WHERE id = ?', [id])
     res.json({ success: true })
   } catch (error) {
+    if (isForeignKeyError(error)) {
+      return res.status(409).json({ error: 'В офисе есть оборудование — перенесите или удалите его перед удалением офиса.' })
+    }
     res.status(500).json({ error: 'Ошибка удаления офиса' })
   }
 })

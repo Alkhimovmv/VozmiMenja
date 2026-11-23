@@ -1,5 +1,80 @@
 import type { Equipment } from '../types'
+
+export const getEquipmentBookingHint = (item: Equipment) => {
+  const name = item.name.toLocaleLowerCase('ru-RU')
+  const category = item.category.toLocaleLowerCase('ru-RU')
+
+  if (name.includes('puzzi')) return 'моющий пылесос'
+  if (name.includes('wd5')) return 'строительный пылесос'
+  if (name.includes('sc4') || name.includes('пароочист')) return 'пароочиститель'
+  if (name.includes('vacmaster') || name.includes('сушил')) return 'сушилка'
+  if (name.includes('робот') && name.includes('окон')) return 'робот-мойщик окон'
+  if (name.includes('okami')) return 'клининговое оборудование'
+
+  if (name.includes('jbl') && name.includes('микроф')) return 'караоке-микрофоны'
+  if (name.includes('dji mic') || name.includes('радиомикроф')) return 'радиомикрофон'
+  if (name.includes('partybox')) return 'портативная колонка'
+
+  if (name.includes('gopro')) return 'экшн-камера'
+  if (name.includes('insta360')) return 'камера 360°'
+  if (name.includes('osmo pocket')) return 'компактная камера'
+
+  if (category.includes('камер')) return 'камера'
+  if (category.includes('аудио')) return 'аудиооборудование'
+  if (category.includes('клининг') || category.includes('пылесос') || category.includes('уборк')) {
+    return 'клининговое оборудование'
+  }
+
+  return 'оборудование в аренду'
+}
+
+const getBookingCategoryPriority = (category: string) => {
+  const normalized = category.toLocaleLowerCase('ru-RU')
+  if (normalized.includes('клининг') || normalized.includes('пылесос') || normalized.includes('уборк')) return 0
+  if (normalized.includes('аудио')) return 1
+  if (normalized.includes('камер')) return 2
+  return 3
+}
+
+export const groupBookingEquipment = (equipment: Equipment[]) => {
+  const groups = new Map<string, Equipment[]>()
+
+  equipment.forEach((item) => {
+    const group = groups.get(item.category) || []
+    group.push(item)
+    groups.set(item.category, group)
+  })
+
+  return [...groups.entries()].sort(([categoryA], [categoryB]) => {
+    const priorityDifference = getBookingCategoryPriority(categoryA) - getBookingCategoryPriority(categoryB)
+    return priorityDifference || categoryA.localeCompare(categoryB, 'ru-RU')
+  })
+}
 import { calculateRentalTotal } from '../utils/pricing'
+
+export type UrgentBookingStart = 'today' | 'tomorrow'
+
+const getMoscowDateKey = (date: Date) => {
+  const parts = new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Europe/Moscow',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(date)
+  const values = Object.fromEntries(parts.map((part) => [part.type, part.value]))
+  return `${values.year}-${values.month}-${values.day}`
+}
+
+const addDays = (dateKey: string, days: number) => {
+  const [year, month, day] = dateKey.split('-').map(Number)
+  return new Date(Date.UTC(year, month - 1, day + days)).toISOString().slice(0, 10)
+}
+
+export const buildUrgentBookingDates = (start: UrgentBookingStart, now = new Date()) => {
+  const today = getMoscowDateKey(now)
+  const startDate = start === 'tomorrow' ? addDays(today, 1) : today
+  return { startDate, endDate: addDays(startDate, 1) }
+}
 
 export const getSelectedEquipment = (equipment: Equipment[], equipmentIds: string[]) => {
   const byId = new Map(equipment.map((item) => [item.id, item]))
@@ -25,7 +100,6 @@ export const getJblMicrophoneUpsell = (equipment: Equipment[], selectedEquipment
 
   return equipment.find((item) => (
     !selectedIds.has(item.id)
-    && item.availableQuantity > 0
     && isJblMicrophones(item)
   )) || null
 }
@@ -40,7 +114,6 @@ export const getPuzziDryerUpsell = (equipment: Equipment[], selectedEquipmentIds
 
   return equipment.find((item) => (
     !selectedIds.has(item.id)
-    && item.availableQuantity > 0
     && (
       item.id === 'vacmaster-125w-carpet-dryer'
       || (item.name.toLocaleLowerCase('ru-RU').includes('vacmaster') && item.name.toLocaleLowerCase('ru-RU').includes('сушил'))

@@ -3,9 +3,13 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
+import { articleCategoryHubs, pickRelatedArticles, RELATED_ARTICLES_LIMIT } from '../src/lib/relatedArticles.js'
+import { micromark } from 'micromark'
+import { gfm, gfmHtml } from 'micromark-extension-gfm'
 
 const SITE_ORIGIN = 'https://vozmimenya.ru'
 const API_ORIGIN = (process.env.STATIC_SEO_API_URL || process.env.VITE_API_URL || 'https://api.vozmimenya.ru/api').replace(/\/$/, '')
+const UPLOADS_ORIGIN = API_ORIGIN.replace(/\/api$/, '')
 const execFileAsync = promisify(execFile)
 const LEGACY_EQUIPMENT_SLUGS = new Map([
   ['nabor-besprovodnyh-mikrofonov-jbl-partybox', 'jbl-partybox-wireless-microphones'],
@@ -13,7 +17,6 @@ const LEGACY_EQUIPMENT_SLUGS = new Map([
 
 const staticRoutes = [
   '/',
-  '/equipment',
   '/arenda-pylesosov-moskva',
   '/arenda-stroitelnogo-pylesosa-posle-remonta-moskva',
   '/arenda-moyushchego-pylesosa-dlya-divana-kovra-moskva',
@@ -21,7 +24,6 @@ const staticRoutes = [
   '/arenda-kolonki-dlya-vecherinki-moskva',
   '/arenda-karaoke-komplekta-moskva',
   '/arenda-paroochistitelya-dlya-kuhni-plitki-vannoy-moskva',
-  '/arenda-kamery-dlya-puteshestviya-vloga-moskva',
   '/arenda-gopro-moskva',
   '/arenda-audiooborudovaniya-moskva',
   '/blog',
@@ -33,6 +35,7 @@ const staticRoutes = [
   '/booking/success',
   '/kak-prohodit-arenda-tehniki',
   '/samovyvoz-24-7-postamat',
+  '/arenda-tehniki-na-mesyac-moskva',
   '/arenda-tehniki-u-metro-volzhskaya-kuzminki',
   '/arenda-tehniki-u-metro-dinamo',
   '/arenda-tehniki-dlya-meropriyatiya-moskva',
@@ -52,14 +55,9 @@ const staticSeo = {
     description: 'Аренда техники в Москве: колонки JBL, экшн-камеры, моющие и строительные пылесосы, пароочистители. Доставка, самовывоз и бронь онлайн.',
     canonicalPath: '/',
   },
-  '/equipment': {
-    title: 'Каталог оборудования в аренду в Москве | ВозьмиМеня',
-    description: 'Каталог техники напрокат: колонки JBL, камеры GoPro и Insta360, пылесосы Karcher Puzzi и WD, пароочистители. Подберём под задачу.',
-    canonicalPath: '/',
-  },
   '/arenda-pylesosov-moskva': {
-    title: 'Аренда пылесосов в Москве от 400 ₽/день | ВозьмиМеня',
-    description: 'Аренда строительных, моющих и хозяйственных пылесосов в Москве: Karcher WD, Puzzi и техника для уборки после ремонта, мебели и авто.',
+    title: 'Аренда моющих и строительных пылесосов Karcher в Москве',
+    description: 'Karcher Puzzi, WD5 и SC4 в аренду в Москве: химчистка мебели, уборка после ремонта и паровая очистка. Постамат 24/7 и доставка.',
   },
   '/arenda-stroitelnogo-pylesosa-posle-remonta-moskva': {
     title: 'Аренда строительного пылесоса после ремонта в Москве',
@@ -85,17 +83,13 @@ const staticSeo = {
     title: 'Аренда пароочистителя для кухни, плитки и ванной',
     description: 'Пароочиститель Karcher напрокат для кухни, плитки, швов, ванной и финальной уборки без покупки техники.',
   },
-  '/arenda-kamery-dlya-puteshestviya-vloga-moskva': {
-    title: 'Аренда камеры для путешествия и влога в Москве',
-    description: 'Камеры GoPro, Insta360 и DJI Osmo Pocket напрокат для поездки, блога, спорта и мероприятия. Подберём комплект.',
-  },
   '/arenda-gopro-moskva': {
-    title: 'Аренда GoPro и экшн-камер в Москве | ВозьмиМеня',
-    description: 'Экшн-камеры GoPro, Insta360 и DJI Osmo Pocket в аренду в Москве для спорта, поездки, блога и съёмки контента.',
+    title: 'Аренда экшн-камер GoPro, Insta360 и DJI в Москве | ВозьмиМеня',
+    description: 'GoPro 13, Insta360 X5 и DJI Osmo Pocket 3 в аренду в Москве. Комплект для съёмки, постамат 24/7, доставка и бронь онлайн.',
   },
   '/arenda-audiooborudovaniya-moskva': {
-    title: 'Аренда аудиооборудования в Москве | Колонки и микрофоны',
-    description: 'Аудиооборудование напрокат в Москве: колонки JBL PartyBox и беспроводные микрофоны для мероприятий, интервью и съёмок.',
+    title: 'Аренда колонок JBL и аудиооборудования в Москве | ВозьмиМеня',
+    description: 'JBL PartyBox 320 и 710, микрофоны JBL и DJI Mic 2 в аренду в Москве. Постамат 24/7, доставка, подбор комплекта и бронь онлайн.',
   },
   '/blog': {
     title: 'Блог об аренде техники и оборудования | ВозьмиМеня',
@@ -132,7 +126,7 @@ const staticSeo = {
   },
   '/samovyvoz-24-7-postamat': {
     title: 'Самовывоз 24/7 через постамат | ВозьмиМеня',
-    description: 'Как забрать и вернуть оборудование через постамат 24/7: удобно для камер, микрофонов и компактной техники.',
+    description: 'Аренда техники круглосуточно: заберите и верните оборудование через постамат 24/7 у м. Волжская и м. Динамо по коду, без ожидания менеджера.',
   },
   '/arenda-tehniki-u-metro-volzhskaya-kuzminki': {
     title: 'Аренда техники у м. Волжская и в Кузьминках — постамат 24/7 | ВозьмиМеня',
@@ -187,6 +181,19 @@ const distIndexPath = path.join(distDir, 'index.html')
 const distSitemapPath = path.join(distDir, 'sitemap.xml')
 const business = JSON.parse(await fs.readFile(path.join(clientDir, 'src/content/business.json'), 'utf8'))
 const faqContent = JSON.parse(await fs.readFile(path.join(clientDir, 'src/content/faq.json'), 'utf8'))
+// Реквизиты и текст оферты — общий источник с RequisitesPage.tsx и OfferPage.tsx.
+const legal = JSON.parse(await fs.readFile(path.join(clientDir, 'src/content/legal.json'), 'utf8'))
+// Бренды техники для Product.brand; тот же список читает EquipmentDetailsPage.tsx.
+const equipmentBrands = JSON.parse(await fs.readFile(path.join(clientDir, 'src/content/equipmentBrands.json'), 'utf8'))
+// Постоянные редиректы (старый путь -> новый). GitHub Pages не умеет серверный 301,
+// поэтому для старых путей пишем страницу с мгновенным meta refresh и canonical на новый адрес.
+const redirects = JSON.parse(await fs.readFile(path.join(clientDir, 'src/content/redirects.json'), 'utf8'))
+// Единый источник title/description/h1 статических маршрутов (src/content/seoMeta.json): его же читает
+// src/components/SEO.tsx, а h1 совпадает с заголовком страницы React, чтобы пререндер и рендер не расходились.
+const seoMeta = JSON.parse(await fs.readFile(path.join(clientDir, 'src/content/seoMeta.json'), 'utf8'))
+for (const [route, meta] of Object.entries(seoMeta)) {
+  staticSeo[route] = { ...staticSeo[route], ...meta }
+}
 const ORGANIZATION_ID = `${SITE_ORIGIN}/#organization`
 const WEBSITE_ID = `${SITE_ORIGIN}/#website`
 
@@ -302,6 +309,7 @@ async function getRoutesFromSitemap(remoteData) {
     })
 
     return [...new Set([...staticRoutes, ...stableSitemapRoutes, ...getRemoteRoutes(remoteData)])]
+      .filter((route) => !redirects[route])
   } catch (error) {
     if (error.code !== 'ENOENT') {
       throw error
@@ -334,6 +342,8 @@ function absoluteUrl(raw) {
   const value = String(raw)
   const withoutLocalhost = value.replace(/^https?:\/\/localhost:\d+/i, '')
   if (/^https?:\/\//i.test(withoutLocalhost)) return withoutLocalhost
+  // Загрузки отдаёт API-сервер, а не GitHub Pages (как getImageUrl в src/lib/utils.ts).
+  if (withoutLocalhost.startsWith('/uploads/')) return `${UPLOADS_ORIGIN}${withoutLocalhost}`
   return `${SITE_ORIGIN}${withoutLocalhost.startsWith('/') ? '' : '/'}${withoutLocalhost}`
 }
 
@@ -392,7 +402,7 @@ async function loadRemoteSeoData() {
       articleItems = await fetchJson(`${API_ORIGIN}/articles`)
     }
     for (const article of articleItems || []) {
-      if (article?.slug) articleBySlug.set(String(article.slug), article)
+      if (article?.slug && !redirects[`/blog/${article.slug}`]) articleBySlug.set(String(article.slug), article)
     }
   } catch (error) {
     console.warn(`Static SEO: articles API unavailable, using fallbacks (${error.message})`)
@@ -401,11 +411,27 @@ async function loadRemoteSeoData() {
   return { equipmentById, equipmentBySlug, articleBySlug }
 }
 
-function getMinimumPrice(item) {
+// Основная публичная цена — за 1 сутки (как в client/src/utils/pricing.ts getOneDayPrice).
+// Минимальный тариф длинной аренды нельзя выдавать за цену суток в title, сниппете и разметке.
+function getOneDayPrice(item) {
   const pricing = normalizePricing(item?.pricing)
-  const prices = Object.values(pricing).map(Number).filter((price) => price > 0)
-  if (prices.length > 0) return Math.min(...prices)
-  return Number(item?.pricePerDay || item?.price_per_day || 0)
+  return Number(pricing.day1) || Number(item?.pricePerDay || item?.price_per_day || 0)
+}
+
+// Цена за сутки для длинной аренды (как getLongTermDailyPrice в client/src/utils/pricing.ts).
+// Пустой тариф наследует ближайший предыдущий заполненный тариф.
+function getLongTermDailyPrice(item) {
+  const oneDay = getOneDayPrice(item)
+  const pricing = normalizePricing(item?.pricing)
+  const longTerm = durationTierDefinitions
+    .map((tier) => ({ ...tier, value: Number(pricing[tier.key]) || 0 }))
+    .filter((tier) => tier.value > 0)
+    .at(-1)
+  if (!longTerm) return null
+  const dailyPrice = Math.round(isPackagePrice(pricing, longTerm.value, longTerm.days)
+    ? longTerm.value / longTerm.days
+    : longTerm.value)
+  return dailyPrice > 0 && dailyPrice < oneDay ? { dailyPrice, days: longTerm.days } : null
 }
 
 function formatPrice(price) {
@@ -436,6 +462,10 @@ const pricingTierDefinitions = [
   { key: 'days14', days: 14, label: '14 суток', suffix: '/сутки' },
   { key: 'days30', days: 30, label: '30 суток', suffix: '/сутки' },
 ]
+
+const durationTierDefinitions = pricingTierDefinitions.filter((tier) => (
+  !['weekendDay10to20', 'weekendDay', 'day1_10to20'].includes(tier.key)
+))
 
 function isPackagePrice(pricing, value, periodDays) {
   return periodDays > 1 && Number(pricing.day1) > 0 && value > Number(pricing.day1)
@@ -517,10 +547,20 @@ function buildBreadcrumbJsonLd(route, meta) {
     })
   }
 
+  // Карточка товара: Главная → категория → модель, как видимые крошки в EquipmentDetailsPage.tsx.
+  for (const parent of meta.breadcrumbParents || []) {
+    items.push({
+      '@type': 'ListItem',
+      position: items.length + 1,
+      name: parent.name,
+      item: `${SITE_ORIGIN}${parent.href}`,
+    })
+  }
+
   items.push({
     '@type': 'ListItem',
     position: items.length + 1,
-    name: routeLabel(route, meta),
+    name: meta.breadcrumbName || routeLabel(route, meta),
     item: routeCanonical(meta, route),
   })
 
@@ -565,7 +605,8 @@ function officeRatingJsonLd(office) {
   }
 }
 
-function officeJsonLd(office) {
+// Рейтинг выводим только на странице самой точки: там он виден пользователю.
+function officeJsonLd(office, route) {
   return {
     '@type': 'LocalBusiness',
     '@id': `${SITE_ORIGIN}/#${office.id}`,
@@ -592,7 +633,7 @@ function officeJsonLd(office) {
     },
     hasMap: office.yandexMaps?.url || `https://yandex.ru/maps/?pt=${office.longitude},${office.latitude}&z=17&l=map`,
     sameAs: office.yandexMaps?.url ? [office.yandexMaps.url] : undefined,
-    aggregateRating: officeRatingJsonLd(office),
+    aggregateRating: route === office.slug ? officeRatingJsonLd(office) : undefined,
     openingHoursSpecification: {
       '@type': 'OpeningHoursSpecification',
       dayOfWeek: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],
@@ -602,7 +643,7 @@ function officeJsonLd(office) {
   }
 }
 
-function buildBusinessJsonLd() {
+function buildBusinessJsonLd(route) {
   return {
     '@context': 'https://schema.org',
     '@graph': [
@@ -610,7 +651,11 @@ function buildBusinessJsonLd() {
         '@type': 'Organization',
         '@id': ORGANIZATION_ID,
         name: business.name,
-        alternateName: business.alternateName,
+        // Варианты написания, под которыми бренд ищут и упоминают (домен, Telegram, Яндекс Карты).
+        alternateName: [...new Set([business.alternateName, 'Возьми меня', 'VozmiMenya', 'vozmimenya.ru'].flat().filter(Boolean))],
+        legalName: legal.legalName,
+        taxID: legal.inn,
+        identifier: { '@type': 'PropertyValue', propertyID: 'ОГРНИП', value: legal.ogrnip },
         url: SITE_ORIGIN,
         logo: business.logo,
         image: business.image,
@@ -628,7 +673,7 @@ function buildBusinessJsonLd() {
         },
         department: business.offices.map((office) => ({ '@id': `${SITE_ORIGIN}/#${office.id}` })),
       },
-      ...business.offices.map(officeJsonLd),
+      ...business.offices.map((office) => officeJsonLd(office, route)),
       {
         '@type': 'WebSite',
         '@id': WEBSITE_ID,
@@ -639,6 +684,10 @@ function buildBusinessJsonLd() {
       },
     ],
   }
+}
+
+function productBrand(item) {
+  return equipmentBrands.find((name) => String(item?.name || '').toLowerCase().includes(name.toLowerCase()))
 }
 
 function buildItemListJsonLd(route, remoteData) {
@@ -658,11 +707,36 @@ function buildItemListJsonLd(route, remoteData) {
   return {
     '@context': 'https://schema.org',
     '@type': 'ItemList',
+    name: cleanTitle(staticSeo[route]?.title || 'Оборудование в аренду'),
+    numberOfItems: products.length,
     itemListElement: products.map((item, index) => ({
       '@type': 'ListItem',
       position: index + 1,
-      name: item.name,
-      url: `${SITE_ORIGIN}${equipmentRoute(item)}`,
+      // Те же brand/sku/availability, что в полной карточке (buildProductSeo), и описание без обрезки.
+      item: {
+        '@type': 'Product',
+        name: item.name,
+        description: item.description || `${item.name} в аренду в Москве.`,
+        image: Array.isArray(item.images) && item.images[0] ? absoluteUrl(item.images[0]) : undefined,
+        category: item.category,
+        brand: productBrand(item) ? { '@type': 'Brand', name: productBrand(item) } : undefined,
+        sku: item.slug || String(item.id),
+        url: `${SITE_ORIGIN}${equipmentRoute(item)}`,
+        offers: getOneDayPrice(item) > 0 ? {
+          '@type': 'Offer',
+          url: `${SITE_ORIGIN}${equipmentRoute(item)}`,
+          price: getOneDayPrice(item),
+          priceCurrency: 'RUB',
+          availability: 'https://schema.org/InStock',
+          seller: { '@id': ORGANIZATION_ID },
+          priceSpecification: {
+            '@type': 'UnitPriceSpecification',
+            price: getOneDayPrice(item),
+            priceCurrency: 'RUB',
+            unitText: 'сутки',
+          },
+        } : undefined,
+      },
     })),
   }
 }
@@ -678,8 +752,14 @@ function buildWebPageJsonLd(route, meta) {
     url: routeCanonical(meta, route),
     inLanguage: 'ru-RU',
     isPartOf: { '@id': WEBSITE_ID },
-    about: { '@id': ORGANIZATION_ID },
+    // Страница точки выдачи — о самом офисе (LocalBusiness), остальные — об организации.
+    about: { '@id': officeIdForRoute(route) || ORGANIZATION_ID },
   }
+}
+
+function officeIdForRoute(route) {
+  const office = business.offices.find((item) => item.slug === route)
+  return office ? `${SITE_ORIGIN}/#${office.id}` : null
 }
 
 function enrichSeoMeta(route, meta, remoteData) {
@@ -687,7 +767,7 @@ function enrichSeoMeta(route, meta, remoteData) {
     ...normalizeJsonLd(meta.jsonLd),
     buildWebPageJsonLd(route, meta),
     buildBreadcrumbJsonLd(route, meta),
-    buildBusinessJsonLd(),
+    buildBusinessJsonLd(route),
     buildItemListJsonLd(route, remoteData),
   ].filter(Boolean)
 
@@ -790,22 +870,32 @@ function buildProductSeo(route, item) {
     }
   }
 
-  const price = getMinimumPrice(item)
-  const priceText = price > 0 ? ` от ${formatPrice(price)} ₽/сутки` : ''
+  const price = getOneDayPrice(item)
+  const longTerm = getLongTermDailyPrice(item)
   const canonicalRoute = equipmentRoute(item)
-  const title = `Аренда ${item.name} в Москве${priceText} | ВозьмиМеня`
-  const description = truncate(`Аренда ${item.name} в Москве${priceText}. ${item.description || 'Проверенное оборудование, консультация, доставка и самовывоз.'}`, 165)
+  // Совпадает с seoTitle/seoDescription в EquipmentDetailsPage.tsx.
+  const title = price > 0
+    ? `Аренда ${item.name} в Москве — ${formatPrice(price)} ₽/сутки | ВозьмиМеня`
+    : `Аренда ${item.name} в Москве | ВозьмиМеня`
+  const longTermText = longTerm ? `, от ${formatPrice(longTerm.dailyPrice)} ₽/сутки при аренде от ${longTerm.days} суток` : ''
+  const description = price > 0
+    ? truncate(`${item.name} в аренду в Москве: ${formatPrice(price)} ₽ за сутки${longTermText}. Самовывоз у м. Волжская и м. Динамо, доставка по Москве, бронь онлайн.`, 200)
+    : truncate(`Аренда ${item.name} в Москве. ${item.description || 'Проверенное оборудование, консультация, доставка и самовывоз.'}`, 165)
   const image = Array.isArray(item.images) && item.images.length > 0 ? absoluteUrl(item.images[0]) : undefined
   const productImages = Array.isArray(item.images) && item.images.length > 0
     ? item.images.map(absoluteUrl)
     : image ? [image] : undefined
   const faq = productFaq(item)
+  const brand = productBrand(item)
+  const categoryHub = articleCategoryHubs.find((hub) => hub.match.test(item.category || ''))
 
   return {
     title,
     description,
     image,
     type: 'product',
+    breadcrumbName: item.name,
+    breadcrumbParents: categoryHub && item.category ? [{ name: item.category, href: categoryHub.href }] : [],
     jsonLd: [
       {
         '@context': 'https://schema.org',
@@ -813,6 +903,8 @@ function buildProductSeo(route, item) {
         name: item.name,
         description,
         image: productImages,
+        brand: brand ? { '@type': 'Brand', name: brand } : undefined,
+        sku: item.slug || String(item.id),
         category: item.category,
         offers: {
           '@type': 'Offer',
@@ -823,12 +915,24 @@ function buildProductSeo(route, item) {
           availability: 'https://schema.org/InStock',
           areaServed: { '@type': 'City', name: 'Москва' },
           seller: { '@id': ORGANIZATION_ID },
-          priceSpecification: price ? {
-            '@type': 'UnitPriceSpecification',
-            price,
-            priceCurrency: 'RUB',
-            unitText: 'сутки',
-          } : undefined,
+          priceSpecification: price ? [
+            {
+              '@type': 'UnitPriceSpecification',
+              price,
+              priceCurrency: 'RUB',
+              unitCode: 'DAY',
+              unitText: 'сутки',
+              referenceQuantity: { '@type': 'QuantitativeValue', value: 1, unitCode: 'DAY' },
+            },
+            ...(longTerm ? [{
+              '@type': 'UnitPriceSpecification',
+              price: longTerm.dailyPrice,
+              priceCurrency: 'RUB',
+              unitCode: 'DAY',
+              unitText: 'сутки',
+              eligibleQuantity: { '@type': 'QuantitativeValue', minValue: longTerm.days, unitCode: 'DAY' },
+            }] : []),
+          ] : undefined,
         },
       },
       buildFaqJsonLd(faq),
@@ -845,8 +949,10 @@ function buildArticleSeo(route, article) {
     }
   }
 
-  const title = `${article.title} | Блог ВозьмиМеня`
-  const description = truncate(article.excerpt || article.content || title, 165)
+  // Как SEO.tsx в BlogArticlePage: заголовок статьи + бренд, если помещается (fitSiteTitle в buildSeoTags).
+  const title = article.title
+  // Как BlogArticlePage (SEO description={article.excerpt}): лид целиком, обрезаем только текст статьи без лида.
+  const description = article.excerpt || truncate(article.content || title, 165)
   const image = article.image_url ? absoluteUrl(article.image_url) : undefined
 
   return {
@@ -859,14 +965,25 @@ function buildArticleSeo(route, article) {
       '@type': 'BlogPosting',
       headline: article.title,
       description,
-      image,
-      author: { '@type': 'Organization', name: article.author || 'ВозьмиМеня' },
+      image: image || business.image,
+      // Человек-автор — Person с привязкой к компании; старое значение «ВозьмиМеня» — сама организация.
+      author: article.author && article.author !== business.name
+        ? { '@type': 'Person', name: article.author, worksFor: { '@id': ORGANIZATION_ID }, url: `${SITE_ORIGIN}/about` }
+        : { '@id': ORGANIZATION_ID },
       publisher: { '@id': ORGANIZATION_ID },
       mainEntityOfPage: `${SITE_ORIGIN}${route}`,
-      datePublished: article.created_at,
-      dateModified: article.updated_at,
+      datePublished: toIsoDateTime(article.created_at),
+      dateModified: toIsoDateTime(article.updated_at || article.created_at),
     },
   }
+}
+
+// SQLite CURRENT_TIMESTAMP хранит UTC без зоны: '2026-09-05 23:41:32' -> '2026-09-05T23:41:32Z'.
+function toIsoDateTime(value) {
+  if (!value) return undefined
+  const text = String(value).trim()
+  if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}(:\d{2})?$/.test(text)) return `${text.replace(' ', 'T')}Z`
+  return text
 }
 
 function fallbackSeo(route) {
@@ -906,9 +1023,20 @@ function cleanManagedSeoTags(html) {
     .replace(/<link\b(?=[^>]*\brel=["']canonical["'])[^>]*>\s*/gi, '')
 }
 
+const TITLE_MAX_LENGTH = 70
+const BRAND_SUFFIX = ' | ВозьмиМеня'
+
+// То же правило, что fitSiteTitle в src/components/SEO.tsx: бренд в конце title — только если помещается в сниппет.
+function fitSiteTitle(title) {
+  const value = String(title || '')
+  const withBrand = value.includes('ВозьмиМеня') ? value : `${value}${BRAND_SUFFIX}`
+  if (withBrand.length <= TITLE_MAX_LENGTH) return withBrand
+  return withBrand.endsWith(BRAND_SUFFIX) ? withBrand.slice(0, -BRAND_SUFFIX.length) : withBrand
+}
+
 function buildSeoTags(route, meta) {
   const canonical = routeCanonical(meta, route)
-  const title = escapeHtml(meta.title)
+  const title = escapeHtml(fitSiteTitle(meta.title))
   const description = escapeHtml(meta.description)
   const image = escapeHtml(meta.image || `${SITE_ORIGIN}/og-image.jpg`)
   const type = meta.type === 'article' ? 'article' : meta.type === 'product' ? 'product' : 'website'
@@ -938,6 +1066,38 @@ function linkList(items) {
   return `<ul>${items.map((item) => `<li><a href="${escapeHtml(item.href)}">${escapeHtml(item.label)}</a></li>`).join('')}</ul>`
 }
 
+function staticProductCatalog(items, heading) {
+  if (!items.length) return ''
+
+  const products = items.map((item) => {
+    const productUrl = equipmentRoute(item)
+    const oneDayPrice = getOneDayPrice(item)
+    const description = truncate(item.description || `${item.name} в аренду в Москве.`, 220)
+    const bookingUrl = `/booking?equipment=${encodeURIComponent(String(item.id || item.slug || ''))}`
+
+    return `<li><article data-static-product="true">
+      <h3><a href="${escapeHtml(productUrl)}">${escapeHtml(item.name)}</a></h3>
+      <p>${escapeHtml(description)}</p>
+      ${oneDayPrice > 0 ? `<p><strong>1 сутки — ${escapeHtml(formatPrice(oneDayPrice))} ₽</strong></p>` : ''}
+      <p><a href="${escapeHtml(bookingUrl)}">Забронировать ${escapeHtml(item.name)}</a></p>
+    </article></li>`
+  }).join('')
+
+  return `<section data-static-product-catalog="true" aria-label="${escapeHtml(heading)}"><h2>${escapeHtml(heading)}</h2><ul>${products}</ul></section>`
+}
+
+// Таблица тарифов долгой аренды для статического HTML страницы «на месяц».
+function monthlyPriceTable(remoteData) {
+  const rows = [...remoteData.equipmentBySlug.values()]
+    .map((item) => ({ item, oneDay: getOneDayPrice(item), longTerm: getLongTermDailyPrice(item) }))
+    .filter((row) => row.longTerm)
+  if (!rows.length) return ''
+  const body = rows.map(({ item, oneDay, longTerm }) => (
+    `<tr><td><a href="${escapeHtml(equipmentRoute(item))}">${escapeHtml(item.name)}</a></td><td>${escapeHtml(formatPrice(oneDay))} ₽</td><td>от ${escapeHtml(formatPrice(longTerm.dailyPrice))} ₽ (от ${longTerm.days} суток)</td></tr>`
+  )).join('')
+  return `<h2>Сколько стоит аренда на месяц</h2><table><thead><tr><th>Модель</th><th>1 сутки</th><th>Долгая аренда, за сутки</th></tr></thead><tbody>${body}</tbody></table>`
+}
+
 function faqSection(items) {
   if (!items?.length) return ''
   return `<h2>Частые вопросы</h2>${items.map((item) => `<h3>${escapeHtml(item.question)}</h3><p>${escapeHtml(item.answer)}</p>`).join('')}`
@@ -962,8 +1122,26 @@ function pageShell(title, description, sections = []) {
       { href: '/arenda-gopro-moskva', label: 'Аренда GoPro и камер' },
       { href: '/arenda-audiooborudovaniya-moskva', label: 'Аренда колонок и аудиооборудования' },
       { href: '/booking', label: 'Оформить бронь онлайн' },
+      { href: '/arenda-tehniki-na-mesyac-moskva', label: 'Аренда техники на месяц — тарифы' },
       { href: '/blog', label: 'Блог и гайды по аренде техники' },
       { href: '/contact', label: 'Контакты и самовывоз' },
+    ])}</nav>`,
+    // Ссылки подвала React-версии: без них /about, /privacy, /sitemap и др. находились ботами только через sitemap.xml.
+    `<nav aria-label="Информация">${linkList([
+      { href: '/about', label: 'О компании' },
+      { href: '/kak-prohodit-arenda-tehniki', label: 'Как проходит аренда' },
+      { href: '/delivery', label: 'Доставка' },
+      { href: '/samovyvoz-24-7-postamat', label: 'Самовывоз 24/7 через постамат' },
+      ...business.offices.map((office) => ({ href: office.slug, label: `Аренда у м. ${office.metro}` })),
+      { href: '/faq', label: 'Вопросы и ответы' },
+      { href: '/offer', label: 'Публичная оферта' },
+      { href: '/rental-agreement', label: 'Договор аренды' },
+      { href: '/return-policy', label: 'Возврат и отказ от услуги' },
+      { href: '/requisites', label: 'Реквизиты' },
+      { href: '/privacy', label: 'Политика обработки персональных данных' },
+      { href: '/cookies', label: 'Политика cookie' },
+      { href: '/terms', label: 'Условия использования' },
+      { href: '/sitemap', label: 'Карта сайта' },
     ])}</nav>`,
   ].join('\n')
 
@@ -977,22 +1155,69 @@ function productLinks(remoteData, predicate = () => true, limit = 8) {
     .map((item) => ({ href: equipmentRoute(item), label: item.name }))
 }
 
-function routeProductLinks(route, remoteData, limit = 8) {
-  const predicates = {
-    '/arenda-pylesosov-moskva': (item) => String(item.category || '').includes('Пылесос') || String(item.category || '').includes('клининг'),
-    '/arenda-stroitelnogo-pylesosa-posle-remonta-moskva': (item) => String(item.name || '').toLowerCase().includes('wd') || String(item.category || '').includes('Пылесос'),
-    '/arenda-moyushchego-pylesosa-dlya-divana-kovra-moskva': (item) => String(item.name || '').toLowerCase().includes('puzzi'),
-    '/arenda-paroochistitelya-dlya-kuhni-plitki-vannoy-moskva': (item) => String(item.name || '').toLowerCase().includes('sc4') || String(item.name || '').toLowerCase().includes('пар'),
-    '/arenda-gopro-moskva': (item) => String(item.category || '').includes('Камер'),
-    '/arenda-kamery-dlya-puteshestviya-vloga-moskva': (item) => String(item.category || '').includes('Камер'),
-    '/arenda-audiooborudovaniya-moskva': (item) => String(item.category || '').includes('Аудио'),
-    '/arenda-kolonki-dlya-vecherinki-moskva': (item) => String(item.name || '').toLowerCase().includes('jbl') || String(item.category || '').includes('Аудио'),
-    '/arenda-karaoke-komplekta-moskva': (item) => String(item.name || '').toLowerCase().includes('jbl'),
-    '/arenda-mikrofona-dlya-intervyu-moskva': (item) => String(item.name || '').toLowerCase().includes('mic') || String(item.name || '').toLowerCase().includes('микрофон'),
-    '/arenda-tehniki-dlya-meropriyatiya-moskva': (item) => String(item.category || '').includes('Аудио') || String(item.category || '').includes('Камер'),
-  }
+const nameIncludes = (...parts) => (item) => parts.some((part) => String(item.name || '').toLowerCase().includes(part))
+const categoryIncludes = (...parts) => (item) => parts.some((part) => String(item.category || '').includes(part))
 
-  return productLinks(remoteData, predicates[route] || (() => true), limit)
+// Модели под сценарий посадочной: из них строится таблица цен. primary — основная техника сценария,
+// по ней считаем «от N ₽» (сушилка или микрофоны в таблице не должны занижать цену пылесоса или колонки).
+const scenarioProductConfig = {
+  '/arenda-stroitelnogo-pylesosa-posle-remonta-moskva': { match: nameIncludes('wd5', 'sc4', 'vacmaster'), primary: nameIncludes('wd5') },
+  '/arenda-moyushchego-pylesosa-dlya-divana-kovra-moskva': { match: nameIncludes('puzzi', 'vacmaster'), primary: nameIncludes('puzzi') },
+  '/arenda-paroochistitelya-dlya-kuhni-plitki-vannoy-moskva': { match: nameIncludes('sc4') },
+  '/arenda-kolonki-dlya-vecherinki-moskva': { match: nameIncludes('partybox', 'микрофоны jbl'), primary: nameIncludes('partybox') },
+  '/arenda-karaoke-komplekta-moskva': { match: nameIncludes('partybox', 'микрофоны jbl'), primary: () => false },
+  '/arenda-mikrofona-dlya-intervyu-moskva': { match: nameIncludes('mic 2') },
+  '/arenda-tehniki-dlya-meropriyatiya-moskva': { match: categoryIncludes('Аудио', 'Камер') },
+}
+
+function scenarioProducts(route, remoteData) {
+  const config = scenarioProductConfig[route]
+  if (!config) return []
+  return [...remoteData.equipmentBySlug.values()]
+    .filter((item) => getOneDayPrice(item) > 0 && config.match(item))
+    // Основная техника сценария — первой, сопутствующая (сушилка, микрофоны) — ниже.
+    .sort((a, b) => Number(Boolean(config.primary?.(b))) - Number(Boolean(config.primary?.(a))) || getOneDayPrice(a) - getOneDayPrice(b))
+}
+
+function scenarioMinPrice(route, items) {
+  const primary = scenarioProductConfig[route]?.primary
+  const prices = (primary ? items.filter(primary) : items).map(getOneDayPrice)
+  return prices.length ? Math.min(...prices) : null
+}
+
+// Таблица «модель → 1 сутки → Пт–Вс → долгая аренда» и строка «от N ₽» — цифры, которые цитирует AI-поиск.
+function scenarioPriceSection(items, heading, minPrice) {
+  if (!items.length) return ''
+  const hasWeekend = items.some((item) => Number(normalizePricing(item.pricing).weekendDay) > 0)
+  const rows = items.map((item) => {
+    const weekend = Number(normalizePricing(item.pricing).weekendDay) || 0
+    const longTerm = getLongTermDailyPrice(item)
+    return `<tr><td><a href="${escapeHtml(equipmentRoute(item))}">${escapeHtml(item.name)}</a></td><td>${escapeHtml(formatPrice(getOneDayPrice(item)))} ₽</td>${hasWeekend ? `<td>${weekend ? `${escapeHtml(formatPrice(weekend))} ₽` : '—'}</td>` : ''}<td>${longTerm ? `от ${escapeHtml(formatPrice(longTerm.dailyPrice))} ₽ (от ${longTerm.days} суток)` : '—'}</td></tr>`
+  }).join('')
+  const fromText = minPrice ? `Цены: от ${escapeHtml(formatPrice(minPrice))} ₽ в сутки. ` : ''
+  return `<h2>${escapeHtml(heading)}</h2><p>${fromText}Доставка по Москве за 2–4 часа или бесплатный самовывоз через постамат 24/7.</p><table><thead><tr><th>Модель</th><th>1 сутки</th>${hasWeekend ? '<th>Пт–Вс, за сутки</th>' : ''}<th>Долгая аренда, за сутки</th></tr></thead><tbody>${rows}</tbody></table>`
+}
+
+function scenarioPriceBlock(route, remoteData, heading) {
+  const items = scenarioProducts(route, remoteData)
+  return scenarioPriceSection(items, heading, scenarioMinPrice(route, items))
+}
+
+// Стоимость караоке-комплекта: колонка + беспроводные микрофоны JBL за 1 сутки.
+function karaokeKitPrices(remoteData) {
+  const items = [...remoteData.equipmentBySlug.values()]
+  const microphones = items.find(nameIncludes('микрофоны jbl'))
+  const speakers = items.filter(nameIncludes('partybox')).sort((a, b) => getOneDayPrice(a) - getOneDayPrice(b))
+  if (!microphones || !speakers.length || !getOneDayPrice(microphones)) return ''
+  const kitPrice = (speaker) => getOneDayPrice(speaker) + getOneDayPrice(microphones)
+  const kits = speakers.map((speaker) => `<li>${escapeHtml(speaker.name)} + ${escapeHtml(microphones.name)} — ${escapeHtml(formatPrice(kitPrice(speaker)))} ₽ за сутки</li>`).join('')
+  return `<h2>Сколько стоит караоке-комплект</h2><p>Комплект — от ${escapeHtml(formatPrice(kitPrice(speakers[0])))} ₽ в сутки.</p><ul>${kits}</ul>`
+}
+
+function productsByCategory(remoteData, predicate, limit = 8) {
+  return [...remoteData.equipmentBySlug.values()]
+    .filter(predicate)
+    .slice(0, limit)
 }
 
 function articleLinks(remoteData, limit = 8) {
@@ -1002,27 +1227,113 @@ function articleLinks(remoteData, limit = 8) {
     .map((article) => ({ href: `/blog/${article.slug}`, label: article.title }))
 }
 
-function markdownToPlainSections(content) {
-  const clean = stripHtml(content || '')
-    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
-    .replace(/```[\s\S]*?```/g, ' ')
-    .replace(/[#*_`>|-]+/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim()
+// Полный текст статьи для ботов без JS: тот же GFM, что у ReactMarkdown + remark-gfm в BlogArticlePage.
+// Сырой HTML внутри markdown micromark экранирует (allowDangerousHtml выключен).
+function articleMarkdownToHtml(content) {
+  if (!content) return ''
+  return micromark(String(content), { extensions: [gfm()], htmlExtensions: [gfmHtml()] })
+    .replace(/<img src="([^"]*)"/g, (_, src) => `<img src="${escapeHtml(absoluteUrl(src.replace(/&amp;/g, '&')))}" loading="lazy" decoding="async"`)
+    .replace(/<h1>/g, '<h2>')
+    .replace(/<\/h1>/g, '</h2>')
+}
 
-  if (!clean) return []
+function formatRuDate(isoValue) {
+  const date = new Date(isoValue)
+  if (Number.isNaN(date.getTime())) return ''
+  return date.toLocaleDateString('ru-RU', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'Europe/Moscow' })
+}
 
-  const paragraphs = clean
-    .split(/(?<=\.)\s+/)
-    .reduce((acc, sentence) => {
-      const current = acc[acc.length - 1] || ''
-      if (!current || current.length > 420) acc.push(sentence)
-      else acc[acc.length - 1] = `${current} ${sentence}`
-      return acc
-    }, [])
-    .slice(0, 6)
+function articleByline(article) {
+  const published = toIsoDateTime(article.created_at)
+  const modified = toIsoDateTime(article.updated_at || article.created_at)
+  const parts = [`Автор: ${escapeHtml(article.author || business.name)}`]
+  if (published && formatRuDate(published)) parts.push(`Опубликовано: <time datetime="${escapeHtml(published)}">${escapeHtml(formatRuDate(published))}</time>`)
+  if (modified && modified !== published && formatRuDate(modified)) parts.push(`Обновлено: <time datetime="${escapeHtml(modified)}">${escapeHtml(formatRuDate(modified))}</time>`)
+  return `<p data-static-byline="true">${parts.join(' · ')}</p>`
+}
 
-  return paragraphs.map((paragraph) => `<p>${escapeHtml(paragraph)}</p>`)
+// Хабы категорий и их сценарные посадочные: хаб ссылается на посадочные и гайды своей темы,
+// посадочная — обратно на хаб и на гайды. Так связка хаб → посадочная → статья видна и без JS.
+const topicHubs = [
+  {
+    hub: { href: '/arenda-pylesosov-moskva', label: 'Все пылесосы и клининговая техника' },
+    articleMatch: /пылесос|клининг|уборк/i,
+    spokes: [
+      { href: '/arenda-stroitelnogo-pylesosa-posle-remonta-moskva', label: 'Строительный пылесос для уборки после ремонта', guides: [/ремонт|строител/i, /wd5|протечк/i] },
+      { href: '/arenda-moyushchego-pylesosa-dlya-divana-kovra-moskva', label: 'Моющий пылесос для дивана и ковра', guides: [/диван|ков[её]р|ковр|матрас/i, /puzzi|химчист/i] },
+      { href: '/arenda-paroochistitelya-dlya-kuhni-plitki-vannoy-moskva', label: 'Пароочиститель для кухни, плитки и ванной', guides: [/пароочист|паром|sc4/i, /плитк|кухн|ванн/i] },
+    ],
+  },
+  {
+    hub: { href: '/arenda-gopro-moskva', label: 'Все экшн-камеры: GoPro, Insta360, DJI' },
+    articleMatch: /камер/i,
+    spokes: [],
+  },
+  {
+    hub: { href: '/arenda-audiooborudovaniya-moskva', label: 'Все колонки и микрофоны' },
+    articleMatch: /аудио/i,
+    spokes: [
+      { href: '/arenda-kolonki-dlya-vecherinki-moskva', label: 'Колонка для вечеринки', guides: [/колонк|вечерин|partybox|пикник/i] },
+      { href: '/arenda-karaoke-komplekta-moskva', label: 'Караоке-комплект: колонка и микрофоны', guides: [/караоке/i, /микрофон|partybox/i] },
+      { href: '/arenda-mikrofona-dlya-intervyu-moskva', label: 'Микрофон для интервью и съёмки', guides: [/интервью|mic 2/i, /микрофон|звук/i] },
+      { href: '/arenda-tehniki-dlya-meropriyatiya-moskva', label: 'Техника для мероприятия', guides: [/мероприят|праздник|свадьб/i, /вечерин|караоке/i] },
+    ],
+  },
+]
+
+// Сценарная посадочная для карточки товара (по slug); тот же файл читает EquipmentDetailsPage.tsx.
+const productScenarioLinks = JSON.parse(await fs.readFile(path.join(clientDir, 'src/content/productScenarios.json'), 'utf8'))
+
+// Гайды для посадочной: сначала статьи под её сценарий (по заголовку, тегам и slug), затем — по категории темы.
+function topicArticleLinks(remoteData, articleMatch, limit, scenarioMatch) {
+  const articles = [...remoteData.articleBySlug.values()].filter((article) => article?.slug)
+  // Ключи сценария идут по приоритету (главные слова, затем вторичные), и совпадение в заголовке
+  // сильнее, чем в тегах или slug: статья «как почистить диван» не уступает «химчистке салона» по слову Puzzi.
+  const picked = []
+  const take = (test) => articles.forEach((article) => { if (!picked.includes(article) && test(article)) picked.push(article) })
+  for (const pattern of scenarioMatch || []) take((article) => pattern.test(article.title || ''))
+  for (const pattern of scenarioMatch || []) take((article) => pattern.test(`${article.tags || ''} ${article.slug}`))
+  const byCategory = articles.filter((article) => articleMatch.test(article.category || '') && !picked.includes(article))
+  return [...picked, ...byCategory]
+    .slice(0, limit)
+    .map((article) => ({ href: `/blog/${article.slug}`, label: article.title }))
+}
+
+function topicLinkSections(route, remoteData) {
+  const topic = topicHubs.find((item) => item.hub.href === route || item.spokes.some((spoke) => spoke.href === route))
+  if (!topic) return []
+  const isHub = topic.hub.href === route
+  const spoke = topic.spokes.find((item) => item.href === route)
+  const guides = topicArticleLinks(remoteData, topic.articleMatch, isHub ? 6 : 3, spoke?.guides)
+  const pages = isHub
+    ? topic.spokes
+    : [topic.hub, ...topic.spokes.filter((spoke) => spoke.href !== route)]
+  return [
+    pages.length ? `<h2>${isHub ? 'Под задачу' : 'Смотрите также'}</h2>${linkList(pages)}` : '',
+    guides.length ? `<h2>Гайды по теме</h2>${linkList(guides)}` : '',
+  ].filter(Boolean)
+}
+
+// Похожие статьи — общий модуль с BlogArticlePage.tsx, чтобы блок совпадал в пререндере и после JS.
+function relatedArticleLinks(article, remoteData, limit = RELATED_ARTICLES_LIMIT) {
+  return pickRelatedArticles(article, [...remoteData.articleBySlug.values()], limit)
+    .map((other) => ({ href: `/blog/${other.slug}`, label: other.title }))
+}
+
+// Главное фото карточки в статике: LCP-элемент появляется без JS и API.
+// srcset/sizes совпадают с <img> в EquipmentDetailsPage.tsx (PRODUCT_MAIN_IMAGE_SIZES).
+function productMainImage(item) {
+  const original = Array.isArray(item?.images) ? item.images[0] : null
+  if (!original) return null
+  const variants = (item.imageVariants?.[original] || []).filter((variant) => variant?.url && variant?.width)
+  const srcset = variants.map((variant) => `${absoluteUrl(variant.url)} ${variant.width}w`).join(', ')
+  return { src: absoluteUrl(original), srcset, sizes: '(min-width: 768px) 420px, 100vw', alt: item.name }
+}
+
+function productMainImageHtml(item) {
+  const image = productMainImage(item)
+  if (!image) return ''
+  return `<img src="${escapeHtml(image.src)}"${image.srcset ? ` srcset="${escapeHtml(image.srcset)}" sizes="${image.sizes}"` : ''} alt="${escapeHtml(image.alt)}" loading="eager" decoding="async" fetchpriority="high">`
 }
 
 function buildProductBody(item, remoteData) {
@@ -1030,7 +1341,8 @@ function buildProductBody(item, remoteData) {
     return pageShell('Аренда оборудования в Москве', 'Карточка оборудования ВозьмиМеня: описание, тарифы, условия аренды, доставка и онлайн-бронирование техники в Москве.')
   }
 
-  const price = getMinimumPrice(item)
+  const price = getOneDayPrice(item)
+  const longTerm = getLongTermDailyPrice(item)
   const rows = pricingRows(item)
   const specs = item.specifications && typeof item.specifications === 'object'
     ? Object.entries(item.specifications).filter(([, value]) => value).slice(0, 8)
@@ -1038,16 +1350,50 @@ function buildProductBody(item, remoteData) {
   const related = productLinks(remoteData, (other) => other.id !== item.id && other.category === item.category, 6)
   const faq = productFaq(item)
   const sections = [
+    productMainImageHtml(item),
     `<p>${escapeHtml(item.description || 'Проверенное оборудование для аренды в Москве.')}</p>`,
-    price > 0 ? `<p>Минимальная цена аренды: ${escapeHtml(formatPrice(price))} ₽ за сутки. Доступны доставка, самовывоз и онлайн-бронь.</p>` : '',
+    price > 0 ? `<p>Цена аренды: ${escapeHtml(formatPrice(price))} ₽ за сутки${longTerm ? `, при аренде от ${longTerm.days} суток — от ${escapeHtml(formatPrice(longTerm.dailyPrice))} ₽ за сутки (<a href="/arenda-tehniki-na-mesyac-moskva">тарифы на месяц</a>)` : ''}. Доступны доставка, самовывоз и онлайн-бронь.</p>` : '',
     rows.length ? `<h2>Тарифы аренды</h2><ul>${rows.map((row) => `<li>${escapeHtml(row.label)} — ${escapeHtml(formatPrice(row.value))} ₽${escapeHtml(row.suffix)}</li>`).join('')}</ul>` : '',
     specs.length ? `<h2>Характеристики</h2><dl>${specs.map(([key, value]) => `<dt>${escapeHtml(key)}</dt><dd>${escapeHtml(value)}</dd>`).join('')}</dl>` : '',
     faqSection(faq),
     related.length ? `<h2>Похожие позиции</h2>${linkList(related)}` : '',
+    productScenarioLinks[item.slug] ? `<h2>Под задачу</h2>${linkList(productScenarioLinks[item.slug])}` : '',
     `<h2>Как арендовать</h2><p>Выберите даты, оставьте заявку или напишите менеджеру. Мы подтвердим наличие, офис получения, доставку и комплект перед выдачей.</p>`,
   ].filter(Boolean)
 
-  return pageShell(`Аренда ${item.name} в Москве`, `Карточка оборудования: ${item.name}. ${item.description || 'Прокат техники с доставкой и самовывозом.'}`, sections)
+  // H1 тот же, что в EquipmentDetailsPage.tsx: «<модель> в аренду».
+  return pageShell(`${item.name} в аренду`, `Карточка оборудования: ${item.name}. ${item.description || 'Прокат техники с доставкой и самовывозом.'}`, sections)
+}
+
+// Обложка статьи в статике: тот же src/srcset/sizes, что у <img> в BlogArticlePage.tsx (ARTICLE_COVER_SIZES),
+// и размеры из API, чтобы картинка не сдвигала текст.
+function articleCoverImage(article) {
+  if (!article?.image_url) return null
+  const src = absoluteUrl(article.image_url)
+  const variants = (article.image_variants || []).filter((variant) => variant?.url && variant?.width)
+  const srcset = [
+    ...variants.map((variant) => `${absoluteUrl(variant.url)} ${variant.width}w`),
+    ...(variants.length && article.image_width ? [`${src} ${article.image_width}w`] : []),
+  ].join(', ')
+  return { src, srcset, sizes: '(min-width: 896px) 864px, calc(100vw - 32px)', alt: article.title, width: article.image_width, height: article.image_height }
+}
+
+function articleCoverHtml(article) {
+  const image = articleCoverImage(article)
+  if (!image) return ''
+  const size = image.width && image.height ? ` width="${image.width}" height="${image.height}"` : ''
+  return `<img src="${escapeHtml(image.src)}"${image.srcset ? ` srcset="${escapeHtml(image.srcset)}" sizes="${image.sizes}"` : ''}${size} alt="${escapeHtml(image.alt)}" loading="eager" decoding="async" fetchpriority="high">`
+}
+
+// Preload LCP-картинки карточки и статьи: браузер начинает грузить её до разбора тела страницы.
+function lcpPreloadTag(route, remoteData) {
+  const segment = route.split('/').filter(Boolean)[1]
+  let image = null
+  if (route.startsWith('/equipment/')) image = productMainImage(findEquipmentByIdentifier(remoteData, segment))
+  else if (route.startsWith('/blog/')) image = articleCoverImage(remoteData.articleBySlug.get(segment))
+  if (!image) return ''
+  const srcset = image.srcset ? ` imagesrcset="${escapeHtml(image.srcset)}" imagesizes="${image.sizes}"` : ''
+  return `    <link rel="preload" as="image" href="${escapeHtml(image.src)}"${srcset} fetchpriority="high">`
 }
 
 function buildArticleBody(article, remoteData) {
@@ -1055,16 +1401,19 @@ function buildArticleBody(article, remoteData) {
     return pageShell('Статья об аренде техники', 'Практический материал блога ВозьмиМеня о выборе и аренде оборудования.')
   }
 
+  const hub = articleCategoryHubs.find((item) => item.match.test(article.category || ''))
+  const related = relatedArticleLinks(article, remoteData)
+  // Лид (excerpt) уже выводит pageShell под H1, поэтому здесь его не повторяем.
   const sections = [
-    `<p>${escapeHtml(article.excerpt || '')}</p>`,
-    ...markdownToPlainSections(article.content),
-    `<h2>Полезные ссылки</h2>${linkList([
-      { href: '/arenda-pylesosov-moskva', label: 'Пылесосы и клининг в аренду' },
-      { href: '/arenda-gopro-moskva', label: 'Камеры и GoPro в аренду' },
-      { href: '/arenda-audiooborudovaniya-moskva', label: 'Колонки и аудиооборудование' },
-      { href: '/booking', label: 'Оформить бронь' },
+    articleByline(article),
+    articleCoverHtml(article),
+    `<article data-static-article="true">${articleMarkdownToHtml(article.content)}</article>`,
+    `<h2>Взять технику в аренду</h2>${linkList([
+      ...(hub ? [hub] : []),
+      ...articleCategoryHubs.filter((item) => item !== hub),
+      { href: '/booking', label: 'Оформить бронь онлайн' },
     ])}`,
-    articleLinks(remoteData, 5).length ? `<h2>Другие статьи</h2>${linkList(articleLinks(remoteData, 5).filter((link) => link.href !== `/blog/${article.slug}`))}` : '',
+    related.length ? `<h2>Похожие статьи</h2>${linkList(related)}` : '',
   ].filter(Boolean)
 
   return pageShell(article.title, article.excerpt || 'Статья блога ВозьмиМеня.', sections)
@@ -1082,11 +1431,11 @@ function buildStaticRouteBody(route, meta, remoteData) {
   }
 
   const allProducts = productLinks(remoteData, () => true, 12)
-  const cleaning = productLinks(remoteData, (item) => String(item.category || '').includes('Пылесос') || String(item.category || '').includes('клининг'), 8)
-  const cameras = productLinks(remoteData, (item) => String(item.category || '').includes('Камер'), 8)
-  const audio = productLinks(remoteData, (item) => String(item.category || '').includes('Аудио'), 8)
-  const articles = articleLinks(remoteData, 10)
-  const routeProducts = routeProductLinks(route, remoteData, 8)
+  const cleaningProducts = productsByCategory(remoteData, (item) => String(item.category || '').includes('Пылесос') || String(item.category || '').includes('клининг'), 8)
+  const cameraProducts = productsByCategory(remoteData, (item) => String(item.category || '').includes('Камер'), 8)
+  const audioProducts = productsByCategory(remoteData, (item) => String(item.category || '').includes('Аудио'), 8)
+  // Все статьи: /blog и /sitemap в статике должны ссылаться на каждую (раньше было 10 из 19).
+  const articles = articleLinks(remoteData, 1000)
   const routeSections = {
     '/': [
       `<h2>Популярное оборудование</h2>${linkList(allProducts)}`,
@@ -1095,42 +1444,39 @@ function buildStaticRouteBody(route, meta, remoteData) {
         { href: '/arenda-gopro-moskva', label: 'GoPro, Insta360 и DJI Osmo Pocket' },
         { href: '/arenda-audiooborudovaniya-moskva', label: 'JBL PartyBox и микрофоны' },
       ])}`,
-      articles.length ? `<h2>Гайды по выбору</h2>${linkList(articles)}` : '',
+      articles.length ? `<h2>Гайды по выбору</h2>${linkList(articles.slice(0, 10))}` : '',
     ],
     '/arenda-pylesosov-moskva': [
-      `<h2>Пылесосы и клининг</h2>${linkList(cleaning)}`,
+      staticProductCatalog(cleaningProducts, 'Пылесосы и клининговая техника в аренду'),
       `<p>Для строительной пыли подходит WD5, для диванов и ковров — Karcher Puzzi, для плитки и кухни — пароочиститель SC4.</p>`,
     ],
     '/arenda-stroitelnogo-pylesosa-posle-remonta-moskva': [
-      routeProducts.length ? `<h2>Техника для уборки после ремонта</h2>${linkList(routeProducts)}` : '',
+      scenarioPriceBlock('/arenda-stroitelnogo-pylesosa-posle-remonta-moskva', remoteData, 'Техника для уборки после ремонта: цены'),
       `<p>Строительный пылесос нужен для сухой пыли, мусора и финишной уборки после ремонта. Перед бронью уточняем площадь, тип загрязнения и подходящий комплект.</p>`,
     ],
     '/arenda-moyushchego-pylesosa-dlya-divana-kovra-moskva': [
-      routeProducts.length ? `<h2>Моющие пылесосы для текстиля</h2>${linkList(routeProducts)}` : '',
+      scenarioPriceBlock('/arenda-moyushchego-pylesosa-dlya-divana-kovra-moskva', remoteData, 'Моющие пылесосы для текстиля: цены'),
       `<p>Karcher Puzzi помогает чистить диваны, ковры, матрасы и салон авто: подает раствор и сразу вытягивает влагу с грязью.</p>`,
     ],
     '/arenda-paroochistitelya-dlya-kuhni-plitki-vannoy-moskva': [
-      routeProducts.length ? `<h2>Пароочистители и клининг</h2>${linkList(routeProducts)}` : '',
+      scenarioPriceBlock('/arenda-paroochistitelya-dlya-kuhni-plitki-vannoy-moskva', remoteData, 'Пароочистители и клининг: цены'),
       `<p>Пароочиститель подходит для плитки, швов, кухни, ванной и финальной уборки без покупки техники ради одной задачи.</p>`,
     ],
     '/arenda-gopro-moskva': [
-      `<h2>Камеры в аренду</h2>${linkList(cameras)}`,
+      staticProductCatalog(cameraProducts, 'Экшн-камеры в аренду'),
       `<p>GoPro удобна для спорта и воды, Insta360 — для 360-ракурсов, DJI Osmo Pocket — для влогов и плавной съемки с рук.</p>`,
     ],
-    '/arenda-kamery-dlya-puteshestviya-vloga-moskva': [
-      routeProducts.length ? `<h2>Камеры для поездки и влога</h2>${linkList(routeProducts)}` : '',
-      `<p>Для путешествия важны компактность, стабилизация, автономность и быстрый старт съемки. Подберем камеру и аксессуары под маршрут и формат контента.</p>`,
-    ],
     '/arenda-audiooborudovaniya-moskva': [
-      `<h2>Аудиооборудование</h2>${linkList(audio)}`,
+      staticProductCatalog(audioProducts, 'Колонки и микрофоны в аренду'),
       `<p>Колонки JBL PartyBox подходят для квартиры, дачи, праздника и небольшого мероприятия. Микрофоны помогают записать речь и интервью.</p>`,
     ],
     '/arenda-kolonki-dlya-vecherinki-moskva': [
-      routeProducts.length ? `<h2>Колонки для вечеринки</h2>${linkList(routeProducts)}` : '',
+      scenarioPriceBlock('/arenda-kolonki-dlya-vecherinki-moskva', remoteData, 'Колонки для вечеринки: цены'),
       `<p>Для вечеринки важны мощность, автономность, бас и удобное подключение телефона. Менеджер поможет выбрать колонку под помещение и количество гостей.</p>`,
     ],
     '/arenda-karaoke-komplekta-moskva': [
-      routeProducts.length ? `<h2>Колонки и микрофоны для караоке</h2>${linkList(routeProducts)}` : '',
+      scenarioPriceBlock('/arenda-karaoke-komplekta-moskva', remoteData, 'Колонки и микрофоны для караоке: цены'),
+      karaokeKitPrices(remoteData),
       `<p>Караоке-комплект состоит из JBL PartyBox 320 или 710 и двух беспроводных микрофонов JBL. Обе позиции можно добавить в одну заявку, выбрать общие даты, самовывоз или доставку.</p>`,
       `<p>${linkList([
         { href: '/booking?equipment=jbl-partybox-320,jbl-partybox-wireless-microphones', label: 'Забронировать комплект с JBL PartyBox 320' },
@@ -1139,42 +1485,167 @@ function buildStaticRouteBody(route, meta, remoteData) {
       ])}</p>`,
     ],
     '/arenda-mikrofona-dlya-intervyu-moskva': [
-      routeProducts.length ? `<h2>Микрофоны для интервью и съемки</h2>${linkList(routeProducts)}` : '',
+      scenarioPriceBlock('/arenda-mikrofona-dlya-intervyu-moskva', remoteData, 'Микрофоны для интервью и съемки: цены'),
       `<p>Беспроводной микрофон помогает записать чистую речь для интервью, подкаста, Reels, YouTube и мероприятий с ведущим.</p>`,
     ],
     '/arenda-tehniki-dlya-meropriyatiya-moskva': [
-      routeProducts.length ? `<h2>Техника для мероприятия</h2>${linkList(routeProducts)}` : '',
+      scenarioPriceBlock('/arenda-tehniki-dlya-meropriyatiya-moskva', remoteData, 'Техника для мероприятия: цены'),
       `<p>Для мероприятий чаще всего нужны колонки, микрофоны и камеры. Поможем собрать комплект под помещение, гостей и сценарий.</p>`,
+    ],
+    '/delivery': [
+      `<p data-static-definition="true">Технику ВозьмиМеня можно получить двумя способами: доставкой курьером Яндекс Go по Москве — круглосуточно, обычно за 2–4 часа после подтверждения брони, — или бесплатно через постамат 24/7 у ${escapeHtml(business.offices.map((office) => `м. ${office.metro}`).join(' и '))}.</p>`,
+      `<h2>Доставка курьером по Москве</h2><ul><li>Срок: обычно 2–4 часа после подтверждения брони, доставка работает 24/7.</li><li>Стоимость: по тарифу Яндекс Go, зависит от расстояния и времени суток; менеджер называет её при подтверждении брони.</li><li>Как заказать: укажите адрес и удобное время при оформлении <a href="/booking">брони онлайн</a> или в Telegram <a href="https://t.me/VozmiMenyaRent">@VozmiMenyaRent</a>.</li><li>При получении проверьте комплектность и работоспособность в присутствии курьера.</li><li>Возврат: можно так же оформить Яндекс Go, стоимость рассчитывается приложением в момент заказа.</li></ul>`,
+      `<h2>Бесплатный самовывоз через постамат 24/7</h2><ul>${business.offices.map((office) => `<li><a href="${escapeHtml(office.slug)}">м. ${escapeHtml(office.metro)}</a> — Москва, ${escapeHtml(office.streetAddress)} (район ${escapeHtml(office.district)})</li>`).join('')}</ul><p>После подтверждения брони мы кладём технику в ячейку и отправляем код. Забрать и вернуть её можно в любое время суток, без звонков и ожидания. <a href="/samovyvoz-24-7-postamat">Как работает постамат</a>.</p>`,
+      `<h2>Документы, залог и продление</h2><ul><li>Документы: фото первой страницы паспорта и страницы с пропиской.</li><li>Залог: не нужен при постоянной регистрации в Москве или Московской области; в остальных случаях — 50% стоимости оборудования, возвращается сразу при возврате техники в исправном и чистом состоянии.</li><li>Продление: напишите до окончания аренды — менеджер проверит следующие даты и пересчитает стоимость.</li></ul><p>Полные условия — в <a href="/faq">ответах на вопросы</a> и <a href="/offer">оферте</a>.</p>`,
+    ],
+    '/samovyvoz-24-7-postamat': [
+      `<p data-static-definition="true">Постамат ВозьмиМеня — бесплатный самовывоз арендованной техники 24/7 у ${escapeHtml(business.offices.map((office) => `м. ${office.metro} (${office.streetAddress})`).join(' и '))}. После подтверждения брони мы кладём оборудование в ячейку и отправляем код: забрать и вернуть технику можно в любое время суток, без звонков и ожидания.</p>`,
+      `<h2>Как забрать технику через постамат</h2><ol><li>Оформите <a href="/booking">бронь онлайн</a> или напишите в Telegram <a href="https://t.me/VozmiMenyaRent">@VozmiMenyaRent</a>: модель, даты и удобную точку.</li><li>Менеджер подтвердит бронь, комплект и документы, затем положит технику в ячейку.</li><li>Вы получите код и откроете ячейку в любое время, 24/7.</li><li>Проверьте комплект на месте: аккумуляторы, кабели, насадки, крепления.</li></ol>`,
+      `<h2>Как вернуть</h2><p>Верните технику в ячейку в любое время суток по коду. Перед возвратом проверьте комплект. Если нужно продлить аренду, напишите менеджеру до окончания срока.</p>`,
+      `<h2>Адреса постаматов</h2><ul>${business.offices.map((office) => `<li><a href="${escapeHtml(office.slug)}">м. ${escapeHtml(office.metro)}</a> — Москва, ${escapeHtml(office.streetAddress)}; рядом: ${escapeHtml(office.nearby.join(', '))}</li>`).join('')}</ul><p>Не хотите ехать к метро — <a href="/delivery">доставка курьером</a> по Москве за 2–4 часа, круглосуточно.</p>`,
+    ],
+    '/kak-prohodit-arenda-tehniki': [
+      `<p data-static-definition="true">Аренда техники в ВозьмиМеня проходит в пять шагов: заявка на сайте или в Telegram, подтверждение модели и комплекта, документы, получение через постамат 24/7 или доставкой по Москве за 2–4 часа и возврат. Минимальный срок — одни сутки, продлить можно, если техника свободна на следующие даты.</p>`,
+      `<h2>От заявки до возврата</h2><ol><li>Заявка: выберите технику и даты в <a href="/booking">брони онлайн</a> или напишите в Telegram <a href="https://t.me/VozmiMenyaRent">@VozmiMenyaRent</a>. Укажите задачу: вечеринка, поездка, уборка после ремонта, химчистка дивана, плитка или салон авто.</li><li>Подтверждение: менеджер проверяет наличие на даты, комплект и допы — микрофоны, крепления, аккумуляторы, карту памяти, насадки, мешки, фильтры или химию.</li><li>Документы и залог: фото первой страницы паспорта и страницы с пропиской. При постоянной регистрации в Москве или Московской области залог не нужен, в остальных случаях — 50% стоимости оборудования, он возвращается при возврате исправной и чистой техники.</li><li>Получение: бесплатно через постамат 24/7 у ${escapeHtml(business.offices.map((office) => `м. ${office.metro}`).join(' и '))} по коду или <a href="/delivery">доставкой</a> курьером Яндекс Go по Москве, обычно за 2–4 часа. Сразу проверьте комплект и работоспособность.</li><li>Возврат: в ячейку постамата в любое время суток или курьером Яндекс Go. Продление — напишите менеджеру до окончания срока, он проверит даты и пересчитает стоимость.</li></ol>`,
+      `<h2>Сроки и цены</h2><ul><li>Минимальный срок аренды — одни сутки${minOneDayPrice(remoteData) ? `, цены от ${formatPrice(minOneDayPrice(remoteData))} ₽ в сутки` : ''}.</li><li>Пятница–воскресенье у части моделей дороже будней — цена указана в карточке товара.</li><li>От 7 и 30 суток цена за сутки ниже: <a href="/arenda-tehniki-na-mesyac-moskva">тарифы долгой аренды</a>.</li></ul>`,
+      `<h2>Когда аренда выгоднее покупки</h2><p>Если техника нужна на один день, выходные, поездку или разовую уборку: JBL PartyBox для праздника, GoPro для отпуска, Karcher Puzzi для дивана, WD5 после ремонта. Аренда на день-два помогает и сравнить модели перед покупкой. Менеджер подскажет, что подходит под задачу: Puzzi не собирает строительную пыль, WD5 не чистит диван, а SC4 не заменяет моющий пылесос.</p>`,
     ],
     '/blog': [
       articles.length ? `<h2>Статьи</h2>${linkList(articles)}` : '',
     ],
+    '/arenda-tehniki-na-mesyac-moskva': [
+      monthlyPriceTable(remoteData),
+      `<p>Долгая аренда выгоднее посуточной: при аренде от 30 суток цена за сутки ниже. Технику берут на ремонт, поездку, сезон съёмок или регулярную уборку. Продление — по согласованию с менеджером.</p>`,
+    ],
     ...Object.fromEntries(business.offices.map((office) => [office.slug, [
       `<p>Офис и постамат: Москва, ${escapeHtml(office.streetAddress)}, рядом с м. ${escapeHtml(office.metro)} (район ${escapeHtml(office.district)}). Технику можно забрать и вернуть 24/7 по коду после подтверждения брони. Районы рядом: ${escapeHtml(office.nearby.join(', '))}.</p>`,
       office.yandexMaps?.ratingValue ? `<p>Рейтинг на Яндекс Картах: ${escapeHtml(String(office.yandexMaps.ratingValue).replace('.', ','))} из 5, ${escapeHtml(office.yandexMaps.reviewCount)} отзывов — <a href="${escapeHtml(office.yandexMaps.url)}">смотреть на Яндекс Картах</a>.</p>` : '',
-      `<h2>Техника в аренду у м. ${escapeHtml(office.metro)}</h2>${linkList(allProducts)}`,
+      priceOverviewTable(remoteData, `Техника в аренду у м. ${office.metro}: цены`),
       `<p>Наличие конкретной модели в этой точке на ваши даты подтверждает менеджер. Второй постамат: ${linkList(business.offices.filter((other) => other.id !== office.id).map((other) => ({ href: other.slug, label: `м. ${other.metro}, ${other.streetAddress}` })))}</p>`,
     ]])),
+    '/about': [
+      brandDefinition(remoteData),
+      brandFactsSection(remoteData),
+      `<h2>Категории оборудования</h2><ul><li><a href="/arenda-gopro-moskva">Камеры</a>: экшн-камеры GoPro 13, Insta360 X5 и DJI Osmo Pocket 3 для поездок, спорта и влогов</li><li><a href="/arenda-pylesosov-moskva">Клининговое оборудование</a>: Karcher WD5 после ремонта, Puzzi для диванов и ковров, пароочиститель SC4 для кухни и плитки</li><li><a href="/arenda-audiooborudovaniya-moskva">Аудиооборудование</a>: колонки JBL PartyBox 320 и 710, беспроводные микрофоны DJI Mic 2</li></ul>`,
+      `<p>Статьи и гайды в <a href="/blog">блоге</a> готовит Максим Алхимов из команды ВозьмиМеня.</p>`,
+      `<h2>Юридическая информация</h2><p>Сервис работает как ${escapeHtml(legal.legalName)}, ИНН ${escapeHtml(legal.inn)}, ОГРНИП ${escapeHtml(legal.ogrnip)}. Аренда оформляется по <a href="/offer">публичной оферте</a> и <a href="/rental-agreement">договору аренды</a>; полные <a href="/requisites">реквизиты</a>.</p>`,
+    ],
+    '/requisites': [
+      `<h2>Реквизиты ${escapeHtml(legal.shortName)}</h2>${legalDetailsList()}`,
+      `<p>Документы: <a href="/offer">публичная оферта</a>, <a href="/rental-agreement">договор аренды</a>, <a href="/return-policy">возврат и отказ от услуги</a>.</p>`,
+    ],
+    '/offer': offerSections(),
+    // Форма брони рисуется только React: в статике — что можно забронировать и как проходит бронь.
+    '/booking': [
+      `<h2>Что можно забронировать</h2>${linkList([...remoteData.equipmentBySlug.values()]
+        .filter((item) => getOneDayPrice(item) > 0)
+        .map((item) => ({ href: `/booking?equipment=${encodeURIComponent(item.slug)}`, label: `${item.name} — ${formatPrice(getOneDayPrice(item))} ₽ за сутки` })))}`,
+      `<h2>Как оформить бронь</h2><ol><li>Выберите технику, даты и время получения и возврата.</li><li>Укажите способ получения: постамат 24/7 у м. Волжская или м. Динамо, либо доставка по Москве.</li><li>Оставьте имя и телефон и отправьте бронь — менеджер подтвердит выдачу.</li></ol>`,
+    ],
     '/sitemap': [
-      `<h2>Разделы сайта</h2>${linkList([
-        ...allProducts,
-        ...articles,
-      ].slice(0, 30))}`,
+      `<h2>Оборудование</h2>${linkList(productLinks(remoteData, () => true, 1000))}`,
+      articles.length ? `<h2>Статьи блога</h2>${linkList(articles)}` : '',
     ],
   }
 
-  return pageShell(meta.title, meta.description, [
+  return pageShell(meta.h1 || meta.title, meta.description, [
     ...(routeSections[route] || []),
+    ...topicLinkSections(route, remoteData),
     faqSection(faqContent[route]),
   ])
+}
+
+// H1 статической версии совпадает с H1 React-страницы, чтобы боты без JS и с JS видели один заголовок.
+function minOneDayPrice(remoteData) {
+  const prices = [...remoteData.equipmentBySlug.values()].map(getOneDayPrice).filter((price) => price > 0)
+  return prices.length ? Math.min(...prices) : null
+}
+
+// Короткое определение сервиса: самодостаточный абзац, который удобно цитировать ответам AI-поиска.
+function brandDefinition(remoteData) {
+  const minPrice = minOneDayPrice(remoteData)
+  const priceText = minPrice ? `от ${formatPrice(minPrice)} ₽ в сутки` : business.priceRange
+  const metros = business.offices.map((office) => `м. ${office.metro}`).join(' и ')
+  return `<p data-static-definition="true">${escapeHtml(`${business.name} — сервис краткосрочной аренды техники в Москве: колонки JBL PartyBox, экшн-камеры GoPro, Insta360 и DJI, моющие и строительные пылесосы Karcher, пароочистители и микрофоны. Аренда ${priceText}, выдача и возврат через постамат 24/7 у ${metros} или доставка курьером по Москве за 2–4 часа, круглосуточно.`)}</p>`
+}
+
+function brandFactsSection(remoteData) {
+  const minPrice = minOneDayPrice(remoteData)
+  const ratings = business.offices
+    .filter((office) => office.yandexMaps?.ratingValue && office.yandexMaps?.reviewCount)
+    .map((office) => `<li>Рейтинг на Яндекс Картах (м. ${escapeHtml(office.metro)}): ${escapeHtml(String(office.yandexMaps.ratingValue).replace('.', ','))} из 5, ${escapeHtml(office.yandexMaps.reviewCount)} отзывов — <a href="${escapeHtml(office.yandexMaps.url)}">отзывы на Яндекс Картах</a></li>`)
+  const facts = [
+    minPrice ? `<li>Цены: от ${escapeHtml(formatPrice(minPrice))} ₽ в сутки, при аренде от 30 суток цена за сутки ниже — <a href="/arenda-tehniki-na-mesyac-moskva">тарифы на месяц</a></li>` : '',
+    `<li>Более 8 лет на рынке и более 5000 клиентов</li>`,
+    `<li>Самовывоз: ${business.offices.length} постамата 24/7 — ${business.offices.map((office) => `<a href="${escapeHtml(office.slug)}">м. ${escapeHtml(office.metro)}, ${escapeHtml(office.streetAddress)}</a>`).join('; ')}</li>`,
+    `<li>Доставка по Москве курьером за 2–4 часа, круглосуточно — <a href="/delivery">условия доставки</a></li>`,
+    `<li>Залог не нужен при постоянной регистрации в Москве или Московской области — <a href="/faq">условия аренды</a></li>`,
+    `<li>Поддержка 24/7: <a href="tel:${escapeHtml(business.telephone)}">${escapeHtml(business.telephoneLabel)}</a>, Telegram <a href="https://t.me/VozmiMenyaRent">@VozmiMenyaRent</a></li>`,
+    ...ratings,
+  ].filter(Boolean)
+  return `<section aria-label="Коротко о сервисе"><h2>Коротко о сервисе</h2><ul>${facts.join('')}</ul></section>`
+}
+
+// Сводная таблица цен по всему каталогу: модель, 1 сутки, долгая аренда.
+function priceOverviewTable(remoteData, heading = 'Цены на аренду техники') {
+  const rows = [...remoteData.equipmentBySlug.values()]
+    .map((item) => ({ item, oneDay: getOneDayPrice(item), longTerm: getLongTermDailyPrice(item) }))
+    .filter((row) => row.oneDay > 0)
+    .sort((a, b) => String(a.item.category || '').localeCompare(String(b.item.category || ''), 'ru') || a.oneDay - b.oneDay)
+  if (!rows.length) return ''
+  const body = rows.map(({ item, oneDay, longTerm }) => (
+    `<tr><td><a href="${escapeHtml(equipmentRoute(item))}">${escapeHtml(item.name)}</a></td><td>${escapeHtml(item.category || '')}</td><td>${escapeHtml(formatPrice(oneDay))} ₽</td><td>${longTerm ? `от ${escapeHtml(formatPrice(longTerm.dailyPrice))} ₽ (от ${longTerm.days} суток)` : '—'}</td></tr>`
+  )).join('')
+  return `<h2>${escapeHtml(heading)}</h2><table><thead><tr><th>Модель</th><th>Категория</th><th>1 сутки</th><th>Долгая аренда, за сутки</th></tr></thead><tbody>${body}</tbody></table>`
+}
+
+function legalInlineHtml(text) {
+  const match = String(text).match(/^\*\*(.+?)\*\*\s*(.*)$/)
+  return match ? `<strong>${escapeHtml(match[1])}</strong> ${escapeHtml(match[2])}` : escapeHtml(text)
+}
+
+function legalDetailsList() {
+  return `<dl>${legal.requisites.map((row) => `<dt>${escapeHtml(row.label)}</dt><dd>${escapeHtml(row.value)}</dd>`).join('')}</dl>`
+}
+
+function offerSections() {
+  return [
+    `<p>${escapeHtml(legal.offer.intro)}</p>`,
+    ...legal.offer.sections.map((section) => [
+      `<h2>${escapeHtml(section.title)}</h2>`,
+      ...(section.paragraphs || []).map((paragraph) => `<p>${legalInlineHtml(paragraph)}</p>`),
+      section.items?.length ? `<ul>${section.items.map((item) => `<li>${escapeHtml(item)}</li>`).join('')}</ul>` : '',
+    ].join('')),
+    `<h2>10. Возврат и отказ от услуги</h2><p>Порядок отказа от бронирования, возврата оборудования и возврата товара при дистанционной покупке опубликован на странице <a href="/return-policy">«Возврат и отказ от услуги»</a>.</p>`,
+    `<h2>11. Реквизиты и контакты</h2>${legalDetailsList()}`,
+    `<p>${escapeHtml(legal.offer.edition)}</p>`,
+  ]
+}
+
+// Данные статьи или товара, уже полученные при сборке: React берёт их как стартовые
+// (client/src/lib/staticData.ts) и не показывает спиннер до ответа API.
+function buildStaticDataScript(route, remoteData) {
+  let payload = null
+  if (route.startsWith('/blog/')) {
+    const article = remoteData.articleBySlug.get(route.split('/').filter(Boolean)[1])
+    if (article?.content) payload = { route, article }
+  } else if (route.startsWith('/equipment/')) {
+    const equipment = findEquipmentByIdentifier(remoteData, route.split('/').filter(Boolean)[1])
+    if (equipment) payload = { route, equipment }
+  }
+  if (!payload) return ''
+  const json = JSON.stringify(payload).replace(/</g, '\\u003c')
+  return `<script type="application/json" id="__STATIC_DATA__">${json}</script>`
 }
 
 function renderRouteHtml(indexHtml, route, remoteData) {
   const meta = enrichSeoMeta(route, getSeoMeta(route, remoteData), remoteData)
   const cleaned = cleanManagedSeoTags(indexHtml)
-  const tags = buildSeoTags(route, meta)
+  const preload = lcpPreloadTag(route, remoteData)
+  const tags = `${buildSeoTags(route, meta)}${preload ? `\n${preload}` : ''}`
   const staticBody = buildStaticRouteBody(route, meta, remoteData)
-  const withStaticRoot = cleaned.replace(/<div id="root"><\/div>/i, `<div id="root">\n${staticBody}\n    </div>`)
+  const staticData = buildStaticDataScript(route, remoteData)
+  const withStaticRoot = cleaned.replace(/<div id="root"><\/div>/i, `<div id="root">\n${staticBody}\n    </div>${staticData ? `\n    ${staticData}` : ''}`)
 
   return withStaticRoot.replace(/\s*<\/head>/i, `\n${tags}\n  </head>`)
 }
@@ -1298,6 +1769,111 @@ async function writeDistSitemap(routes, remoteData) {
   )
 }
 
+const AI_PRICES_MARKER = '<!-- generated:prices -->'
+
+function buildPriceList(remoteData) {
+  return [...remoteData.equipmentBySlug.values()]
+    .map((item) => {
+      const pricing = normalizePricing(item.pricing)
+      const oneDay = getOneDayPrice(item)
+      const longTerm = getLongTermDailyPrice(item)
+      const weekendDay = Number(pricing.weekendDay) || 0
+      return {
+        name: item.name,
+        category: item.category,
+        url: `${SITE_ORIGIN}${equipmentRoute(item)}`,
+        bookingUrl: `${SITE_ORIGIN}/booking?equipment=${encodeURIComponent(item.slug)}`,
+        pricePerDayRub: oneDay,
+        weekendPricePerDayRub: weekendDay > oneDay ? weekendDay : undefined,
+        longTerm: longTerm ? { pricePerDayRub: longTerm.dailyPrice, minDays: longTerm.days } : undefined,
+      }
+    })
+    .filter((item) => item.pricePerDayRub > 0)
+}
+
+function formatPriceListMarkdown(priceList, generatedAt) {
+  const byCategory = new Map()
+  for (const item of priceList) {
+    if (!byCategory.has(item.category)) byCategory.set(item.category, [])
+    byCategory.get(item.category).push(item)
+  }
+
+  const lines = [
+    `## Current rental prices (live catalog, ${generatedAt})`,
+    '',
+    'Prices are per 24 hours in RUB. Availability for specific dates and office is confirmed by a manager after a booking request; cite the product page for the latest price.',
+    '',
+  ]
+  for (const [category, items] of byCategory) {
+    lines.push(`### ${category}`, '')
+    for (const item of items) {
+      const extras = [
+        item.weekendPricePerDayRub ? `Fri–Sun ${formatPrice(item.weekendPricePerDayRub)} ₽/day` : '',
+        item.longTerm ? `from ${formatPrice(item.longTerm.pricePerDayRub)} ₽/day for ${item.longTerm.minDays}+ days` : '',
+      ].filter(Boolean).join('; ')
+      lines.push(`- [${item.name}](${item.url}): ${formatPrice(item.pricePerDayRub)} ₽/day${extras ? ` (${extras})` : ''}. Booking: ${item.bookingUrl}`)
+    }
+    lines.push('')
+  }
+  return lines.join('\n').trimEnd()
+}
+
+// Подставляет актуальный прайс из API в AI-файлы dist/ вместо маркера из public/.
+// Без данных каталога маркер просто убирается: устаревшие цены хуже, чем их отсутствие.
+async function writeAiPriceFiles(remoteData) {
+  const priceList = buildPriceList(remoteData)
+  const generatedAt = new Date().toISOString().split('T')[0]
+  const markdown = priceList.length ? formatPriceListMarkdown(priceList, generatedAt) : ''
+
+  for (const fileName of ['llms.txt', 'llms-full.txt']) {
+    const filePath = path.join(distDir, fileName)
+    const content = await fs.readFile(filePath, 'utf8').catch(() => null)
+    if (content === null || !content.includes(AI_PRICES_MARKER)) continue
+    await fs.writeFile(filePath, content.replace(AI_PRICES_MARKER, markdown).replace(/\n{3,}/g, '\n\n'), 'utf8')
+  }
+
+  const summaryPath = path.join(distDir, 'ai-summary.json')
+  const summaryRaw = await fs.readFile(summaryPath, 'utf8').catch(() => null)
+  if (summaryRaw && priceList.length) {
+    const summary = JSON.parse(summaryRaw)
+    summary.pricesGeneratedAt = generatedAt
+    summary.priceList = priceList
+    await fs.writeFile(summaryPath, `${JSON.stringify(summary, null, 2)}\n`, 'utf8')
+  }
+
+  return priceList.length
+}
+
+function renderRedirectHtml(target) {
+  const url = `${SITE_ORIGIN}${target}`
+  return `<!DOCTYPE html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8">
+    <title>Страница переехала — ВозьмиМеня</title>
+    <link rel="canonical" href="${escapeHtml(url)}">
+    <meta http-equiv="refresh" content="0; url=${escapeHtml(url)}">
+    <script>location.replace(${JSON.stringify(target)} + location.search + location.hash)</script>
+  </head>
+  <body>
+    <p>Страница переехала: <a href="${escapeHtml(url)}">${escapeHtml(url)}</a></p>
+  </body>
+</html>
+`
+}
+
+async function writeRedirectPages() {
+  const entries = Object.entries(redirects)
+  await Promise.all(entries.map(async ([from, to]) => {
+    const html = renderRedirectHtml(to)
+    for (const outputPath of [routeIndexOutputPath(from), routeHtmlOutputPath(from)]) {
+      await fs.mkdir(path.dirname(outputPath), { recursive: true })
+      await fs.writeFile(outputPath, html, 'utf8')
+    }
+  }))
+  return entries.length
+}
+
 async function main() {
   const indexHtml = await fs.readFile(distIndexPath, 'utf8')
   const remoteData = await loadRemoteSeoData()
@@ -1334,8 +1910,12 @@ async function main() {
 
   await fs.writeFile(distIndexPath, renderRouteHtml(indexHtml, '/', remoteData), 'utf8')
   await writeDistSitemap(routes, remoteData)
+  const pricedItems = await writeAiPriceFiles(remoteData)
+  const redirectCount = await writeRedirectPages()
 
+  console.log(`AI price list generated: ${pricedItems} items`)
   console.log(`Static route entrypoints generated: ${routes.length} routes, ${routes.length * 2 - 1} files`)
+  console.log(`Redirect pages generated: ${redirectCount}`)
   console.log(`Legacy equipment aliases generated: ${getLegacyEquipmentRoutes(remoteData).length} routes`)
   console.log(`Static SEO sitemap generated: ${routes.filter((route) => {
     if (route === '/equipment') return false

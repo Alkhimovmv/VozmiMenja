@@ -4,6 +4,7 @@ import SEO from '../components/SEO'
 import { trackEvent } from '../lib/analytics'
 import { getTelegramUrl } from '../lib/contactLinks'
 import faqContent from '../content/faq.json'
+import seoMeta from '../content/seoMeta.json'
 
 const steps = [
   'Напишите модель, даты и удобный офис/постамат.',
@@ -34,8 +35,8 @@ export default function SelfPickupPostamatPage() {
   return (
     <div className="min-h-screen bg-[#F8FAFC]">
       <SEO
-        title="Самовывоз техники 24/7 и постамат в Москве | ВозьмиМеня"
-        description="Самовывоз техники 24/7 и получение через постамат в Москве: камеры, колонки, пылесосы и пароочистители по согласованию с менеджером."
+        title={seoMeta['/samovyvoz-24-7-postamat'].title}
+        description={seoMeta['/samovyvoz-24-7-postamat'].description}
         keywords="самовывоз техники 24/7, постамат аренда техники, забрать камеру ночью, аренда техники самовывоз москва"
         url="https://vozmimenya.ru/samovyvoz-24-7-postamat"
         structuredData={faqStructuredData}
@@ -49,7 +50,7 @@ export default function SelfPickupPostamatPage() {
               Самовывоз 24/7 и постамат для аренды техники
             </h1>
             <p className="mb-8 max-w-2xl text-lg text-blue-100">
-              Если техника нужна к раннему выезду, празднику, съемке или уборке после работы, можно согласовать самовывоз или выдачу через постамат. Менеджер подтвердит точку, время и комплект до выдачи.
+              Если техника нужна к раннему выезду, празднику, съемке или уборке после работы, заберите её через постамат в любое время по коду. Менеджер подтвердит бронь, точку и комплект до выдачи.
             </p>
             <div className="flex flex-col gap-3 sm:flex-row">
               <a
@@ -72,7 +73,7 @@ export default function SelfPickupPostamatPage() {
       <section className="container mx-auto px-4 py-12">
         <div className="grid gap-5 md:grid-cols-3">
           {[
-            { icon: Clock, title: '24/7 по согласованию', text: 'Подходит для ранних поездок, поздних возвратов и аренды на выходные.' },
+            { icon: Clock, title: 'Круглосуточно, 24/7', text: 'Забрать и вернуть технику можно в любое время по коду из ячейки: удобно для ранних поездок, поздних возвратов и аренды на выходные.' },
             { icon: MapPin, title: 'Офис или постамат', text: 'Менеджер подскажет удобный вариант под модель, комплект и срок.' },
             { icon: PackageCheck, title: 'Комплект проверяется', text: 'Перед выдачей важно сверить аккумуляторы, кабели, насадки, мешки или крепления.' },
           ].map((item) => {

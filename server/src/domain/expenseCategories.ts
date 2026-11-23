@@ -1,4 +1,4 @@
-export const EXPENSE_CATEGORY_VALUES = [
+export const CLASSIFIED_EXPENSE_CATEGORY_VALUES = [
   'Покупка оборудования',
   'Постамат и инфраструктура',
   'Аренда помещения',
@@ -12,6 +12,10 @@ export const EXPENSE_CATEGORY_VALUES = [
   'Налоги и сборы',
   'Зарплата и подрядчики',
   'Прочие операционные',
+] as const
+
+export const EXPENSE_CATEGORY_VALUES = [
+  ...CLASSIFIED_EXPENSE_CATEGORY_VALUES,
   'Требует разбора',
 ] as const
 

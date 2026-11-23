@@ -29,6 +29,21 @@ export async function getUserOfficeIds(req: Request): Promise<number[] | null> {
   return offices.map((o: any) => o.id)
 }
 
+// Заявки и обращения без офиса (старые записи, форма контактов) относятся к офису 1 —
+// так же, как это принято для аренд и расходов (`office_id || 1`).
+export const DEFAULT_OFFICE_ID = 1
+
+export async function canAccessOffice(req: Request, officeId: number | null | undefined): Promise<boolean> {
+  const officeIds = await getUserOfficeIds(req)
+  return officeIds === null || officeIds.includes(officeId || DEFAULT_OFFICE_ID)
+}
+
+export async function filterByOfficeAccess<T>(req: Request, items: T[], getOfficeId: (item: T) => number | null | undefined): Promise<T[]> {
+  const officeIds = await getUserOfficeIds(req)
+  if (officeIds === null) return items
+  return items.filter((item) => officeIds.includes(getOfficeId(item) || DEFAULT_OFFICE_ID))
+}
+
 // Возвращает список equipment_id которые принадлежат текущему пользователю.
 // Суперадмин без маски видит всё (возвращает null = без фильтра).
 export async function getUserEquipmentIds(req: Request): Promise<number[] | null> {

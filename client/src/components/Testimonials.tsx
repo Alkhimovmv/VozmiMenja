@@ -2,6 +2,14 @@ import { useEffect, useState } from 'react'
 import avitoIcon from '../assets/avito.png'
 import { trackEvent } from '../lib/analytics'
 import { AVITO_PROFILE_URL } from '../lib/contactLinks'
+import business from '../content/business.json'
+
+// Рейтинги офисов текстом: видны и до согласия на cookie, когда виджет Яндекса ещё не загружен.
+const officeRatings = business.offices.flatMap((office) => (
+  'yandexMaps' in office && office.yandexMaps
+    ? [{ id: office.id, metro: office.metro, ...office.yandexMaps }]
+    : []
+))
 
 function StarIcon() {
   return (
@@ -32,7 +40,7 @@ export default function Testimonials() {
             Отзывы клиентов
           </h2>
           <p className="text-gray-500 max-w-xl mx-auto">
-            Более 5 000 аренд — и каждый клиент может оставить отзыв
+            5000+ клиентов за 8 лет — отзывы на Яндекс Картах и Авито
           </p>
         </div>
 
@@ -58,13 +66,30 @@ export default function Testimonials() {
               />
             ) : (
               <div className="flex flex-1 items-center justify-center bg-gray-50 p-6 text-center">
-                <div>
-                  <p className="text-sm font-medium text-gray-900">Отзывы Яндекс.Карт загружаются только после согласия на cookie</p>
-                  <p className="mt-2 text-xs text-gray-500">Это помогает не передавать технические данные во внешние сервисы до подтверждения пользователя.</p>
+                <div className="w-full max-w-sm">
+                  <ul className="space-y-3 text-left">
+                    {officeRatings.map((rating) => (
+                      <li key={rating.id}>
+                        <a
+                          href={rating.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={() => trackEvent('yandex_maps_click', { source: `testimonials_${rating.id}` })}
+                          className="flex items-center justify-between gap-3 rounded-xl border border-gray-200 bg-white px-4 py-3 transition hover:border-[#CC2E0A]"
+                        >
+                          <span className="text-sm font-semibold text-gray-900">м. {rating.metro}</span>
+                          <span className="text-sm text-gray-700">
+                            <strong className="text-gray-950">★ {rating.ratingValue.toFixed(1).replace('.', ',')}</strong> · {rating.reviewCount} отзывов
+                          </span>
+                        </a>
+                      </li>
+                    ))}
+                  </ul>
+                  <p className="mt-4 text-xs text-gray-500">Тексты отзывов из виджета Яндекса покажем после согласия на cookie.</p>
                   <button
                     type="button"
                     onClick={() => setShowYandexWidget(true)}
-                    className="mt-4 rounded-xl bg-[#FC3F1D] px-4 py-2 text-sm font-semibold text-white transition hover:opacity-90"
+                    className="mt-4 rounded-xl bg-[#CC2E0A] px-4 py-2 text-sm font-semibold text-white transition hover:opacity-90"
                   >
                     Загрузить отзывы
                   </button>
@@ -110,7 +135,7 @@ export default function Testimonials() {
             <div className="grid grid-cols-2 gap-4 flex-shrink-0">
               <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 text-center">
                 <div className="text-3xl font-extrabold text-gray-900 mb-1">5 000+</div>
-                <div className="text-gray-500 text-sm">аренд выполнено</div>
+                <div className="text-gray-500 text-sm">довольных клиентов</div>
               </div>
               <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 text-center">
                 <div className="text-3xl font-extrabold text-gray-900 mb-1">8+</div>
@@ -129,7 +154,7 @@ export default function Testimonials() {
               <img src={avitoIcon} alt="Avito" className="w-10 h-10 object-contain flex-shrink-0" />
               <div className="flex-1 min-w-0">
                 <div className="font-semibold text-gray-900 text-sm">Оставить отзыв на Авито</div>
-                <div className="text-gray-400 text-xs truncate">После аренды — поделитесь впечатлениями</div>
+                <div className="text-gray-500 text-xs truncate">После аренды — поделитесь впечатлениями</div>
               </div>
               <svg className="w-4 h-4 text-gray-400 group-hover:text-[#00AAFF] transition-colors flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3" />

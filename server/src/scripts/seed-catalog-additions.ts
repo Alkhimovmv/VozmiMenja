@@ -4,6 +4,7 @@ const PRODUCT_ID = 'jbl-partybox-wireless-microphones'
 const PRODUCT_NAME = 'Микрофоны JBL'
 const LEGACY_PRODUCT_NAME = 'Набор беспроводных микрофонов JBL PartyBox'
 const PURCHASE_PRICE = 10_000
+const PRODUCT_IMAGES = ['/uploads/jbl-partybox-wireless-microphones.jpg']
 
 const pricing = {
   day1_10to20: 0,
@@ -51,12 +52,18 @@ async function seedCatalogAdditions() {
       JSON.stringify(pricing),
       4,
       4,
-      JSON.stringify([
-        'https://c.dns-shop.ru/thumb/st1/fit/500/500/3fa4cd7577856bf4a805c22eb92261fa/17308335de239047ccd63d1e5fac39c2a8b8cc0a7ac5a765314d08def597f832.jpg',
-      ]),
+      JSON.stringify(PRODUCT_IMAGES),
       description,
       JSON.stringify(specifications),
     ])
+
+    // Однократно переносим старую внешнюю картинку DNS в локальное хранилище.
+    // Уже загруженное владельцем локальное фото не перезаписываем.
+    await run(`
+      UPDATE equipment
+      SET images = ?, updated_at = CURRENT_TIMESTAMP
+      WHERE id = ? AND images LIKE '%dns-shop.ru%'
+    `, [JSON.stringify(PRODUCT_IMAGES), PRODUCT_ID])
 
     const offices = await all(`
       SELECT id, name
@@ -69,12 +76,14 @@ async function seedCatalogAdditions() {
 
     for (const office of offices) {
       await run(`
-        INSERT INTO rental_equipment (name, quantity, description, base_price, office_id)
-        SELECT ?, 2, ?, ?, ?
+        INSERT INTO rental_equipment (
+          name, quantity, description, base_price, catalog_equipment_id, office_id
+        )
+        SELECT ?, 2, ?, ?, ?, ?
         WHERE NOT EXISTS (
           SELECT 1 FROM rental_equipment WHERE name = ? AND office_id = ?
         )
-      `, [PRODUCT_NAME, description, PURCHASE_PRICE, office.id, PRODUCT_NAME, office.id])
+      `, [PRODUCT_NAME, description, PURCHASE_PRICE, PRODUCT_ID, office.id, PRODUCT_NAME, office.id])
 
       const adminEquipment = await get(`
         SELECT id FROM rental_equipment WHERE name = ? AND office_id = ? LIMIT 1

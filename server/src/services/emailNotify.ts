@@ -1,6 +1,7 @@
 import nodemailer from 'nodemailer'
 import type { Transporter } from 'nodemailer'
 import dotenv from 'dotenv'
+import type { LeadScenario } from '../domain/leadAttribution'
 
 dotenv.config()
 
@@ -52,6 +53,8 @@ class EmailNotifyService {
     utmSource?: string
     utmMedium?: string
     utmCampaign?: string
+    utmContent?: string
+    scenario?: LeadScenario
   }) {
     if (!this.isConfigured()) {
       console.log('⚠️  Email уведомления не настроены (NOTIFY_EMAIL_FROM/PASS/TO)')
@@ -60,10 +63,12 @@ class EmailNotifyService {
 
     const commentRow = data.comment ? `<tr><td style="padding:6px 0;color:#6b7280">Комментарий</td><td style="padding:6px 0;font-weight:600">${escapeHtml(data.comment)}</td></tr>` : ''
     const source = [data.utmSource, data.utmMedium, data.utmCampaign].filter(Boolean).join(' / ')
-    const sourceRows = source || data.sourcePage || data.referrer
+    const sourceRows = source || data.utmContent || data.scenario || data.sourcePage || data.referrer
       ? `
       <tr><td colspan="2"><hr style="border:none;border-top:1px solid #f1f5f9;margin:8px 0"></td></tr>
       ${source ? `<tr><td style="padding:6px 0;color:#6b7280">UTM</td><td style="padding:6px 0;font-weight:600">${escapeHtml(source)}</td></tr>` : ''}
+      ${data.utmContent ? `<tr><td style="padding:6px 0;color:#6b7280">UTM content</td><td style="padding:6px 0;font-weight:600">${escapeHtml(data.utmContent)}</td></tr>` : ''}
+      ${data.scenario ? `<tr><td style="padding:6px 0;color:#6b7280">Сценарий</td><td style="padding:6px 0;font-weight:600">${escapeHtml(data.scenario)}</td></tr>` : ''}
       ${data.sourcePage ? `<tr><td style="padding:6px 0;color:#6b7280">Страница</td><td style="padding:6px 0;font-weight:600">${escapeHtml(data.sourcePage)}</td></tr>` : ''}
       ${data.referrer ? `<tr><td style="padding:6px 0;color:#6b7280">Referrer</td><td style="padding:6px 0;font-weight:600">${escapeHtml(data.referrer)}</td></tr>` : ''}
       `
@@ -112,6 +117,18 @@ class EmailNotifyService {
     email?: string
     subject: string
     message: string
+    sourcePage?: string
+    referrer?: string
+    utmSource?: string
+    utmMedium?: string
+    utmCampaign?: string
+    utmContent?: string
+    scenario?: LeadScenario
+    officeId?: number
+    officeName?: string
+    deliveryMethod?: 'pickup' | 'delivery'
+    preferredContact?: 'phone' | 'telegram' | 'whatsapp'
+    equipmentIds?: string[]
   }) {
     if (!this.isConfigured()) {
       console.log('⚠️  Email уведомления не настроены (NOTIFY_EMAIL_FROM/PASS/TO)')
@@ -125,6 +142,21 @@ class EmailNotifyService {
       other: 'Другое'
     }
 
+    const subject = subjectLabels[data.subject] || data.subject
+    const source = [data.utmSource, data.utmMedium, data.utmCampaign].filter(Boolean).join(' / ')
+    const contextRows = `
+      ${data.officeName ? `<tr><td style="padding:6px 0;color:#6b7280">Офис</td><td style="padding:6px 0;font-weight:600">${escapeHtml(data.officeName)}</td></tr>` : ''}
+      ${data.officeId ? `<tr><td style="padding:6px 0;color:#6b7280">ID офиса</td><td style="padding:6px 0;font-weight:600">${data.officeId}</td></tr>` : ''}
+      ${data.deliveryMethod ? `<tr><td style="padding:6px 0;color:#6b7280">Получение</td><td style="padding:6px 0;font-weight:600">${escapeHtml(data.deliveryMethod)}</td></tr>` : ''}
+      ${data.preferredContact ? `<tr><td style="padding:6px 0;color:#6b7280">Связь</td><td style="padding:6px 0;font-weight:600">${escapeHtml(data.preferredContact)}</td></tr>` : ''}
+      ${data.equipmentIds?.length ? `<tr><td style="padding:6px 0;color:#6b7280">Оборудование</td><td style="padding:6px 0;font-weight:600">${escapeHtml(data.equipmentIds.join(', '))}</td></tr>` : ''}
+      ${source ? `<tr><td style="padding:6px 0;color:#6b7280">UTM</td><td style="padding:6px 0;font-weight:600">${escapeHtml(source)}</td></tr>` : ''}
+      ${data.utmContent ? `<tr><td style="padding:6px 0;color:#6b7280">UTM content</td><td style="padding:6px 0;font-weight:600">${escapeHtml(data.utmContent)}</td></tr>` : ''}
+      ${data.scenario ? `<tr><td style="padding:6px 0;color:#6b7280">Сценарий</td><td style="padding:6px 0;font-weight:600">${escapeHtml(data.scenario)}</td></tr>` : ''}
+      ${data.sourcePage ? `<tr><td style="padding:6px 0;color:#6b7280">Страница</td><td style="padding:6px 0;font-weight:600">${escapeHtml(data.sourcePage)}</td></tr>` : ''}
+      ${data.referrer ? `<tr><td style="padding:6px 0;color:#6b7280">Referrer</td><td style="padding:6px 0;font-weight:600">${escapeHtml(data.referrer)}</td></tr>` : ''}
+    `
+
     const html = `
 <div style="font-family:Inter,Arial,sans-serif;max-width:520px;margin:0 auto;background:#f8fafc;padding:24px">
   <div style="background:#7c3aed;border-radius:16px;padding:20px 24px;margin-bottom:20px">
@@ -132,15 +164,16 @@ class EmailNotifyService {
   </div>
   <div style="background:#fff;border-radius:16px;padding:24px;border:1px solid #e2e8f0">
     <table style="width:100%;border-collapse:collapse">
-      <tr><td style="padding:6px 0;color:#6b7280;width:140px">Тема</td><td style="padding:6px 0;font-weight:700">${subjectLabels[data.subject] || data.subject}</td></tr>
+      <tr><td style="padding:6px 0;color:#6b7280;width:140px">Тема</td><td style="padding:6px 0;font-weight:700">${escapeHtml(subject)}</td></tr>
       <tr><td colspan="2"><hr style="border:none;border-top:1px solid #f1f5f9;margin:8px 0"></td></tr>
-      <tr><td style="padding:6px 0;color:#6b7280">Имя</td><td style="padding:6px 0;font-weight:600">${data.name}</td></tr>
-      <tr><td style="padding:6px 0;color:#6b7280">Телефон</td><td style="padding:6px 0;font-weight:600"><a href="tel:${data.phone}" style="color:#2563eb">${data.phone}</a></td></tr>
-      <tr><td style="padding:6px 0;color:#6b7280">Email</td><td style="padding:6px 0">${data.email || 'не указан'}</td></tr>
+      <tr><td style="padding:6px 0;color:#6b7280">Имя</td><td style="padding:6px 0;font-weight:600">${escapeHtml(data.name)}</td></tr>
+      <tr><td style="padding:6px 0;color:#6b7280">Телефон</td><td style="padding:6px 0;font-weight:600"><a href="tel:${escapeHtml(data.phone)}" style="color:#2563eb">${escapeHtml(data.phone)}</a></td></tr>
+      <tr><td style="padding:6px 0;color:#6b7280">Email</td><td style="padding:6px 0">${data.email ? escapeHtml(data.email) : 'не указан'}</td></tr>
+      ${contextRows}
       <tr><td colspan="2"><hr style="border:none;border-top:1px solid #f1f5f9;margin:8px 0"></td></tr>
     </table>
     <div style="background:#f8fafc;border-radius:12px;padding:16px;margin-top:8px;border:1px solid #e2e8f0">
-      <p style="margin:0;color:#374151;line-height:1.6">${data.message.replace(/\n/g, '<br>')}</p>
+      <p style="margin:0;color:#374151;line-height:1.6">${escapeHtml(data.message).replace(/\n/g, '<br>')}</p>
     </div>
   </div>
   <p style="color:#94a3b8;font-size:12px;text-align:center;margin-top:16px">ВозьмиМеня — vozmimenya.ru</p>
@@ -150,7 +183,7 @@ class EmailNotifyService {
       await this.getTransporter().sendMail({
         from: `"ВозьмиМеня" <${process.env.NOTIFY_EMAIL_FROM}>`,
         to: process.env.NOTIFY_EMAIL_TO,
-        subject: `Сообщение с сайта: ${subjectLabels[data.subject] || data.subject} — ${data.name}`,
+        subject: `Сообщение с сайта: ${subject} — ${data.name}`,
         html
       })
       console.log('✅ Email уведомление об обращении отправлено')

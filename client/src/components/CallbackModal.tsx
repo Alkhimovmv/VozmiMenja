@@ -4,7 +4,7 @@ import { X, Phone } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { apiClient } from '../lib/api'
 import { trackEvent } from '../lib/analytics'
-import { getLeadContext, getPageLeadMessage } from '../lib/contactLinks'
+import { getBrowserPageLeadMessage, getLeadContext } from '../lib/contactLinks'
 
 interface CallbackModalProps {
   isOpen: boolean
@@ -51,7 +51,7 @@ export default function CallbackModal({ isOpen, onClose }: CallbackModalProps) {
         name: formData.name,
         phone: formData.phone,
         subject: 'Заказ обратного звонка',
-        message: `Прошу перезвонить мне\n\n${getPageLeadMessage('Обратный звонок')}`,
+        message: `Прошу перезвонить мне\n\n${getBrowserPageLeadMessage('Обратный звонок')}`,
         ...getLeadContext(),
       })
 
@@ -128,6 +128,7 @@ export default function CallbackModal({ isOpen, onClose }: CallbackModalProps) {
           <label className="mt-4 flex items-start gap-3 cursor-pointer">
             <input
               type="checkbox"
+              name="consent"
               checked={consent}
               onChange={(e) => setConsent(e.target.checked)}
               required

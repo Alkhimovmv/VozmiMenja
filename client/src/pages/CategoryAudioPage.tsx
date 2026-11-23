@@ -7,6 +7,8 @@ import { Check, Mic, Music, Radio } from 'lucide-react'
 import { trackEvent } from '../lib/analytics'
 import { CONTACT_PHONE, CONTACT_PHONE_LABEL, getTelegramUrl } from '../lib/contactLinks'
 import faqContent from '../content/faq.json'
+import HeroPriceCta from '../components/HeroPriceCta'
+import { buildCategoryItemList } from '../lib/categoryStructuredData'
 
 export default function CategoryAudioPage() {
   const [page] = useState(1)
@@ -14,7 +16,9 @@ export default function CategoryAudioPage() {
 
   const { data, isLoading, error } = useEquipment({ page, limit: 12, category })
 
+  // Прокручиваем к каталогу только по явной ссылке на #catalog: при обычном входе H1 и вводный текст остаются на экране.
   useEffect(() => {
+    if (window.location.hash !== '#catalog') return
     const timer = setTimeout(() => {
       document.getElementById('catalog')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
     }, 300)
@@ -23,28 +27,29 @@ export default function CategoryAudioPage() {
 
   const equipmentTypes = [
     {
-      icon: Mic,
-      title: 'Микрофоны',
-      features: ['Студийные конденсаторные', 'Динамические для живых выступлений', 'Беспроводные петличные', 'Shotgun для видео'],
+      icon: Music,
+      title: 'Колонки JBL PartyBox',
+      features: ['PartyBox 320 для квартиры и дачи', 'PartyBox 710 для зала и танцев', 'Bluetooth и световые эффекты'],
     },
     {
-      icon: Music,
-      title: 'Колонки и акустика',
-      features: ['Портативные Bluetooth колонки', 'Профессиональная PA-акустика', 'Студийные мониторы', 'Сабвуферы'],
+      icon: Mic,
+      title: 'Микрофоны',
+      features: ['DJI Mic 2 для интервью и видео', 'Микрофоны JBL для караоке', 'Можно добавить к колонке или камере'],
     },
     {
       icon: Radio,
-      title: 'Звуковое оборудование',
-      features: ['Аудиоинтерфейсы', 'Микшерные пульты', 'Рекордеры и диктофоны', 'Наушники профессиональные'],
+      title: 'Готовые комплекты',
+      features: ['Колонка и два микрофона', 'Камера и DJI Mic 2', 'Одна заявка на весь комплект'],
     },
   ]
 
   const categoryStructuredData = {
     '@context': 'https://schema.org',
     '@type': 'CollectionPage',
-    name: 'Аренда аудиооборудования в Москве',
-    description: 'Микрофоны, колонки и акустика в аренду для видео, подкастов, вечеринок и мероприятий.',
+    name: 'Аренда колонок JBL и аудиооборудования в Москве',
+    description: 'JBL PartyBox 320 и 710, микрофоны JBL и DJI Mic 2 в аренду. Самовывоз и возврат через постамат 24/7, доставка по Москве.',
     url: 'https://vozmimenya.ru/arenda-audiooborudovaniya-moskva',
+    mainEntity: buildCategoryItemList(data?.data),
   }
 
   const faqStructuredData = {
@@ -97,9 +102,9 @@ export default function CategoryAudioPage() {
   return (
     <div className="min-h-screen bg-[#F8FAFC]">
       <SEO
-        title="Аренда аудиооборудования в Москве - Микрофоны, колонки, акустика"
-        description="✅ Аренда профессионального аудиооборудования в Москве. Микрофоны, колонки, акустика. Доставка 24/7. Подбор комплекта и бронь через Telegram."
-        keywords="аренда аудиооборудования москва, прокат микрофонов, аренда колонок, звуковое оборудование напрокат, акустика в аренду"
+        title="Аренда колонок JBL и аудиооборудования в Москве | ВозьмиМеня"
+        description="JBL PartyBox 320 и 710, микрофоны JBL и DJI Mic 2 в аренду в Москве. Постамат 24/7, доставка, подбор комплекта и бронь онлайн."
+        keywords="аренда колонки jbl москва, аренда jbl partybox, прокат колонок, аренда аудиооборудования, микрофоны в аренду"
         url="https://vozmimenya.ru/arenda-audiooborudovaniya-moskva"
         structuredData={[categoryStructuredData, faqStructuredData]}
       />
@@ -113,12 +118,13 @@ export default function CategoryAudioPage() {
             <span>Аренда аудиооборудования</span>
           </div>
           <h1 className="text-white text-4xl md:text-5xl font-extrabold mb-4 leading-tight">
-            Аренда аудиооборудования в Москве
+            Аренда колонок JBL и аудиооборудования в Москве
           </h1>
           <p className="text-blue-100 text-lg max-w-2xl mb-8">
-            Профессиональные микрофоны, колонки и акустика для любых мероприятий.
-            Студийное качество звука от <span className="font-bold text-white">450₽/день</span>.
+            JBL PartyBox 320 и 710 для вечеринок, залов и дачи. Микрофоны для караоке,
+            поздравлений и съёмки можно добавить в ту же заявку.
           </p>
+          <HeroPriceCta slugs={['jbl-partybox-320', 'jbl-partybox-710', 'dji-mic-2', 'mikrofony-jbl']} bookingHref="/booking" source="category_audio_hero" />
           <div className="flex flex-col sm:flex-row gap-3">
             <a href={getTelegramUrl()} target="_blank" rel="noopener noreferrer" onClick={() => trackEvent('telegram_click', { source: 'category_audio_hero' })} className="btn bg-white text-primary hover:bg-blue-50 shadow-sm">
               Написать в Telegram
@@ -209,6 +215,9 @@ export default function CategoryAudioPage() {
               </Link>
               <Link to="/blog/kolonka-dlya-vecherinki-kakuyu-jbl-partybox-vzyat-v-arendu" className="px-4 py-2 bg-[#F8FAFC] text-gray-700 rounded-xl text-sm font-semibold border border-gray-100 hover:text-[#2563EB] transition-colors">
                 Читать гид по выбору
+              </Link>
+              <Link to="/arenda-tehniki-na-mesyac-moskva" className="px-4 py-2 bg-[#F8FAFC] text-gray-700 rounded-xl text-sm font-semibold border border-gray-100 hover:text-[#2563EB] transition-colors">
+                Колонка на месяц — дешевле за сутки
               </Link>
             </div>
           </div>

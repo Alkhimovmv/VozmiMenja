@@ -1,16 +1,27 @@
 import { Router, Request, Response } from 'express'
+import { isForeignKeyError } from '../utils/dbErrors'
+import { optimizeImageFile } from '../services/imageOptimizer'
+import { generateImageVariants } from '../services/imageVariants'
+import { canAccessOffice, filterByOfficeAccess, getUserOfficeIds } from '../middleware/userFilter'
+import { createPublicLeadRateLimiter } from '../middleware/publicLeadGuard'
 import { upload } from '../middleware/upload'
 import { authMiddleware, superAdminMiddleware, signToken } from '../middleware/auth'
 import { adminUserModel } from '../models/AdminUser'
 import { bookingModel, Booking } from '../models/Booking'
 import { contactLeadModel, ContactLead } from '../models/ContactLead'
+import { leadReportModel } from '../models/LeadReport'
 import { schedulerService } from '../services/scheduler'
 import { emailBackupService } from '../services/emailBackup'
+import { leadWorkflowSchema } from '../domain/leadWorkflow'
+import { buildLeadReport, getLeadReportWindow, type LeadReportInput } from '../domain/leadReport'
 
 const router = Router()
 
+// Защита от подбора пароля: не больше 10 попыток входа с одного IP за 15 минут.
+const loginRateLimiter = createPublicLeadRateLimiter({ limit: 10, windowMs: 15 * 60 * 1000 })
+
 // Логин по номеру телефона + пароль
-router.post('/auth/login', async (req: Request, res: Response) => {
+router.post('/auth/login', loginRateLimiter, async (req: Request, res: Response) => {
   try {
     const { phone, password } = req.body
 
@@ -53,13 +64,40 @@ router.get('/auth/verify', authMiddleware, async (req: Request, res: Response) =
   }
 })
 
-router.get('/bookings', authMiddleware, async (_req: Request, res: Response) => {
+router.get('/bookings', authMiddleware, async (req: Request, res: Response) => {
   try {
-    const bookings = await bookingModel.findAll()
+    const bookings = await filterByOfficeAccess(req, await bookingModel.findAll(), (booking) => booking.officeId)
     res.json(bookings)
   } catch (error) {
     console.error('Admin bookings list error:', error)
     res.status(500).json({ error: 'Ошибка получения заявок' })
+  }
+})
+
+router.get('/lead-report', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const generatedAt = new Date()
+    const officeIds = await getUserOfficeIds(req)
+    const records = await leadReportModel.findSince(getLeadReportWindow(generatedAt).baselineStart, officeIds)
+    const inputs: LeadReportInput[] = records.map((record) => ({
+      kind: record.kind,
+      createdAt: record.createdAt,
+      utmSource: record.utmSource,
+      utmCampaign: record.utmCampaign,
+      leadResult: record.leadResult,
+      revenue: record.leadRevenue ?? (record.kind === 'booking' && record.leadResult === 'booked'
+        ? record.totalPrice
+        : 0),
+    }))
+
+    res.json({
+      generatedAt: generatedAt.toISOString(),
+      periodDays: 14,
+      rows: buildLeadReport(inputs, generatedAt),
+    })
+  } catch (error) {
+    console.error('Admin lead report error:', error)
+    res.status(500).json({ error: 'Ошибка получения отчёта по каналам' })
   }
 })
 
@@ -73,7 +111,7 @@ router.patch('/bookings/:id/status', authMiddleware, async (req: Request, res: R
     }
 
     const booking = await bookingModel.findById(req.params.id)
-    if (!booking) {
+    if (!booking || !await canAccessOffice(req, booking.officeId)) {
       return res.status(404).json({ error: 'Заявка не найдена' })
     }
 
@@ -86,10 +124,33 @@ router.patch('/bookings/:id/status', authMiddleware, async (req: Request, res: R
   }
 })
 
+router.patch('/bookings/:id/workflow', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const parsed = leadWorkflowSchema.safeParse(req.body)
+    if (!parsed.success) {
+      return res.status(400).json({ error: 'Некорректный результат обработки заявки' })
+    }
+
+    const booking = await bookingModel.findById(req.params.id)
+    if (!booking || !await canAccessOffice(req, booking.officeId)) {
+      return res.status(404).json({ error: 'Заявка не найдена' })
+    }
+
+    const updated = await bookingModel.updateWorkflow(req.params.id, parsed.data.result, parsed.data.revenue)
+    if (!updated) {
+      return res.status(404).json({ error: 'Заявка не найдена' })
+    }
+    res.json(updated)
+  } catch (error) {
+    console.error('Admin booking workflow update error:', error)
+    res.status(500).json({ error: 'Ошибка обновления результата заявки' })
+  }
+})
+
 router.delete('/bookings/:id', authMiddleware, async (req: Request, res: Response) => {
   try {
     const booking = await bookingModel.findById(req.params.id)
-    if (!booking) {
+    if (!booking || !await canAccessOffice(req, booking.officeId)) {
       return res.status(404).json({ error: 'Заявка не найдена' })
     }
 
@@ -101,9 +162,9 @@ router.delete('/bookings/:id', authMiddleware, async (req: Request, res: Respons
   }
 })
 
-router.get('/contact-leads', authMiddleware, async (_req: Request, res: Response) => {
+router.get('/contact-leads', authMiddleware, async (req: Request, res: Response) => {
   try {
-    const leads = await contactLeadModel.findAll()
+    const leads = await filterByOfficeAccess(req, await contactLeadModel.findAll(), (lead) => lead.officeId)
     res.json(leads)
   } catch (error) {
     console.error('Admin contact leads list error:', error)
@@ -126,7 +187,7 @@ router.patch('/contact-leads/:id/status', authMiddleware, async (req: Request, r
     }
 
     const lead = await contactLeadModel.findById(id)
-    if (!lead) {
+    if (!lead || !await canAccessOffice(req, lead.officeId)) {
       return res.status(404).json({ error: 'Обращение не найдено' })
     }
 
@@ -139,6 +200,34 @@ router.patch('/contact-leads/:id/status', authMiddleware, async (req: Request, r
   }
 })
 
+router.patch('/contact-leads/:id/workflow', authMiddleware, async (req: Request, res: Response) => {
+  try {
+    const id = Number(req.params.id)
+    if (!Number.isInteger(id) || id <= 0) {
+      return res.status(400).json({ error: 'Некорректный номер обращения' })
+    }
+
+    const parsed = leadWorkflowSchema.safeParse(req.body)
+    if (!parsed.success) {
+      return res.status(400).json({ error: 'Некорректный результат обработки обращения' })
+    }
+
+    const lead = await contactLeadModel.findById(id)
+    if (!lead || !await canAccessOffice(req, lead.officeId)) {
+      return res.status(404).json({ error: 'Обращение не найдено' })
+    }
+
+    const updated = await contactLeadModel.updateWorkflow(id, parsed.data.result, parsed.data.revenue)
+    if (!updated) {
+      return res.status(404).json({ error: 'Обращение не найдено' })
+    }
+    res.json(updated)
+  } catch (error) {
+    console.error('Admin contact lead workflow update error:', error)
+    res.status(500).json({ error: 'Ошибка обновления результата обращения' })
+  }
+})
+
 router.delete('/contact-leads/:id', authMiddleware, async (req: Request, res: Response) => {
   try {
     const id = Number(req.params.id)
@@ -147,7 +236,7 @@ router.delete('/contact-leads/:id', authMiddleware, async (req: Request, res: Re
     }
 
     const lead = await contactLeadModel.findById(id)
-    if (!lead) {
+    if (!lead || !await canAccessOffice(req, lead.officeId)) {
       return res.status(404).json({ error: 'Обращение не найдено' })
     }
 
@@ -219,12 +308,15 @@ router.delete('/users/:id', superAdminMiddleware, async (req: Request, res: Resp
     await adminUserModel.delete(id)
     res.json({ success: true })
   } catch (error) {
+    if (isForeignKeyError(error)) {
+      return res.status(409).json({ error: 'У пользователя есть офисы или оборудование — сначала передайте их другому аккаунту.' })
+    }
     res.status(500).json({ error: 'Ошибка удаления пользователя' })
   }
 })
 
 // Тестовая отправка ежедневного уведомления
-router.post('/test-daily-reminder', authMiddleware, async (req: Request, res: Response) => {
+router.post('/test-daily-reminder', superAdminMiddleware, async (req: Request, res: Response) => {
   try {
     await schedulerService.sendDailyRentalsReminder()
     res.json({ success: true, message: 'Уведомление отправлено' })
@@ -235,7 +327,7 @@ router.post('/test-daily-reminder', authMiddleware, async (req: Request, res: Re
 })
 
 // Ручная отправка email бэкапа БД
-router.post('/send-db-backup', authMiddleware, async (req: Request, res: Response) => {
+router.post('/send-db-backup', superAdminMiddleware, async (req: Request, res: Response) => {
   try {
     await emailBackupService.sendDatabaseBackup()
     res.json({ success: true, message: 'Бэкап отправлен на email' })
@@ -251,6 +343,17 @@ router.post('/upload', authMiddleware, upload.array('images', 10), async (req: R
     if (!req.files || !Array.isArray(req.files)) {
       return res.status(400).json({ success: false, message: 'No files uploaded' })
     }
+    // Фото с телефона весят мегабайты, а карточка показывает их в несколько сотен пикселей.
+    // Ошибка оптимизации не должна ломать загрузку: в худшем случае остаётся исходный файл.
+    await Promise.all(req.files.map(async (file) => {
+      await optimizeImageFile(file.path).catch((error) => {
+        console.warn(`Image optimization skipped for ${file.filename}:`, error?.message || error)
+      })
+      // Копии 400/800 px для srcset карточек; без них фронт просто покажет оригинал.
+      await generateImageVariants(file.path).catch((error) => {
+        console.warn(`Image variants skipped for ${file.filename}:`, error?.message || error)
+      })
+    }))
     const imageUrls = req.files.map(file => `/uploads/${file.filename}`)
     res.json({ success: true, data: imageUrls })
   } catch (error) {

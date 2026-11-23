@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { type Rental, type CreateRentalDto, type Equipment, type EquipmentInstance } from '../../types/index';
+import { type Rental, type CreateRentalDto, type EquipmentInstance } from '../../types/index';
+import type { RentalEquipment } from '../../types/admin';
 import { rentalsApi, type Customer } from '../../api/admin/rentals';
 import { equipmentApi } from '../../api/admin/equipment';
 import type { Office } from '../../api/admin/offices';
+import { buildRentalPriceSuggestion, type RentalPriceSuggestion } from '../../lib/rentalPriceSuggestion';
 
 interface RentalModalProps {
   isOpen: boolean;
@@ -11,7 +13,7 @@ interface RentalModalProps {
   onSubmit: (data: CreateRentalDto | Partial<CreateRentalDto & { status: string }>) => void;
   rental?: Rental | null;
   initialData?: Partial<CreateRentalDto> | null;
-  equipment: Equipment[];
+  equipment: RentalEquipment[];
   isLoading?: boolean;
   errorMessage?: string | null;
   offices?: Office[];
@@ -70,7 +72,7 @@ const RentalModal: React.FC<RentalModalProps> = ({
   const [selectedInstances, setSelectedInstances] = useState<Set<string>>(new Set());
   const [isOfficeModalOpen, setIsOfficeModalOpen] = useState(false);
   const [selectedOfficeId, setSelectedOfficeId] = useState(defaultOfficeId);
-  const [officeEquipment, setOfficeEquipment] = useState<Equipment[]>([]);
+  const [officeEquipment, setOfficeEquipment] = useState<RentalEquipment[]>([]);
   const [officeEquipmentOfficeId, setOfficeEquipmentOfficeId] = useState<number | null>(null);
   const [officeSelectedInstances, setOfficeSelectedInstances] = useState<Set<string>>(new Set());
   const [isOfficeEquipmentLoading, setIsOfficeEquipmentLoading] = useState(false);
@@ -86,6 +88,9 @@ const RentalModal: React.FC<RentalModalProps> = ({
   }>({});
 
   const [bookingConflictError, setBookingConflictError] = useState<string | null>(null);
+  const [priceSuggestion, setPriceSuggestion] = useState<RentalPriceSuggestion | null>(null);
+  const [priceSuggestionError, setPriceSuggestionError] = useState<string | null>(null);
+  const [isPriceSuggestionLoading, setIsPriceSuggestionLoading] = useState(false);
 
   useEffect(() => {
     if (errorMessage) setBookingConflictError(errorMessage);
@@ -237,6 +242,9 @@ const RentalModal: React.FC<RentalModalProps> = ({
         setValidationErrors({});
         setBookingConflictError(null);
       }
+      setPriceSuggestion(null);
+      setPriceSuggestionError(null);
+      setIsPriceSuggestionLoading(false);
     } else {
       setInitialRentalId(null);
     }
@@ -256,6 +264,8 @@ const RentalModal: React.FC<RentalModalProps> = ({
 
   const handleDateChange = (field: 'start_date' | 'end_date', value: string) => {
     const stripped = stripMinutes(value);
+    setPriceSuggestion(null);
+    setPriceSuggestionError(null);
     setFormData(prev => {
       const updated = { ...prev, [field]: stripped };
       const dateError = validateDates(
@@ -309,6 +319,61 @@ const RentalModal: React.FC<RentalModalProps> = ({
     setValidationErrors(prev => ({ ...prev, phone: phoneError }));
   };
 
+  const getSelectedEquipmentIds = () => {
+    if (formData.equipment_instances?.length) {
+      return formData.equipment_instances.map((item) => item.equipment_id);
+    }
+    if (formData.equipment_ids?.length) return formData.equipment_ids;
+    return formData.equipment_id > 0 ? [formData.equipment_id] : [];
+  };
+
+  const handleCalculateExtensionPrice = async () => {
+    if (!rental) return;
+
+    const currentEquipmentIds = getSelectedEquipmentIds();
+    const baselineEquipmentIds = rental.equipment_list?.length
+      ? rental.equipment_list.map((item) => item.id)
+      : [rental.equipment_id];
+
+    if (!formData.start_date || !formData.end_date || currentEquipmentIds.length === 0) {
+      setPriceSuggestionError('Сначала укажите период и оборудование');
+      return;
+    }
+
+    setIsPriceSuggestionLoading(true);
+    setPriceSuggestion(null);
+    setPriceSuggestionError(null);
+
+    try {
+      const [currentQuote, baselineQuote] = await Promise.all([
+        rentalsApi.quotePrice(currentEquipmentIds, formData.start_date, formData.end_date),
+        rentalsApi.quotePrice(
+          baselineEquipmentIds,
+          stripMinutes(rental.start_date.slice(0, 16)),
+          stripMinutes(rental.end_date.slice(0, 16)),
+        ),
+      ]);
+
+      if (!currentQuote.complete || currentQuote.total === undefined || currentQuote.rental_days === undefined) {
+        throw new Error(currentQuote.message || 'Не для всех позиций настроены тарифы');
+      }
+      if (!baselineQuote.complete || baselineQuote.total === undefined) {
+        throw new Error(baselineQuote.message || 'Не удалось рассчитать исходный период');
+      }
+
+      setPriceSuggestion(buildRentalPriceSuggestion(
+        rental.rental_price,
+        baselineQuote.total,
+        currentQuote.total,
+        currentQuote.rental_days,
+      ));
+    } catch (error) {
+      setPriceSuggestionError(error instanceof Error ? error.message : 'Не удалось рассчитать стоимость');
+    } finally {
+      setIsPriceSuggestionLoading(false);
+    }
+  };
+
   const isFormValid = () => {
     const phoneError = validatePhone(formData.customer_phone);
     const dateError = validateDates(formData.start_date, formData.end_date);
@@ -347,6 +412,8 @@ const RentalModal: React.FC<RentalModalProps> = ({
   const handleCreateOfficeChange = (officeId: number) => {
     setSelectedOfficeId(officeId);
     setSelectedInstances(new Set());
+    setPriceSuggestion(null);
+    setPriceSuggestionError(null);
     updateFormData({
       office_id: officeId,
       equipment_id: 0,
@@ -480,6 +547,8 @@ const RentalModal: React.FC<RentalModalProps> = ({
                                   equipment_ids: equipmentIdsArray,
                                   equipment_instances: equipmentInstancesArray
                                 }));
+                                setPriceSuggestion(null);
+                                setPriceSuggestionError(null);
                                 if (equipmentIdsArray.length > 0) {
                                   setValidationErrors(prev => ({ ...prev, equipment: null }));
                                 }
@@ -622,12 +691,50 @@ const RentalModal: React.FC<RentalModalProps> = ({
                   <input
                     type="number"
                     value={formData.rental_price ?? ''}
-                    onChange={(e) => updateFormData({ rental_price: e.target.value === '' ? null : Number(e.target.value) })}
+                    onChange={(e) => {
+                      updateFormData({ rental_price: e.target.value === '' ? null : Number(e.target.value) });
+                      setPriceSuggestion(null);
+                      setPriceSuggestionError(null);
+                    }}
                     className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
                     placeholder="Не указана"
                     min="0"
-                    step="10"
+                    step="1"
                   />
+                  {rental && (
+                    <div className="mt-2">
+                      <button
+                        type="button"
+                        onClick={() => void handleCalculateExtensionPrice()}
+                        disabled={isPriceSuggestionLoading || !formData.start_date || !formData.end_date}
+                        className="text-sm font-semibold text-indigo-700 hover:text-indigo-900 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        {isPriceSuggestionLoading ? 'Считаем…' : 'Рассчитать изменение по тарифам'}
+                      </button>
+                      <p className="mt-1 text-xs text-gray-500">Расчёт не изменяет введённую сумму автоматически.</p>
+                    </div>
+                  )}
+                  {priceSuggestionError && (
+                    <p className="mt-2 text-xs font-medium text-red-600">{priceSuggestionError}</p>
+                  )}
+                  {priceSuggestion && (
+                    <div className="mt-2 rounded-lg border border-indigo-100 bg-indigo-50 p-3 text-xs text-indigo-950">
+                      <div>Новый период по тарифам: <strong>{priceSuggestion.currentTariffTotal.toLocaleString('ru-RU')} ₽</strong> · {priceSuggestion.rentalDays} сут.</div>
+                      <div className="mt-1">
+                        Изменение относительно прежнего периода: <strong>{priceSuggestion.tariffDelta >= 0 ? '+' : ''}{priceSuggestion.tariffDelta.toLocaleString('ru-RU')} ₽</strong>
+                      </div>
+                      <div className="mt-1 text-indigo-700">
+                        Исходный тарифный расчёт: {priceSuggestion.baselineTariffTotal.toLocaleString('ru-RU')} ₽
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => updateFormData({ rental_price: priceSuggestion.suggestedTotal })}
+                        className="mt-2 rounded-md bg-indigo-700 px-3 py-2 font-bold text-white hover:bg-indigo-800"
+                      >
+                        Подставить {priceSuggestion.suggestedTotal.toLocaleString('ru-RU')} ₽
+                      </button>
+                    </div>
+                  )}
                 </div>
 
                 {/* Доставка + адрес */}
@@ -668,7 +775,7 @@ const RentalModal: React.FC<RentalModalProps> = ({
                       className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
                       placeholder="Не указана"
                       min="0"
-                      step="10"
+                      step="1"
                     />
                     <p className="mt-1 text-xs text-gray-500">Сколько тебе перевели</p>
                   </div>
@@ -681,7 +788,7 @@ const RentalModal: React.FC<RentalModalProps> = ({
                       className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
                       placeholder="Не указаны"
                       min="0"
-                      step="10"
+                      step="1"
                     />
                     <p className="mt-1 text-xs text-gray-500">Цена Яндекса</p>
                   </div>

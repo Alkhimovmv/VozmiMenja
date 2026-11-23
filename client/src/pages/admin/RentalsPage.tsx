@@ -4,7 +4,8 @@ import { useAuthenticatedQuery } from '../../hooks/useAuthenticatedQuery';
 import { rentalsApi } from '../../api/admin/rentals';
 import { equipmentApi } from '../../api/admin/equipment';
 import { officesApi } from '../../api/admin/offices';
-import type { Rental, CreateRentalDto, Equipment } from '../../types/index';
+import type { Rental, CreateRentalDto } from '../../types/index';
+import type { RentalEquipment } from '../../types/admin';
 import { formatDate, getStatusText, getStatusColor } from '../../utils/dateUtils';
 import RentalModal from '../../components/admin/RentalModal';
 import CustomSelect from '../../components/admin/CustomSelect';
@@ -13,6 +14,7 @@ import { subDays, startOfDay, endOfDay, isWithinInterval, startOfMonth, endOfMon
 import toast from 'react-hot-toast';
 import { useOffice } from '../../hooks/useOffice';
 import { getApiErrorMessage } from '../../lib/apiError';
+import { buildReviewRequestMessage } from '../../lib/afterRentalMessages';
 
 const Spinner = () => (
   <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
@@ -52,7 +54,7 @@ const getDayOperations = (rentals: Rental[], targetDate: Date): DayOperations =>
   returns: rentals.filter((rental) => isSameDay(new Date(rental.end_date), targetDate) && (rental.status === 'active' || rental.status === 'overdue')),
 });
 
-const formatRentalEquipmentNames = (rental: Rental, equipment: Equipment[]) => {
+const formatRentalEquipmentNames = (rental: Rental, equipment: RentalEquipment[]) => {
   if (!rental.equipment_list || rental.equipment_list.length === 0) {
     return rental.equipment_name;
   }
@@ -98,7 +100,7 @@ const RentalsPage: React.FC = () => {
     () => rentalsApi.getAll(currentOfficeId)
   );
 
-  const { data: equipment = [] } = useAuthenticatedQuery<Equipment[]>(['equipment-rental', currentOfficeId], () => equipmentApi.getForRental(currentOfficeId));
+  const { data: equipment = [] } = useAuthenticatedQuery<RentalEquipment[]>(['equipment-rental', currentOfficeId], () => equipmentApi.getForRental(currentOfficeId));
   const { data: offices = [] } = useAuthenticatedQuery(['offices'], officesApi.getAll);
 
   const todayOperations = useMemo(() => {
@@ -375,6 +377,16 @@ const RentalsPage: React.FC = () => {
     setDeleteConfirm({ isOpen: false, rentalId: null });
   };
 
+  const copyAfterRentalMessage = async (text: string, successMessage: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      toast.success(successMessage);
+    } catch {
+      // Без доступа к буферу (старый браузер, http) показываем текст, чтобы его можно было скопировать вручную.
+      window.prompt('Скопируйте текст', text);
+    }
+  };
+
   const handleEditRental = (rental: Rental) => {
     setEditingRental(rental);
     setIsModalOpen(true);
@@ -631,6 +643,21 @@ const RentalsPage: React.FC = () => {
                       >
                         {updateMutation.isPending ? <Spinner /> : null}
                         Завершить
+                      </button>
+                    </>
+                  )}
+                  {rental.status === 'completed' && (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => copyAfterRentalMessage(buildReviewRequestMessage({
+                          equipmentNames: formatRentalEquipmentNames(rental, equipment),
+                          officeName: offices.find((office) => office.id === rental.office_id)?.name,
+                        }), 'Просьба об отзыве скопирована')}
+                        title="Текст с просьбой оставить отзыв на Яндекс Картах — отправить клиенту после возврата"
+                        className="w-full sm:w-auto border border-gray-300 bg-white hover:bg-gray-50 text-gray-800 px-4 py-3 rounded text-sm font-medium min-h-[44px] touch-manipulation"
+                      >
+                        Текст: отзыв
                       </button>
                     </>
                   )}

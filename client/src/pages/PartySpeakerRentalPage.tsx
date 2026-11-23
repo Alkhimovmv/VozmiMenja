@@ -1,10 +1,12 @@
 import { Link } from 'react-router-dom'
 import { Helmet } from 'react-helmet-async'
+import seoMeta from '../content/seoMeta.json'
 import { ArrowRight, CheckCircle2, Clock, Home, MapPinned, MessageCircle, Music, Speaker, Truck, Users, Volume2 } from 'lucide-react'
 import { trackEvent } from '../lib/analytics'
 import { getTelegramUrl } from '../lib/contactLinks'
 import ScenarioRentalInfo from '../components/ui/ScenarioRentalInfo'
 import faqContent from '../content/faq.json'
+import HeroPriceCta from '../components/HeroPriceCta'
 
 const pageUrl = 'https://vozmimenya.ru/arenda-kolonki-dlya-vecherinki-moskva'
 const partyBox320Href = '/equipment/jbl-partybox-320'
@@ -106,8 +108,8 @@ function handleTelegramClick(source: string) {
 }
 
 export default function PartySpeakerRentalPage() {
-  const pageTitle = 'Аренда колонки для вечеринки в Москве | ВозьмиМеня'
-  const pageDescription = 'Возьмите JBL PartyBox 320 или 710 для вечеринки, дня рождения, дачи или зала в Москве. Поможем подобрать колонку по гостям и площадке.'
+  const pageTitle = seoMeta['/arenda-kolonki-dlya-vecherinki-moskva'].title
+  const pageDescription = seoMeta['/arenda-kolonki-dlya-vecherinki-moskva'].description
 
   return (
     <div className="min-h-screen bg-[#F6F7F4] text-slate-950">
@@ -158,6 +160,7 @@ export default function PartySpeakerRentalPage() {
               <p className="mb-8 max-w-2xl text-lg leading-8 text-slate-200">
                 Возьмите JBL PartyBox под день рождения, дачу или зал. Поможем понять, хватит ли PartyBox 320 или нужен запас PartyBox 710, и сразу уточним подключение, срок и доставку.
               </p>
+              <HeroPriceCta slugs={['jbl-partybox-320', 'jbl-partybox-710']} bookingHref="/booking?equipment=jbl-partybox-320" source="landing_party_speaker_hero" />
               <div className="flex flex-col gap-3 sm:flex-row">
                 <a
                   href={getTelegramUrl()}

@@ -5,6 +5,8 @@ import { expenseModel } from '../models/Expense'
 import { all } from '../models/database'
 import { authMiddleware } from '../middleware/auth'
 import { getUserOfficeIds } from '../middleware/userFilter'
+import { resolveOfficeScope } from '../domain/officeScope'
+import { getPublicContentPriceAuditReport } from '../services/publicContentPriceAuditReport'
 
 const router = Router()
 
@@ -22,6 +24,10 @@ const equipmentPerformanceQuerySchema = z.object({
   officeId: z.coerce.number().int().positive().optional(),
 })
 
+const bookingFunnelQuerySchema = z.object({
+  days: z.coerce.number().int().min(1).max(365).default(30),
+})
+
 type LeadSourceReportRow = {
   source_page: string
   referrer: string
@@ -34,15 +40,6 @@ type LeadSourceReportRow = {
   total: number
   first_created_at: string
   last_created_at: string
-}
-
-function resolveOfficeIds(userOfficeIds: number[] | null, queryOfficeId?: string): number[] | undefined {
-  const qId = queryOfficeId ? parseInt(queryOfficeId) : undefined
-  if (userOfficeIds === null) {
-    return qId ? [qId] : undefined
-  }
-  if (qId && userOfficeIds.includes(qId)) return [qId]
-  return userOfficeIds.length > 0 ? userOfficeIds : undefined
 }
 
 const addCount = (acc: Record<string, number>, key: string, value: number) => {
@@ -62,12 +59,57 @@ const formatSourceLabel = (row: LeadSourceReportRow) => {
 router.get('/monthly-revenue', authMiddleware, async (req: Request, res: Response) => {
   try {
     const userOfficeIds = await getUserOfficeIds(req)
-    const officeIds = resolveOfficeIds(userOfficeIds, req.query.officeId as string | undefined)
+    const officeIds = resolveOfficeScope(userOfficeIds, req.query.officeId as string | undefined)
     const revenue = await rentalModel.getMonthlyRevenue(officeIds)
     res.json(revenue)
   } catch (error) {
     console.error('Error getting monthly revenue:', error)
     res.status(500).json({ error: 'Ошибка получения месячной выручки' })
+  }
+})
+
+// GET /api/admin/analytics/booking-funnel - анонимная воронка оформления брони
+router.get('/booking-funnel', authMiddleware, async (req: Request, res: Response) => {
+  const parsed = bookingFunnelQuerySchema.safeParse(req.query)
+  if (!parsed.success) {
+    return res.status(400).json({ error: 'Некорректный период воронки' })
+  }
+
+  try {
+    const [row] = await all(`
+      SELECT
+        COUNT(DISTINCT CASE WHEN event_name = 'equipment_view' THEN session_id END) AS equipment_view,
+        COUNT(DISTINCT CASE WHEN event_name = 'booking_view' THEN session_id END) AS booking_view,
+        COUNT(DISTINCT CASE WHEN event_name = 'equipment_selected' THEN session_id END) AS equipment_selected,
+        COUNT(DISTINCT CASE WHEN event_name = 'form_started' THEN session_id END) AS form_started,
+        COUNT(DISTINCT CASE WHEN event_name = 'booking_submitted' THEN session_id END) AS booking_submitted
+      FROM booking_funnel_events
+      WHERE created_at >= datetime('now', ?)
+    `, [`-${parsed.data.days} days`]) as Array<Record<string, number>>
+
+    return res.json({
+      days: parsed.data.days,
+      stages: {
+        equipmentView: Number(row?.equipment_view) || 0,
+        bookingView: Number(row?.booking_view) || 0,
+        equipmentSelected: Number(row?.equipment_selected) || 0,
+        formStarted: Number(row?.form_started) || 0,
+        bookingSubmitted: Number(row?.booking_submitted) || 0,
+      },
+    })
+  } catch (error) {
+    console.error('Error getting booking funnel:', error)
+    return res.status(500).json({ error: 'Ошибка получения воронки бронирования' })
+  }
+})
+
+// GET /api/admin/analytics/content-price-audit - расхождения каталога и публичного контента
+router.get('/content-price-audit', authMiddleware, async (_req: Request, res: Response) => {
+  try {
+    return res.json(await getPublicContentPriceAuditReport())
+  } catch (error) {
+    console.error('Error auditing public content prices:', error)
+    return res.status(500).json({ error: 'Ошибка проверки цен в публичном контенте' })
   }
 })
 
@@ -83,7 +125,7 @@ router.get('/equipment-utilization', authMiddleware, async (req: Request, res: R
     if (userOfficeIds !== null && userOfficeIds.length === 0) {
       return res.json([])
     }
-    const officeIds = resolveOfficeIds(
+    const officeIds = resolveOfficeScope(
       userOfficeIds,
       parsedQuery.data.officeId ? String(parsedQuery.data.officeId) : undefined
     )
@@ -140,6 +182,7 @@ router.get('/equipment-utilization', authMiddleware, async (req: Request, res: R
         e.name,
         e.quantity,
         e.office_id,
+        e.created_at,
         COALESCE(e.base_price, 0) AS base_price,
         COUNT(DISTINCT wi.rental_id) AS total_rentals,
         COALESCE(SUM(
@@ -151,13 +194,14 @@ router.get('/equipment-utilization', authMiddleware, async (req: Request, res: R
       FROM rental_equipment e
       LEFT JOIN weighted_items wi ON wi.equipment_id = e.id
       ${officeFilter}
-      GROUP BY e.id, e.name, e.quantity, e.office_id, e.base_price
+      GROUP BY e.id, e.name, e.quantity, e.office_id, e.created_at, e.base_price
       ORDER BY total_revenue DESC, total_rentals DESC, e.name ASC
     `, [daysModifier, ...(officeIds || []), ...(officeIds || [])]) as Array<{
       id: number
       name: string
       quantity: number
       office_id: number | null
+      created_at: string
       base_price: number
       total_rentals: number
       rented_days: number
@@ -170,6 +214,12 @@ router.get('/equipment-utilization', authMiddleware, async (req: Request, res: R
       const totalRentals = Number(row.total_rentals) || 0
       const rentedDays = Number(row.rented_days) || 0
       const investmentValue = (Number(row.base_price) || 0) * quantity
+      const createdAt = new Date(`${row.created_at.replace(' ', 'T')}Z`)
+      const ageInDays = Number.isNaN(createdAt.getTime())
+        ? parsedQuery.data.days
+        : Math.max(1, Math.ceil((Date.now() - createdAt.getTime()) / 86_400_000))
+      const observationDays = Math.min(parsedQuery.data.days, ageInDays)
+      const availableDays = observationDays * quantity
 
       return {
         id: row.id,
@@ -178,9 +228,11 @@ router.get('/equipment-utilization', authMiddleware, async (req: Request, res: R
         office_id: row.office_id,
         total_rentals: totalRentals,
         rented_days: rentedDays,
+        idle_days: Math.max(0, availableDays - rentedDays),
+        observation_days: observationDays,
         total_revenue: totalRevenue,
         average_revenue: totalRentals > 0 ? Math.round(totalRevenue / totalRentals) : 0,
-        utilization_percent: Math.round((rentedDays / (parsedQuery.data.days * quantity)) * 1000) / 10,
+        utilization_percent: Math.round((rentedDays / availableDays) * 1000) / 10,
         investment_value: investmentValue,
         gross_return_percent: investmentValue > 0
           ? Math.round((totalRevenue / investmentValue) * 1000) / 10
@@ -203,11 +255,12 @@ router.get('/lead-sources', authMiddleware, async (req: Request, res: Response) 
       return res.status(400).json({
         success: false,
         message: 'Некорректные параметры отчета',
-        errors: parsedQuery.error.errors
+        errors: parsedQuery.error.issues
       })
     }
 
     const { from, to, limit } = parsedQuery.data
+    const userOfficeIds = await getUserOfficeIds(req)
     const filters: string[] = []
     const params: Array<string | number> = []
 
@@ -222,6 +275,12 @@ router.get('/lead-sources', authMiddleware, async (req: Request, res: Response) 
     }
 
     const whereClause = filters.length ? `WHERE ${filters.join(' AND ')}` : ''
+    const bookingOfficeFilter = userOfficeIds === null
+      ? ''
+      : userOfficeIds.length > 0
+        ? `WHERE COALESCE(b.office_id, 1) IN (${userOfficeIds.map(() => '?').join(',')})`
+        : 'WHERE 1=0'
+    const includeContactLeads = userOfficeIds === null || userOfficeIds.includes(1) ? 1 : 0
 
     const rows = await all(`
       WITH leads AS (
@@ -237,6 +296,7 @@ router.get('/lead-sources', authMiddleware, async (req: Request, res: Response) 
           COALESCE(NULLIF(e.name, ''), b.equipment_id) AS equipment
         FROM bookings b
         LEFT JOIN equipment e ON e.id = b.equipment_id
+        ${bookingOfficeFilter}
 
         UNION ALL
 
@@ -255,6 +315,7 @@ router.get('/lead-sources', authMiddleware, async (req: Request, res: Response) 
           c.created_at,
           '' AS equipment
         FROM contact_leads c
+        WHERE ? = 1
       ),
       filtered AS (
         SELECT *
@@ -285,7 +346,7 @@ router.get('/lead-sources', authMiddleware, async (req: Request, res: Response) 
         status
       ORDER BY total DESC, last_created_at DESC
       LIMIT ?
-    `, [...params, limit]) as LeadSourceReportRow[]
+    `, [...(userOfficeIds ?? []), includeContactLeads, ...params, limit]) as LeadSourceReportRow[]
 
     const totalsByChannel: Record<string, number> = {}
     const totalsByStatus: Record<string, number> = {}
@@ -345,7 +406,7 @@ router.get('/financial-summary', authMiddleware, async (req: Request, res: Respo
     const yearNum = parseInt(year as string)
     const monthNum = parseInt(month as string)
     const userOfficeIds = await getUserOfficeIds(req)
-    const officeIds = resolveOfficeIds(userOfficeIds, req.query.officeId as string | undefined)
+    const officeIds = resolveOfficeScope(userOfficeIds, req.query.officeId as string | undefined)
 
     const revenueDetails = await rentalModel.getMonthlyRevenueDetails(yearNum, monthNum, officeIds)
     const expensesDetails = await expenseModel.getMonthlyExpensesDetails(yearNum, monthNum, officeIds)

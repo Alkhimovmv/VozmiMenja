@@ -1,34 +1,28 @@
 import axios from 'axios'
 import { Article, CreateArticleDto } from '../types'
+import { ApiRequestError, getPublicApiBaseUrl } from '../lib/api'
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3002/api'
+const API_URL = import.meta.env?.VITE_API_URL || 'http://localhost:3002/api'
+
+const publicArticleRequest = async <T>(path: string): Promise<T> => {
+  const response = await fetch(`${getPublicApiBaseUrl()}${path}`)
+  if (!response.ok) {
+    throw new ApiRequestError(`HTTP error! status: ${response.status}`, response.status)
+  }
+  return response.json() as Promise<T>
+}
 
 export const articlesApi = {
   // Публичные методы
-  getAll: async (): Promise<Article[]> => {
-    const response = await axios.get(`${API_URL}/articles`)
-    return response.data
-  },
+  getAll: (): Promise<Article[]> => publicArticleRequest('/articles'),
 
-  getBySlug: async (slug: string): Promise<Article> => {
-    const response = await axios.get(`${API_URL}/articles/slug/${slug}`)
-    return response.data
-  },
+  getBySlug: (slug: string): Promise<Article> => publicArticleRequest(`/articles/slug/${encodeURIComponent(slug)}`),
 
-  getByCategory: async (category: string): Promise<Article[]> => {
-    const response = await axios.get(`${API_URL}/articles/category/${category}`)
-    return response.data
-  },
+  getByCategory: (category: string): Promise<Article[]> => publicArticleRequest(`/articles/category/${encodeURIComponent(category)}`),
 
-  getPopular: async (limit: number = 5): Promise<Article[]> => {
-    const response = await axios.get(`${API_URL}/articles/popular?limit=${limit}`)
-    return response.data
-  },
+  getPopular: (limit: number = 5): Promise<Article[]> => publicArticleRequest(`/articles/popular?limit=${limit}`),
 
-  getRecent: async (limit: number = 5): Promise<Article[]> => {
-    const response = await axios.get(`${API_URL}/articles/recent?limit=${limit}`)
-    return response.data
-  },
+  getRecent: (limit: number = 5): Promise<Article[]> => publicArticleRequest(`/articles/recent?limit=${limit}`),
 
   // Админ методы
   admin: {

@@ -1,5 +1,5 @@
 import apiClient from './client';
-import type { ContactLead } from '../../types';
+import type { ContactLead, LeadWorkflowUpdate } from '../../types';
 
 interface ContactLeadsResponse {
   success: boolean;
@@ -25,6 +25,11 @@ export const contactLeadsApi = {
 
   updateStatus: async (id: number, status: ContactLead['status']): Promise<ContactLead> => {
     const response = await apiClient.patch<ContactLead | ContactLeadResponse>(`/contact-leads/${id}/status`, { status });
+    return unwrapContactLead(response.data);
+  },
+
+  updateWorkflow: async (id: number, workflow: LeadWorkflowUpdate): Promise<ContactLead> => {
+    const response = await apiClient.patch<ContactLead | ContactLeadResponse>(`/contact-leads/${id}/workflow`, workflow);
     return unwrapContactLead(response.data);
   },
 

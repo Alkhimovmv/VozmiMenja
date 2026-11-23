@@ -66,7 +66,7 @@ export default function BookingSuccessPage() {
               Мы получили вашу бронь
             </h1>
             <p className="mt-5 text-lg leading-8 text-blue-100">
-              Это заявка на бронь оборудования. Менеджер проверит наличие, комплект, офис или доставку и свяжется с вами для финального подтверждения.
+              Менеджер свяжется с вами в течение 2 часов: проверит наличие, комплект, офис или доставку и подтвердит бронь.
             </p>
           </div>
         </div>
@@ -140,12 +140,13 @@ export default function BookingSuccessPage() {
             </div>
           </div>
 
-          <aside className="h-fit rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+          <aside className="h-fit space-y-5">
+          <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
             <h2 className="text-xl font-black text-slate-950">Что дальше</h2>
             <ol className="mt-4 space-y-3 text-sm text-slate-700">
               <li className="flex gap-3">
                 <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-slate-950 text-xs font-black text-white">1</span>
-                <span>Заявка уже попала менеджеру в админку.</span>
+                <span>Менеджер свяжется с вами в течение 2 часов.</span>
               </li>
               <li className="flex gap-3">
                 <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-slate-950 text-xs font-black text-white">2</span>
@@ -159,12 +160,12 @@ export default function BookingSuccessPage() {
 
             <div className="mt-6 space-y-3">
               <a
-                href={getTelegramUrl('Здравствуйте! Я отправил(а) заявку на бронь на сайте. Подскажите, пожалуйста, удалось ли подтвердить наличие?')}
+                href={getTelegramUrl()}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="block rounded-2xl bg-blue-600 px-5 py-3 text-center text-sm font-black text-white transition hover:bg-blue-700"
               >
-                Написать в Telegram
+                Срочно? Написать в Telegram
               </a>
               <Link
                 to="/"
@@ -173,6 +174,8 @@ export default function BookingSuccessPage() {
                 Вернуться на сайт
               </Link>
             </div>
+          </div>
+
           </aside>
         </div>
       </section>

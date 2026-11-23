@@ -1,8 +1,29 @@
-import { PDFDownloadLink } from '@react-pdf/renderer'
-import RentalAgreementPDF from '../components/RentalAgreementPDF'
+import { lazy, Suspense, useEffect, useState } from 'react'
 import SEO from '../components/SEO'
 
+const RentalAgreementDownload = lazy(() => import('../components/RentalAgreementDownload'))
+
+function DownloadPlaceholder() {
+  return (
+    <span
+      aria-disabled="true"
+      className="inline-flex items-center gap-2 bg-[#2563EB] text-white font-semibold px-6 py-3 rounded-xl text-sm"
+    >
+      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+      </svg>
+      Скачать договор (PDF)
+    </span>
+  )
+}
+
 export default function RentalAgreementPage() {
+  const [canDownloadPdf, setCanDownloadPdf] = useState(false)
+
+  useEffect(() => {
+    setCanDownloadPdf(true)
+  }, [])
+
   return (
     <div className="min-h-screen bg-[#F8FAFC]">
       <SEO
@@ -196,20 +217,13 @@ export default function RentalAgreementPage() {
 
           {/* Кнопка скачивания PDF */}
           <div className="mt-6 flex justify-center">
-            <PDFDownloadLink
-              document={<RentalAgreementPDF />}
-              fileName="Договор_аренды_ВозьмиМеня.pdf"
-              className="inline-flex items-center gap-2 bg-[#2563EB] hover:bg-blue-600 text-white font-semibold px-6 py-3 rounded-xl transition-colors text-sm"
-            >
-              {({ loading }) => (
-                <>
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                  </svg>
-                  {loading ? 'Подготовка PDF...' : 'Скачать договор (PDF)'}
-                </>
-              )}
-            </PDFDownloadLink>
+            {canDownloadPdf ? (
+              <Suspense fallback={<DownloadPlaceholder />}>
+                <RentalAgreementDownload />
+              </Suspense>
+            ) : (
+              <DownloadPlaceholder />
+            )}
           </div>
 
         </div>

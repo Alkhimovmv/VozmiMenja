@@ -1,13 +1,13 @@
 import { Link } from 'react-router-dom'
 import { Helmet } from 'react-helmet-async'
+import seoMeta from '../content/seoMeta.json'
 import { ArrowRight, CheckCircle2, Clock3, MapPin, Mic2, Music2, ShieldCheck, Speaker } from 'lucide-react'
 import { trackEvent } from '../lib/analytics'
+import { buildAttributedBookingLinks, getLeadContext } from '../lib/leadAttribution'
+import HeroPriceCta from '../components/HeroPriceCta'
 
 const pagePath = '/arenda-karaoke-komplekta-moskva'
 const pageUrl = `https://vozmimenya.ru${pagePath}`
-
-const bookingHref = (speaker: 'jbl-partybox-320' | 'jbl-partybox-710') =>
-  `/booking?equipment=${speaker},jbl-partybox-wireless-microphones&utm_source=site&utm_medium=landing&utm_campaign=karaoke-kit`
 
 const faqItems = [
   {
@@ -55,7 +55,7 @@ const kits = [
     speaker: 'JBL PartyBox 320',
     speakerPrice: '1 400 ₽/сутки',
     description: 'Для квартиры, дня рождения, небольшой дачи и компании, где не нужен максимальный запас громкости.',
-    href: bookingHref('jbl-partybox-320'),
+    equipment: ['jbl-partybox-320', 'jbl-partybox-wireless-microphones'],
     equipmentHref: '/equipment/jbl-partybox-320',
   },
   {
@@ -63,14 +63,16 @@ const kits = [
     speaker: 'JBL PartyBox 710',
     speakerPrice: '2 300 ₽/сутки',
     description: 'Для большого помещения, танцев, шумной компании и более мощного звука с плотным басом.',
-    href: bookingHref('jbl-partybox-710'),
+    equipment: ['jbl-partybox-710', 'jbl-partybox-wireless-microphones'],
     equipmentHref: '/equipment/jbl-partybox-710',
   },
 ]
 
 export default function KaraokeKitRentalPage() {
-  const title = 'Аренда караоке-комплекта в Москве — JBL и 2 микрофона'
-  const description = 'Аренда караоке-комплекта в Москве: JBL PartyBox 320 или 710 и два беспроводных микрофона. Выберите комплект и оформите одной заявкой.'
+  const title = seoMeta['/arenda-karaoke-komplekta-moskva'].title
+  const description = seoMeta['/arenda-karaoke-komplekta-moskva'].description
+  const attributedKits = buildAttributedBookingLinks(kits, 'karaoke-kit', getLeadContext(pageUrl))
+  const primaryBookingHref = attributedKits[0].href
 
   return (
     <div className="min-h-screen bg-[#F6F7F4] text-slate-950">
@@ -109,9 +111,10 @@ export default function KaraokeKitRentalPage() {
               <p className="mt-5 max-w-2xl text-lg leading-8 text-slate-200">
                 Выберите JBL PartyBox 320 или 710, добавьте два беспроводных микрофона и отправьте одну заявку на весь комплект.
               </p>
+              <HeroPriceCta slugs={['jbl-partybox-320', 'jbl-partybox-710']} addonSlugs={['mikrofony-jbl']} bookingHref="/booking?equipment=jbl-partybox-320,jbl-partybox-wireless-microphones" source="landing_karaoke_hero" />
               <div className="mt-8 flex flex-col gap-3 sm:flex-row">
                 <Link
-                  to={bookingHref('jbl-partybox-320')}
+                  to={primaryBookingHref}
                   onClick={() => trackEvent('karaoke_kit_booking_click', { kit: 'partybox_320' })}
                   className="btn bg-[#FBBF24] text-slate-950 hover:bg-[#FCD34D]"
                 >
@@ -147,7 +150,7 @@ export default function KaraokeKitRentalPage() {
             <p className="mt-3 text-slate-600">Микрофоны одинаковые в обоих вариантах. Отличается колонка и её запас громкости.</p>
           </div>
           <div className="grid gap-5 lg:grid-cols-2">
-            {kits.map((kit) => (
+            {attributedKits.map((kit) => (
               <article key={kit.name} className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
                 <p className="text-xs font-black uppercase tracking-[.18em] text-[#1D4ED8]">{kit.name}</p>
                 <h3 className="mt-2 text-2xl font-black">{kit.speaker} + Микрофоны JBL</h3>
@@ -217,7 +220,7 @@ export default function KaraokeKitRentalPage() {
             <h2 className="text-3xl font-black text-white">Готовы выбрать караоке-комплект?</h2>
             <p className="mt-2 text-slate-300">Обе позиции попадут в одну заявку. Менеджер проверит наличие на ваши даты.</p>
           </div>
-          <Link to={bookingHref('jbl-partybox-320')} className="btn bg-[#FBBF24] text-slate-950 hover:bg-[#FCD34D]">
+          <Link to={primaryBookingHref} className="btn bg-[#FBBF24] text-slate-950 hover:bg-[#FCD34D]">
             Оформить бронь <ArrowRight className="h-5 w-5" />
           </Link>
         </div>

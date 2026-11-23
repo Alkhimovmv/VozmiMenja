@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Phone } from 'lucide-react'
+import { MessageCircle, Phone, X } from 'lucide-react'
 import CallbackModal from './CallbackModal'
 import avitoIcon from '../assets/avito.png'
 import maxIcon from '../assets/max.png'
@@ -8,17 +8,20 @@ import { AVITO_PROFILE_URL, getTelegramUrl, getWhatsAppUrl, MAX_URL } from '../l
 
 export default function FloatingActions() {
   const [isCallbackModalOpen, setIsCallbackModalOpen] = useState(false)
+  // На мобильном 5 кнопок перекрывали контент поверх нижнего меню: показываем одну «Связаться», список — по нажатию.
+  const [isMobileOpen, setIsMobileOpen] = useState(false)
   const whatsappUrl = getWhatsAppUrl()
 
   return (
     <>
-      <div className="fixed right-4 z-40 flex flex-col gap-2 sm:bottom-8 sm:right-8 floating-actions-bottom">
+      <div className="fixed right-4 z-40 flex flex-col items-end gap-2 sm:bottom-8 sm:right-8 floating-actions-bottom">
+        <div className={`${isMobileOpen ? 'flex' : 'hidden'} flex-col gap-2 sm:flex`}>
         <button
           onClick={() => {
             trackEvent('callback_open', { source: 'floating_actions' })
             setIsCallbackModalOpen(true)
           }}
-          className="flex h-10 w-10 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-900 shadow-md transition-colors hover:border-gray-300 hover:bg-gray-50 sm:h-12 sm:w-12"
+          className="flex h-11 w-11 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-900 shadow-md transition-colors hover:border-gray-300 hover:bg-gray-50 sm:h-12 sm:w-12"
           title="Заказать звонок"
         >
           <Phone className="h-5 w-5 sm:h-6 sm:w-6" />
@@ -42,7 +45,7 @@ export default function FloatingActions() {
           target="_blank"
           rel="noopener noreferrer"
           onClick={() => trackEvent('whatsapp_click', { source: 'floating_actions' })}
-          className="flex h-10 w-10 items-center justify-center rounded-lg border border-emerald-200 bg-white text-emerald-600 shadow-md transition-colors hover:border-emerald-300 hover:bg-emerald-50 sm:h-12 sm:w-12"
+          className="flex h-11 w-11 items-center justify-center rounded-lg border border-emerald-200 bg-white text-emerald-600 shadow-md transition-colors hover:border-emerald-300 hover:bg-emerald-50 sm:h-12 sm:w-12"
           title="Написать в WhatsApp"
         >
           <svg className="h-5 w-5 sm:h-6 sm:w-6" fill="currentColor" viewBox="0 0 24 24">
@@ -55,7 +58,7 @@ export default function FloatingActions() {
           target="_blank"
           rel="noopener noreferrer"
           onClick={() => trackEvent('max_click', { source: 'floating_actions' })}
-          className="flex h-10 w-10 items-center justify-center rounded-lg border border-gray-200 bg-white shadow-md transition-colors hover:border-gray-300 hover:bg-gray-50 sm:h-12 sm:w-12"
+          className="flex h-11 w-11 items-center justify-center rounded-lg border border-gray-200 bg-white shadow-md transition-colors hover:border-gray-300 hover:bg-gray-50 sm:h-12 sm:w-12"
           title="Написать в Max"
         >
           <img src={maxIcon} alt="Max" className="h-6 w-6 rounded-md sm:h-7 sm:w-7" />
@@ -66,11 +69,25 @@ export default function FloatingActions() {
           target="_blank"
           rel="noopener noreferrer"
           onClick={() => trackEvent('avito_click', { source: 'floating_actions' })}
-          className="flex h-10 w-10 items-center justify-center rounded-lg border border-gray-200 bg-white shadow-md transition-colors hover:border-gray-300 hover:bg-gray-50 sm:h-12 sm:w-12"
+          className="flex h-11 w-11 items-center justify-center rounded-lg border border-gray-200 bg-white shadow-md transition-colors hover:border-gray-300 hover:bg-gray-50 sm:h-12 sm:w-12"
           title="Наш профиль на Авито"
         >
           <img src={avitoIcon} alt="Avito" className="h-5 w-5 rounded-md sm:h-6 sm:w-6" />
         </a>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => {
+            if (!isMobileOpen) trackEvent('contacts_open', { source: 'floating_actions_mobile' })
+            setIsMobileOpen((open) => !open)
+          }}
+          aria-expanded={isMobileOpen}
+          aria-label={isMobileOpen ? 'Скрыть способы связи' : 'Связаться с нами'}
+          className="flex h-11 w-11 items-center justify-center rounded-full border border-sky-500 bg-sky-500 text-white shadow-lg shadow-sky-500/25 sm:hidden"
+        >
+          {isMobileOpen ? <X className="h-5 w-5" /> : <MessageCircle className="h-5 w-5" />}
+        </button>
       </div>
 
       <CallbackModal

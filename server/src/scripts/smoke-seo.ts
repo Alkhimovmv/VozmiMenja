@@ -4,6 +4,13 @@ import { tmpdir } from 'os'
 import path from 'path'
 import { existsSync } from 'fs'
 import { pagesToCheck, requiredCanonicalPaths } from './smoke-seo-config'
+import { validateRawCatalogHtml } from './smoke-seo-catalog'
+import {
+  extractEquipmentPathsFromSitemap,
+  validateCatalogSitemap,
+  validateEquipmentSsrHtml,
+  type CatalogEquipmentSeoItem,
+} from './smoke-seo-equipment'
 
 const defaultBaseUrl = process.env.NODE_ENV === 'production'
   ? 'https://vozmimenya.ru'
@@ -22,6 +29,11 @@ const chromePath = chromeCandidates.find((candidate) => existsSync(candidate)) |
 const chromeTimeout = process.env.SMOKE_SEO_CHROME_TIMEOUT || '35s'
 const maxRenderAttempts = Number(process.env.SMOKE_SEO_RENDER_ATTEMPTS || 2)
 const maxChromeOutputBytes = 5 * 1024 * 1024
+const staticCatalogPages = [
+  { path: '/arenda-pylesosov-moskva', minProducts: 3 },
+  { path: '/arenda-gopro-moskva', minProducts: 3 },
+  { path: '/arenda-audiooborudovaniya-moskva', minProducts: 3 },
+]
 
 function absoluteUrl(pagePath: string) {
   return new URL(pagePath, `${baseUrl}/`).toString()
@@ -146,6 +158,51 @@ async function checkSitemap() {
   console.log(`✅ sitemap.xml contains ${requiredCanonicalPaths.length} key canonical URLs`)
 }
 
+async function checkAllEquipmentPages() {
+  const [catalogResponse, sitemapResponse] = await Promise.all([
+    fetch(`${baseUrl}/api/equipment?limit=200`),
+    fetch(`${baseUrl}/sitemap.xml`),
+  ])
+
+  if (!catalogResponse.ok) {
+    throw new Error(`equipment catalog returned ${catalogResponse.status}`)
+  }
+  if (!sitemapResponse.ok) {
+    throw new Error(`sitemap.xml returned ${sitemapResponse.status}`)
+  }
+
+  const payload = await catalogResponse.json() as { data?: CatalogEquipmentSeoItem[] }
+  const items = payload.data ?? []
+  if (items.length === 0) throw new Error('equipment catalog returned no items')
+
+  const sitemap = await sitemapResponse.text()
+  const equipmentPaths = extractEquipmentPathsFromSitemap(sitemap)
+  validateCatalogSitemap(items, equipmentPaths)
+
+  for (const item of items) {
+    const response = await fetch(`${baseUrl}/equipment/${encodeURIComponent(item.slug)}`)
+    if (!response.ok) {
+      throw new Error(`${item.slug}: product page returned ${response.status}`)
+    }
+    validateEquipmentSsrHtml(await response.text(), item, canonicalOrigin)
+  }
+
+  console.log(`✅ Equipment SEO: ${items.length} catalog pages match sitemap and raw SSR`)
+}
+
+async function checkStaticCatalog(page: { path: string; minProducts: number }) {
+  const url = absoluteUrl(page.path)
+  const response = await fetch(url)
+
+  if (!response.ok) {
+    throw new Error(`${url}: static catalog returned ${response.status}`)
+  }
+
+  const html = await response.text()
+  const result = validateRawCatalogHtml(html, url, page)
+  console.log(`✅ ${result.mode === 'ssr' ? 'SSR' : 'Static'} catalog ${page.path}: ${result.productCount} products`)
+}
+
 async function checkPage(page: { path: string; canonicalPath: string }, userDataDir: string) {
   const url = absoluteUrl(page.path)
   let html = ''
@@ -188,6 +245,10 @@ async function checkPage(page: { path: string; canonicalPath: string }, userData
     throw new Error(`${url}: expected canonical ${expectedCanonical}, got ${canonical}`)
   }
 
+  if (staticCatalogPages.some((item) => item.path === page.canonicalPath) && html.includes('data-static-product-catalog="true"')) {
+    throw new Error(`${url}: static product catalog remains after React render and would duplicate the visible catalog`)
+  }
+
   console.log(`✅ SEO ${page.path} -> ${page.canonicalPath}`)
 }
 
@@ -203,6 +264,11 @@ async function smokeSeo() {
   }
 
   await checkSitemap()
+  await checkAllEquipmentPages()
+
+  for (const page of staticCatalogPages) {
+    await checkStaticCatalog(page)
+  }
 
   for (const page of pagesToCheck) {
     const userDataDir = await mkdtemp(path.join(tmpdir(), 'vozmimenya-seo-smoke-'))

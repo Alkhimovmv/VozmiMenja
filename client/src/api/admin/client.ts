@@ -1,13 +1,15 @@
 import axios from 'axios';
 import type { AxiosInstance } from 'axios';
 
+const runtimeEnv = import.meta.env ?? {};
+
 // API URL для админки - используем основной API VozmiMenja с префиксом /admin
-const DEFAULT_API_URL = import.meta.env.VITE_API_URL
-  ? `${import.meta.env.VITE_API_URL}/admin`
+const DEFAULT_API_URL = runtimeEnv.VITE_API_URL
+  ? `${runtimeEnv.VITE_API_URL}/admin`
   : 'http://localhost:3002/api/admin';
 
 // Список возможных API серверов в порядке приоритета
-const API_SERVERS = import.meta.env.MODE === 'development'
+const API_SERVERS = runtimeEnv.MODE === 'development'
   ? [
       DEFAULT_API_URL,                         // Приоритет - VITE_API_URL/admin
       'http://localhost:3002/api/admin',       // Локальная разработка VozmiMenja
@@ -67,9 +69,9 @@ function createApiClient(baseURL: string): AxiosInstance {
 // Инициализация API клиента
 async function initializeApiClient(): Promise<AxiosInstance> {
   // В production не проверяем серверы, используем заданный URL напрямую
-  if (import.meta.env.MODE === 'production') {
-    currentApiUrl = import.meta.env.VITE_API_URL
-      ? `${import.meta.env.VITE_API_URL}/admin`
+  if (runtimeEnv.MODE === 'production') {
+    currentApiUrl = runtimeEnv.VITE_API_URL
+      ? `${runtimeEnv.VITE_API_URL}/admin`
       : 'https://vozmimenya.ru/api/admin';
     console.log(`🔧 Production mode: using fixed API URL: ${currentApiUrl}`);
   } else {
@@ -102,7 +104,7 @@ async function initializeApiClient(): Promise<AxiosInstance> {
       }
 
       // Если сервер недоступен - попробуем переключиться (только в dev режиме)
-      if (import.meta.env.MODE !== 'production' && !error.response && (error.code === 'ECONNREFUSED' || error.code === 'ENOTFOUND' || error.code === 'TIMEOUT')) {
+      if (runtimeEnv.MODE !== 'production' && !error.response && (error.code === 'ECONNREFUSED' || error.code === 'ENOTFOUND' || error.code === 'TIMEOUT')) {
         console.log('❌ Сервер недоступен, ищем альтернативу...');
 
         // Ищем новый рабочий сервер

@@ -8,6 +8,9 @@ import { Check, Star, Clock, Shield, Truck } from 'lucide-react'
 import { trackEvent } from '../lib/analytics'
 import { CONTACT_PHONE, CONTACT_PHONE_LABEL, getTelegramUrl } from '../lib/contactLinks'
 import faqContent from '../content/faq.json'
+import seoMeta from '../content/seoMeta.json'
+import HeroPriceCta from '../components/HeroPriceCta'
+import { buildCategoryItemList } from '../lib/categoryStructuredData'
 
 export default function CategoryPylesosyPage() {
   const [page] = useState(1)
@@ -15,7 +18,9 @@ export default function CategoryPylesosyPage() {
 
   const { data, isLoading, error } = useEquipment({ page, limit: 12, category })
 
+  // Прокручиваем к каталогу только по явной ссылке на #catalog: при обычном входе H1 и вводный текст остаются на экране.
   useEffect(() => {
+    if (window.location.hash !== '#catalog') return
     const timer = setTimeout(() => {
       document.getElementById('catalog')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
     }, 300)
@@ -25,22 +30,10 @@ export default function CategoryPylesosyPage() {
   const categoryStructuredData = {
     '@context': 'https://schema.org',
     '@type': 'CollectionPage',
-    name: 'Аренда пылесосов в Москве',
-    description: 'Профессиональные строительные и промышленные пылесосы в аренду. Низкие цены от 400₽/день. Доставка по Москве.',
+    name: 'Аренда моющих и строительных пылесосов Karcher в Москве',
+    description: 'Karcher Puzzi для мебели и ковров, WD5 для уборки после ремонта и SC4 для кухни и плитки. Постамат 24/7 и доставка по Москве.',
     url: 'https://vozmimenya.ru/arenda-pylesosov-moskva',
-    mainEntity: {
-      '@type': 'ItemList',
-      itemListElement: data?.data?.map((item, index) => ({
-        '@type': 'ListItem',
-        position: index + 1,
-        item: {
-          '@type': 'Product',
-          name: item.name,
-          image: `https://vozmimenya.ru${item.images[0]}`,
-          offers: { '@type': 'Offer', price: item.pricePerDay, priceCurrency: 'RUB' },
-        },
-      })) || [],
-    },
+    mainEntity: buildCategoryItemList(data?.data),
   }
 
   const faqStructuredData = {
@@ -50,9 +43,9 @@ export default function CategoryPylesosyPage() {
   }
 
   const advantages = [
-    { icon: Clock, title: 'Доставка 2-4 часа', description: 'Быстрая доставка по всей Москве в удобное время' },
-    { icon: Shield, title: 'Гарантия качества', description: 'Профессиональное оборудование в отличном состоянии' },
-    { icon: Truck, title: 'Быстрая доставка', description: 'Доставка по всей Москве за 2–4 часа' },
+    { icon: Clock, title: 'Постамат 24/7', description: 'Самовывоз и возврат в удобное время на Волжской или Динамо' },
+    { icon: Shield, title: 'Проверенная техника', description: 'Комплект и состояние оборудования проверяются перед выдачей' },
+    { icon: Truck, title: 'Доставка по Москве', description: 'Стоимость и удобное окно доставки подтверждаем до выдачи' },
     { icon: Star, title: '5000+ клиентов', description: 'Более 8 лет на рынке, рейтинг 5.0 из 5.0' },
   ]
 
@@ -111,9 +104,9 @@ export default function CategoryPylesosyPage() {
   return (
     <div className="min-h-screen bg-[#F8FAFC]">
       <SEO
-        title="Аренда пылесосов в Москве от 400₽/день - Строительные и промышленные"
-        description="✅ Аренда строительных и промышленных пылесосов в Москве. Низкие цены от 400₽/день. Доставка 24/7. Подбор модели и бронь через Telegram."
-        keywords="аренда пылесосов москва, прокат строительных пылесосов, промышленные пылесосы аренда, клининговое оборудование напрокат, строительный пылесос москва"
+        title={seoMeta['/arenda-pylesosov-moskva'].title}
+        description={seoMeta['/arenda-pylesosov-moskva'].description}
+        keywords="аренда пылесоса karcher москва, аренда моющего пылесоса, строительный пылесос аренда, karcher puzzi аренда"
         url="https://vozmimenya.ru/arenda-pylesosov-moskva"
         structuredData={[categoryStructuredData, faqStructuredData]}
       />
@@ -127,12 +120,13 @@ export default function CategoryPylesosyPage() {
             <span>Аренда пылесосов</span>
           </div>
           <h1 className="text-white text-4xl md:text-5xl font-extrabold mb-4 leading-tight">
-            Аренда пылесосов в Москве
+            Аренда моющих и строительных пылесосов Karcher в Москве
           </h1>
           <p className="text-blue-100 text-lg max-w-2xl mb-8">
-            Пылесосы, пароочистители, мойщики окон и клининговое оборудование для любых задач.
-            Профессиональная техника от <span className="font-bold text-white">400₽/день</span>. Доставка по Москве за 2-4 часа.
+            Karcher Puzzi для мебели и ковров, WD5 для уборки после ремонта и SC4 для кухни и плитки.
+            Самовывоз и возврат через постамат 24/7 или доставка по Москве.
           </p>
+          <HeroPriceCta slugs={['karcher-puzzi-8-1', 'karcher-puzzi-10-1', 'karcher-wd5', 'karcher-sc4']} bookingHref="/booking" source="category_cleaning_hero" />
           <div className="flex flex-col sm:flex-row gap-3 mb-10">
             <a href={getTelegramUrl()} target="_blank" rel="noopener noreferrer" onClick={() => trackEvent('telegram_click', { source: 'category_pylesosy_hero' })} className="btn bg-white text-primary hover:bg-blue-50">
               Написать в Telegram
@@ -142,7 +136,7 @@ export default function CategoryPylesosyPage() {
             </a>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 max-w-lg">
-            {[['400₽', 'от / день'], ['2-4ч', 'доставка'], ['24/7', 'работаем'], ['5000+', 'клиентов']].map(([val, label]) => (
+            {[['Puzzi', 'мебель и ковры'], ['WD5', 'после ремонта'], ['24/7', 'постамат'], ['2', 'точки в Москве']].map(([val, label]) => (
               <div key={label} className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
                 <div className="text-2xl font-extrabold mb-0.5">{val}</div>
                 <div className="text-xs text-blue-200">{label}</div>
@@ -225,6 +219,9 @@ export default function CategoryPylesosyPage() {
               </Link>
               <Link to="/equipment/karcher-sc4" className="px-4 py-2 bg-[#F8FAFC] text-gray-700 rounded-xl text-sm font-semibold border border-gray-100 hover:text-[#2563EB] transition-colors">
                 Karcher SC4
+              </Link>
+              <Link to="/arenda-tehniki-na-mesyac-moskva" className="px-4 py-2 bg-[#F8FAFC] text-gray-700 rounded-xl text-sm font-semibold border border-gray-100 hover:text-[#2563EB] transition-colors">
+                Аренда на месяц — дешевле за сутки
               </Link>
             </div>
           </div>

@@ -3,7 +3,7 @@ import { z } from 'zod'
 import { expenseModel, CreateExpenseData } from '../models/Expense'
 import { authMiddleware } from '../middleware/auth'
 import { getUserOfficeIds } from '../middleware/userFilter'
-import { EXPENSE_CATEGORY_VALUES } from '../domain/expenseCategories'
+import { CLASSIFIED_EXPENSE_CATEGORY_VALUES } from '../domain/expenseCategories'
 
 const router = Router()
 
@@ -11,7 +11,9 @@ const createExpenseSchema = z.object({
   description: z.string().min(1, 'description обязателен').max(500),
   amount: z.number().positive('amount должен быть положительным'),
   date: z.string().min(1, 'date обязателен'),
-  category: z.enum(EXPENSE_CATEGORY_VALUES),
+  category: z.enum(CLASSIFIED_EXPENSE_CATEGORY_VALUES, {
+    error: 'category должна быть выбрана из рабочих категорий',
+  }),
   office_id: z.number().int().positive().optional().default(1)
 })
 
@@ -89,7 +91,7 @@ router.post('/', authMiddleware, async (req: Request, res: Response) => {
   try {
     const parsed = createExpenseSchema.safeParse(req.body)
     if (!parsed.success) {
-      return res.status(400).json({ error: parsed.error.errors.map(e => e.message).join(', ') })
+      return res.status(400).json({ error: parsed.error.issues.map(e => e.message).join(', ') })
     }
     const { description, amount, date, category, office_id } = parsed.data
 
@@ -112,7 +114,7 @@ router.put('/:id', authMiddleware, async (req: Request, res: Response) => {
   try {
     const parsed = updateExpenseSchema.safeParse(req.body)
     if (!parsed.success) {
-      return res.status(400).json({ error: parsed.error.errors.map(e => e.message).join(', ') })
+      return res.status(400).json({ error: parsed.error.issues.map(e => e.message).join(', ') })
     }
     const existing = await expenseModel.findById(parseInt(req.params.id))
     if (!existing) return res.status(404).json({ error: 'Расход не найден' })
@@ -123,6 +125,9 @@ router.put('/:id', authMiddleware, async (req: Request, res: Response) => {
     }
 
     const { description, amount, date, category, office_id } = parsed.data
+    if (userOfficeIds !== null && office_id !== undefined && !userOfficeIds.includes(office_id)) {
+      return res.status(403).json({ error: 'Нет доступа к выбранному офису' })
+    }
     const data: Partial<CreateExpenseData> = { description, amount, date, category, officeId: office_id }
     const expense = await expenseModel.update(parseInt(req.params.id), data)
     res.json(expense)

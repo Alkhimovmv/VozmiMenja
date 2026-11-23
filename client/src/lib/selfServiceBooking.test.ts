@@ -1,8 +1,11 @@
 import assert from 'node:assert/strict'
 import {
+  buildUrgentBookingDates,
   buildSelectedEquipmentList,
   buildSingleBookingEquipmentPayload,
   calculateMultiEquipmentTotal,
+  getEquipmentBookingHint,
+  groupBookingEquipment,
   getJblMicrophoneUpsell,
   getPuzziDryerUpsell,
   getSelectedEquipment,
@@ -39,6 +42,48 @@ const equipment: Equipment[] = [
     updatedAt: '',
   },
   {
+    id: 'gopro-13-id',
+    slug: 'gopro-13',
+    name: 'GoPro 13',
+    category: 'Камеры',
+    pricePerDay: 1300,
+    quantity: 1,
+    availableQuantity: 1,
+    images: [],
+    description: '',
+    specifications: {},
+    createdAt: '',
+    updatedAt: '',
+  },
+  {
+    id: 'osmo-pocket-3-id',
+    slug: 'dji-osmo-pocket-3-creator-combo',
+    name: 'DJI Osmo Pocket 3 Creator Combo',
+    category: 'Камеры',
+    pricePerDay: 1300,
+    quantity: 1,
+    availableQuantity: 1,
+    images: [],
+    description: '',
+    specifications: {},
+    createdAt: '',
+    updatedAt: '',
+  },
+  {
+    id: 'insta360-x5-id',
+    slug: 'insta360-x5',
+    name: 'Insta360 X5',
+    category: 'Камеры',
+    pricePerDay: 1500,
+    quantity: 1,
+    availableQuantity: 1,
+    images: [],
+    description: '',
+    specifications: {},
+    createdAt: '',
+    updatedAt: '',
+  },
+  {
     id: 'jbl-partybox-wireless-microphones',
     name: 'Микрофоны JBL',
     category: 'Аудиооборудование',
@@ -66,6 +111,20 @@ const equipment: Equipment[] = [
     updatedAt: '',
   },
   {
+    id: 'puzzi-10-id',
+    slug: 'karcher-puzzi-10-1',
+    name: 'Karcher Puzzi 10/1',
+    category: 'Пылесосы, уборка и клининг',
+    pricePerDay: 980,
+    quantity: 1,
+    availableQuantity: 1,
+    images: [],
+    description: '',
+    specifications: {},
+    createdAt: '',
+    updatedAt: '',
+  },
+  {
     id: 'vacmaster-125w-carpet-dryer',
     slug: 'sushilka-vacmaster',
     name: 'Сушилка Vacmaster',
@@ -84,6 +143,20 @@ const equipment: Equipment[] = [
 const selected = getSelectedEquipment(equipment, ['camera', 'missing', 'speaker'])
 
 assert.deepEqual(selected.map((item) => item.id), ['camera', 'speaker'])
+assert.equal(getEquipmentBookingHint(equipment[0]), 'портативная колонка')
+assert.equal(getEquipmentBookingHint(equipment[1]), 'экшн-камера')
+assert.equal(getEquipmentBookingHint(equipment[6]), 'моющий пылесос')
+assert.equal(getEquipmentBookingHint(equipment[8]), 'сушилка')
+const bookingGroups = groupBookingEquipment(equipment)
+assert.deepEqual(bookingGroups.map(([category]) => category), [
+  'Пылесосы, уборка и клининг',
+  'Аудиооборудование',
+  'Камеры',
+])
+assert.deepEqual(
+  bookingGroups.find(([category]) => category === 'Камеры')?.[1].map((item) => item.id),
+  ['camera', 'gopro-13-id', 'osmo-pocket-3-id', 'insta360-x5-id'],
+)
 assert.match(buildSelectedEquipmentList(selected), /1\. GoPro Hero \(Камеры\)/)
 assert.match(buildSelectedEquipmentList(selected), /2\. JBL PartyBox 710 \(Аудиооборудование\)/)
 assert.deepEqual(buildSingleBookingEquipmentPayload(selected), {
@@ -98,17 +171,35 @@ assert.equal(getJblMicrophoneUpsell(equipment, ['speaker', 'jbl-partybox-wireles
 const unavailableMicrophones = equipment.map((item) => (
   item.id === 'jbl-partybox-wireless-microphones' ? { ...item, availableQuantity: 0 } : item
 ))
-assert.equal(getJblMicrophoneUpsell(unavailableMicrophones, ['speaker']), null)
+assert.equal(getJblMicrophoneUpsell(unavailableMicrophones, ['speaker'])?.id, 'jbl-partybox-wireless-microphones')
 assert.equal(getPuzziDryerUpsell(equipment, ['puzzi'])?.id, 'vacmaster-125w-carpet-dryer')
 assert.equal(getPuzziDryerUpsell(equipment, ['camera']), null)
 assert.equal(getPuzziDryerUpsell(equipment, ['puzzi', 'vacmaster-125w-carpet-dryer']), null)
 const unavailableDryer = equipment.map((item) => (
   item.id === 'vacmaster-125w-carpet-dryer' ? { ...item, availableQuantity: 0 } : item
 ))
-assert.equal(getPuzziDryerUpsell(unavailableDryer, ['puzzi']), null)
+assert.equal(getPuzziDryerUpsell(unavailableDryer, ['puzzi'])?.id, 'vacmaster-125w-carpet-dryer')
+assert.deepEqual(
+  buildUrgentBookingDates('today', new Date('2026-11-05T09:00:00+03:00')),
+  { startDate: '2026-11-05', endDate: '2026-11-06' },
+)
+assert.deepEqual(
+  buildUrgentBookingDates('tomorrow', new Date('2026-11-05T09:00:00+03:00')),
+  { startDate: '2026-11-06', endDate: '2026-11-07' },
+)
 assert.deepEqual(
   resolveEquipmentSelection(equipment, ['jbl-partybox-320', 'jbl-partybox-wireless-microphones', 'missing']),
   ['speaker', 'jbl-partybox-wireless-microphones'],
+)
+assert.deepEqual(
+  resolveEquipmentSelection(equipment, [
+    'karcher-puzzi-8-1',
+    'karcher-puzzi-10-1',
+    'gopro-13',
+    'dji-osmo-pocket-3-creator-combo',
+    'insta360-x5',
+  ]),
+  ['puzzi', 'puzzi-10-id', 'gopro-13-id', 'osmo-pocket-3-id', 'insta360-x5-id'],
 )
 
 console.log('selfServiceBooking tests passed')

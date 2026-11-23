@@ -1,4 +1,4 @@
-import { database, run, get, all } from './database'
+import { run, get, all } from './database'
 
 export type RentalSource = 'авито' | 'сайт' | 'рекомендация' | 'карты'
 export type RentalStatus = 'pending' | 'active' | 'completed' | 'overdue'
@@ -67,8 +67,6 @@ export function normalizeRentalPhone(phone: string): string {
 }
 
 export class RentalModel {
-  private db = database.instance
-
   async findAll(options: {
     status?: RentalStatus
     equipmentId?: number
@@ -281,35 +279,48 @@ export class RentalModel {
 
     const normalizedCustomerPhone = normalizeRentalPhone(data.customerPhone)
 
-    const rentalId = await new Promise<number>((resolve, reject) => {
-      this.db.run(`
-        INSERT INTO rentals (
-          equipment_id, start_date, end_date, customer_name, customer_phone,
-          needs_delivery, delivery_address, rental_price, delivery_price,
-          delivery_costs, source, comment, status, office_id
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `, [
-        data.equipmentId,
-        data.startDate,
-        data.endDate,
-        data.customerName,
-        normalizedCustomerPhone,
-        data.needsDelivery ? 1 : 0,
-        data.deliveryAddress || null,
-        data.rentalPrice || null,
-        data.deliveryPrice || null,
-        data.deliveryCosts || null,
-        data.source,
-        data.comment || null,
-        'pending',
-        data.officeId || 1
-      ], function(err) {
-        if (err) reject(err)
-        else resolve(this.lastID)
-      })
-    })
+    const result = await run(`
+      INSERT INTO rentals (
+        equipment_id, start_date, end_date, customer_name, customer_phone,
+        needs_delivery, delivery_address, rental_price, delivery_price,
+        delivery_costs, source, comment, status, office_id
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `, [
+      data.equipmentId,
+      data.startDate,
+      data.endDate,
+      data.customerName,
+      normalizedCustomerPhone,
+      data.needsDelivery ? 1 : 0,
+      data.deliveryAddress || null,
+      data.rentalPrice ?? null,
+      data.deliveryPrice ?? null,
+      data.deliveryCosts ?? null,
+      data.source,
+      data.comment || null,
+      'pending',
+      data.officeId || 1
+    ])
+    const rentalId = result.lastID
 
-    // Если указано несколько единиц оборудования, добавляем их в связующую таблицу
+    // Аренда без позиций невидима для проверки занятости, поэтому при сбое вставки
+    // позиций удаляем только что созданную аренду.
+    try {
+      await this.insertRentalItems(rentalId, data)
+    } catch (error) {
+      await run('DELETE FROM rentals WHERE id = ?', [rentalId])
+      throw error
+    }
+
+    const rental = await this.findById(rentalId)
+    if (!rental) {
+      throw new Error('Failed to create rental')
+    }
+
+    return rental
+  }
+
+  private async insertRentalItems(rentalId: number, data: CreateRentalData): Promise<void> {
     if (data.equipmentInstances && data.equipmentInstances.length > 0) {
       // Новый формат с номерами экземпляров
       for (const instance of data.equipmentInstances) {
@@ -327,13 +338,6 @@ export class RentalModel {
         `, [rentalId, equipmentId, 1])
       }
     }
-
-    const rental = await this.findById(rentalId)
-    if (!rental) {
-      throw new Error('Failed to create rental')
-    }
-
-    return rental
   }
 
   async update(id: number, data: Partial<CreateRentalData & { status: RentalStatus }>): Promise<Rental> {
@@ -721,9 +725,9 @@ export class RentalModel {
       customerPhone: row.customer_phone,
       needsDelivery: row.needs_delivery === 1,
       deliveryAddress: row.delivery_address || undefined,
-      rentalPrice: row.rental_price || undefined,
-      deliveryPrice: row.delivery_price || undefined,
-      deliveryCosts: row.delivery_costs || undefined,
+      rentalPrice: row.rental_price ?? undefined,
+      deliveryPrice: row.delivery_price ?? undefined,
+      deliveryCosts: row.delivery_costs ?? undefined,
       source: row.source as RentalSource,
       comment: row.comment || undefined,
       status: row.status as RentalStatus,

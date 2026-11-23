@@ -5,12 +5,15 @@
   "type": "module",
   "scripts": {
     "dev": "vite --host 0.0.0.0",
-    "build": "vite build --mode production && node scripts/generate-static-route-entrypoints.js",
-    "build:check": "tsc -b && vite build --mode production && node scripts/generate-static-route-entrypoints.js",
+    "build:browser": "vite build --mode production",
+    "build:ssr": "vite build --mode production --ssr src/entry-server.tsx --outDir dist-ssr && node scripts/prepare-ssr-template.mjs",
+    "build": "npm run build:browser && npm run build:ssr && node scripts/generate-static-route-entrypoints.js",
+    "build:check": "tsc -b && npm run build",
     "lint": "eslint .",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
-    "test": "tsx src/lib/adminLeadConversion.test.ts && tsx src/lib/bookingFormGuidance.test.ts && tsx src/lib/selfServiceBooking.test.ts && tsx src/utils/pricing.test.ts"
+    "test": "tsx src/lib/leadAttribution.test.ts && tsx src/lib/adminBookingPriorities.test.ts && tsx src/lib/adminLeadConversion.test.ts && tsx src/lib/leadReportCsv.test.ts && tsx src/lib/avitoBookingLink.test.ts && tsx src/lib/afterRentalMessages.test.ts && tsx src/lib/blogBookingCta.test.ts && tsx src/lib/bookingFormGuidance.test.ts && tsx src/lib/selfServiceBooking.test.ts && tsx src/lib/rentalPriceSuggestion.test.ts && tsx src/lib/equipmentPerformance.test.ts && tsx src/lib/pricingConsistency.test.ts && tsx src/lib/bookingFunnel.test.ts && tsx src/utils/pricing.test.ts && tsx src/api/admin/leadWorkflow.test.ts && tsx src/lib/leadWorkflow.test.ts && tsx src/lib/adminLeadReport.test.ts && tsx src/components/CookieBanner.test.tsx && tsx src/components/equipment/EquipmentTrustStrip.test.tsx && tsx src/components/admin/LeadCampaignReport.test.tsx && tsx src/content/equipmentSeoProfiles.test.ts && tsx src/content/seoMeta.test.ts",
+    "test:ssr": "tsx src/ssr/publicRoutes.test.ts && tsx src/ssr/serialize.test.ts && tsx src/ssr/renderStream.test.tsx && tsx src/ssr/prefetchRoute.test.ts"
   },
   "dependencies": {
     "@react-pdf/renderer": "^4.5.1",
@@ -44,6 +47,8 @@
     "eslint-plugin-react-hooks": "^5.1.0-rc.0",
     "eslint-plugin-react-refresh": "^0.4.9",
     "globals": "^15.9.0",
+    "micromark": "^4.0.3",
+    "micromark-extension-gfm": "^3.0.0",
     "postcss": "^8.4.41",
     "sharp": "^0.35.4",
     "tailwindcss": "^4.3.3",

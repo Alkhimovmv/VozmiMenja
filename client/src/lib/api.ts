@@ -1,12 +1,29 @@
-import type { Equipment, Booking, BookingRequest, ApiResponse, PaginatedResponse, PublicOffice } from '../types'
+import type { Equipment, Booking, BookingRequest, ApiResponse, PaginatedResponse, PublicOffice, ContactLead, LeadScenario } from '../types'
 
-const API_BASE_URL = import.meta.env.VITE_API_URL
-  || (import.meta.env.MODE === 'production' ? '/api' : 'http://localhost:3002/api')
+export class ApiRequestError extends Error {
+  constructor(message: string, readonly status: number) {
+    super(message)
+    this.name = 'ApiRequestError'
+  }
+}
 
-// Извлекаем URL сервера, убирая /api с конца
-export const API_SERVER_URL = API_BASE_URL.endsWith('/api')
-  ? API_BASE_URL.slice(0, -4)  // Убираем последние 4 символа '/api'
-  : API_BASE_URL
+export const getPublicApiBaseUrl = () => import.meta.env?.SSR
+  ? process.env.SSR_API_URL || 'http://127.0.0.1:3003/api'
+  : import.meta.env?.VITE_API_URL
+    || (import.meta.env?.MODE === 'production' ? '/api' : 'http://localhost:3002/api')
+
+const API_BASE_URL = getPublicApiBaseUrl()
+
+// SSR получает JSON через loopback, но публичные URL изображений должны совпадать
+// с браузерными. Иначе гидрация сохраняет server-side src="/uploads/..." и
+// браузер запрашивает несуществующий файл с vozmimenya.ru вместо API-домена.
+const PUBLIC_API_BASE_URL = import.meta.env?.VITE_API_URL
+  || (import.meta.env?.MODE === 'production' ? 'https://api.vozmimenya.ru/api' : 'http://localhost:3002/api')
+
+// Извлекаем публичный URL сервера, убирая /api с конца.
+export const API_SERVER_URL = PUBLIC_API_BASE_URL.endsWith('/api')
+  ? PUBLIC_API_BASE_URL.slice(0, -4)
+  : PUBLIC_API_BASE_URL
 
 class ApiClient {
   private async request<T>(
@@ -37,7 +54,7 @@ class ApiClient {
         message = firstValidationError || errorData?.message || errorData?.error || message
       }
 
-      throw new Error(message)
+      throw new ApiRequestError(message, response.status)
     }
 
     if (response.status === 204) {
@@ -178,7 +195,14 @@ class ApiClient {
     utmSource?: string
     utmMedium?: string
     utmCampaign?: string
-  }): Promise<ApiResponse<void>> {
+    utmContent?: string
+    scenario?: LeadScenario
+    officeId?: number
+    officeName?: string
+    deliveryMethod?: 'pickup' | 'delivery'
+    preferredContact?: 'phone' | 'telegram' | 'whatsapp'
+    equipmentIds?: string[]
+  }): Promise<ApiResponse<Pick<ContactLead, 'id' | 'status'>>> {
     return this.request('/contact', {
       method: 'POST',
       body: JSON.stringify(data),

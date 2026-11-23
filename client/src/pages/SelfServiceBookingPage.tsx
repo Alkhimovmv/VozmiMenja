@@ -3,28 +3,25 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import SEO from '../components/SEO'
 import { useCreateBooking, useEquipment, usePublicOffices } from '../hooks/useEquipment'
-import type { Equipment } from '../types'
 import { calculateBillableRentalDays } from '../utils/pricing'
-import { trackEvent } from '../lib/analytics'
+import { trackBookingFunnelStage, trackEvent } from '../lib/analytics'
 import { getApiErrorMessage } from '../lib/apiError'
+import { getLeadContext } from '../lib/contactLinks'
 import {
   buildSelectedEquipmentList,
   buildSingleBookingEquipmentPayload,
+  buildUrgentBookingDates,
   calculateMultiEquipmentTotal,
   getJblMicrophoneUpsell,
+  getEquipmentBookingHint,
+  groupBookingEquipment,
   getPuzziDryerUpsell,
   getSelectedEquipment,
   resolveEquipmentSelection,
 } from '../lib/selfServiceBooking'
+import { useRenderEnvironment } from '../ssr/renderContext'
 
 const LEGAL_TERMS_VERSION = 'offer-2026-05-09_agreement-2026-05-09_privacy-current'
-
-const getDateInputValue = (date: Date) => {
-  const year = date.getFullYear()
-  const month = String(date.getMonth() + 1).padStart(2, '0')
-  const day = String(date.getDate()).padStart(2, '0')
-  return `${year}-${month}-${day}`
-}
 
 const formatPrice = (value: number) =>
   new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', minimumFractionDigits: 0 }).format(value)
@@ -57,17 +54,6 @@ const formatPhoneNumber = (value: string) => {
   return `+7 (${area}) ${first}-${second}-${third}`
 }
 
-const getLeadContext = () => {
-  const params = new URLSearchParams(window.location.search)
-  return {
-    sourcePage: `${window.location.pathname}${window.location.search}`,
-    referrer: document.referrer,
-    utmSource: params.get('utm_source') || undefined,
-    utmMedium: params.get('utm_medium') || undefined,
-    utmCampaign: params.get('utm_campaign') || undefined,
-  }
-}
-
 const isFullName = (value: string) => value
   .trim()
   .split(/\s+/)
@@ -95,14 +81,19 @@ const buildComment = (data: {
 ].filter(Boolean).join('\n')
 
 export default function SelfServiceBookingPage() {
+  const { nowIso } = useRenderEnvironment()
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const initialSelectionApplied = useRef(false)
-  const today = getDateInputValue(new Date())
-  const tomorrow = getDateInputValue(new Date(Date.now() + 24 * 60 * 60 * 1000))
+  const renderNow = useMemo(() => new Date(nowIso), [nowIso])
+  const todayDates = buildUrgentBookingDates('today', renderNow)
+  const tomorrowDates = buildUrgentBookingDates('tomorrow', renderNow)
+  const today = todayDates.startDate
+  const initialDates = searchParams.get('when') === 'tomorrow' ? tomorrowDates : todayDates
   const { data: equipmentResponse, isLoading } = useEquipment({ limit: 100 })
   const { data: officesResponse, isLoading: isOfficesLoading } = usePublicOffices()
   const createBookingMutation = useCreateBooking()
+  const formStartedTracked = useRef(false)
 
   const equipment = useMemo(() => equipmentResponse?.data || [], [equipmentResponse?.data])
   const offices = useMemo(() => officesResponse?.data || [], [officesResponse?.data])
@@ -111,8 +102,8 @@ export default function SelfServiceBookingPage() {
     nextEquipmentId: '',
     customerName: '',
     customerPhone: '',
-    startDate: today,
-    endDate: tomorrow,
+    startDate: initialDates.startDate,
+    endDate: initialDates.endDate,
     startTime: '10:00',
     endTime: '10:00',
     preferredContact: 'Telegram',
@@ -173,15 +164,13 @@ export default function SelfServiceBookingPage() {
     formData.endTime,
   )
 
-  const groupedEquipment = useMemo(() => {
-    return equipment.reduce<Record<string, Equipment[]>>((acc, item) => {
-      acc[item.category] = acc[item.category] || []
-      acc[item.category].push(item)
-      return acc
-    }, {})
-  }, [equipment])
+  const groupedEquipment = useMemo(() => groupBookingEquipment(equipment), [equipment])
 
   const allLegalAccepted = formData.offerAccepted && formData.agreementAccepted && formData.privacyAccepted
+
+  useEffect(() => {
+    trackBookingFunnelStage('booking_view')
+  }, [])
 
   useEffect(() => {
     if (initialSelectionApplied.current || equipment.length === 0) return
@@ -196,11 +185,17 @@ export default function SelfServiceBookingPage() {
 
     setFormData((prev) => ({ ...prev, equipmentIds }))
     trackEvent('booking_kit_preselected', { equipment_ids: equipmentIds })
+    trackBookingFunnelStage('equipment_selected', { equipmentId: equipmentIds[0] })
   }, [equipment, searchParams])
 
   const handleChange = (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value, type } = event.target
     const checked = type === 'checkbox' ? (event.target as HTMLInputElement).checked : undefined
+
+    if (!formStartedTracked.current) {
+      formStartedTracked.current = true
+      trackBookingFunnelStage('form_started')
+    }
 
     setFormData((prev) => ({
       ...prev,
@@ -222,6 +217,7 @@ export default function SelfServiceBookingPage() {
         : [...prev.equipmentIds, equipmentId],
       nextEquipmentId: '',
     }))
+    trackBookingFunnelStage('equipment_selected', { equipmentId })
   }
 
   const handleAddEquipment = (event: React.ChangeEvent<HTMLSelectElement>) => {
@@ -319,6 +315,7 @@ export default function SelfServiceBookingPage() {
         total_price: totalPrice,
         total_days: rentalDays,
       })
+      trackBookingFunnelStage('booking_submitted', { equipmentId: selectedEquipment.id })
 
       toast.success('Заявка на бронь отправлена')
       const bookingIds = response.data.id ? [response.data.id] : []
@@ -382,19 +379,20 @@ export default function SelfServiceBookingPage() {
             </div>
 
             <div className="block">
-              <span className="text-sm font-bold text-slate-700">Оборудование *</span>
+              <label htmlFor="booking-equipment" className="text-sm font-bold text-slate-700">Оборудование *</label>
               <select
+                id="booking-equipment"
                 name="nextEquipmentId"
                 value={formData.nextEquipmentId}
                 onChange={handleAddEquipment}
                 className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
               >
                 <option value="">{isLoading ? 'Загружаем оборудование...' : 'Добавьте оборудование в комплект'}</option>
-                {Object.entries(groupedEquipment).map(([category, items]) => (
+                {groupedEquipment.map(([category, items]) => (
                   <optgroup key={category} label={category}>
                     {items.map((item) => (
                       <option key={item.id} value={item.id} disabled={formData.equipmentIds.includes(item.id)}>
-                        {item.name}
+                        {item.name} — {getEquipmentBookingHint(item)}
                       </option>
                     ))}
                   </optgroup>
@@ -406,7 +404,7 @@ export default function SelfServiceBookingPage() {
                     <div key={item.id} className="flex items-center justify-between gap-3 rounded-2xl border border-blue-100 bg-blue-50 px-4 py-3">
                       <div>
                         <div className="font-bold text-slate-900">{item.name}</div>
-                        <div className="text-xs text-slate-500">{item.category}</div>
+                        <div className="mt-0.5 text-xs leading-relaxed text-slate-600">{getEquipmentBookingHint(item)}</div>
                       </div>
                       <button
                         type="button"
@@ -443,6 +441,7 @@ export default function SelfServiceBookingPage() {
                 <input
                   type="date"
                   name="startDate"
+                  aria-label="Дата начала"
                   value={formData.startDate}
                   min={today}
                   onChange={handleChange}
@@ -455,6 +454,7 @@ export default function SelfServiceBookingPage() {
                 <input
                   type="date"
                   name="endDate"
+                  aria-label="Дата возврата"
                   value={formData.endDate}
                   min={formData.startDate || today}
                   onChange={handleChange}
@@ -470,6 +470,7 @@ export default function SelfServiceBookingPage() {
                 <input
                   type="time"
                   name="startTime"
+                  aria-label="Время получения"
                   value={formData.startTime}
                   onChange={handleChange}
                   className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
@@ -480,6 +481,7 @@ export default function SelfServiceBookingPage() {
                 <input
                   type="time"
                   name="endTime"
+                  aria-label="Время возврата"
                   value={formData.endTime}
                   onChange={handleChange}
                   className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
@@ -648,7 +650,7 @@ export default function SelfServiceBookingPage() {
               <div className="border-t border-slate-100 pt-3">
                 <span className="block text-slate-500">Расчёт аренды</span>
                 <strong className="mt-1 block text-3xl font-black text-slate-950">{totalPrice > 0 ? formatPrice(totalPrice) : '—'}</strong>
-                <p className="mt-2 text-xs text-slate-500">Доставка, залог и финальная комплектация подтверждаются менеджером.</p>
+                <p className="mt-2 text-xs text-slate-500">Менеджер свяжется в течение 2 часов и подтвердит доставку, залог и комплект. Если техника окажется неисправной — заменим.</p>
               </div>
             </div>
 
@@ -656,7 +658,7 @@ export default function SelfServiceBookingPage() {
               <p className="font-bold text-slate-900">Что будет после отправки</p>
               <ol className="mt-2 list-decimal space-y-1 pl-5">
                 <li>Заявка появится у менеджера.</li>
-                <li>Мы проверим наличие, комплект и офис выдачи.</li>
+                <li>Мы уточним комплект и удобный офис выдачи.</li>
                 <li>Менеджер свяжется с вами и подтвердит бронь.</li>
               </ol>
             </div>

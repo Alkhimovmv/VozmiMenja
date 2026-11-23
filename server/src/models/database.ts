@@ -1,6 +1,8 @@
 import sqlite3 from 'sqlite3'
 import { promisify } from 'util'
 import path from 'path'
+import { AsyncLocalStorage } from 'async_hooks'
+import { getExpenseType, normalizeExpenseCategory } from '../domain/expenseCategories'
 
 const dbPath = process.env.DATABASE_PATH
   ? path.resolve(process.env.DATABASE_PATH)
@@ -8,6 +10,8 @@ const dbPath = process.env.DATABASE_PATH
 
 class Database {
   private db: sqlite3.Database
+  private operationTail: Promise<void> = Promise.resolve()
+  private transactionContext = new AsyncLocalStorage<boolean>()
 
   constructor() {
     // Открываем базу данных в режиме чтения и записи с созданием при отсутствии
@@ -57,6 +61,11 @@ class Database {
         utm_source TEXT,
         utm_medium TEXT,
         utm_campaign TEXT,
+        utm_content TEXT,
+        scenario TEXT,
+        lead_result TEXT,
+        lead_revenue REAL,
+        last_contacted_at DATETIME,
         status TEXT NOT NULL CHECK (status IN ('pending', 'confirmed', 'active', 'completed', 'cancelled')),
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -79,6 +88,11 @@ class Database {
       ['utm_source', 'TEXT'],
       ['utm_medium', 'TEXT'],
       ['utm_campaign', 'TEXT'],
+      ['utm_content', 'TEXT'],
+      ['scenario', 'TEXT'],
+      ['lead_result', 'TEXT'],
+      ['lead_revenue', 'REAL'],
+      ['last_contacted_at', 'DATETIME'],
       ['legal_offer_accepted_at', 'DATETIME'],
       ['legal_agreement_accepted_at', 'DATETIME'],
       ['legal_privacy_accepted_at', 'DATETIME'],
@@ -108,6 +122,16 @@ class Database {
         utm_source TEXT,
         utm_medium TEXT,
         utm_campaign TEXT,
+        utm_content TEXT,
+        scenario TEXT,
+        lead_result TEXT,
+        lead_revenue REAL,
+        last_contacted_at DATETIME,
+        office_id INTEGER,
+        office_name TEXT,
+        delivery_method TEXT,
+        preferred_contact TEXT,
+        equipment_ids TEXT,
         status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'confirmed', 'completed', 'cancelled')),
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
@@ -120,6 +144,16 @@ class Database {
       ['utm_source', 'TEXT'],
       ['utm_medium', 'TEXT'],
       ['utm_campaign', 'TEXT'],
+      ['utm_content', 'TEXT'],
+      ['scenario', 'TEXT'],
+      ['lead_result', 'TEXT'],
+      ['lead_revenue', 'REAL'],
+      ['last_contacted_at', 'DATETIME'],
+      ['office_id', 'INTEGER'],
+      ['office_name', 'TEXT'],
+      ['delivery_method', 'TEXT'],
+      ['preferred_contact', 'TEXT'],
+      ['equipment_ids', 'TEXT'],
     ] as const
 
     for (const [column, definition] of contactLeadColumns) {
@@ -130,6 +164,27 @@ class Database {
       }
     }
 
+    // Анонимная продуктовая воронка самостоятельной брони. Храним только
+    // технический id сессии и этап — без телефона, ФИО и других персональных данных.
+    await run(`
+      CREATE TABLE IF NOT EXISTS booking_funnel_events (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        session_id TEXT NOT NULL,
+        event_name TEXT NOT NULL CHECK (event_name IN (
+          'equipment_view',
+          'booking_view',
+          'equipment_selected',
+          'form_started',
+          'booking_submitted'
+        )),
+        page_path TEXT,
+        equipment_id TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(session_id, event_name)
+      )
+    `)
+    await run(`CREATE INDEX IF NOT EXISTS idx_booking_funnel_created_at ON booking_funnel_events(created_at)`)
+
     // Таблица для оборудования (RentAdmin)
     await run(`
       CREATE TABLE IF NOT EXISTS rental_equipment (
@@ -138,8 +193,10 @@ class Database {
         quantity INTEGER NOT NULL DEFAULT 1,
         description TEXT,
         base_price REAL NOT NULL DEFAULT 0,
+        catalog_equipment_id TEXT,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (catalog_equipment_id) REFERENCES equipment(id)
       )
     `)
 
@@ -230,7 +287,7 @@ class Database {
         image_url TEXT,
         category TEXT NOT NULL,
         tags TEXT,
-        author TEXT NOT NULL DEFAULT 'ВозьмиМеня',
+        author TEXT NOT NULL DEFAULT 'Максим Алхимов',
         published INTEGER NOT NULL DEFAULT 0,
         views INTEGER NOT NULL DEFAULT 0,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -325,44 +382,20 @@ class Database {
       if (!error.message?.includes('duplicate column name')) throw error
     }
 
-    // Нормализуем старые свободные категории. Неоднозначные записи оставляем
-    // заметными для ручного разбора, а не угадываем их назначение.
-    await run(`
-      UPDATE expenses
-      SET category = CASE TRIM(COALESCE(category, ''))
-        WHEN 'Покупка оборудования' THEN 'Покупка оборудования'
-        WHEN 'Топливо' THEN 'Доставка и топливо'
-        WHEN 'Ремонт оборудования' THEN 'Ремонт и обслуживание'
-        WHEN 'Реклама' THEN 'Реклама и продвижение'
-        WHEN 'Аренда' THEN 'Аренда помещения'
-        WHEN 'Аренда помещения' THEN 'Аренда помещения'
-        WHEN 'Аренда помещений' THEN 'Аренда помещения'
-        WHEN 'Арендв' THEN 'Аренда помещения'
-        WHEN 'Интернет и связь' THEN 'Интернет и связь'
-        WHEN 'Упаковка и расходники' THEN 'Расходники и химия'
-        WHEN 'Прочее' THEN 'Требует разбора'
-        WHEN 'Постамат и инфраструктура' THEN 'Постамат и инфраструктура'
-        WHEN 'Реклама и продвижение' THEN 'Реклама и продвижение'
-        WHEN 'Доставка и топливо' THEN 'Доставка и топливо'
-        WHEN 'Ремонт и обслуживание' THEN 'Ремонт и обслуживание'
-        WHEN 'Расходники и химия' THEN 'Расходники и химия'
-        WHEN 'Офис и хозяйственные расходы' THEN 'Офис и хозяйственные расходы'
-        WHEN 'Комиссии и сервисы' THEN 'Комиссии и сервисы'
-        WHEN 'Налоги и сборы' THEN 'Налоги и сборы'
-        WHEN 'Зарплата и подрядчики' THEN 'Зарплата и подрядчики'
-        WHEN 'Прочие операционные' THEN 'Прочие операционные'
-        WHEN 'Требует разбора' THEN 'Требует разбора'
-        ELSE 'Требует разбора'
-      END
-    `)
-
-    await run(`
-      UPDATE expenses
-      SET expense_type = CASE
-        WHEN category IN ('Покупка оборудования', 'Постамат и инфраструктура') THEN 'capital'
-        ELSE 'operational'
-      END
-    `)
+    // Нормализуем старые свободные категории через тот же справочник, что и API:
+    // единый источник не даёт новой категории молча превратиться в «Требует разбора»
+    // при следующем старте. Обновляем только строки, где значение реально меняется.
+    const storedCategories = await this.all('SELECT DISTINCT category, expense_type FROM expenses')
+    for (const row of storedCategories) {
+      const category = normalizeExpenseCategory(row.category)
+      const expenseType = getExpenseType(category)
+      if (category !== row.category || expenseType !== row.expense_type) {
+        await this.run(
+          'UPDATE expenses SET category = ?, expense_type = ? WHERE category IS ? AND expense_type IS ?',
+          [category, expenseType, row.category, row.expense_type]
+        )
+      }
+    }
 
     // Добавляем поля size, row_number, position_in_row если их нет
     try {
@@ -510,6 +543,20 @@ class Database {
       if (!error.message?.includes('duplicate column name')) throw error
     }
 
+    // Явная связь офисной позиции админки с товаром публичного каталога.
+    // Nullable сохраняет обратную совместимость: несопоставленные позиции
+    // остаются доступными в админке, но не подставляются в аренду автоматически.
+    try {
+      await run(`ALTER TABLE rental_equipment ADD COLUMN catalog_equipment_id TEXT REFERENCES equipment(id)`)
+    } catch (error: any) {
+      if (!error.message?.includes('duplicate column name')) throw error
+    }
+
+    await run(`
+      CREATE INDEX IF NOT EXISTS idx_rental_equipment_catalog_office
+      ON rental_equipment(catalog_equipment_id, office_id)
+    `)
+
     // Синхронизация экземпляров оборудования по quantity
     try {
       const rentalEquipmentRows = await this.all(`
@@ -591,11 +638,25 @@ class Database {
     `)
 
     await run(`
+      CREATE INDEX IF NOT EXISTS idx_bookings_created_at ON bookings(created_at);
+    `)
+
+    await run(`
+      CREATE INDEX IF NOT EXISTS idx_bookings_campaign_created
+      ON bookings(utm_source, utm_campaign, created_at);
+    `)
+
+    await run(`
       CREATE INDEX IF NOT EXISTS idx_contact_leads_status ON contact_leads(status);
     `)
 
     await run(`
       CREATE INDEX IF NOT EXISTS idx_contact_leads_created_at ON contact_leads(created_at);
+    `)
+
+    await run(`
+      CREATE INDEX IF NOT EXISTS idx_contact_leads_campaign_created
+      ON contact_leads(utm_source, utm_campaign, created_at);
     `)
 
     // Индексы для RentAdmin
@@ -653,14 +714,24 @@ class Database {
     await run(`
       CREATE INDEX IF NOT EXISTS idx_articles_category ON articles(category);
     `)
+
+    // SQLite по умолчанию не проверяет внешние ключи. Включаем после миграций:
+    // каскады (ячейки, позиции аренды) начинают работать, а удаление записей,
+    // на которые ссылаются другие, отклоняется вместо тихого появления «сирот».
+    await run('PRAGMA foreign_keys = ON')
   }
 
   get instance(): sqlite3.Database {
     return this.db
   }
 
-  // Helper methods with proper typing
-  async run(sql: string, params: any[] = []): Promise<sqlite3.RunResult> {
+  private enqueue<T>(operation: () => Promise<T>): Promise<T> {
+    const result = this.operationTail.then(operation)
+    this.operationTail = result.then(() => undefined, () => undefined)
+    return result
+  }
+
+  private runDirect(sql: string, params: any[] = []): Promise<sqlite3.RunResult> {
     return new Promise((resolve, reject) => {
       this.db.run(sql, params, function(err) {
         if (err) reject(err)
@@ -669,7 +740,7 @@ class Database {
     })
   }
 
-  async get(sql: string, params: any[] = []): Promise<any> {
+  private getDirect(sql: string, params: any[] = []): Promise<any> {
     return new Promise((resolve, reject) => {
       this.db.get(sql, params, (err, row) => {
         if (err) reject(err)
@@ -678,7 +749,7 @@ class Database {
     })
   }
 
-  async all(sql: string, params: any[] = []): Promise<any[]> {
+  private allDirect(sql: string, params: any[] = []): Promise<any[]> {
     return new Promise((resolve, reject) => {
       this.db.all(sql, params, (err, rows) => {
         if (err) reject(err)
@@ -687,13 +758,54 @@ class Database {
     })
   }
 
+  async withImmediateTransaction<T>(operation: () => Promise<T>): Promise<T> {
+    if (this.transactionContext.getStore()) {
+      throw new Error('Nested database transactions are not supported')
+    }
+
+    return this.enqueue(() => this.transactionContext.run(true, async () => {
+      await this.runDirect('BEGIN IMMEDIATE')
+      try {
+        const result = await operation()
+        await this.runDirect('COMMIT')
+        return result
+      } catch (error) {
+        try {
+          await this.runDirect('ROLLBACK')
+        } catch {
+          // Preserve the original transaction error.
+        }
+        throw error
+      }
+    }))
+  }
+
+  // Helper methods with proper typing
+  async run(sql: string, params: any[] = []): Promise<sqlite3.RunResult> {
+    return this.transactionContext.getStore()
+      ? this.runDirect(sql, params)
+      : this.enqueue(() => this.runDirect(sql, params))
+  }
+
+  async get(sql: string, params: any[] = []): Promise<any> {
+    return this.transactionContext.getStore()
+      ? this.getDirect(sql, params)
+      : this.enqueue(() => this.getDirect(sql, params))
+  }
+
+  async all(sql: string, params: any[] = []): Promise<any[]> {
+    return this.transactionContext.getStore()
+      ? this.allDirect(sql, params)
+      : this.enqueue(() => this.allDirect(sql, params))
+  }
+
   async close(): Promise<void> {
-    return new Promise((resolve, reject) => {
+    return this.enqueue(() => new Promise((resolve, reject) => {
       this.db.close((err) => {
         if (err) reject(err)
         else resolve()
       })
-    })
+    }))
   }
 }
 

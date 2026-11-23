@@ -7,9 +7,9 @@ import { X, Calendar, User, Phone, MessageSquare, ChevronRight } from 'lucide-re
 import { getImageUrl } from '../../lib/utils'
 import { trackEvent } from '../../lib/analytics'
 import { getApiErrorMessage } from '../../lib/apiError'
-import { getTelegramUrl, getWhatsAppUrl } from '../../lib/contactLinks'
+import { getLeadContext, getTelegramUrl, getWhatsAppUrl } from '../../lib/contactLinks'
 import { getCommentPlaceholder, getScenarioPresets } from '../../lib/bookingFormGuidance'
-import { calculateBillableRentalDays, getMinimumDailyPrice, getPricingRows, getRentalPriceSummary } from '../../utils/pricing'
+import { calculateBillableRentalDays, getOneDayPrice, getPricingRows, getRentalPriceSummary } from '../../utils/pricing'
 
 interface BookingFormProps {
   equipment: Equipment
@@ -123,17 +123,6 @@ export default function BookingForm({ equipment, onClose }: BookingFormProps) {
     .filter((part) => part.replace(/[-']/g, '').length >= 2)
     .length >= 2
 
-  const getLeadContext = () => {
-    const params = new URLSearchParams(window.location.search)
-    return {
-      sourcePage: `${window.location.pathname}${window.location.search}`,
-      referrer: document.referrer,
-      utmSource: params.get('utm_source') || undefined,
-      utmMedium: params.get('utm_medium') || undefined,
-      utmCampaign: params.get('utm_campaign') || undefined,
-    }
-  }
-
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target
     let processedValue = value
@@ -204,6 +193,8 @@ export default function BookingForm({ equipment, onClose }: BookingFormProps) {
         utm_source: leadContext.utmSource,
         utm_medium: leadContext.utmMedium,
         utm_campaign: leadContext.utmCampaign,
+        utm_content: leadContext.utmContent,
+        scenario: leadContext.scenario,
       })
       toast.success('Заявка на бронь отправлена')
       onClose()
@@ -228,7 +219,7 @@ export default function BookingForm({ equipment, onClose }: BookingFormProps) {
   const formatPrice = (price: number) =>
     new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', minimumFractionDigits: 0 }).format(price)
 
-  const getMinPrice = () => getMinimumDailyPrice(equipment.pricing, equipment.pricePerDay)
+  const getMinPrice = () => getOneDayPrice(equipment.pricing, equipment.pricePerDay)
 
   const today = getDateInputValue(new Date())
 

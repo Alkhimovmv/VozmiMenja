@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { type Expense, type CreateExpenseDto } from '../types/index';
+import { type Expense, type CreateExpenseDto } from '../../types/admin';
 import CustomSelect from './CustomSelect';
 import { EXPENSE_CATEGORIES, UNCATEGORIZED_EXPENSE } from '../../constants/expenseCategories';
 

@@ -1,22 +1,8 @@
 import SEO from '../components/SEO'
+import legal from '../content/legal.json'
 
 export default function RequisitesPage() {
-  const rows = [
-    { label: 'Наименование', value: 'Индивидуальный предприниматель Алхимова Софья Вадимовна' },
-    { label: 'ОГРНИП', value: '326670000005031' },
-    { label: 'Регистрирующий орган', value: 'Межрайонная инспекция ФНС России по Смоленской области' },
-    { label: 'ИНН', value: '672403445744' },
-    { label: 'Юридический адрес', value: '216400, Россия, Смоленская обл., г. Десногорск, мкр. 4, д. 18, сек. 2, кв. 81' },
-    { label: 'Режим работы', value: 'Ежедневно с 10:00 до 22:00, выдача через постамат — круглосуточно' },
-    { label: 'Расчётный счёт', value: '40802810600009319726' },
-    { label: 'Банк', value: 'АО «ТБанк»' },
-    { label: 'БИК банка', value: '044525974' },
-    { label: 'ИНН банка', value: '7710140679' },
-    { label: 'Корр. счёт банка', value: '30101810145250000974' },
-    { label: 'Адрес банка', value: '127287, г. Москва, ул. Хуторская 2-я, д. 38А, стр. 26' },
-    { label: 'Телефон', value: '+7 (993) 363-64-64' },
-    { label: 'Email', value: 'alkhimovmv@yandex.ru' },
-  ]
+  const rows = legal.requisites
 
   return (
     <div className="min-h-screen bg-[#F8FAFC]">

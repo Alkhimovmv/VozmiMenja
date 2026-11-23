@@ -4,6 +4,7 @@ import { useAuthenticatedQuery } from '../../hooks/useAuthenticatedQuery';
 import { customersApi } from '../../api/admin/customers';
 import { formatDate } from '../../utils/dateUtils';
 import type { Customer, CustomerTag, Rental } from '../../types/admin';
+import { getCustomerSegment, isCustomerInSegment } from '../../lib/adminBookingPriorities';
 
 const TAG_CONFIG: Record<NonNullable<CustomerTag>, { label: string; color: string; icon: string }> = {
   regular: { label: 'Постоянный', color: 'bg-blue-100 text-blue-800 border-blue-200', icon: '👤' },
@@ -27,8 +28,10 @@ function TagBadge({ tag }: { tag: CustomerTag }) {
   );
 }
 
-function AutoTag({ count }: { count: number }) {
-  if (count >= 3) return <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 border border-yellow-200">👤 Постоянный</span>;
+function CustomerSegmentBadge({ count }: { count: number }) {
+  const segment = getCustomerSegment(count);
+  if (segment === 'loyal') return <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 border border-yellow-200">Постоянный · 3+</span>;
+  if (segment === 'repeat') return <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 border border-blue-200">Повторный</span>;
   return null;
 }
 
@@ -200,7 +203,7 @@ const CustomerCard: React.FC<{ customer: Customer }> = ({ customer }) => {
             {customer.tag ? (
               <TagBadge tag={customer.tag} />
             ) : (
-              <AutoTag count={customer.rental_count} />
+              <CustomerSegmentBadge count={customer.rental_count} />
             )}
           </div>
           {/* Телефон и кол-во аренд — на мобиле в столбик */}
@@ -338,12 +341,12 @@ const CustomerCard: React.FC<{ customer: Customer }> = ({ customer }) => {
   );
 };
 
-type TagFilter = 'all' | 'regular' | 'problem';
+type CustomerFilter = 'all' | 'single' | 'repeat' | 'loyal' | 'problem';
 
 const CustomersPage: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
-  const [tagFilter, setTagFilter] = useState<TagFilter>('all');
+  const [customerFilter, setCustomerFilter] = useState<CustomerFilter>('all');
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // Debounce поиска 300ms
@@ -352,14 +355,13 @@ const CustomersPage: React.FC = () => {
     return () => clearTimeout(t);
   }, [searchQuery]);
 
-  const hasFilter = !!debouncedSearch.trim() || tagFilter !== 'all';
+  const hasFilter = !!debouncedSearch.trim() || customerFilter !== 'all';
 
   // Запрос с фильтрами — staleTime:0 чтобы не брать из кэша при повторном выборе фильтра
-  const { data: customers = [], isLoading } = useAuthenticatedQuery<Customer[]>({
-    queryKey: ['customers', debouncedSearch, tagFilter],
+  const { data: matchingCustomers = [], isLoading } = useAuthenticatedQuery<Customer[]>({
+    queryKey: ['customers', debouncedSearch],
     queryFn: () => customersApi.getAll({
       ...(debouncedSearch.trim() ? { search: debouncedSearch.trim() } : {}),
-      ...(tagFilter !== 'all' ? { tag: tagFilter } : {}),
     }),
     staleTime: 0,
     gcTime: 0,
@@ -374,12 +376,20 @@ const CustomersPage: React.FC = () => {
 
   const counts = useMemo(() => ({
     all: allCustomers.length,
-    regular: allCustomers.filter(c => c.tag === 'regular' || (!c.tag && c.rental_count >= 3)).length,
+    single: allCustomers.filter(c => isCustomerInSegment(c.rental_count, 'single')).length,
+    repeat: allCustomers.filter(c => isCustomerInSegment(c.rental_count, 'repeat')).length,
+    loyal: allCustomers.filter(c => isCustomerInSegment(c.rental_count, 'loyal')).length,
     problem: allCustomers.filter(c => c.tag === 'problem').length,
   }), [allCustomers]);
 
-  const handleFilterClick = (key: TagFilter) => {
-    setTagFilter(prev => prev === key ? 'all' : key);
+  const customers = useMemo(() => matchingCustomers.filter((customer) => {
+    if (customerFilter === 'all') return true;
+    if (customerFilter === 'problem') return customer.tag === 'problem';
+    return isCustomerInSegment(customer.rental_count, customerFilter);
+  }), [customerFilter, matchingCustomers]);
+
+  const handleFilterClick = (key: CustomerFilter) => {
+    setCustomerFilter(prev => prev === key ? 'all' : key);
     scrollRef.current?.scrollTo(0, 0);
   };
 
@@ -407,16 +417,18 @@ const CustomersPage: React.FC = () => {
         {/* Фильтр по тегам */}
         <div className="flex flex-wrap gap-2">
           {([
-            ['all',     'Все',           counts.all,     'bg-gray-100 text-gray-700 border-gray-200'],
-            ['regular', '👤 Постоянные', counts.regular, 'bg-blue-100 text-blue-800 border-blue-200'],
-            ['problem', '⚠️ Проблемные', counts.problem, 'bg-red-100 text-red-800 border-red-200'],
-          ] as [TagFilter, string, number, string][]).map(([key, label, count, cls]) => (
+            ['all',     'Все',            counts.all,     'bg-gray-100 text-gray-700 border-gray-200'],
+            ['single',  '1 аренда',       counts.single,  'bg-cyan-100 text-cyan-800 border-cyan-200'],
+            ['repeat',  'Повторные 2+',   counts.repeat,  'bg-blue-100 text-blue-800 border-blue-200'],
+            ['loyal',   'Постоянные 3+',  counts.loyal,   'bg-yellow-100 text-yellow-800 border-yellow-200'],
+            ['problem', '⚠️ Проблемные',  counts.problem, 'bg-red-100 text-red-800 border-red-200'],
+          ] as [CustomerFilter, string, number, string][]).map(([key, label, count, cls]) => (
             <button
               key={key}
               type="button"
               onClick={() => handleFilterClick(key)}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${
-                tagFilter === key
+                customerFilter === key
                   ? cls + ' ring-2 ring-offset-1 ring-indigo-400'
                   : 'bg-white text-gray-500 border-gray-200 hover:border-gray-300'
               }`}

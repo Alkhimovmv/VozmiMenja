@@ -18,10 +18,13 @@ const SIZE_LABELS: Record<string, string> = {
   large: 'Большая',
 };
 
+// Пока поле количества очищают, в нём хранится пустая строка; при сохранении приводится к числу.
+type LockerRowForm = Omit<LockerRow, 'count'> & { count: number | '' };
+
 interface OfficeFormState {
   name: string;
   address: string;
-  locker_rows: LockerRow[];
+  locker_rows: LockerRowForm[];
 }
 
 const emptyForm = (): OfficeFormState => ({
@@ -127,13 +130,15 @@ const OfficesPage: React.FC = () => {
     });
   };
 
-  const updateRow = <K extends keyof LockerRow>(index: number, field: K, value: LockerRow[K]) => {
+  const updateRow = <K extends keyof LockerRowForm>(index: number, field: K, value: LockerRowForm[K]) => {
     setForm(prev => ({
       ...prev,
-      locker_rows: prev.locker_rows.map((r, i) =>
-        i === index ? { ...r, [field]: field === 'count' ? (value === '' ? '' : Math.min(10, Number(value))) : value } : r
-      ),
+      locker_rows: prev.locker_rows.map((r, i) => (i === index ? { ...r, [field]: value } : r)),
     }));
+  };
+
+  const updateRowCount = (index: number, raw: string) => {
+    updateRow(index, 'count', raw === '' ? '' : Math.min(10, Number(raw)));
   };
 
   return (
@@ -262,7 +267,7 @@ const OfficesPage: React.FC = () => {
                               min={1}
                               max={10}
                               value={row.count}
-                              onChange={e => updateRow(realIdx, 'count', e.target.value)}
+                              onChange={e => updateRowCount(realIdx, e.target.value)}
                               className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
                             />
                           </div>

@@ -8,6 +8,10 @@ export interface Article {
   excerpt: string
   content: string
   image_url: string | null
+  // Публичный API: webp-копии обложки и её размеры (для srcset и width/height без сдвига текста).
+  image_variants?: Array<{ width: number; url: string }>
+  image_width?: number
+  image_height?: number
   category: string
   tags: string | null
   author: string
@@ -53,6 +57,8 @@ export interface PublicEquipment {
   quantity: number
   availableQuantity: number
   images: string[]
+  // WebP-копии 400/800 px для srcset по пути фото из images; есть только у фото, для которых сервер их создал
+  imageVariants?: Record<string, Array<{ width: number; url: string }>>
   description: string
   specifications: Record<string, string>
   createdAt: string
@@ -61,6 +67,14 @@ export interface PublicEquipment {
 
 // Keep Equipment exported for backward compatibility with public API
 export type { PublicEquipment as Equipment }
+
+export type LeadScenario = 'puzzi-cleaning' | 'karaoke-kit' | 'travel-camera'
+export type LeadResult = 'unreached' | 'thinking' | 'booked' | 'declined' | 'duplicate'
+
+export interface LeadWorkflowUpdate {
+  result: LeadResult
+  revenue?: number | null
+}
 
 export interface CreateEquipmentDto {
   name: string
@@ -99,6 +113,11 @@ export interface Booking {
   utmSource?: string
   utmMedium?: string
   utmCampaign?: string
+  utmContent?: string
+  scenario?: LeadScenario
+  leadResult?: LeadResult
+  leadRevenue?: number
+  lastContactedAt?: string
   legalOfferAcceptedAt?: string
   legalAgreementAcceptedAt?: string
   legalPrivacyAcceptedAt?: string
@@ -130,6 +149,8 @@ export interface BookingRequest {
   utmSource?: string
   utmMedium?: string
   utmCampaign?: string
+  utmContent?: string
+  scenario?: LeadScenario
   legal?: {
     offerAccepted: true
     agreementAccepted: true
@@ -156,6 +177,16 @@ export interface ContactLead {
   utmSource?: string
   utmMedium?: string
   utmCampaign?: string
+  utmContent?: string
+  scenario?: LeadScenario
+  leadResult?: LeadResult
+  leadRevenue?: number
+  lastContactedAt?: string
+  officeId?: number
+  officeName?: string
+  deliveryMethod?: 'pickup' | 'delivery'
+  preferredContact?: 'phone' | 'telegram' | 'whatsapp'
+  equipmentIds?: string[]
   status: 'pending' | 'confirmed' | 'completed' | 'cancelled'
   createdAt: string
   updatedAt: string

@@ -1,7 +1,44 @@
 import apiClient from './client';
-import { type FinancialSummary, type MonthlyRevenue, type EquipmentUtilization } from '../types/index.ts';
+import { type FinancialSummary, type MonthlyRevenue, type EquipmentUtilization } from '../../types/admin';
+import type {
+  EquipmentPerformancePeriod,
+  EquipmentPerformancePeriods,
+} from '../../lib/equipmentPerformance';
+
+const equipmentPerformancePeriods: EquipmentPerformancePeriod[] = [30, 90, 365];
+
+export type BookingFunnelReport = {
+  days: number;
+  stages: {
+    equipmentView: number;
+    bookingView: number;
+    equipmentSelected: number;
+    formStarted: number;
+    bookingSubmitted: number;
+  };
+};
+
+export type ContentPriceAuditReport = {
+  checkedAt: string;
+  equipmentCount: number;
+  articleCount: number;
+  issues: Array<{
+    location: string;
+    message: string;
+  }>;
+};
 
 export const analyticsApi = {
+  getContentPriceAudit: async (): Promise<ContentPriceAuditReport> => {
+    const response = await apiClient.get('/analytics/content-price-audit');
+    return response.data;
+  },
+
+  getBookingFunnel: async (days = 30): Promise<BookingFunnelReport> => {
+    const response = await apiClient.get(`/analytics/booking-funnel?days=${days}`);
+    return response.data;
+  },
+
   getMonthlyRevenue: async (officeId?: number): Promise<MonthlyRevenue[]> => {
     const params = officeId ? `?officeId=${officeId}` : '';
     const response = await apiClient.get(`/analytics/monthly-revenue${params}`);
@@ -13,6 +50,18 @@ export const analyticsApi = {
     if (officeId) params.set('officeId', String(officeId));
     const response = await apiClient.get(`/analytics/equipment-utilization?${params.toString()}`);
     return response.data;
+  },
+
+  getEquipmentPerformancePeriods: async (officeId?: number): Promise<EquipmentPerformancePeriods> => {
+    const reports = await Promise.all(
+      equipmentPerformancePeriods.map((period) => analyticsApi.getEquipmentUtilization(officeId, period))
+    );
+
+    return {
+      30: reports[0],
+      90: reports[1],
+      365: reports[2],
+    };
   },
 
   getFinancialSummary: async (year?: number, month?: number, officeId?: number): Promise<FinancialSummary> => {

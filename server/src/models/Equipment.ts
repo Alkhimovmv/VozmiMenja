@@ -1,4 +1,12 @@
-import { database, run, get, all } from './database'
+import { run, get, all } from './database'
+import { getImageVariants, type ImageVariant } from '../services/imageVariants'
+
+function buildImageVariants(images: string[]): Record<string, ImageVariant[]> | undefined {
+  const entries = images
+    .map((image) => [image, getImageVariants(image)] as const)
+    .filter(([, variants]) => variants.length > 0)
+  return entries.length ? Object.fromEntries(entries) : undefined
+}
 
 const LEGACY_EQUIPMENT_SLUGS: Record<string, string> = {
   'nabor-besprovodnyh-mikrofonov-jbl-partybox': 'jbl-partybox-wireless-microphones',
@@ -27,6 +35,8 @@ export interface Equipment {
   quantity: number
   availableQuantity: number
   images: string[]
+  // Уменьшенные WebP-копии для srcset, ключ — путь фото из images. Только реально существующие файлы.
+  imageVariants?: Record<string, ImageVariant[]>
   description: string
   specifications: Record<string, string | undefined>
   createdAt: string
@@ -45,8 +55,6 @@ export interface CreateEquipmentData {
 }
 
 export class EquipmentModel {
-  private db = database.instance
-
   private slugify(name: string): string {
     const translit: Record<string, string> = {
       а: 'a', б: 'b', в: 'v', г: 'g', д: 'd', е: 'e', ё: 'e', ж: 'zh', з: 'z', и: 'i', й: 'j',
@@ -79,23 +87,45 @@ export class EquipmentModel {
     const params: any[] = []
 
     if (category) {
-      whereClause += ' WHERE category = ?'
+      whereClause += ' WHERE e.category = ?'
       params.push(category)
     }
 
     if (search) {
       whereClause += category ? ' AND' : ' WHERE'
-      whereClause += ' (name LIKE ? OR description LIKE ?)'
+      whereClause += ' (e.name LIKE ? OR e.description LIKE ?)'
       params.push(`%${search}%`, `%${search}%`)
     }
 
-    const countQuery = `SELECT COUNT(*) as count FROM equipment${whereClause}`
+    const countQuery = `SELECT COUNT(*) as count FROM equipment e${whereClause}`
     const countResult = await get(countQuery, params) as { count: number }
 
     const dataQuery = `
-      SELECT * FROM equipment
+      WITH rental_catalog_pairs AS (
+        SELECT r.id AS rental_id, re.catalog_equipment_id
+        FROM rentals r
+        JOIN rental_equipment re ON re.id = r.equipment_id
+        WHERE re.catalog_equipment_id IS NOT NULL
+          AND r.start_date >= datetime('now', '-365 days')
+
+        UNION
+
+        SELECT r.id AS rental_id, re.catalog_equipment_id
+        FROM rentals r
+        JOIN rental_equipment_items rei ON rei.rental_id = r.id
+        JOIN rental_equipment re ON re.id = rei.equipment_id
+        WHERE re.catalog_equipment_id IS NOT NULL
+          AND r.start_date >= datetime('now', '-365 days')
+      ), equipment_popularity AS (
+        SELECT catalog_equipment_id, COUNT(DISTINCT rental_id) AS rental_count
+        FROM rental_catalog_pairs
+        GROUP BY catalog_equipment_id
+      )
+      SELECT e.*
+      FROM equipment e
+      LEFT JOIN equipment_popularity popularity ON popularity.catalog_equipment_id = e.id
       ${whereClause}
-      ORDER BY created_at DESC
+      ORDER BY COALESCE(popularity.rental_count, 0) DESC, e.created_at DESC, e.name ASC
       LIMIT ? OFFSET ?
     `
 
@@ -267,6 +297,7 @@ export class EquipmentModel {
   }
 
   private mapRow(row: any): Equipment {
+    const images: string[] = JSON.parse(row.images)
     return {
       id: row.id,
       slug: this.slugify(row.name),
@@ -276,7 +307,8 @@ export class EquipmentModel {
       pricing: row.pricing ? JSON.parse(row.pricing) : undefined,
       quantity: row.quantity,
       availableQuantity: row.available_quantity,
-      images: JSON.parse(row.images),
+      images,
+      imageVariants: buildImageVariants(images),
       description: row.description,
       specifications: JSON.parse(row.specifications),
       createdAt: row.created_at,

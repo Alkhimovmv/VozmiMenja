@@ -7,6 +7,8 @@ import { Check, Clock, Camera, Video, Zap } from 'lucide-react'
 import { trackEvent } from '../lib/analytics'
 import { CONTACT_PHONE, CONTACT_PHONE_LABEL, getTelegramUrl } from '../lib/contactLinks'
 import faqContent from '../content/faq.json'
+import HeroPriceCta from '../components/HeroPriceCta'
+import { buildCategoryItemList } from '../lib/categoryStructuredData'
 
 export default function CategoryCamerasPage() {
   const [page] = useState(1)
@@ -14,7 +16,9 @@ export default function CategoryCamerasPage() {
 
   const { data, isLoading, error } = useEquipment({ page, limit: 12, category })
 
+  // Прокручиваем к каталогу только по явной ссылке на #catalog: при обычном входе H1 и вводный текст остаются на экране.
   useEffect(() => {
+    if (window.location.hash !== '#catalog') return
     const timer = setTimeout(() => {
       document.getElementById('catalog')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
     }, 300)
@@ -24,9 +28,10 @@ export default function CategoryCamerasPage() {
   const categoryStructuredData = {
     '@context': 'https://schema.org',
     '@type': 'CollectionPage',
-    name: 'Аренда GoPro и камер в Москве',
-    description: 'Профессиональные экшн-камеры GoPro и видеокамеры в аренду. Низкие цены от 400₽/день.',
+    name: 'Аренда экшн-камер GoPro, Insta360 и DJI в Москве',
+    description: 'GoPro 13, Insta360 X5 и DJI Osmo Pocket 3 в аренду для спорта, путешествий и влога. Постамат 24/7 и доставка по Москве.',
     url: 'https://vozmimenya.ru/arenda-gopro-moskva',
+    mainEntity: buildCategoryItemList(data?.data),
   }
 
   const faqStructuredData = {
@@ -74,7 +79,7 @@ export default function CategoryCamerasPage() {
       description: 'Для прогулок, разговорных видео и Reels удобно взять компактную камеру со стабилизацией.',
       equipmentHref: '/equipment/dji-osmo-pocket-3-creator-combo',
       equipmentLabel: 'DJI Osmo Pocket 3',
-      guideHref: '/arenda-kamery-dlya-puteshestviya-vloga-moskva',
+      guideHref: '/blog/kakuyu-kameru-vzyat-v-puteshestvie-gopro-dji-insta360',
       guideLabel: 'Камера для поездки',
     },
     {
@@ -97,9 +102,9 @@ export default function CategoryCamerasPage() {
   return (
     <div className="min-h-screen bg-[#F8FAFC]">
       <SEO
-        title="Аренда GoPro в Москве от 400₽/день - Прокат экшн-камер и фототехники"
-        description="✅ Аренда GoPro, DJI Osmo Pocket и Insta360 в Москве. Полный комплект креплений. Доставка 24/7. Подбор камеры и бронь через Telegram."
-        keywords="аренда gopro москва, прокат экшн камер, аренда gopro hero 12, прокат видеокамер, фототехника напрокат москва"
+        title="Аренда экшн-камер GoPro, Insta360 и DJI в Москве | ВозьмиМеня"
+        description="GoPro 13, Insta360 X5 и DJI Osmo Pocket 3 в аренду в Москве. Комплект для съёмки, постамат 24/7, доставка и бронь онлайн."
+        keywords="аренда экшн камеры москва, аренда gopro москва, insta360 в аренду, dji osmo pocket 3 аренда"
         url="https://vozmimenya.ru/arenda-gopro-moskva"
         structuredData={[categoryStructuredData, faqStructuredData]}
       />
@@ -113,12 +118,13 @@ export default function CategoryCamerasPage() {
             <span>Аренда камер</span>
           </div>
           <h1 className="text-white text-4xl md:text-5xl font-extrabold mb-4 leading-tight">
-            Аренда GoPro и экшн-камер в Москве
+            Аренда экшн-камер GoPro, Insta360 и DJI в Москве
           </h1>
           <p className="text-blue-100 text-lg max-w-2xl mb-8">
-            Профессиональные камеры для съемки спорта, путешествий, влогов.
-            От <span className="font-bold text-white">400₽/день</span>. Полный комплект креплений в подарок.
+            GoPro 13 для активной съёмки, Insta360 X5 для 360°-видео и DJI Osmo Pocket 3
+            для влога. Самовывоз через постамат 24/7 или доставка по Москве.
           </p>
+          <HeroPriceCta slugs={['gopro-13', 'insta360-x5', 'dji-osmo-pocket-3-creator-combo']} bookingHref="/booking" source="category_cameras_hero" />
           <div className="flex flex-col sm:flex-row gap-3">
             <a href={getTelegramUrl()} target="_blank" rel="noopener noreferrer" onClick={() => trackEvent('telegram_click', { source: 'category_cameras_hero' })} className="btn bg-white text-primary hover:bg-blue-50 shadow-sm">
               Написать в Telegram
@@ -203,6 +209,9 @@ export default function CategoryCamerasPage() {
               </Link>
               <Link to="/equipment/insta360-x5" className="px-4 py-2 bg-[#F8FAFC] text-gray-700 rounded-xl text-sm font-semibold border border-gray-100 hover:text-[#2563EB] transition-colors">
                 Insta360 X5
+              </Link>
+              <Link to="/arenda-tehniki-na-mesyac-moskva" className="px-4 py-2 bg-[#F8FAFC] text-gray-700 rounded-xl text-sm font-semibold border border-gray-100 hover:text-[#2563EB] transition-colors">
+                Камера на месяц — дешевле за сутки
               </Link>
             </div>
           </div>

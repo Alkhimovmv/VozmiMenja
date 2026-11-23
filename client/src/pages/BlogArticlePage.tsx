@@ -1,13 +1,17 @@
-import { useEffect, useState } from 'react'
-import { useParams, Link, useNavigate } from 'react-router-dom'
+import { useParams, Link } from 'react-router-dom'
+import { useQuery } from '@tanstack/react-query'
 import { Article } from '../types'
-import { articlesApi } from '../api/articles'
+import { articleQueries } from '../query/articleQueries'
 import SEO from '../components/SEO'
 import { Calendar, Eye, User, ArrowLeft, Tag } from 'lucide-react'
-import ReactMarkdown from 'react-markdown'
+import ReactMarkdown, { type Components } from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { trackEvent } from '../lib/analytics'
+import { fetchPriorityAttr, getImageSrcSet, getImageUrl } from '../lib/utils'
 import { CONTACT_PHONE, CONTACT_PHONE_LABEL, getTelegramUrl } from '../lib/contactLinks'
+import { extractArticleBookingLinks } from '../lib/blogBookingCta'
+import { pickRelatedArticles } from '../lib/relatedArticles'
+import NotFoundPage from './NotFoundPage'
 
 const rentalCtas = {
   cleaning: {
@@ -88,51 +92,48 @@ function extractFaqFromMarkdown(content: string) {
     .filter((item) => item.question && item.answer)
 }
 
+// Фото техники в тексте статьи: /uploads/... отдаёт сервер API, поэтому путь проходит через getImageUrl.
+const markdownComponents: Components = {
+  img: ({ src, alt }) => (src ? (
+    <img
+      src={getImageUrl(String(src))}
+      alt={alt || ''}
+      loading="lazy"
+      decoding="async"
+      className="mx-auto my-6 block max-h-[440px] w-auto max-w-full rounded-2xl border border-gray-100 bg-white object-contain"
+    />
+  ) : null),
+  table: ({ children }) => (
+    <div className="my-6 max-w-full overflow-x-auto rounded-xl border border-gray-200 bg-white">
+      <table className="my-0 min-w-[640px] border-collapse">{children}</table>
+    </div>
+  ),
+}
+
+// Должно совпадать с обложкой в статике (client/scripts/generate-static-route-entrypoints.js),
+// чтобы браузер переиспользовал уже загруженный файл. Колонка статьи — max-w-4xl с px-4.
+const ARTICLE_COVER_SIZES = '(min-width: 896px) 864px, calc(100vw - 32px)'
+
+// webp-копии + сам оригинал с его шириной: на широком экране браузер не растягивает копию 800 px.
+const getArticleCoverSrcSet = (article: Article) => {
+  const variants = getImageSrcSet(article.image_variants)
+  if (!variants) return undefined
+  return article.image_url && article.image_width ? `${variants}, ${getImageUrl(article.image_url)} ${article.image_width}w` : variants
+}
+
 export default function BlogArticlePage() {
   const { slug } = useParams<{ slug: string }>()
-  const navigate = useNavigate()
-  const [article, setArticle] = useState<Article | null>(null)
-  const [relatedArticles, setRelatedArticles] = useState<Article[]>([])
-  const [loading, setLoading] = useState(true)
+  const { data: article, isLoading: loading } = useQuery(articleQueries.detail(slug || ''))
+  const { data: allArticles = [] } = useQuery(articleQueries.recent(100))
+  const relatedArticles = article ? pickRelatedArticles(article, allArticles) : []
 
-  useEffect(() => {
-    let isMounted = true
+  // SQLite CURRENT_TIMESTAMP хранит UTC без зоны: '2026-09-05 23:41:32' -> '2026-09-05T23:41:32Z'.
+  const toIsoDateTime = (value: string) =>
+    /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}(:\d{2})?$/.test(value) ? `${value.replace(' ', 'T')}Z` : value
 
-    const loadArticle = async () => {
-      try {
-        setLoading(true)
-        if (!slug) return
-        const data = await articlesApi.getBySlug(slug)
-        if (!isMounted) return
-
-        setArticle(data)
-        if (data.category) {
-          const related = await articlesApi.getByCategory(data.category)
-          if (isMounted) {
-            setRelatedArticles(related.filter((a) => a.id !== data.id).slice(0, 3))
-          }
-        }
-      } catch (error) {
-        console.error('Error loading article:', error)
-        if (isMounted) {
-          navigate('/blog')
-        }
-      } finally {
-        if (isMounted) {
-          setLoading(false)
-        }
-      }
-    }
-
-    loadArticle()
-
-    return () => {
-      isMounted = false
-    }
-  }, [slug, navigate])
-
+  // Даты в базе — UTC без зоны; показываем по Москве, как пререндер (formatRuDate), чтобы день не расходился.
   const formatDate = (dateString: string) =>
-    new Date(dateString).toLocaleDateString('ru-RU', { year: 'numeric', month: 'long', day: 'numeric' })
+    new Date(toIsoDateTime(dateString)).toLocaleDateString('ru-RU', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'Europe/Moscow' })
 
   const getTags = (tagsString: string | null) =>
     tagsString ? tagsString.split(',').map((t) => t.trim()) : []
@@ -149,14 +150,7 @@ export default function BlogArticlePage() {
   }
 
   if (!article) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900 mb-4">Статья не найдена</h1>
-          <Link to="/blog" className="text-[#2563EB] hover:underline font-semibold">Вернуться к блогу</Link>
-        </div>
-      </div>
-    )
+    return <NotFoundPage />
   }
 
   const structuredData = {
@@ -165,13 +159,16 @@ export default function BlogArticlePage() {
     headline: article.title,
     description: article.excerpt,
     image: article.image_url || 'https://vozmimenya.ru/og-image.jpg',
-    datePublished: article.created_at,
-    dateModified: article.updated_at,
-    author: { '@type': 'Organization', name: article.author },
+    datePublished: toIsoDateTime(article.created_at),
+    dateModified: toIsoDateTime(article.updated_at || article.created_at),
+    author: article.author && article.author !== 'ВозьмиМеня'
+      ? { '@type': 'Person', name: article.author, worksFor: { '@type': 'Organization', name: 'ВозьмиМеня', url: 'https://vozmimenya.ru' }, url: 'https://vozmimenya.ru/about' }
+      : { '@type': 'Organization', name: 'ВозьмиМеня' },
     publisher: { '@type': 'Organization', name: 'ВозьмиМеня', logo: { '@type': 'ImageObject', url: 'https://vozmimenya.ru/logo.png' } },
     mainEntityOfPage: { '@type': 'WebPage', '@id': `https://vozmimenya.ru/blog/${article.slug}` },
   }
   const faqItems = extractFaqFromMarkdown(article.content)
+  const bookingLinks = extractArticleBookingLinks(article.content)
   const faqStructuredData = faqItems.length > 0
     ? {
         '@context': 'https://schema.org',
@@ -210,7 +207,7 @@ export default function BlogArticlePage() {
           </div>
         </div>
 
-        <div className="max-w-4xl mx-auto px-4 py-10">
+        <div className="mx-auto min-w-0 max-w-4xl px-4 py-10">
           {/* Meta */}
           <span className="inline-block px-3 py-1 bg-blue-50 text-[#2563EB] text-xs font-semibold rounded-full mb-4">
             {article.category}
@@ -224,7 +221,18 @@ export default function BlogArticlePage() {
 
           {article.image_url && (
             <div className="mb-8 rounded-2xl overflow-hidden">
-              <img src={article.image_url} alt={article.title} className="w-full h-auto" />
+              <img
+                src={article.image_url}
+                srcSet={getArticleCoverSrcSet(article)}
+                sizes={ARTICLE_COVER_SIZES}
+                width={article.image_width}
+                height={article.image_height}
+                alt={article.title}
+                className="w-full h-auto"
+                loading="eager"
+                decoding="async"
+                {...fetchPriorityAttr('high')}
+              />
             </div>
           )}
 
@@ -232,42 +240,67 @@ export default function BlogArticlePage() {
             {article.excerpt}
           </p>
 
-          <div className="mb-8 bg-white rounded-2xl border border-gray-100 p-5">
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-              <div>
-                <h2 className="text-xl font-bold text-gray-900 mb-2">{rentalCta.title}</h2>
-                <p className="text-sm text-gray-500 leading-relaxed">{rentalCta.description}</p>
+          {bookingLinks.length > 0 ? (
+            <div className="mb-8 flex flex-col gap-3 rounded-xl border border-blue-100 bg-white px-4 py-3 sm:flex-row sm:items-center">
+              <div className="min-w-0 flex-1">
+                <div className="text-sm font-semibold text-gray-900">Оборудование из статьи</div>
+                <div className="text-xs text-gray-500">В форме уже будет выбрана нужная техника</div>
               </div>
-              <div className="flex flex-col sm:flex-row md:flex-col gap-2 shrink-0">
-                <a
-                  href={getTelegramUrl()}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={() => trackEvent('telegram_click', { source: rentalCta.telegramSource })}
-                  className="inline-flex items-center justify-center px-5 py-3 bg-[#2AABEE] text-white rounded-xl font-semibold hover:bg-[#1A9BD8] transition-colors text-sm"
-                >
-                  Написать в Telegram
-                </a>
-                <Link
-                  to={rentalCta.primaryHref}
-                  className="inline-flex items-center justify-center px-5 py-3 bg-[#2563EB] text-white rounded-xl font-semibold hover:bg-[#1D4ED8] transition-colors text-sm"
-                >
-                  {rentalCta.primaryLabel}
-                </Link>
+              <div className="flex flex-wrap gap-2">
+                {bookingLinks.map((bookingLink) => (
+                  <Link
+                    key={bookingLink.href}
+                    to={bookingLink.href}
+                    onClick={() => trackEvent('booking_cta_click', {
+                      source: 'blog_article_preselected',
+                      equipment: bookingLink.equipment,
+                      article_slug: article.slug,
+                    })}
+                    className="inline-flex items-center justify-center rounded-lg bg-[#2563EB] px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-[#1D4ED8]"
+                  >
+                    {bookingLink.label}
+                  </Link>
+                ))}
               </div>
             </div>
-            <div className="mt-4 flex flex-wrap gap-2">
-              {rentalCta.links.map((link) => (
-                <Link
-                  key={link.href}
-                  to={link.href}
-                  className="px-3 py-1.5 bg-[#F8FAFC] text-gray-700 rounded-lg border border-gray-100 hover:text-[#2563EB] hover:border-blue-100 transition-colors text-sm font-medium"
-                >
-                  {link.label}
-                </Link>
-              ))}
+          ) : (
+            <div className="mb-8 bg-white rounded-2xl border border-gray-100 p-5">
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                <div>
+                  <h2 className="text-xl font-bold text-gray-900 mb-2">{rentalCta.title}</h2>
+                  <p className="text-sm text-gray-500 leading-relaxed">{rentalCta.description}</p>
+                </div>
+                <div className="flex flex-col sm:flex-row md:flex-col gap-2 shrink-0">
+                  <a
+                    href={getTelegramUrl()}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={() => trackEvent('telegram_click', { source: rentalCta.telegramSource })}
+                    className="inline-flex items-center justify-center px-5 py-3 bg-[#2AABEE] text-white rounded-xl font-semibold hover:bg-[#1A9BD8] transition-colors text-sm"
+                  >
+                    Написать в Telegram
+                  </a>
+                  <Link
+                    to={rentalCta.primaryHref}
+                    className="inline-flex items-center justify-center px-5 py-3 bg-[#2563EB] text-white rounded-xl font-semibold hover:bg-[#1D4ED8] transition-colors text-sm"
+                  >
+                    {rentalCta.primaryLabel}
+                  </Link>
+                </div>
+              </div>
+              <div className="mt-4 flex flex-wrap gap-2">
+                {rentalCta.links.map((link) => (
+                  <Link
+                    key={link.href}
+                    to={link.href}
+                    className="px-3 py-1.5 bg-[#F8FAFC] text-gray-700 rounded-lg border border-gray-100 hover:text-[#2563EB] hover:border-blue-100 transition-colors text-sm font-medium"
+                  >
+                    {link.label}
+                  </Link>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Body */}
           <div className="prose prose-lg max-w-none
@@ -280,9 +313,8 @@ export default function BlogArticlePage() {
             prose-ul:my-3 prose-ol:my-3
             prose-li:text-gray-600
             prose-blockquote:border-l-4 prose-blockquote:border-[#2563EB] prose-blockquote:bg-blue-50 prose-blockquote:py-2 prose-blockquote:px-4 prose-blockquote:rounded-r-xl
-            prose-code:text-[#2563EB] prose-code:bg-gray-100 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:text-sm
-            prose-img:hidden">
-            <ReactMarkdown remarkPlugins={[remarkGfm]}>{article.content}</ReactMarkdown>
+            prose-code:text-[#2563EB] prose-code:bg-gray-100 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:text-sm">
+            <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>{article.content}</ReactMarkdown>
           </div>
 
           {/* Tags */}

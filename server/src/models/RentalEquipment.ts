@@ -6,6 +6,7 @@ export interface RentalEquipment {
   quantity: number
   description?: string
   basePrice: number
+  catalogEquipmentId?: string
   officeId?: number
   instances: RentalEquipmentInstance[]
   createdAt: string
@@ -23,14 +24,13 @@ export interface CreateRentalEquipmentData {
   quantity: number
   description?: string
   basePrice: number
+  catalogEquipmentId?: string | null
   userId?: number
   officeId?: number
   instances?: RentalEquipmentInstance[]
 }
 
 export class RentalEquipmentModel {
-  private db = database.instance
-
   async findAll(officeId?: number): Promise<RentalEquipment[]> {
     const rows = officeId !== undefined
       ? await all(`SELECT * FROM rental_equipment WHERE office_id = ? ORDER BY created_at DESC`, [officeId]) as any[]
@@ -44,20 +44,36 @@ export class RentalEquipmentModel {
     return row ? this.mapRow(row) : null
   }
 
+  async findByCatalogEquipmentId(catalogEquipmentId: string, officeId: number): Promise<RentalEquipment[]> {
+    const rows = await all(`
+      SELECT *
+      FROM rental_equipment
+      WHERE catalog_equipment_id = ? AND office_id = ?
+      ORDER BY id ASC
+    `, [catalogEquipmentId, officeId]) as any[]
+
+    return Promise.all(rows.map((row) => this.mapRow(row)))
+  }
+
   async create(data: CreateRentalEquipmentData): Promise<RentalEquipment> {
-    const result = await new Promise<number>((resolve, reject) => {
-      this.db.run(`
-        INSERT INTO rental_equipment (name, quantity, description, base_price, user_id, office_id)
-        VALUES (?, ?, ?, ?, ?, ?)
-      `, [data.name, data.quantity, data.description || null, data.basePrice, data.userId || null, data.officeId || null], function(err) {
-        if (err) reject(err)
-        else resolve(this.lastID)
-      })
-    })
+    const result = await run(`
+      INSERT INTO rental_equipment (
+        name, quantity, description, base_price, catalog_equipment_id, user_id, office_id
+      ) VALUES (?, ?, ?, ?, ?, ?, ?)
+    `, [
+      data.name,
+      data.quantity,
+      data.description || null,
+      data.basePrice,
+      data.catalogEquipmentId || null,
+      data.userId || null,
+      data.officeId || null,
+    ])
+    const equipmentId = result.lastID
 
-    await this.syncInstances(result, data.quantity, data.instances)
+    await this.syncInstances(equipmentId, data.quantity, data.instances)
 
-    const equipment = await this.findById(result)
+    const equipment = await this.findById(equipmentId)
     if (!equipment) throw new Error('Failed to create rental equipment')
     return equipment
   }
@@ -70,6 +86,10 @@ export class RentalEquipmentModel {
     if (data.quantity !== undefined) { updates.push('quantity = ?'); values.push(data.quantity) }
     if (data.description !== undefined) { updates.push('description = ?'); values.push(data.description) }
     if (data.basePrice !== undefined) { updates.push('base_price = ?'); values.push(data.basePrice) }
+    if (data.catalogEquipmentId !== undefined) {
+      updates.push('catalog_equipment_id = ?')
+      values.push(data.catalogEquipmentId || null)
+    }
     const nextQuantity = data.quantity ?? (await this.findById(id))?.quantity
     if (!nextQuantity) throw new Error('Equipment not found')
 
@@ -116,27 +136,59 @@ export class RentalEquipmentModel {
     }
 
     const movingInstance = source.instances.find((instance) => instance.instanceNumber === instanceNumber) || { instanceNumber }
-    const targetRow = await get(`
-      SELECT *
-      FROM rental_equipment
-      WHERE office_id = ? AND name = ?
-      ORDER BY id ASC
-      LIMIT 1
-    `, [targetOfficeId, source.name]) as any
+    let targetRow = source.catalogEquipmentId
+      ? await get(`
+          SELECT *
+          FROM rental_equipment
+          WHERE office_id = ? AND catalog_equipment_id = ?
+          ORDER BY id ASC
+          LIMIT 1
+        `, [targetOfficeId, source.catalogEquipmentId]) as any
+      : await get(`
+          SELECT *
+          FROM rental_equipment
+          WHERE office_id = ? AND catalog_equipment_id IS NULL AND name = ?
+          ORDER BY id ASC
+          LIMIT 1
+        `, [targetOfficeId, source.name]) as any
 
-    await run('BEGIN TRANSACTION')
-    try {
-      const targetEquipmentId = targetRow
+    let shouldLinkExistingTarget = false
+    if (!targetRow && source.catalogEquipmentId) {
+      const exactUnlinkedTargets = await all(`
+        SELECT *
+        FROM rental_equipment
+        WHERE office_id = ? AND catalog_equipment_id IS NULL AND name = ?
+        ORDER BY id ASC
+      `, [targetOfficeId, source.name]) as any[]
+
+      if (exactUnlinkedTargets.length === 1) {
+        targetRow = exactUnlinkedTargets[0]
+        shouldLinkExistingTarget = true
+      }
+    }
+
+    const targetEquipmentId = await database.withImmediateTransaction(async () => {
+      if (targetRow && shouldLinkExistingTarget) {
+        await run(`
+          UPDATE rental_equipment
+          SET catalog_equipment_id = ?, updated_at = CURRENT_TIMESTAMP
+          WHERE id = ?
+        `, [source.catalogEquipmentId, targetRow.id])
+      }
+
+      const destinationEquipmentId = targetRow
         ? targetRow.id
-        : await new Promise<number>((resolve, reject) => {
-            this.db.run(`
-              INSERT INTO rental_equipment (name, quantity, description, base_price, office_id)
-              VALUES (?, 0, ?, ?, ?)
-            `, [source.name, source.description || null, source.basePrice || 0, targetOfficeId], function(err) {
-              if (err) reject(err)
-              else resolve(this.lastID)
-            })
-          })
+        : (await run(`
+            INSERT INTO rental_equipment (
+              name, quantity, description, base_price, catalog_equipment_id, office_id
+            ) VALUES (?, 0, ?, ?, ?, ?)
+          `, [
+            source.name,
+            source.description || null,
+            source.basePrice || 0,
+            source.catalogEquipmentId || null,
+            targetOfficeId,
+          ])).lastID
 
       const targetQuantity = targetRow ? Number(targetRow.quantity || 0) : 0
       const targetInstanceNumber = targetQuantity + 1
@@ -145,13 +197,13 @@ export class RentalEquipmentModel {
         UPDATE rental_equipment
         SET quantity = ?, updated_at = CURRENT_TIMESTAMP
         WHERE id = ?
-      `, [targetInstanceNumber, targetEquipmentId])
+      `, [targetInstanceNumber, destinationEquipmentId])
 
       await run(`
         INSERT INTO rental_equipment_instances (equipment_id, instance_number, serial_number, comment)
         VALUES (?, ?, ?, ?)
       `, [
-        targetEquipmentId,
+        destinationEquipmentId,
         targetInstanceNumber,
         movingInstance.serialNumber || null,
         movingInstance.comment || null,
@@ -201,16 +253,14 @@ export class RentalEquipmentModel {
         WHERE id = ?
       `, [source.quantity - 1, equipmentId])
 
-      await run('COMMIT')
-      console.log(`[equipment] instance moved: equipment=${equipmentId}, instance=${instanceNumber}, targetEquipment=${targetEquipmentId}, targetOffice=${targetOfficeId}`)
+      return destinationEquipmentId
+    })
 
-      const targetEquipment = await this.findById(targetEquipmentId)
-      if (!targetEquipment) throw new Error('Failed to move equipment instance')
-      return targetEquipment
-    } catch (error) {
-      await run('ROLLBACK')
-      throw error
-    }
+    console.log(`[equipment] instance moved: equipment=${equipmentId}, instance=${instanceNumber}, targetEquipment=${targetEquipmentId}, targetOffice=${targetOfficeId}`)
+
+    const targetEquipment = await this.findById(targetEquipmentId)
+    if (!targetEquipment) throw new Error('Failed to move equipment instance')
+    return targetEquipment
   }
 
   private async getInstances(equipmentId: number, quantity: number): Promise<RentalEquipmentInstance[]> {
@@ -279,6 +329,7 @@ export class RentalEquipmentModel {
       quantity: row.quantity,
       description: row.description || undefined,
       basePrice: row.base_price,
+      catalogEquipmentId: row.catalog_equipment_id || undefined,
       officeId: row.office_id || undefined,
       instances: await this.getInstances(row.id, row.quantity),
       createdAt: row.created_at,

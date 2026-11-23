@@ -1,10 +1,12 @@
 import { Link } from 'react-router-dom'
 import { Helmet } from 'react-helmet-async'
+import seoMeta from '../content/seoMeta.json'
 import { ArrowRight, CheckCircle2, ClipboardList, MessageCircle, Sparkles, SprayCan, Timer, Truck, Wind } from 'lucide-react'
 import { trackEvent } from '../lib/analytics'
 import { getTelegramUrl } from '../lib/contactLinks'
 import ScenarioRentalInfo from '../components/ui/ScenarioRentalInfo'
 import faqContent from '../content/faq.json'
+import HeroPriceCta from '../components/HeroPriceCta'
 
 const pageUrl = 'https://vozmimenya.ru/arenda-stroitelnogo-pylesosa-posle-remonta-moskva'
 const wd5Href = '/equipment/karcher-wd5'
@@ -102,8 +104,8 @@ function handleTelegramClick(source: string) {
 }
 
 export default function ConstructionVacuumAfterRenovationPage() {
-  const pageTitle = 'Аренда строительного пылесоса после ремонта в Москве | ВозьмиМеня'
-  const pageDescription = 'Возьмите строительный пылесос для уборки после ремонта в Москве. Поможем подобрать модель под пыль, мусор, площадь и срок аренды.'
+  const pageTitle = seoMeta['/arenda-stroitelnogo-pylesosa-posle-remonta-moskva'].title
+  const pageDescription = seoMeta['/arenda-stroitelnogo-pylesosa-posle-remonta-moskva'].description
 
   return (
     <div className="min-h-screen bg-[#F6F7F4] text-slate-900">
@@ -153,6 +155,7 @@ export default function ConstructionVacuumAfterRenovationPage() {
               <p className="mb-8 max-w-2xl text-lg leading-8 text-slate-200">
                 После ремонта обычный пылесос быстро забивается цементной и гипсовой пылью. Для сухой строительной пыли лучше взять строительный пылесос, а для финальной чистки мебели и ковров - моющий Puzzi.
               </p>
+              <HeroPriceCta slugs={['karcher-wd5']} bookingHref="/booking?equipment=karcher-wd5" source="landing_construction_vacuum_hero" />
               <div className="flex flex-col gap-3 sm:flex-row">
                 <a
                   href={getTelegramUrl()}
@@ -272,8 +275,8 @@ export default function ConstructionVacuumAfterRenovationPage() {
               <p className="mb-5 text-slate-600">
                 Если задача смешанная, обычно начинают с сухой пыли, а потом добавляют чистку ткани или твердых поверхностей.
               </p>
-              <Link to="/blog/kak-vybrat-pylesos-dlya-uborki-posle-remonta" className="inline-flex items-center gap-2 font-bold text-[#1D4ED8] hover:underline">
-                Как выбрать пылесос для уборки после ремонта
+              <Link to="/blog/kak-ubrat-stroitelnuyu-pyl-posle-remonta" className="inline-flex items-center gap-2 font-bold text-[#1D4ED8] hover:underline">
+                Пошагово: уборка строительной пыли после ремонта
                 <ArrowRight className="h-4 w-4" />
               </Link>
             </div>

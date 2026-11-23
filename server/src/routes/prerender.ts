@@ -203,7 +203,6 @@ router.get('/equipment/:id', async (req: Request, res: Response) => {
           url: 'https://vozmimenya.ru',
         },
       },
-      aggregateRating: { '@type': 'AggregateRating', ratingValue: '4.9', reviewCount: '412' },
     }
 
     const faqStructuredData = {

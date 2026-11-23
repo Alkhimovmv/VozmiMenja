@@ -1,16 +1,22 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { useEquipment, useEquipmentById } from '../hooks/useEquipment'
 import LoadingSpinner from '../components/ui/LoadingSpinner'
 import BookingForm from '../components/equipment/BookingForm'
 import RelatedCard from '../components/equipment/RelatedCard'
+import EquipmentTrustStrip from '../components/equipment/EquipmentTrustStrip'
 import SEO from '../components/SEO'
-import { ArrowLeft, Check, ChevronRight, Shield, Clock } from 'lucide-react'
-import { getImageUrl } from '../lib/utils'
-import { trackEvent } from '../lib/analytics'
-import { getMinimumDailyPrice, getPricingRows } from '../utils/pricing'
+import { ArrowLeft, Check, ChevronRight, Clock } from 'lucide-react'
+import { fetchPriorityAttr, getImageSrcSet, getImageUrl } from '../lib/utils'
+import productScenarios from '../content/productScenarios.json'
+import { trackBookingFunnelStage, trackEvent } from '../lib/analytics'
+import { getLongTermDailyPrice, getOneDayPrice, getPricingRows, getPeriodPrice } from '../utils/pricing'
 import { CONTACT_PHONE, CONTACT_PHONE_LABEL, getTelegramUrl, getWhatsAppUrl } from '../lib/contactLinks'
 import { equipmentPath } from '../lib/equipmentUrls'
+import equipmentBrands from '../content/equipmentBrands.json'
+import { getEquipmentSeoProfile } from '../content/equipmentSeoProfiles'
+import NotFoundPage from './NotFoundPage'
+import { useRenderEnvironment } from '../ssr/renderContext'
 
 function getEquipmentModelFaq(name: string) {
   const normalizedName = name.toLowerCase()
@@ -417,10 +423,7 @@ function getCompanionOffers(category: string, name: string) {
   ]
 }
 
-function getRentalConditions(category: string, name: string) {
-  const normalizedName = name.toLowerCase()
-  const isPremium = normalizedName.includes('partybox 710') || normalizedName.includes('insta360') || normalizedName.includes('osmo')
-
+function getRentalConditions(category: string) {
   return [
     {
       title: 'Документы',
@@ -428,9 +431,7 @@ function getRentalConditions(category: string, name: string) {
     },
     {
       title: 'Залог',
-      text: isPremium
-        ? 'По дорогим моделям условия залога менеджер подтвердит после заявки: зависит от срока, доставки и истории клиента.'
-        : 'Для клиентов с постоянной регистрацией в Москве или МО залог обычно не требуется; в остальных случаях условия подтвердим до выдачи.',
+      text: 'Без залога при постоянной регистрации в Москве или МО; в остальных случаях залог — 50% стоимости оборудования, он возвращается при возврате исправной и чистой техники.',
     },
     {
       title: 'Доставка и возврат',
@@ -655,13 +656,25 @@ function getEquipmentProcessFaq(name: string) {
   ]
 }
 
+const scenarioLinksBySlug: Record<string, Array<{ href: string; label: string }>> = productScenarios
+
+// Должно совпадать с sizes статического <img> в client/scripts/generate-static-route-entrypoints.js,
+// чтобы браузер переиспользовал уже загруженное фото из пререндера.
+const PRODUCT_MAIN_IMAGE_SIZES = '(min-width: 768px) 420px, 100vw'
+
 export default function EquipmentDetailsPage() {
+  const { nowIso } = useRenderEnvironment()
   const { id } = useParams<{ id: string }>()
   const { data, isLoading, error } = useEquipmentById(id!)
   const [selectedImage, setSelectedImage] = useState(0)
   const [showBookingForm, setShowBookingForm] = useState(false)
 
   const equipment = data?.data
+  const scenarioLinks = (equipment?.slug && scenarioLinksBySlug[equipment.slug]) || []
+  useEffect(() => {
+    if (!equipment) return
+    trackBookingFunnelStage('equipment_view', { equipmentId: equipment.id })
+  }, [equipment])
   const { data: relatedData } = useEquipment(
     equipment ? { limit: 3, category: equipment.category } : undefined
   )
@@ -673,6 +686,10 @@ export default function EquipmentDetailsPage() {
         <LoadingSpinner size="lg" />
       </div>
     )
+  }
+
+  if (data === null) {
+    return <NotFoundPage />
   }
 
   if (error || !data?.success || !equipment) {
@@ -691,47 +708,71 @@ export default function EquipmentDetailsPage() {
   const formatPrice = (price: number) =>
     new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', minimumFractionDigits: 0 }).format(price)
 
-  const getMinPrice = () => getMinimumDailyPrice(equipment.pricing, equipment.pricePerDay)
   const pricingTiers = getPricingRows(equipment.pricing)
-  const minPrice = getMinPrice()
+  // Основная цена — за 1 сутки; сниженный тариф длинной аренды показываем отдельно с его сроком.
+  const oneDayPrice = getOneDayPrice(equipment.pricing, equipment.pricePerDay)
+  const longTermPrice = getLongTermDailyPrice(equipment.pricing, equipment.pricePerDay)
+  // Выгода недели: та же функция, что считает сумму брони, против 7 × цена первых суток.
+  const weekTotal = getPeriodPrice(equipment.pricing, 7, equipment.pricePerDay)
+  const weekSaving = oneDayPrice * 7 - weekTotal
   const canonicalPath = equipmentPath(equipment)
   const canonicalUrl = `https://vozmimenya.ru${canonicalPath}`
 
+  const equipmentBrand = equipmentBrands.find((brand) => equipment.name.toLowerCase().includes(brand.toLowerCase()))
   const productStructuredData = {
     '@context': 'https://schema.org',
     '@type': 'Product',
     name: `Аренда ${equipment.name}`,
     description: equipment.description,
-    image: equipment.images.map((img) => `https://vozmimenya.ru${getImageUrl(img)}`),
+    // getImageUrl уже отдаёт полный адрес API для /uploads; относительные пути достраиваем от сайта.
+    image: equipment.images.map((img) => new URL(getImageUrl(img), 'https://vozmimenya.ru').toString()),
     category: equipment.category,
-    brand: { '@type': 'Brand', name: equipment.name.split(' ')[0] },
+    brand: equipmentBrand ? { '@type': 'Brand', name: equipmentBrand } : undefined,
+    sku: equipment.slug || String(equipment.id),
     itemCondition: 'https://schema.org/UsedCondition',
     offers: {
       '@type': 'Offer',
       url: canonicalUrl,
       priceCurrency: 'RUB',
-      price: minPrice,
-      priceValidUntil: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      price: oneDayPrice,
+      priceValidUntil: new Date(new Date(nowIso).getTime() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
       availability: equipment.availableQuantity > 0
         ? 'https://schema.org/InStock'
         : 'https://schema.org/LimitedAvailability',
       seller: { '@id': 'https://vozmimenya.ru/#organization' },
       areaServed: { '@type': 'City', name: 'Москва' },
-      priceSpecification: {
-        '@type': 'UnitPriceSpecification',
-        price: minPrice,
-        priceCurrency: 'RUB',
-        unitText: 'сутки',
-      },
+      priceSpecification: [
+        {
+          '@type': 'UnitPriceSpecification',
+          price: oneDayPrice,
+          priceCurrency: 'RUB',
+          unitCode: 'DAY',
+          unitText: 'сутки',
+          referenceQuantity: { '@type': 'QuantitativeValue', value: 1, unitCode: 'DAY' },
+        },
+        ...(longTermPrice ? [{
+          '@type': 'UnitPriceSpecification',
+          price: longTermPrice.dailyPrice,
+          priceCurrency: 'RUB',
+          unitCode: 'DAY',
+          unitText: 'сутки',
+          eligibleQuantity: { '@type': 'QuantitativeValue', minValue: longTermPrice.days, unitCode: 'DAY' },
+        }] : []),
+      ],
     },
   }
 
   const guidance = getEquipmentGuidance(equipment.category, equipment.name)
+  const seoProfile = getEquipmentSeoProfile(equipment.slug)
+  const displayedScenarios = seoProfile?.scenarios || guidance.scenarios
   const companionOffers = getCompanionOffers(equipment.category, equipment.name)
-  const rentalConditions = getRentalConditions(equipment.category, equipment.name)
+  const rentalConditions = getRentalConditions(equipment.category)
   const readyKits = getReadyKits(equipment.category, equipment.name)
   const choiceWarnings = getChoiceWarnings(equipment.category, equipment.name)
-  const equipmentFaqItems = [...guidance.faq, ...getEquipmentProcessFaq(equipment.name)]
+  const equipmentFaqItems = [
+    ...(seoProfile?.faq || guidance.faq),
+    ...getEquipmentProcessFaq(equipment.name),
+  ]
   const categoryLandingHref = getCategoryLandingHref(equipment.category)
   const categoryGuideHref = getCategoryGuideHref(equipment.category, equipment.name)
   const quickMessage = [
@@ -757,9 +798,19 @@ export default function EquipmentDetailsPage() {
       },
     })),
   }
-  const seoTitle = `Аренда ${equipment.name} в Москве | от ${formatPrice(minPrice)}/сутки | Доставка в день заказа | ВозьмиМеня`
-  const seoDescription = `Аренда ${equipment.name} в Москве от ${formatPrice(minPrice)}/сутки | Доставка в день заказа | Постамат 24/7 | Подбор и бронь через Telegram`
-  const seoKeywords = `аренда ${equipment.name}, прокат ${equipment.name}, ${equipment.name} аренда Москва, взять в аренду ${equipment.name}, ${equipment.category} аренда Москва, прокат ${equipment.category}`
+  // Совпадает со статическим title из generate-static-route-entrypoints.js.
+  const seoTitle = `Аренда ${equipment.name} в Москве — ${formatPrice(oneDayPrice)}/сутки | ВозьмиМеня`
+  const longTermText = longTermPrice
+    ? `, от ${formatPrice(longTermPrice.dailyPrice)}/сутки при аренде от ${longTermPrice.days} суток`
+    : ''
+  const seoDescription = `${equipment.name} в аренду в Москве: ${formatPrice(oneDayPrice)} за сутки${longTermText}. Самовывоз у м. Волжская и м. Динамо, доставка по Москве, бронь онлайн.`
+  const seoKeywords = [
+    seoProfile?.primaryQuery,
+    ...(seoProfile?.aliases || []),
+    `аренда ${equipment.name}`,
+    `прокат ${equipment.name}`,
+    `${equipment.category} аренда Москва`,
+  ].filter(Boolean).join(', ')
 
   return (
     <div className="min-h-screen bg-[#F8FAFC]">
@@ -767,7 +818,7 @@ export default function EquipmentDetailsPage() {
         title={seoTitle}
         description={seoDescription}
         keywords={seoKeywords}
-        image={equipment.images[0] ? `https://vozmimenya.ru${getImageUrl(equipment.images[0])}` : undefined}
+        image={equipment.images[0] ? new URL(getImageUrl(equipment.images[0]), 'https://vozmimenya.ru').toString() : undefined}
         url={canonicalUrl}
         type="product"
         structuredData={[productStructuredData, faqStructuredData]}
@@ -789,18 +840,21 @@ export default function EquipmentDetailsPage() {
       </div>
 
       <div className="container mx-auto px-4 py-8 pb-32 md:pb-8">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-10">
 
           {/* ── Left: Images ── */}
+          {/* На мобильном фото ниже (max-h-56), чтобы H1 и цена попали на первый экран. */}
           <div>
-            <div className="bg-white rounded-2xl border border-line overflow-hidden mb-3 aspect-[4/3]">
+            <div className="bg-white rounded-2xl border border-line overflow-hidden mb-3 aspect-[4/3] max-h-56 sm:max-h-none mx-auto w-full">
               <img
                 src={getImageUrl(equipment.images[selectedImage])}
+                srcSet={getImageSrcSet(equipment.imageVariants?.[equipment.images[selectedImage]])}
+                sizes={PRODUCT_MAIN_IMAGE_SIZES}
                 alt={equipment.name}
                 className="w-full h-full object-contain bg-white"
                 loading="eager"
                 decoding="async"
-                fetchPriority="high"
+                {...fetchPriorityAttr('high')}
               />
             </div>
             {equipment.images.length > 1 && (
@@ -809,12 +863,14 @@ export default function EquipmentDetailsPage() {
                   <button
                     key={index}
                     onClick={() => setSelectedImage(index)}
-                    className={`flex-shrink-0 w-20 h-20 rounded-xl overflow-hidden border-2 bg-white transition-colors ${
+                    className={`flex-shrink-0 w-14 h-14 sm:w-20 sm:h-20 rounded-xl overflow-hidden border-2 bg-white transition-colors ${
                       selectedImage === index ? 'border-primary' : 'border-line hover:border-muted'
                     }`}
                   >
                     <img
                       src={getImageUrl(image)}
+                      srcSet={getImageSrcSet(equipment.imageVariants?.[image])}
+                      sizes="80px"
                       alt={`${equipment.name} ${index + 1}`}
                       className="w-full h-full object-contain bg-white"
                       loading="lazy"
@@ -829,10 +885,16 @@ export default function EquipmentDetailsPage() {
           {/* ── Right: Details ── */}
           <div>
             {/* Title */}
-            <h1 className="text-3xl md:text-4xl font-bold text-ink mb-2">{equipment.name}</h1>
+            {/* Тот же H1 отдаёт пререндер (generate-static-route-entrypoints.js, buildProductBody). */}
+            <h1 className="text-3xl md:text-4xl font-bold text-ink mb-2">{equipment.name} в аренду</h1>
+            {seoProfile && (
+              <p className="mb-3 max-w-2xl text-sm leading-relaxed text-muted">
+                {seoProfile.intro}
+              </p>
+            )}
 
             {/* Status badge */}
-            <div className="mb-6 text-sm text-muted">
+            <div className="mb-3 sm:mb-6 text-sm text-muted">
               Доступность подтвердим после выбора дат
             </div>
 
@@ -841,13 +903,19 @@ export default function EquipmentDetailsPage() {
               {/* Main price */}
               <div className="flex items-start justify-between mb-1">
                 <p className="text-[11px] font-bold text-muted uppercase tracking-widest">Цена за сутки</p>
-                <div className="text-right">
-                  <p className="text-[11px] font-semibold text-muted">МИН.</p>
-                  <p className="text-primary font-bold text-sm">{formatPrice(getMinPrice())}/сут</p>
-                  <p className="text-[10px] text-muted">при аренде на месяц</p>
-                </div>
+                {longTermPrice && (
+                  <Link
+                    to="/arenda-tehniki-na-mesyac-moskva"
+                    onClick={() => trackEvent('monthly_rental_link_click', { source: 'equipment_price_card', equipment_id: equipment.id })}
+                    className="text-right group"
+                  >
+                    <p className="text-[11px] font-semibold text-muted">МИН.</p>
+                    <p className="text-primary font-bold text-sm">{formatPrice(longTermPrice.dailyPrice)}/сут</p>
+                    <p className="text-[10px] text-muted group-hover:text-primary group-hover:underline">при аренде от {longTermPrice.days} суток</p>
+                  </Link>
+                )}
               </div>
-              <p className="text-4xl font-bold text-ink mb-5">{formatPrice(equipment.pricePerDay)}</p>
+              <p className="text-4xl font-bold text-ink mb-5">{formatPrice(oneDayPrice)}</p>
 
               {/* Pricing tiers */}
               {pricingTiers.length > 0 && (
@@ -866,6 +934,11 @@ export default function EquipmentDetailsPage() {
                       </div>
                     ))}
                   </div>
+                  {weekSaving > 0 && (
+                    <p className="mt-3 rounded-xl bg-emerald-50 px-3 py-2 text-xs text-emerald-900">
+                      7 суток — <strong>{formatPrice(weekTotal)}</strong> вместо {formatPrice(oneDayPrice * 7)}, выгода {formatPrice(weekSaving)}
+                    </p>
+                  )}
                 </>
               )}
 
@@ -882,17 +955,12 @@ export default function EquipmentDetailsPage() {
                 <ChevronRight className="w-5 h-5" />
               </button>
 
-              {/* Trust badges */}
-              <div className="flex items-center justify-center gap-4 mt-3">
-                <span className="flex items-center gap-1 text-xs text-muted">
-                  <Shield className="w-3.5 h-3.5 text-emerald-500" />
-                  Гарантия чистоты
-                </span>
-                <span className="flex items-center gap-1 text-xs text-muted">
-                  <Clock className="w-3.5 h-3.5 text-primary" />
-                  Перезвоним за 15 мин
-                </span>
-              </div>
+              <EquipmentTrustStrip
+                onReviewsClick={() => trackEvent('yandex_maps_click', {
+                  source: 'equipment_reviews',
+                  equipment_id: equipment.id,
+                })}
+              />
 
               {/* Conditions hint */}
               <div className="mt-3 text-center text-xs text-muted">
@@ -947,13 +1015,22 @@ export default function EquipmentDetailsPage() {
           <div className="bg-white rounded-2xl border border-line p-6">
             <h2 className="text-xl font-bold text-ink mb-4">Для каких задач подходит</h2>
             <div className="space-y-3">
-              {guidance.scenarios.map((scenario) => (
+              {displayedScenarios.map((scenario) => (
                 <div key={scenario} className="flex items-center gap-2 text-sm text-muted">
                   <Check className="w-4 h-4 text-emerald-500 flex-shrink-0" />
                   {scenario}
                 </div>
               ))}
             </div>
+            {scenarioLinks.length > 0 && (
+              <div className="mt-4 flex flex-wrap gap-x-4 gap-y-2 border-t border-line pt-4">
+                {scenarioLinks.map((link) => (
+                  <Link key={link.href} to={link.href} className="text-sm font-semibold text-primary hover:underline">
+                    {link.label} →
+                  </Link>
+                ))}
+              </div>
+            )}
           </div>
 
           <div className="bg-white rounded-2xl border border-line p-6">
@@ -990,6 +1067,28 @@ export default function EquipmentDetailsPage() {
                 </div>
               ))}
             </div>
+          </div>
+        </div>
+
+        <div className="mt-6 rounded-2xl border border-blue-100 bg-blue-50 p-6">
+          <p className="mb-2 text-xs font-bold uppercase tracking-widest text-[#2563EB]">Где получить</p>
+          <h2 className="text-xl font-bold text-ink">Две точки самовывоза в Москве</h2>
+          <p className="mt-2 max-w-3xl text-sm leading-relaxed text-muted">
+            Выберите удобную точку. Наличие этой модели на ваши даты и адрес выдачи подтвердим после заявки.
+          </p>
+          <div className="mt-4 flex flex-wrap gap-3">
+            <Link
+              to="/arenda-tehniki-u-metro-volzhskaya-kuzminki"
+              className="rounded-xl bg-white px-4 py-2 text-sm font-semibold text-[#2563EB] ring-1 ring-blue-100 hover:ring-blue-300"
+            >
+              Самовывоз у м. Волжская
+            </Link>
+            <Link
+              to="/arenda-tehniki-u-metro-dinamo"
+              className="rounded-xl bg-white px-4 py-2 text-sm font-semibold text-[#2563EB] ring-1 ring-blue-100 hover:ring-blue-300"
+            >
+              Самовывоз у м. Динамо
+            </Link>
           </div>
         </div>
 
