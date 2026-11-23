@@ -1,5 +1,6 @@
 import {
   extractEquipmentPathsFromSitemap,
+  resolveEquipmentApiBaseUrl,
   validateCatalogSitemap,
   validateEquipmentSsrHtml,
   type CatalogEquipmentSeoItem,
@@ -22,6 +23,13 @@ const validHtml = `<!doctype html>
 </head><body><h1>Karcher Puzzi 8/1 в аренду</h1><p>980 ₽</p></body></html>`
 
 describe('equipment SEO smoke contracts', () => {
+  it('uses the dedicated production API while keeping local and explicit origins configurable', () => {
+    expect(resolveEquipmentApiBaseUrl('https://vozmimenya.ru')).toBe('https://api.vozmimenya.ru')
+    expect(resolveEquipmentApiBaseUrl('http://localhost:5173/')).toBe('http://localhost:5173')
+    expect(resolveEquipmentApiBaseUrl('https://vozmimenya.ru', 'https://staging-api.example/api/'))
+      .toBe('https://staging-api.example/api')
+  })
+
   it('extracts canonical equipment paths from sitemap XML', () => {
     const xml = `
       <urlset>

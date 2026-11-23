@@ -7,6 +7,15 @@ export interface CatalogEquipmentSeoItem {
 
 const equipmentPathPattern = /^\/equipment\/([^/?#]+)$/
 
+export function resolveEquipmentApiBaseUrl(pageBaseUrl: string, explicitApiBaseUrl?: string): string {
+  if (explicitApiBaseUrl) return explicitApiBaseUrl.replace(/\/$/, '')
+
+  const normalizedPageBaseUrl = pageBaseUrl.replace(/\/$/, '')
+  return normalizedPageBaseUrl === 'https://vozmimenya.ru'
+    ? 'https://api.vozmimenya.ru'
+    : normalizedPageBaseUrl
+}
+
 const countBy = (values: string[]): Map<string, number> => {
   const counts = new Map<string, number>()
   values.forEach((value) => counts.set(value, (counts.get(value) ?? 0) + 1))

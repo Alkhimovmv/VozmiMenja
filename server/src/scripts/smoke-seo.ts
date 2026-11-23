@@ -7,6 +7,7 @@ import { pagesToCheck, requiredCanonicalPaths } from './smoke-seo-config'
 import { validateRawCatalogHtml } from './smoke-seo-catalog'
 import {
   extractEquipmentPathsFromSitemap,
+  resolveEquipmentApiBaseUrl,
   validateCatalogSitemap,
   validateEquipmentSsrHtml,
   type CatalogEquipmentSeoItem,
@@ -17,6 +18,7 @@ const defaultBaseUrl = process.env.NODE_ENV === 'production'
   : 'http://localhost:5173'
 
 const baseUrl = (process.env.SMOKE_BASE_URL || defaultBaseUrl).replace(/\/$/, '')
+const equipmentApiBaseUrl = resolveEquipmentApiBaseUrl(baseUrl, process.env.SMOKE_API_BASE_URL)
 const canonicalOrigin = (process.env.SMOKE_CANONICAL_ORIGIN || 'https://vozmimenya.ru').replace(/\/$/, '')
 const chromeCandidates = [
   process.env.CHROME_PATH,
@@ -160,7 +162,7 @@ async function checkSitemap() {
 
 async function checkAllEquipmentPages() {
   const [catalogResponse, sitemapResponse] = await Promise.all([
-    fetch(`${baseUrl}/api/equipment?limit=200`),
+    fetch(`${equipmentApiBaseUrl}/api/equipment?limit=200`),
     fetch(`${baseUrl}/sitemap.xml`),
   ])
 
@@ -254,6 +256,7 @@ async function checkPage(page: { path: string; canonicalPath: string }, userData
 
 async function smokeSeo() {
   console.log(`🔎 SEO smoke base URL: ${baseUrl}`)
+  console.log(`🔎 Equipment API base URL: ${equipmentApiBaseUrl}`)
   console.log(`🔎 SEO canonical origin: ${canonicalOrigin}`)
   console.log(`🔎 Chrome: ${chromePath}`)
 
