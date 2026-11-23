@@ -147,7 +147,7 @@ export default function SelfServiceBookingPage() {
         source: 'puzzi_booking',
       }
     : null
-  const selectedOffice = offices.find((office) => String(office.id) === formData.officeId) || offices[0]
+  const selectedPickupOffice = offices.find((office) => String(office.id) === formData.officeId) || offices[0]
 
   const rentalDays = calculateBillableRentalDays(
     formData.startDate,
@@ -284,14 +284,14 @@ export default function SelfServiceBookingPage() {
         endDate: formData.endDate,
         startTime: formData.startTime,
         endTime: formData.endTime,
-        officeId: selectedOffice?.id || 1,
-        officeName: selectedOffice?.name,
+        officeId: formData.deliveryMethod === 'pickup' ? selectedPickupOffice?.id : undefined,
+        officeName: formData.deliveryMethod === 'pickup' ? selectedPickupOffice?.name : undefined,
         preferredContact: formData.preferredContact,
         deliveryMethod: formData.deliveryMethod,
         deliveryAddress: formData.deliveryMethod === 'delivery' ? formData.deliveryAddress : '',
         comment: buildComment({
           ...formData,
-          officeName: selectedOffice?.name || '',
+          officeName: formData.deliveryMethod === 'pickup' ? selectedPickupOffice?.name || '' : '',
           selectedEquipmentList,
         }),
         legal: {
@@ -310,8 +310,8 @@ export default function SelfServiceBookingPage() {
         equipment_name: selectedEquipment.name,
         equipment_names: selectedEquipmentItems.map((item) => item.name),
         delivery_method: formData.deliveryMethod,
-        office_id: selectedOffice?.id || 1,
-        office_name: selectedOffice?.name,
+        office_id: formData.deliveryMethod === 'pickup' ? selectedPickupOffice?.id : undefined,
+        office_name: formData.deliveryMethod === 'pickup' ? selectedPickupOffice?.name : undefined,
         total_price: totalPrice,
         total_days: rentalDays,
       })
@@ -327,7 +327,7 @@ export default function SelfServiceBookingPage() {
           startDate: formData.startDate,
           endDate: formData.endDate,
           deliveryMethod: formData.deliveryMethod,
-          officeName: selectedOffice?.name,
+          officeName: formData.deliveryMethod === 'pickup' ? selectedPickupOffice?.name : undefined,
           totalPrice,
           source: 'self_service',
         },
@@ -538,42 +538,55 @@ export default function SelfServiceBookingPage() {
             <div className="rounded-2xl border border-slate-200 p-4">
               <p className="text-sm font-bold text-slate-700">Способ получения *</p>
               <div className="mt-3 grid gap-2 sm:grid-cols-2">
-                <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-slate-200 p-3">
+                <label className={`flex min-h-20 cursor-pointer items-start gap-3 rounded-xl border p-3 ${formData.deliveryMethod === 'pickup' ? 'border-blue-500 bg-blue-50' : 'border-slate-200'}`}>
                   <input type="radio" name="deliveryMethod" value="pickup" checked={formData.deliveryMethod === 'pickup'} onChange={handleChange} />
-                  <span className="font-semibold text-slate-800">Самовывоз / постамат</span>
+                  <span>
+                    <strong className="block text-sm text-slate-900">Самовывоз 24/7 — бесплатно</strong>
+                    <span className="mt-1 block text-xs leading-5 text-slate-600">Заберите и верните технику в выбранном постамате.</span>
+                  </span>
                 </label>
-                <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-slate-200 p-3">
+                <label className={`flex min-h-20 cursor-pointer items-start gap-3 rounded-xl border p-3 ${formData.deliveryMethod === 'delivery' ? 'border-blue-500 bg-blue-50' : 'border-slate-200'}`}>
                   <input type="radio" name="deliveryMethod" value="delivery" checked={formData.deliveryMethod === 'delivery'} onChange={handleChange} />
-                  <span className="font-semibold text-slate-800">Доставка</span>
+                  <span>
+                    <strong className="block text-sm text-slate-900">Доставка к вам и обратно</strong>
+                    <span className="mt-1 block text-xs leading-5 text-slate-600">Курьер привезёт технику и заберёт после аренды.</span>
+                  </span>
                 </label>
               </div>
-              <label className="mt-4 block">
-                <span className="text-sm font-bold text-slate-700">Офис выдачи / возврата *</span>
-                <select
-                  name="officeId"
-                  value={formData.officeId || String(selectedOffice?.id || '')}
-                  onChange={handleChange}
-                  required
-                  className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
-                >
-                  <option value="">{isOfficesLoading ? 'Загружаем офисы...' : 'Выберите офис'}</option>
-                  {offices.map((office) => (
-                    <option key={office.id} value={office.id}>
-                      {formatOfficeLabel(office)}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              {formData.deliveryMethod === 'delivery' && (
-                <textarea
-                  name="deliveryAddress"
-                  value={formData.deliveryAddress}
-                  onChange={handleChange}
-                  rows={3}
-                  required
-                  placeholder="Адрес, подъезд, этаж, удобное время доставки"
-                  className="mt-3 w-full rounded-2xl border border-slate-200 px-4 py-3 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
-                />
+              {formData.deliveryMethod === 'pickup' ? (
+                <label className="mt-4 block">
+                  <span className="text-sm font-bold text-slate-700">Где удобно забрать и вернуть *</span>
+                  <select
+                    name="officeId"
+                    value={formData.officeId || String(selectedPickupOffice?.id || '')}
+                    onChange={handleChange}
+                    required
+                    className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+                  >
+                    <option value="">{isOfficesLoading ? 'Загружаем точки...' : 'Выберите постамат'}</option>
+                    {offices.map((office) => (
+                      <option key={office.id} value={office.id}>
+                        {formatOfficeLabel(office)}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              ) : (
+                <label className="mt-4 block">
+                  <span className="text-sm font-bold text-slate-700">Куда доставить и откуда забрать *</span>
+                  <textarea
+                    name="deliveryAddress"
+                    value={formData.deliveryAddress}
+                    onChange={handleChange}
+                    rows={3}
+                    required
+                    placeholder="Адрес, подъезд, этаж и удобное время"
+                    className="mt-2 w-full rounded-2xl border border-slate-200 px-4 py-3 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+                  />
+                  <span className="mt-2 block text-xs leading-5 text-slate-600">
+                    Ехать в офис не нужно. Доставка туда и обратно оплачивается отдельно по тарифу Яндекс Go.
+                  </span>
+                </label>
               )}
             </div>
 
@@ -641,12 +654,19 @@ export default function SelfServiceBookingPage() {
               </div>
               <div className="flex justify-between gap-4">
                 <span>Получение</span>
-                <strong className="text-right text-slate-900">{formData.deliveryMethod === 'delivery' ? 'Доставка' : 'Самовывоз'}</strong>
+                <strong className="text-right text-slate-900">{formData.deliveryMethod === 'delivery' ? 'К вам и обратно' : 'Самовывоз 24/7'}</strong>
               </div>
-              <div className="flex justify-between gap-4">
-                <span>Офис</span>
-                <strong className="text-right text-slate-900">{formatOfficeLabel(selectedOffice)}</strong>
-              </div>
+              {formData.deliveryMethod === 'pickup' ? (
+                <div className="flex justify-between gap-4">
+                  <span>Постамат</span>
+                  <strong className="text-right text-slate-900">{formatOfficeLabel(selectedPickupOffice)}</strong>
+                </div>
+              ) : formData.deliveryAddress.trim() ? (
+                <div className="flex justify-between gap-4">
+                  <span>Адрес</span>
+                  <strong className="text-right text-slate-900">{formData.deliveryAddress.trim()}</strong>
+                </div>
+              ) : null}
               <div className="border-t border-slate-100 pt-3">
                 <span className="block text-slate-500">Расчёт аренды</span>
                 <strong className="mt-1 block text-3xl font-black text-slate-950">{totalPrice > 0 ? formatPrice(totalPrice) : '—'}</strong>
@@ -658,7 +678,7 @@ export default function SelfServiceBookingPage() {
               <p className="font-bold text-slate-900">Что будет после отправки</p>
               <ol className="mt-2 list-decimal space-y-1 pl-5">
                 <li>Заявка появится у менеджера.</li>
-                <li>Мы уточним комплект и удобный офис выдачи.</li>
+                <li>{formData.deliveryMethod === 'delivery' ? 'Мы уточним комплект и время доставки.' : 'Мы подготовим комплект в выбранном постамате.'}</li>
                 <li>Менеджер свяжется с вами и подтвердит бронь.</li>
               </ol>
             </div>

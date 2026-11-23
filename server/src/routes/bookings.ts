@@ -13,6 +13,7 @@ import { calculateBillableRentalDays, createBookingSchema, getBookingEquipmentId
 import { publicLeadRateLimiter } from '../middleware/publicLeadGuard'
 import { canAccessOffice, filterByOfficeAccess } from '../middleware/userFilter'
 import { normalizeLeadScenario } from '../domain/leadAttribution'
+import { resolveDeliveryOfficeId } from '../domain/bookingOffice'
 
 const router = Router()
 
@@ -102,7 +103,30 @@ router.post('/', publicLeadRateLimiter, async (req: Request, res: Response) => {
       })
     }
 
-    const requestedOfficeId = validatedData.officeId || 1
+    let requestedOfficeId = validatedData.officeId
+
+    if (!requestedOfficeId && validatedData.deliveryMethod === 'delivery') {
+      const placeholders = equipmentIds.map(() => '?').join(', ')
+      const deliveryOfficeCandidates = await database.all(`
+        SELECT
+          re.office_id AS officeId,
+          COUNT(DISTINCT re.catalog_equipment_id) AS matchedEquipment,
+          SUM(re.quantity) AS totalQuantity
+        FROM rental_equipment re
+        INNER JOIN offices o ON o.id = re.office_id
+        WHERE re.catalog_equipment_id IN (${placeholders})
+          AND re.office_id IS NOT NULL
+        GROUP BY re.office_id
+      `, equipmentIds) as Array<{
+        officeId: number
+        matchedEquipment: number
+        totalQuantity: number
+      }>
+
+      requestedOfficeId = resolveDeliveryOfficeId(deliveryOfficeCandidates)
+    }
+
+    requestedOfficeId ||= 1
     const office = await database.get('SELECT id, name, address FROM offices WHERE id = ?', [requestedOfficeId])
     if (!office) {
       return res.status(400).json({
