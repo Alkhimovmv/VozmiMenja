@@ -5,6 +5,12 @@ import path from 'path'
 import { existsSync } from 'fs'
 import { pagesToCheck, requiredCanonicalPaths } from './smoke-seo-config'
 import { validateRawCatalogHtml } from './smoke-seo-catalog'
+import {
+  extractEquipmentPathsFromSitemap,
+  validateCatalogSitemap,
+  validateEquipmentSsrHtml,
+  type CatalogEquipmentSeoItem,
+} from './smoke-seo-equipment'
 
 const defaultBaseUrl = process.env.NODE_ENV === 'production'
   ? 'https://vozmimenya.ru'
@@ -152,6 +158,38 @@ async function checkSitemap() {
   console.log(`✅ sitemap.xml contains ${requiredCanonicalPaths.length} key canonical URLs`)
 }
 
+async function checkAllEquipmentPages() {
+  const [catalogResponse, sitemapResponse] = await Promise.all([
+    fetch(`${baseUrl}/api/equipment?limit=200`),
+    fetch(`${baseUrl}/sitemap.xml`),
+  ])
+
+  if (!catalogResponse.ok) {
+    throw new Error(`equipment catalog returned ${catalogResponse.status}`)
+  }
+  if (!sitemapResponse.ok) {
+    throw new Error(`sitemap.xml returned ${sitemapResponse.status}`)
+  }
+
+  const payload = await catalogResponse.json() as { data?: CatalogEquipmentSeoItem[] }
+  const items = payload.data ?? []
+  if (items.length === 0) throw new Error('equipment catalog returned no items')
+
+  const sitemap = await sitemapResponse.text()
+  const equipmentPaths = extractEquipmentPathsFromSitemap(sitemap)
+  validateCatalogSitemap(items, equipmentPaths)
+
+  for (const item of items) {
+    const response = await fetch(`${baseUrl}/equipment/${encodeURIComponent(item.slug)}`)
+    if (!response.ok) {
+      throw new Error(`${item.slug}: product page returned ${response.status}`)
+    }
+    validateEquipmentSsrHtml(await response.text(), item, canonicalOrigin)
+  }
+
+  console.log(`✅ Equipment SEO: ${items.length} catalog pages match sitemap and raw SSR`)
+}
+
 async function checkStaticCatalog(page: { path: string; minProducts: number }) {
   const url = absoluteUrl(page.path)
   const response = await fetch(url)
@@ -226,6 +264,7 @@ async function smokeSeo() {
   }
 
   await checkSitemap()
+  await checkAllEquipmentPages()
 
   for (const page of staticCatalogPages) {
     await checkStaticCatalog(page)
