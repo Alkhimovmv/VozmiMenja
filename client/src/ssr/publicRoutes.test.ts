@@ -11,7 +11,7 @@ test('resolves public, dynamic, admin and missing routes', () => {
     kind: 'article', slug: 'test-article', cacheable: true,
   })
   assert.deepEqual(resolvePublicRoute('/admin/rentals'), { kind: 'admin' })
-  assert.equal(resolvePublicRoute('/booking').cacheable, false)
+  assert.deepEqual(resolvePublicRoute('/booking'), { kind: 'page', path: '/booking', cacheable: false })
   assert.deepEqual(resolvePublicRoute('/missing-page'), { kind: 'not-found', cacheable: false })
 })
 

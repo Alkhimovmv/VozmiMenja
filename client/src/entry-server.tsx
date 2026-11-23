@@ -1,6 +1,6 @@
 import { dehydrate, QueryClientProvider } from '@tanstack/react-query'
 import { StaticRouter } from 'react-router'
-import { HelmetProvider } from 'react-helmet-async'
+import { HelmetProvider, type HelmetServerState } from 'react-helmet-async'
 import App from './App'
 import { createAppQueryClient } from './query/queryClient'
 import { prefetchPublicRoute } from './ssr/prefetchRoute'
@@ -29,7 +29,7 @@ export async function renderPage(url: string): Promise<SsrPageResult> {
   const queryClient = createAppQueryClient(true)
   const { status } = await prefetchPublicRoute(queryClient, route)
   const nowIso = new Date().toISOString()
-  const helmetContext: { helmet?: Record<string, { toString(): string }> } = {}
+  const helmetContext: { helmet?: HelmetServerState } = {}
   const rendered = await renderBufferedStream(
     <HelmetProvider context={helmetContext}>
       <QueryClientProvider client={queryClient}>

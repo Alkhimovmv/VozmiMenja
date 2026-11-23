@@ -30,7 +30,7 @@ test('prefetches the home page queries consumed by React', async () => {
     getCategoryCounts: apiClient.getCategoryCounts,
     getRecent: articlesApi.getRecent,
   }
-  apiClient.getEquipment = async (params) => ({ success: true, data: [], total: 0, page: params?.page || 1, limit: params?.limit || 10 })
+  apiClient.getEquipment = async (params) => ({ success: true, data: [], total: 0, totalPages: 0, page: params?.page || 1, limit: params?.limit || 10 })
   apiClient.getEquipmentStats = async () => ({ success: true, data: { totalEquipment: 0, totalCategories: 0 } })
   apiClient.getCategoryCounts = async () => ({ success: true, data: {} })
   articlesApi.getRecent = async () => []
@@ -55,7 +55,7 @@ test('prefetches equipment details and related items', async () => {
     success: true,
     data: { id, slug: id, name: 'Puzzi', category: 'Пылесосы' },
   } as Awaited<ReturnType<typeof apiClient.getEquipmentById>>)
-  apiClient.getEquipment = async (params) => ({ success: true, data: [], total: 0, page: 1, limit: params?.limit || 10 })
+  apiClient.getEquipment = async (params) => ({ success: true, data: [], total: 0, totalPages: 0, page: 1, limit: params?.limit || 10 })
 
   try {
     const queryClient = createAppQueryClient(true)
