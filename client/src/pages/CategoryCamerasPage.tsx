@@ -213,6 +213,9 @@ export default function CategoryCamerasPage() {
               <Link to="/arenda-tehniki-na-mesyac-moskva" className="px-4 py-2 bg-[#F8FAFC] text-gray-700 rounded-xl text-sm font-semibold border border-gray-100 hover:text-[#2563EB] transition-colors">
                 Камера на месяц — дешевле за сутки
               </Link>
+              <Link to="/arenda-kamery-dlya-puteshestviya-vloga-moskva" className="px-4 py-2 bg-[#F8FAFC] text-gray-700 rounded-xl text-sm font-semibold border border-gray-100 hover:text-[#2563EB] transition-colors">
+                Камера для поездки и влога
+              </Link>
             </div>
           </div>
         </div>
