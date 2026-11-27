@@ -28,10 +28,23 @@ const equipment = {
 }
 const article = {
   id: 1, title: 'Как выбрать технику в аренду', slug: 'test-article',
-  excerpt: 'Практический гид по выбору оборудования.', content: '## Выбор техники\n\nОпределите задачу.',
+  excerpt: 'Практический гид по выбору оборудования.',
+  content: '## Выбор техники\n\n[Забронировать Puzzi](/booking?equipment=karcher-puzzi-8-1)',
   image_url: null, category: 'Общее', tags: 'аренда,техника', author: 'ВозьмиМеня',
   published: true, views: 10, created_at: '2026-11-01T00:00:00.000Z', updated_at: '2026-11-01T00:00:00.000Z',
 }
+const karaoke = {
+  ...article,
+  id: 2,
+  slug: 'test-karaoke',
+  title: 'Караоке дома',
+  content: '[Забронировать PartyBox 320 с микрофонами](/booking?equipment=jbl-partybox-320,jbl-partybox-wireless-microphones)',
+}
+const bookingEquipment = [
+  equipment,
+  { ...equipment, id: 'test-jbl-partybox-320', slug: 'jbl-partybox-320', name: 'JBL Partybox 320', category: 'Аудиооборудование' },
+  { ...equipment, id: 'jbl-partybox-wireless-microphones', slug: 'mikrofony-jbl', name: 'Микрофоны JBL', category: 'Аудиооборудование' },
+]
 
 const json = (response, payload, status = 200) => {
   response.writeHead(status, { 'Content-Type': 'application/json' })
@@ -44,7 +57,7 @@ function createMockApi() {
     if (url.pathname === '/api/equipment/stats') return json(response, { success: true, data: { totalEquipment: 1, totalCategories: 1 } })
     if (url.pathname === '/api/equipment/categories/counts') return json(response, { success: true, data: { [equipment.category]: 1 } })
     if (url.pathname === `/api/equipment/${equipment.id}`) return json(response, { success: true, data: equipment })
-    if (url.pathname === '/api/equipment') return json(response, { data: [equipment], total: 1, page: 1, limit: Number(url.searchParams.get('limit') || 12), totalPages: 1 })
+    if (url.pathname === '/api/equipment') return json(response, { data: bookingEquipment, total: bookingEquipment.length, page: 1, limit: Number(url.searchParams.get('limit') || 12), totalPages: 1 })
     if (url.pathname === '/api/offices') return json(response, { success: true, data: [
       { id: 1, name: 'Волжская', address: 'Москва, Волжский бульвар, 51с15' },
       { id: 2, name: 'Динамо', address: 'Москва, улица Расковой, 1' },
@@ -55,6 +68,7 @@ function createMockApi() {
       return
     }
     if (url.pathname === `/api/articles/slug/${article.slug}`) return json(response, article)
+    if (url.pathname === `/api/articles/slug/${karaoke.slug}`) return json(response, karaoke)
     if (url.pathname === '/api/articles' || url.pathname.startsWith('/api/articles/popular') || url.pathname.startsWith('/api/articles/recent')) return json(response, [article])
     return json(response, { message: 'not found' }, 404)
   })
@@ -83,6 +97,11 @@ const instrumentation = `<script>
   if (location.pathname === '/') {
     setTimeout(() => document.querySelector('a[href="/blog"]')?.click(), 1000);
   }
+  const articleSlug = location.pathname.split('/')[2];
+  if (['test-article', 'test-karaoke'].includes(articleSlug)) {
+    window.dataLayer ||= [];
+    setTimeout(() => document.querySelector('a[href^="/booking?equipment="]')?.click(), 1000);
+  }
   setTimeout(() => {
     document.documentElement.dataset.hydrationErrors = JSON.stringify(errors);
     document.documentElement.dataset.hydrationReady = String(Boolean(document.querySelector('#root h1')));
@@ -90,6 +109,11 @@ const instrumentation = `<script>
     document.documentElement.dataset.cookieBanner = String(document.body.textContent.includes('Мы используем cookie'));
     document.documentElement.dataset.whatsapp = String(Boolean(document.querySelector('a[href^="https://wa.me/"]')));
     document.documentElement.dataset.bookingForm = String(Boolean(document.querySelector('form')));
+    document.documentElement.dataset.viewportWidth = String(innerWidth);
+    document.documentElement.dataset.bookingSelected = Array.from(document.querySelectorAll('form select option:disabled')).map(option => option.value).join(',');
+    const click = (window.dataLayer || []).find(item => item?.event === 'booking_cta_click');
+    document.documentElement.dataset.bookingArticleSlug = click?.article_slug || '';
+    document.documentElement.dataset.bookingEquipment = click?.equipment || '';
   }, 3500);
 })();
 </script>`
@@ -104,6 +128,21 @@ function createGateway({ apiOrigin, ssrOrigin }) {
   return createServer(async (request, response) => {
     try {
       const url = new URL(request.url || '/', 'http://127.0.0.1')
+      if (url.pathname === '/__mobile-smoke') {
+        response.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' })
+        const articlePath = url.searchParams.get('kit') ? '/blog/test-karaoke' : '/blog/test-article'
+        response.end(`<!doctype html><iframe width="390" height="844" src="${articlePath}"></iframe><script>
+          const frame = document.querySelector('iframe');
+          let interval = setInterval(() => {
+            const data = frame.contentDocument?.documentElement?.dataset;
+            if (data?.viewportWidth) {
+              Object.assign(document.documentElement.dataset, data);
+              clearInterval(interval);
+            }
+          }, 100);
+        </script>`)
+        return
+      }
       if (url.pathname.startsWith('/api/')) {
         const chunks = []
         for await (const chunk of request) chunks.push(chunk)
@@ -234,6 +273,20 @@ async function main() {
     assert.equal(attribute(booking, 'data-hydration-ready'), 'true')
     assert.equal(attribute(booking, 'data-booking-form'), 'true')
 
+    for (const [url, slug, ids, selected, width] of [
+      ['/blog/test-article', 'test-article', 'karcher-puzzi-8-1', 'karcher-puzzi-8-1', undefined],
+      ['/__mobile-smoke?kit=1', 'test-karaoke', 'jbl-partybox-320,jbl-partybox-wireless-microphones', 'jbl-partybox-wireless-microphones,test-jbl-partybox-320', '390'],
+    ]) {
+      const page = await dumpDom(`${origin}${url}`)
+      assert.equal(attribute(page, 'data-hydration-errors'), '[]', url)
+      assert.equal(attribute(page, 'data-spa-path'), '/booking', url)
+      assert.equal(attribute(page, 'data-booking-form'), 'true', url)
+      assert.equal(attribute(page, 'data-booking-article-slug'), slug, url)
+      assert.equal(attribute(page, 'data-booking-equipment'), ids, url)
+      assert.deepEqual(attribute(page, 'data-booking-selected')?.split(',').sort(), selected.split(',').sort(), url)
+      if (width) assert.equal(attribute(page, 'data-viewport-width'), width, url)
+    }
+
     for (const route of [
       '/arenda-karaoke-komplekta-moskva',
       '/arenda-moyushchego-pylesosa-dlya-divana-kovra-moskva',
@@ -246,7 +299,7 @@ async function main() {
 
     const rssMb = process.memoryUsage().rss / 1024 / 1024
     assert.ok(rssMb < 256, `SSR smoke process exceeded 256MB RSS (${rssMb.toFixed(1)}MB)`)
-    process.stdout.write(`SSR browser hydration smoke passed; max local TTFB ${Math.max(...timings).toFixed(1)}ms; RSS ${rssMb.toFixed(1)}MB\n`)
+    process.stdout.write(`SSR hydration and article booking passed (Puzzi desktop, karaoke 390px, booking_cta_click); max local TTFB ${Math.max(...timings).toFixed(1)}ms; RSS ${rssMb.toFixed(1)}MB\n`)
   } finally {
     await Promise.all([close(gateway), close(ssr), close(api)])
     delete process.env.SSR_API_URL
