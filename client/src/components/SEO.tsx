@@ -12,6 +12,7 @@ const [primaryOffice] = business.offices
 interface SEOProps {
   title?: string
   description?: string
+  useRouteMetadata?: boolean
   keywords?: string
   image?: string
   url?: string
@@ -33,6 +34,7 @@ function fitSiteTitle(title: string) {
 export default function SEO({
   title = 'ВозьмиМеня - Аренда профессионального оборудования в Москве',
   description = 'Аренда техники в Москве: колонки JBL, экшн-камеры, моющие и строительные пылесосы, пароочистители. Постамат 24/7 у м. Волжская и м. Динамо, доставка по Москве.',
+  useRouteMetadata = true,
   keywords = 'аренда техники Москва, прокат колонок JBL, аренда GoPro, аренда пылесоса Karcher, аренда пароочистителя, прокат техники Москва',
   image = business.image,
   url = 'https://vozmimenya.ru/',
@@ -41,7 +43,7 @@ export default function SEO({
   structuredData
 }: SEOProps) {
   const { pathname } = useLocation()
-  const shared = sharedSeo[pathname.replace(/\/+$/, '') || '/']
+  const shared = useRouteMetadata ? sharedSeo[pathname.replace(/\/+$/, '') || '/'] : undefined
   if (shared) {
     title = shared.title
     description = shared.description

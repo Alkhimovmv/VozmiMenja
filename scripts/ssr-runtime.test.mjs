@@ -237,6 +237,25 @@ test('built runtime returns SEO-complete HTML, safe state and failure status', a
   assert.doesNotMatch(homeHtml, /Коротко о сервисе/)
   assert.doesNotMatch(homeHtml, /Цены на аренду техники/)
 
+  const htmlHead = (html) => html.split('</head>')[0]
+  const homeTitle = htmlHead(homeHtml).match(/<title[^>]*>([^<]+)<\/title>/)?.[1]
+  assert.match(homeTitle, /^Техника напрокат в Москве/)
+  const utmHome = await fetch(`${origin}/?utm_source=yandex`)
+  assert.ok(htmlHead(await utmHome.text()).includes(`>${homeTitle}</title>`))
+
+  for (const [category, canonical, title, description] of [
+    ['Камеры', '/arenda-gopro-moskva', 'Аренда камер в Москве', 'Каталог камер в аренду'],
+    ['Пылесосы, уборка и клининг', '/arenda-pylesosov-moskva', 'Аренда пылесосов и клининговой техники', 'Каталог клининговой техники'],
+    ['Аудиооборудование', '/arenda-audiooborudovaniya-moskva', 'Аренда аудиооборудования в Москве', 'Каталог аудиооборудования'],
+  ]) {
+    const filtered = await fetch(`${origin}/?category=${encodeURIComponent(category)}&utm_source=yandex`)
+    const head = htmlHead(await filtered.text())
+    assert.equal(filtered.status, 200, category)
+    assert.ok(head.includes(`rel="canonical" href="https://vozmimenya.ru${canonical}"`), category)
+    assert.match(head, new RegExp(`<title[^>]*>${title}`), category)
+    assert.ok(head.includes(`name="description" content="${description}`), category)
+  }
+
   api.close()
   await once(api, 'close')
   const unavailable = await fetch(`${origin}/equipment/karcher-puzzi-8-1`)

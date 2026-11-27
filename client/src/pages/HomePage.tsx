@@ -207,6 +207,7 @@ export default function HomePage() {
       <SEO
         title={seoTitle}
         description={seoDescription}
+        useRouteMetadata={!categorySeo}
         url={seoUrl}
       />
 
