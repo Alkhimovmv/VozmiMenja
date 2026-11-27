@@ -181,20 +181,24 @@ export default function HomePage() {
   }
   const handleSearchChange = (s: string) => updateSearchParams({ search: s, page: '1', category })
 
-  const categorySeo = category ? CATEGORY_SEO[category] : undefined
+  // SEO читает фильтры из URL на первом рендере, а не из состояния, которое заполняется в useEffect:
+  // иначе сырой SSR-HTML отдаёт canonical «/» для /?category=… (см. server smoke-seo-config).
+  const seoCategory = searchParams.get('category') || ''
+  const seoSearch = searchParams.get('search') || ''
+  const categorySeo = seoCategory ? CATEGORY_SEO[seoCategory] : undefined
   const seoTitle = categorySeo
     ? categorySeo.title
-    : category
-    ? `Аренда ${category} в Москве — цены, доставка 24/7`
-    : search
-    ? `Аренда ${search} в Москве | ВозьмиМеня`
+    : seoCategory
+    ? `Аренда ${seoCategory} в Москве — цены, доставка 24/7`
+    : seoSearch
+    ? `Аренда ${seoSearch} в Москве | ВозьмиМеня`
     : seoMeta['/'].title
   const seoDescription = categorySeo
     ? categorySeo.description
-    : category
-    ? `Прокат ${category} в Москве. Подберем модель под задачу, срок и способ получения. Бронь онлайн или через Telegram.`
-    : search
-    ? `Аренда ${search} в Москве. Доставка в день заказа, постамат 24/7, без залога при прописке в Москве и МО. Быстрый подбор в Telegram.`
+    : seoCategory
+    ? `Прокат ${seoCategory} в Москве. Подберем модель под задачу, срок и способ получения. Бронь онлайн или через Telegram.`
+    : seoSearch
+    ? `Аренда ${seoSearch} в Москве. Доставка в день заказа, постамат 24/7, без залога при прописке в Москве и МО. Быстрый подбор в Telegram.`
     : seoMeta['/'].description
   const seoUrl = categorySeo?.canonicalUrl || 'https://vozmimenya.ru/'
 
