@@ -971,6 +971,16 @@ const articlePriceRefreshes: BlogArticleRefresh[] = [
   },
 ]
 
+type ArticleText = Pick<BlogArticleSeed, 'title' | 'content' | 'excerpt'>
+
+function refreshArticleText(article: ArticleText, rules: BlogArticleFactRefresh[]): ArticleText {
+  return rules.reduce<ArticleText>((text, rule) => ({
+    title: rule.title && text.title === rule.title.from ? rule.title.to : text.title,
+    content: applyArticleRefresh(text.content, rule.replacements),
+    excerpt: applyArticleRefresh(text.excerpt, rule.excerptReplacements || []),
+  }), article)
+}
+
 async function seedBlogGrowthArticles() {
   const db = new sqlite3.Database(dbPath)
   const run = (sql: string, params: unknown[] = []) => new Promise<void>((resolve, reject) => {
@@ -988,8 +998,18 @@ async function seedBlogGrowthArticles() {
 
   try {
     console.log('🔄 Добавление SEO-статей для роста блога...')
+    const allRefreshes: BlogArticleFactRefresh[] = [...articleRefreshes, ...articlePriceRefreshes, ...articleFactRefreshes]
+    const refreshesBySlug = new Map<string, BlogArticleFactRefresh[]>()
+    for (const refresh of allRefreshes) {
+      const rules = refreshesBySlug.get(refresh.slug) || []
+      rules.push(refresh)
+      refreshesBySlug.set(refresh.slug, rules)
+    }
 
     for (const article of [...articles, ...novemberArticles, ...novemberArticlesB]) {
+      // Сравниваем с БД окончательный текст, чтобы не перезаписывать его промежуточной версией.
+      const text = refreshArticleText(article, refreshesBySlug.get(article.slug) || [])
+      refreshesBySlug.delete(article.slug)
       await run(`
         INSERT INTO articles (
           title, slug, excerpt, content, image_url, category, tags, author, published
@@ -1012,10 +1032,10 @@ async function seedBlogGrowthArticles() {
           OR articles.tags IS NOT excluded.tags
           OR articles.published IS NOT excluded.published
       `, [
-        article.title,
+        text.title,
         article.slug,
-        article.excerpt,
-        article.content,
+        text.excerpt,
+        text.content,
         article.imageUrl,
         article.category,
         article.tags,
@@ -1029,20 +1049,15 @@ async function seedBlogGrowthArticles() {
     console.log(`✅ Готово: обработано статей ${articles.length + novemberArticles.length + novemberArticlesB.length}`)
 
     console.log('🔄 Обновление внутренней перелинковки старых статей...')
-    // Правила применяются идемпотентно (см. domain/articleRefresh): дата обновления меняется,
-    // только если текст реально изменился, а накопленные ранее повторы абзацев схлопываются.
     let refreshedArticles = 0
-    const allRefreshes: BlogArticleFactRefresh[] = [...articleRefreshes, ...articlePriceRefreshes, ...articleFactRefreshes]
-    for (const refresh of allRefreshes) {
-      const row = await get<{ title: string; content: string; excerpt: string }>('SELECT title, content, excerpt FROM articles WHERE slug = ?', [refresh.slug])
+    for (const [slug, rules] of refreshesBySlug) {
+      const row = await get<ArticleText>('SELECT title, content, excerpt FROM articles WHERE slug = ?', [slug])
       if (!row) continue
-      const nextTitle = refresh.title && row.title === refresh.title.from ? refresh.title.to : row.title
-      const nextContent = applyArticleRefresh(row.content, refresh.replacements)
-      const nextExcerpt = applyArticleRefresh(row.excerpt, refresh.excerptReplacements || [])
-      if (nextTitle === row.title && nextContent === row.content && nextExcerpt === row.excerpt) continue
-      await run('UPDATE articles SET title = ?, content = ?, excerpt = ?, updated_at = CURRENT_TIMESTAMP WHERE slug = ?', [nextTitle, nextContent, nextExcerpt, refresh.slug])
+      const text = refreshArticleText(row, rules)
+      if (text.title === row.title && text.content === row.content && text.excerpt === row.excerpt) continue
+      await run('UPDATE articles SET title = ?, content = ?, excerpt = ?, updated_at = CURRENT_TIMESTAMP WHERE slug = ?', [text.title, text.content, text.excerpt, slug])
       refreshedArticles++
-      console.log(`   обновлена статья ${refresh.slug}: ${row.content.length} → ${nextContent.length} символов`)
+      console.log(`   обновлена статья ${slug}: ${row.content.length} → ${text.content.length} символов`)
     }
     console.log(`✅ Обновлено статей: ${refreshedArticles}`)
     console.log(`✅ Готово: проверено refresh-правил ${allRefreshes.length}`)
